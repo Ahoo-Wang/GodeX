@@ -43,14 +43,22 @@ const PLATFORMS = [
 
 const args = process.argv.slice(2);
 const buildAll = args.includes("--all");
+const targetFlag = args
+  .find((a) => a.startsWith("--target="))
+  ?.split("=")[1];
 
-const targets = buildAll
-  ? PLATFORMS
-  : PLATFORMS.filter((p) => {
-      const os = process.platform;
-      const arch = process.arch;
-      return p.flag === `${os}-${arch}`;
-    });
+let targets: typeof PLATFORMS[number][];
+if (targetFlag) {
+  targets = PLATFORMS.filter((p) => p.flag === targetFlag);
+} else if (buildAll) {
+  targets = [...PLATFORMS];
+} else {
+  targets = PLATFORMS.filter((p) => {
+    const os = process.platform;
+    const arch = process.arch;
+    return p.flag === `${os}-${arch}`;
+  });
+}
 
 if (targets.length === 0) {
   console.error(
