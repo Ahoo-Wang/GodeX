@@ -21,7 +21,7 @@ function detectPlatform() {
 function findBinary(pkgName, platform) {
   const binaryName = platform.startsWith("win32") ? "godex.exe" : "godex";
 
-  // 1. Production: optional dep installed by npm
+  // 1. Production: optional dep installed by npm/pnpm/yarn
   try {
     const pkgRoot = path.dirname(
       require.resolve(pkgName + "/package.json", {

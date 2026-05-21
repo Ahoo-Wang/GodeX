@@ -6,8 +6,19 @@ import { spawnSync } from "node:child_process";
 import { accessSync, constants } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+
+function detectPlatform() {
+  const plat = process.platform;
+  const arch = process.arch;
+  if (plat === "win32") return `win32-${arch}`;
+  if (plat === "darwin") return `darwin-${arch}`;
+  if (plat === "linux") return `linux-${arch}`;
+  return null;
+}
 
 function findBinary() {
   // Binary is copied here by postinstall
@@ -16,8 +27,24 @@ function findBinary() {
     accessSync(nextToWrapper, constants.X_OK);
     return nextToWrapper;
   } catch {
-    // not found, try dev fallback
+    // not found
   }
+
+  // Try resolving from the optional dependency (works with npm, yarn, and pnpm)
+  const platform = detectPlatform();
+  if (platform) {
+    const binaryName = platform.startsWith("win32") ? "godex.exe" : "godex";
+    const pkgName = `@ahoo-wang/godex-${platform}`;
+    try {
+      const pkgRoot = dirname(require.resolve(`${pkgName}/package.json`));
+      const binary = join(pkgRoot, "bin", binaryName);
+      accessSync(binary, constants.X_OK);
+      return binary;
+    } catch {
+      // platform package not installed or binary missing
+    }
+  }
+
   // Dev fallback — when running from source without postinstall
   try {
     const devPath = join(__dirname, "..", "dist", "index.js");
