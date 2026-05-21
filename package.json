@@ -38,6 +38,7 @@
     "test:coverage": "bun test --path-ignore-patterns 'src/e2e/**' --coverage",
     "check": "bun run typecheck && bun run lint && bun run test",
     "ci": "bun run typecheck && biome ci src && bun run test && bun run test:e2e",
+    "version": "bun run scripts/version.ts",
     "postinstall": "node scripts/install.cjs"
   },
   "engines": {
