@@ -8,9 +8,6 @@ permissions:
   contents: read
   id-token: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   checks:
     name: Typecheck, lint, test, and mock e2e
