@@ -2,6 +2,7 @@
 
 OpenAI Responses API gateway — translates `/v1/responses` into upstream Chat Completions API calls, so **any LLM provider can drive Codex**.
 
+[![codecov](https://codecov.io/gh/Ahoo-Wang/Godex/graph/badge.svg?token=dJQrmUAiXu)](https://codecov.io/gh/Ahoo-Wang/Godex)
 [![Bun](https://img.shields.io/badge/runtime-bun-f9f1e0?logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/lang-typescript-3178c6?logo=typescript)](https://www.typescriptlang.org/)
 
