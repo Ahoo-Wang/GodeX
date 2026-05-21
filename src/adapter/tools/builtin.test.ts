@@ -49,6 +49,122 @@ describe("builtin function definitions", () => {
 		);
 	});
 
+	test("keeps model-facing descriptions action-oriented", () => {
+		expect(SHELL_TOOL_DEFINITION.description).toStartWith(
+			"Run non-interactive terminal commands",
+		);
+		expect(SHELL_TOOL_DEFINITION.description).not.toContain(
+			"compatibility tool",
+		);
+		expect(SHELL_TOOL_DEFINITION.description).toContain(
+			"Use apply_patch for source edits",
+		);
+		expect(
+			SHELL_TOOL_DEFINITION.parameters.properties.commands.description,
+		).toContain("non-interactive");
+		expect(
+			SHELL_TOOL_DEFINITION.parameters.properties.timeout_ms.description,
+		).toContain("hint");
+		expect(
+			SHELL_TOOL_DEFINITION.parameters.properties.max_output_length.description,
+		).toContain("diagnose failures");
+
+		expect(LOCAL_SHELL_TOOL_DEFINITION.description).toStartWith(
+			"Run exactly one local executable",
+		);
+		expect(LOCAL_SHELL_TOOL_DEFINITION.description).not.toContain(
+			"compatibility tool",
+		);
+		expect(
+			LOCAL_SHELL_TOOL_DEFINITION.parameters.properties.command.description,
+		).toContain("already split");
+		expect(
+			LOCAL_SHELL_TOOL_DEFINITION.parameters.properties.timeout_ms.description,
+		).toContain("host runtime");
+
+		expect(APPLY_PATCH_TOOL_DEFINITION.description).toStartWith(
+			"Edit files with a structured patch operation",
+		);
+		expect(APPLY_PATCH_TOOL_DEFINITION.description).not.toContain(
+			"compatibility tool",
+		);
+		const applyPatchOperationSchema = APPLY_PATCH_TOOL_DEFINITION.parameters
+			.properties.operation as {
+			description: string;
+			oneOf: Array<{
+				properties: {
+					diff?: { description: string };
+				};
+			}>;
+		};
+		expect(applyPatchOperationSchema.description).toContain(
+			"create_file, update_file, or delete_file",
+		);
+		expect(
+			applyPatchOperationSchema.oneOf[0]?.properties.diff?.description,
+		).toContain("full file contents");
+		expect(
+			applyPatchOperationSchema.oneOf[1]?.properties.diff?.description,
+		).toContain("not a shell patch command");
+	});
+
+	test("uses JSON Schema constraints to prevent obvious invalid arguments", () => {
+		expect(SHELL_TOOL_DEFINITION.parameters.properties.commands).toMatchObject({
+			type: "array",
+			minItems: 1,
+		});
+		expect(
+			SHELL_TOOL_DEFINITION.parameters.properties.timeout_ms,
+		).toMatchObject({
+			type: "number",
+			minimum: 1,
+		});
+		expect(
+			SHELL_TOOL_DEFINITION.parameters.properties.max_output_length,
+		).toMatchObject({
+			type: "number",
+			minimum: 1,
+		});
+
+		expect(
+			LOCAL_SHELL_TOOL_DEFINITION.parameters.properties.command,
+		).toMatchObject({
+			type: "array",
+			minItems: 1,
+		});
+		expect(
+			LOCAL_SHELL_TOOL_DEFINITION.parameters.properties.timeout_ms,
+		).toMatchObject({
+			type: "number",
+			minimum: 1,
+		});
+
+		const applyPatchOperationSchema = APPLY_PATCH_TOOL_DEFINITION.parameters
+			.properties.operation as {
+			oneOf: Array<{
+				properties: {
+					path: { minLength?: number };
+					diff?: { minLength?: number };
+				};
+			}>;
+		};
+		expect(applyPatchOperationSchema.oneOf[0]?.properties.path).toMatchObject({
+			minLength: 1,
+		});
+		expect(applyPatchOperationSchema.oneOf[0]?.properties.diff).toMatchObject({
+			minLength: 1,
+		});
+		expect(applyPatchOperationSchema.oneOf[1]?.properties.path).toMatchObject({
+			minLength: 1,
+		});
+		expect(applyPatchOperationSchema.oneOf[1]?.properties.diff).toMatchObject({
+			minLength: 1,
+		});
+		expect(applyPatchOperationSchema.oneOf[2]?.properties.path).toMatchObject({
+			minLength: 1,
+		});
+	});
+
 	test("looks up built-in function tool definitions by tool type", () => {
 		const localShell = getBuiltinFunctionToolDefinition("local_shell");
 		expect(localShell?.description).toContain("Use shell");
