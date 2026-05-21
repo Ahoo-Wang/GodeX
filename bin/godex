@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+// Wrapper that execs the platform-specific native binary installed by postinstall.
+// Uses ESM syntax because package.json has "type": "module".
+
+import { spawnSync } from "node:child_process";
+import { accessSync, constants } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function findBinary() {
+  // Binary is copied here by postinstall
+  const nextToWrapper = join(__dirname, "godex-binary");
+  try {
+    accessSync(nextToWrapper, constants.X_OK);
+    return nextToWrapper;
+  } catch {
+    // not found, try dev fallback
+  }
+  // Dev fallback — when running from source without postinstall
+  try {
+    const devPath = join(__dirname, "..", "dist", "index.js");
+    accessSync(devPath);
+    return devPath;
+  } catch {
+    // not found
+  }
+  return null;
+}
+
+const binary = findBinary();
+if (!binary) {
+  console.error(
+    "godex: binary not found. Re-run npm install or build from source.",
+  );
+  process.exit(1);
+}
+
+// If it's a .js file (dev fallback), spawn with bun
+if (binary.endsWith(".js")) {
+  const result = spawnSync("bun", [binary, ...process.argv.slice(2)], {
+    stdio: "inherit",
+  });
+  process.exit(result.status ?? 1);
+}
+
+// Native binary — direct exec
+const result = spawnSync(binary, process.argv.slice(2), { stdio: "inherit" });
+process.exit(result.status ?? 1);

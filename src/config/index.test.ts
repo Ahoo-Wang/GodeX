@@ -1,0 +1,116 @@
+// src/config/index.test.ts
+import { describe, expect, test } from "bun:test";
+import { buildConfig, resolveEnvVars } from ".";
+
+describe("resolveEnvVars", () => {
+	test("replaces ${VAR} with environment value", () => {
+		process.env.TEST_KEY = "secret123";
+		expect(resolveEnvVars("Bearer ${TEST_KEY}")).toBe("Bearer secret123");
+		delete process.env.TEST_KEY;
+	});
+
+	test("leaves unresolved vars as-is", () => {
+		expect(resolveEnvVars("${MISSING_VAR}")).toBe("${MISSING_VAR}");
+	});
+
+	test("handles string without variables", () => {
+		expect(resolveEnvVars("plain-text")).toBe("plain-text");
+	});
+
+	test("replaces multiple vars in one string", () => {
+		process.env.HOST = "example.com";
+		process.env.PORT = "8080";
+		expect(resolveEnvVars("${HOST}:${PORT}")).toBe("example.com:8080");
+		delete process.env.HOST;
+		delete process.env.PORT;
+	});
+});
+
+describe("buildConfig", () => {
+	const validFileConfig = {
+		providers: {
+			zhipu: {
+				api_key: "test-key",
+				base_url: "https://example.test/api",
+			},
+		},
+	};
+
+	test("throws for providers without base_url", () => {
+		expect(() =>
+			buildConfig(
+				{
+					providers: {
+						zhipu: { api_key: "test-key" },
+					},
+				},
+				{},
+			),
+		).toThrow("Provider zhipu is missing required field: base_url");
+	});
+
+	test("throws for provider entries that are not objects", () => {
+		expect(() =>
+			buildConfig(
+				{
+					providers: {
+						zhipu: "https://example.test/api",
+					},
+				},
+				{},
+			),
+		).toThrow("Provider zhipu must be an object");
+	});
+
+	test("throws for invalid log level", () => {
+		expect(() => buildConfig({ logging: { level: "verbose" } }, {})).toThrow(
+			"Invalid log level: verbose",
+		);
+	});
+
+	test("throws for invalid session backend", () => {
+		expect(() => buildConfig({ session: { backend: "redis" } }, {})).toThrow(
+			"Invalid session backend: redis",
+		);
+	});
+
+	test("throws for invalid GODEX_PORT", () => {
+		process.env.GODEX_PORT = "abc";
+		try {
+			expect(() => buildConfig(validFileConfig, {})).toThrow(
+				"Invalid server port: abc",
+			);
+		} finally {
+			delete process.env.GODEX_PORT;
+		}
+	});
+
+	test("throws for empty server host", () => {
+		expect(() =>
+			buildConfig(
+				{
+					...validFileConfig,
+					server: { host: "" },
+				},
+				{},
+			),
+		).toThrow("Invalid server host");
+	});
+
+	test("throws for provider model mappings with non-string targets", () => {
+		expect(() =>
+			buildConfig(
+				{
+					providers: {
+						zhipu: {
+							api_key: "test-key",
+							base_url: "https://example.test/api",
+							models: { "gpt-5": 51 },
+						},
+					},
+				},
+				{},
+			),
+		).toThrow("Provider zhipu models.gpt-5 must be a string");
+	});
+});

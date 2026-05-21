@@ -1,0 +1,189 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Typecheck, lint, test, and mock e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Verify repository is public for npm provenance
+        if: ${{ github.event.repository.private }}
+        run: |
+          echo "::error::Set the GitHub repository to public before publishing with npm provenance."
+          exit 1
+      - name: Verify npm token is configured
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::Configure the NPM_TOKEN repository secret before publishing."
+            exit 1
+          fi
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify release tag matches package version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          export VERSION="${TAG#v}"
+          node -e "
+            const pkg = require('./package.json');
+            if (pkg.version !== process.env.VERSION) {
+              console.error(`package.json version ${pkg.version} does not match release tag ${process.env.TAG}`);
+              process.exit(1);
+            }
+          "
+      - name: Run checks
+        run: bun run ci
+
+  compile:
+    name: Compile (${{ matrix.target }})
+    needs: checks
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: darwin-arm64
+          - os: macos-13
+            target: darwin-x64
+          - os: ubuntu-latest
+            target: linux-x64
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
+          - os: windows-latest
+            target: win32-x64
+          - os: windows-11-arm
+            target: win32-arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile
+        run: bun run compile
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: godex-${{ matrix.target }}
+          path: platforms/${{ matrix.target }}/bin/
+          retention-days: 1
+
+  publish:
+    name: Publish to npm and GitHub Release
+    needs: compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Download all platform binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: godex-*
+          path: platforms-tmp
+          merge-multiple: false
+
+      - name: Place binaries into platform dirs
+        run: |
+          for dir in platforms-tmp/*/; do
+            dirname=$(basename "$dir")
+            target="${dirname#godex-}"  # strip godex- prefix
+            mkdir -p "platforms/${target}/bin"
+            cp -r "$dir"* "platforms/${target}/bin/"
+          done
+          rm -rf platforms-tmp
+          # Make binaries executable (non-Windows)
+          find platforms -name godex -exec chmod +x {} \; 2>/dev/null || true
+          chmod +x bin/godex || true
+
+      - name: Package GitHub Release assets
+        run: |
+          mkdir -p release-assets
+          for target_dir in platforms/*/; do
+            target=$(basename "$target_dir")
+            if [[ "$target" == win32-* ]]; then
+              (cd "platforms/${target}/bin" && zip -9 "$GITHUB_WORKSPACE/release-assets/godex-${target}.zip" godex.exe)
+            else
+              tar -C "platforms/${target}/bin" -czf "release-assets/godex-${target}.tar.gz" godex
+            fi
+          done
+          (cd release-assets && shasum -a 256 * > SHA256SUMS)
+
+      - name: Upload GitHub Release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" release-assets/* --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Set version from tag
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+          npm version --no-git-tag-version --allow-same-version "$VERSION"
+          node -e "
+            const fs = require('fs');
+            const f = 'package.json';
+            const p = JSON.parse(fs.readFileSync(f, 'utf8'));
+            for (const dep of Object.keys(p.optionalDependencies || {})) {
+              p.optionalDependencies[dep] = '$VERSION';
+            }
+            fs.writeFileSync(f, JSON.stringify(p, null, 2) + '\n');
+          "
+          for pkg in platforms/*/package.json; do
+            node -e "
+              const f='$pkg';
+              const fs=require('fs');
+              const p = JSON.parse(fs.readFileSync(f,'utf8'));
+              p.version = '$VERSION';
+              fs.writeFileSync(f, JSON.stringify(p, null, 2) + '\n');
+            "
+          done
+
+      - name: Publish platform packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for pkg in platforms/*/; do
+            echo "Publishing $(basename $pkg)..."
+            (cd "$pkg" && npm publish --access public --provenance)
+          done
+
+      - name: Publish main package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
