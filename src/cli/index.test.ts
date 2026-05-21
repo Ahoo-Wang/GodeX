@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { isDevMode } from "../config";
 import type { ServerDeps } from "../server";
 import { runCli } from ".";
 
@@ -54,7 +55,7 @@ describe("CLI", () => {
 		expect(cli.starts).toHaveLength(1);
 		expect(cli.starts[0]?.config.server.port).toBe(3100);
 		expect(cli.stdout.join("")).toContain(
-			`Godex v${version} [dev] listening on http://0.0.0.0:3100`,
+			`Godex v${version} [${isDevMode() ? "dev" : "prod"}] listening on http://0.0.0.0:3100`,
 		);
 	});
 
@@ -92,7 +93,7 @@ describe("CLI", () => {
 		expect(code).toBe(0);
 		expect(cli.starts[0]?.config.server.host).toBe("0.0.0.0");
 		expect(cli.stdout.join("")).toContain(
-			`Godex v${version} [dev] listening on http://0.0.0.0:3101`,
+			`Godex v${version} [${isDevMode() ? "dev" : "prod"}] listening on http://0.0.0.0:3101`,
 		);
 	});
 
