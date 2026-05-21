@@ -5,6 +5,8 @@ import { join } from "node:path";
 import type { ServerDeps } from "../server";
 import { runCli } from ".";
 
+const { version } = require("../../package.json");
+
 const validConfig = {
 	server: { port: 3000 },
 	default_provider: "zhipu",
@@ -52,7 +54,7 @@ describe("CLI", () => {
 		expect(cli.starts).toHaveLength(1);
 		expect(cli.starts[0]?.config.server.port).toBe(3100);
 		expect(cli.stdout.join("")).toContain(
-			"Godex v0.0.1 [dev] listening on http://0.0.0.0:3100",
+			`Godex v${version} [dev] listening on http://0.0.0.0:3100`,
 		);
 	});
 
@@ -90,7 +92,7 @@ describe("CLI", () => {
 		expect(code).toBe(0);
 		expect(cli.starts[0]?.config.server.host).toBe("0.0.0.0");
 		expect(cli.stdout.join("")).toContain(
-			"Godex v0.0.1 [dev] listening on http://0.0.0.0:3101",
+			`Godex v${version} [dev] listening on http://0.0.0.0:3101`,
 		);
 	});
 

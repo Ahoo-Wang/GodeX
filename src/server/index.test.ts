@@ -3,6 +3,8 @@ import type { GodexConfig } from "../config";
 import type { Logger } from "../logger";
 import { startServer } from ".";
 
+const { version } = require("../../package.json");
+
 const originalServe = Bun.serve;
 
 const config: GodexConfig = {
@@ -84,7 +86,7 @@ describe("startServer", () => {
 		expect(logEvents).toContainEqual(
 			expect.objectContaining({
 				event: "server_started",
-				attr: expect.objectContaining({ version: "0.0.1" }),
+				attr: expect.objectContaining({ version }),
 			}),
 		);
 	});
