@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   checks:
@@ -99,7 +100,6 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
-      id-token: write
 
     steps:
       - name: Checkout
@@ -175,15 +175,11 @@ jobs:
           done
 
       - name: Publish platform packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           for pkg in platforms/*/; do
             echo "Publishing $(basename $pkg)..."
-            (cd "$pkg" && npm publish --access public)
+            (cd "$pkg" && npm publish --access public --provenance)
           done
 
       - name: Publish main package
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+        run: npm publish --access public --provenance
