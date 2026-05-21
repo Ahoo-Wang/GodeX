@@ -1,4 +1,10 @@
 changelog:
+  exclude:
+    labels:
+      - duplicate
+      - invalid
+      - question
+      - wontfix
   categories:
     - title: 🚀 Features
       labels:
@@ -6,6 +12,9 @@ changelog:
     - title: 🐛 Bug Fixes
       labels:
         - bug
+    - title: 🔒 Security
+      labels:
+        - security
     - title: 📦 Dependencies
       labels:
         - dependencies
@@ -13,3 +22,9 @@ changelog:
       labels:
         - chore
         - maintenance
+    - title: 📚 Documentation
+      labels:
+        - documentation
+    - title: Other Changes
+      labels:
+        - "*"
