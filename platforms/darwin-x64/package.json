@@ -9,11 +9,16 @@
     "directory": "platforms/darwin-x64"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
-  "os": ["darwin"],
-  "cpu": ["x64"],
-  "files": ["bin/godex"],
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin/godex"
+  ],
   "private": false
 }

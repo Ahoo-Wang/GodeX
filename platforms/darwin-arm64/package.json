@@ -9,11 +9,16 @@
     "directory": "platforms/darwin-arm64"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
-  "os": ["darwin"],
-  "cpu": ["arm64"],
-  "files": ["bin/godex"],
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "files": [
+    "bin/godex"
+  ],
   "private": false
 }
