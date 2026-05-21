@@ -6,6 +6,10 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   checks:
@@ -20,14 +24,6 @@ jobs:
         run: |
           echo "::error::Set the GitHub repository to public before publishing with npm provenance."
           exit 1
-      - name: Verify npm token is configured
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::error::Configure the NPM_TOKEN repository secret before publishing."
-            exit 1
-          fi
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -99,7 +95,6 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
-      id-token: write
 
     steps:
       - name: Checkout
@@ -175,15 +170,11 @@ jobs:
           done
 
       - name: Publish platform packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           for pkg in platforms/*/; do
             echo "Publishing $(basename $pkg)..."
-            (cd "$pkg" && npm publish --access public)
+            (cd "$pkg" && npm publish --access public --provenance)
           done
 
       - name: Publish main package
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+        run: npm publish --access public --provenance
