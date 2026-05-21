@@ -1,0 +1,19 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 5%
+    patch:
+      default:
+        target: auto
+        threshold: 10%
+
+comment:
+  layout: header, diff, files
+  behavior: default
+
+ignore:
+  - "src/e2e/**"
+  - "src/**/*.test.ts"
+  - "src/protocol/**"
