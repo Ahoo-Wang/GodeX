@@ -154,7 +154,7 @@ jobs:
         run: |
           TAG="${{ github.event.release.tag_name }}"
           VERSION="${TAG#v}"
-          npm version --no-git-tag-version --allow-same-version "$VERSION"
+          npm version --no-git-tag-version --allow-same-version --ignore-scripts "$VERSION"
           node -e "
             const fs = require('fs');
             const f = 'package.json';
