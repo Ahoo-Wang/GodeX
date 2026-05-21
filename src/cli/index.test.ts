@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ServerDeps } from "../server";
 import { isDevMode } from "../config";
+import type { ServerDeps } from "../server";
 import { runCli } from ".";
 
 const { version } = require("../../package.json");

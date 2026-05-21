@@ -29,8 +29,7 @@ function resolveEnvVarsDeep(obj: unknown): unknown {
 
 export function isDevMode(): boolean {
 	return (
-		process.env.NODE_ENV === "development" ||
-		process.env.NODE_ENV === "dev"
+		process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev"
 	);
 }
 
