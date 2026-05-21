@@ -28,16 +28,10 @@ function resolveEnvVarsDeep(obj: unknown): unknown {
 }
 
 export function isDevMode(): boolean {
-	if (
+	return (
 		process.env.NODE_ENV === "development" ||
 		process.env.NODE_ENV === "dev"
-	) {
-		return true;
-	}
-	if (existsSync(resolve("godex.yaml"))) {
-		return true;
-	}
-	return false;
+	);
 }
 
 /** Config file search paths, in priority order. */
