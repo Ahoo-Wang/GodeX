@@ -87,7 +87,7 @@ jobs:
         run: bun run compile -- --target=${{ matrix.target }}
 
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: godex-${{ matrix.target }}
           path: platforms/${{ matrix.target }}/bin/
