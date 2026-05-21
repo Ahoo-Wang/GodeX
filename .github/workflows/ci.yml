@@ -37,6 +37,15 @@ jobs:
       - name: Run CI checks
         run: bun run ci
 
+      - name: Generate coverage
+        run: bun run test:coverage -- --coverage-reporter=lcov --coverage-dir=coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   compile:
     name: Compile native binary (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
