@@ -40,16 +40,24 @@ export function isDevMode(): boolean {
 	return false;
 }
 
+/** Config file search paths, in priority order. */
+export const CONFIG_SEARCH_PATHS = [
+	"godex.yaml",
+	join(homedir(), ".godex", "config.yaml"),
+];
+
 export function resolveDefaultConfigPath(): string {
-	if (isDevMode()) return "godex.yaml";
-	return join(homedir(), ".godex", "config.yaml");
+	for (const candidate of CONFIG_SEARCH_PATHS) {
+		if (existsSync(resolve(candidate))) return candidate;
+	}
+	// Return the first candidate as default for error messages / init
+	return CONFIG_SEARCH_PATHS[0] as string;
 }
 
 export function resolveDefaultSqlitePath(): string {
 	if (isDevMode()) return "./data/sessions.db";
 	return join(homedir(), ".godex", "data", "sessions.db");
 }
-
 export function loadConfigFromFile(
 	configPath: string,
 ): Record<string, unknown> | null {
