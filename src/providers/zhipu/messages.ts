@@ -127,6 +127,7 @@ function downgradedToolCallToMessage(item: ResponseItem): TextMessage | null {
 				...(item.action.timeout_ms
 					? { timeout_ms: item.action.timeout_ms }
 					: {}),
+				...(item.action.user !== undefined ? { user: item.action.user } : {}),
 				...(item.action.working_directory
 					? { working_directory: item.action.working_directory }
 					: {}),

@@ -593,6 +593,7 @@ describe("buildZhipuRequest", () => {
 							type: "exec",
 							command: ["pwd"],
 							env: {},
+							user: "sandbox",
 						},
 						status: "completed",
 					},
@@ -634,7 +635,7 @@ describe("buildZhipuRequest", () => {
 						type: "function",
 						function: {
 							name: "local_shell",
-							arguments: '{"command":["pwd"],"env":{}}',
+							arguments: '{"command":["pwd"],"env":{},"user":"sandbox"}',
 						},
 					},
 				],

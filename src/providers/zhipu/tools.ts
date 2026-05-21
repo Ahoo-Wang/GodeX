@@ -1,5 +1,6 @@
 // src/providers/zhipu/tools.ts
 
+import { getBuiltinFunctionToolDefinition } from "../../adapter";
 import { isRecord } from "../../adapter/utils";
 import { ADAPTER_REQUEST_UNSUPPORTED_TOOL, AdapterError } from "../../error";
 import type {
@@ -109,53 +110,28 @@ function mapTool(
 			};
 		}
 		case "local_shell":
-			return codexFunctionTool(
-				"local_shell",
-				"Execute a local shell command. Downgraded from the OpenAI local_shell tool for Zhipu.",
-				{
-					command: { type: "array", items: { type: "string" } },
-					env: { type: "object", additionalProperties: { type: "string" } },
-					timeout_ms: { type: "number" },
-					working_directory: { type: "string" },
-				},
-				["command"],
-			);
 		case "shell":
-			return codexFunctionTool(
-				"shell",
-				"Execute shell commands. Downgraded from the OpenAI shell tool for Zhipu.",
-				{
-					commands: { type: "array", items: { type: "string" } },
-					timeout_ms: { type: "number" },
-					max_output_length: { type: "number" },
-				},
-				["commands"],
-			);
 		case "apply_patch":
-			return codexFunctionTool(
-				"apply_patch",
-				"Apply a source-code patch. Downgraded from the OpenAI apply_patch tool for Zhipu.",
-				{
-					operation: {
-						type: "object",
-						description: "OpenAI apply_patch operation object.",
-					},
-				},
-				["operation"],
-			);
+			return builtinFunctionTool(tool.type);
 		case "custom":
 			return codexFunctionTool(
 				tool.name,
 				tool.description ??
-					"Run a custom OpenAI Responses tool downgraded to a Zhipu function tool.",
-				{ input: { type: "string" } },
+					"Call this custom tool with a string input when it best matches the user request.",
+				{
+					input: {
+						type: "string",
+						description:
+							"Input for the custom tool. Keep it concise and valid for the tool name.",
+					},
+				},
 				["input"],
 			);
 		case "tool_search":
 			return codexFunctionTool(
 				"tool_search",
 				tool.description ??
-					"Find available tools. Downgraded from the OpenAI tool_search tool for Zhipu.",
+					"Search available tools by query before choosing which tool to call.",
 				isRecord(tool.parameters)
 					? tool.parameters
 					: {
@@ -249,6 +225,20 @@ function codexFunctionTool(
 			parameters,
 		},
 	};
+}
+
+function builtinFunctionTool(
+	type: "local_shell" | "shell" | "apply_patch",
+): ChatTool {
+	const definition = getBuiltinFunctionToolDefinition(type);
+	if (!definition) {
+		throw unsupportedTool(type, "Missing built-in tool definition.");
+	}
+	return codexFunctionTool(
+		definition.name,
+		definition.description,
+		definition.parameters,
+	);
 }
 
 function normalizeMcpAllowedTools(

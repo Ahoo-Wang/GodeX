@@ -188,6 +188,22 @@ describe("mapTools", () => {
 			{ type: "function", function: { name: "workspace__search" } },
 			{ type: "function", function: { name: "tool_search" } },
 		]);
+
+		const [localShell, shell, applyPatch] = result;
+		if (
+			localShell?.type !== "function" ||
+			shell?.type !== "function" ||
+			applyPatch?.type !== "function"
+		) {
+			throw new Error("Expected Codex built-ins to map to function tools.");
+		}
+		expect(localShell.function.description).toContain("Use shell");
+		expect(shell.function.description).toContain(
+			"configured Codex shell environment",
+		);
+		expect(applyPatch.function.description).toContain(
+			"Prefer this over shell commands",
+		);
 	});
 
 	test("rejects function name collisions after Zhipu sanitization", () => {
