@@ -23,6 +23,7 @@ function writePkg(file: string, pkg: Record<string, unknown>) {
 
 const args = process.argv.slice(2);
 const allowSameVersion = args.includes("--allow-same-version");
+const skipInstall = args.includes("--skip-install");
 const version = args.find((a) => !a.startsWith("--"));
 if (!version) {
   console.error("Usage: bun run version <version>");
@@ -60,8 +61,9 @@ for (const dir of platformDirs) {
   console.log(`platforms/${dir}/package.json → ${version}`);
 }
 
-// Refresh bun.lock
-execSync("bun install", { cwd: root, stdio: "inherit" });
-console.log("bun.lock updated");
+// Refresh bun.lock (skip in CI where deps are already installed)
+if (!skipInstall) {
+  execSync("bun install", { cwd: root, stdio: "inherit" });
+  console.log("bun.lock updated");
+}
 
-console.log(`\nAll packages updated to v${version}`);
