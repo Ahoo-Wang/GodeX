@@ -12,8 +12,7 @@
     "url": "https://github.com/Ahoo-Wang/Godex/issues"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "type": "module",
   "bin": {

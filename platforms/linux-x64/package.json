@@ -9,11 +9,16 @@
     "directory": "platforms/linux-x64"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
-  "os": ["linux"],
-  "cpu": ["x64"],
-  "files": ["bin/godex"],
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin/godex"
+  ],
   "private": false
 }

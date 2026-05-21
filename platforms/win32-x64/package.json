@@ -9,11 +9,16 @@
     "directory": "platforms/win32-x64"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
-  "os": ["win32"],
-  "cpu": ["x64"],
-  "files": ["bin/godex.exe"],
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin/godex.exe"
+  ],
   "private": false
 }
