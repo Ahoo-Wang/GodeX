@@ -214,4 +214,12 @@ describe("builtin function definitions", () => {
 		expect(isBuiltinFunctionToolType("apply_patch")).toBe(true);
 		expect(isBuiltinFunctionToolType("custom")).toBe(false);
 	});
+
+	test("rejects inherited Object.prototype keys as tool types", () => {
+		expect(isBuiltinFunctionToolType("toString")).toBe(false);
+		expect(isBuiltinFunctionToolType("constructor")).toBe(false);
+		expect(isBuiltinFunctionToolType("hasOwnProperty")).toBe(false);
+		expect(getBuiltinFunctionToolDefinition("toString")).toBeNull();
+		expect(getBuiltinFunctionToolDefinition("constructor")).toBeNull();
+	});
 });

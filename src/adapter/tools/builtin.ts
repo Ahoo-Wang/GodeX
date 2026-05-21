@@ -17,11 +17,10 @@ export const BUILTIN_FUNCTION_TOOL_DEFINITIONS = {
 	shell: SHELL_TOOL_DEFINITION,
 	apply_patch: APPLY_PATCH_TOOL_DEFINITION,
 } satisfies Record<BuiltinFunctionToolType, BuiltinFunctionToolDefinition>;
-
 export function isBuiltinFunctionToolType(
 	type: string,
 ): type is BuiltinFunctionToolType {
-	return type in BUILTIN_FUNCTION_TOOL_DEFINITIONS;
+	return Object.hasOwn(BUILTIN_FUNCTION_TOOL_DEFINITIONS, type);
 }
 
 export function getBuiltinFunctionToolDefinition(
