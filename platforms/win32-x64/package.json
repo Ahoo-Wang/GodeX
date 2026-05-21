@@ -1,6 +1,6 @@
 {
   "name": "@ahoo-wang/godex-win32-x64",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "godex native binary for Windows x86_64",
   "license": "Apache-2.0",
   "repository": {
