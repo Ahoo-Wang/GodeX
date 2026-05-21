@@ -1,0 +1,39 @@
+# Godex
+
+> OpenAI Responses API gateway — translates /v1/responses into upstream Chat Completions API calls so any LLM provider can drive Codex. Built with Bun and TypeScript using the @ahoo-wang/fetcher ecosystem.
+
+## Onboarding
+
+- [Contributor Guide](onboarding/contributor-guide.md): Codebase walkthrough, setup, testing, contributing for new developers
+- [Staff Engineer Guide](onboarding/staff-engineer-guide.md): Architecture, design tradeoffs, decision log
+- [Executive Guide](onboarding/executive-guide.md): Capability map, risk assessment, technology thesis
+- [Product Manager Guide](onboarding/product-manager-guide.md): User journeys, feature map, FAQ
+
+## Architecture
+
+- [System Overview](02-architecture/overview.md): Component model, C4 context, architectural decisions
+- [Request Flow](02-architecture/request-flow.md): Full request lifecycle from HTTP to upstream and back
+- [Adapter Pattern](02-architecture/adapter-pattern.md): Provider abstraction, mapper interfaces, capabilities
+- [Stream Pipeline](02-architecture/stream-pipeline.md): TransformStream stages, SSE encoding, session persistence
+
+## Getting Started
+
+- [Overview](01-getting-started/overview.md): Prerequisites, installation, first request
+- [Installation & Setup](01-getting-started/installation-setup.md): Config wizard, godex.yaml, env vars, model mapping
+- [Quick Reference](01-getting-started/quick-reference.md): CLI commands, API endpoints, curl examples
+
+## Deep Dive
+
+- [Provider Interface](03-provider-development/provider-interface.md): How to implement new LLM providers
+- [Zhipu Reference](03-provider-development/zhipu-reference.md): Reference provider implementation walkthrough
+- [Message & Tool Mapping](03-provider-development/message-tool-mapping.md): Input item conversion, tool type mapping
+- [Session Store](04-session-management/session-store.md): Response history storage backends
+- [Chain Resolution](04-session-management/chain-resolution.md): Multi-turn conversation chain traversal
+- [Transformers](05-streaming-pipeline/transformers.md): Stream pipeline transformer stages
+- [Stream State](05-streaming-pipeline/stream-state.md): Accumulation state during streaming
+- [Error Hierarchy](06-error-handling/error-hierarchy.md): GodexError class hierarchy and HTTP mapping
+- [Error Codes](06-error-handling/error-codes.md): Complete error code reference
+- [Config Schema](07-configuration/config-schema.md): godex.yaml configuration reference
+- [CLI Commands](07-configuration/cli-commands.md): Command-line interface reference
+- [Testing Guide](08-testing/testing-guide.md): Unit, E2E, and live provider tests
+- [CI/CD & Publishing](09-deployment/ci-cd.md): CI pipeline, cross-compilation, npm publishing
