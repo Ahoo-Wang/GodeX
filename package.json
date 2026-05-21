@@ -63,6 +63,6 @@
     "commander": "^14.0.3",
     "js-yaml": "^4.1.1",
     "nanoid": "^5.1.11",
-    "typescript": "^5"
+    "typescript": "^6"
   }
 }
