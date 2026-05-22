@@ -22,13 +22,16 @@ const TO_LOGTAPE: Record<string, LogTapeLevel> = {
 function createCapturingLogger(level: string = "info") {
 	resetSync();
 	const records: LogRecord[] = [];
-	const sink: Sink = (record) => records.push(record);
+	const sink: Sink = (record) => {
+		if (record.category[0] === "logtape") return;
+		records.push(record);
+	};
 
 	configureSync({
 		sinks: { capture: sink },
 		loggers: [
 			{
-				category: "godex",
+				category: [],
 				lowestLevel: TO_LOGTAPE[level],
 				sinks: ["capture"],
 			},
@@ -36,7 +39,7 @@ function createCapturingLogger(level: string = "info") {
 	});
 
 	return {
-		logger: wrapLogTape(getLogger(["godex"]), level as LogLevel),
+		logger: wrapLogTape(getLogger([]), level as LogLevel),
 		records,
 	};
 }

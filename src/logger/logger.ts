@@ -65,5 +65,5 @@ export function createLogger(config: LoggingConfig): Logger {
 	if (!configured) {
 		return createNoopLogger(config.level);
 	}
-	return wrapLogTape(getLogTapeLogger(["godex"]), config.level);
+	return wrapLogTape(getLogTapeLogger([]), config.level);
 }

@@ -77,7 +77,7 @@ export function configureLogging(config: LoggingConfig): boolean {
 		reset: true,
 		sinks: sinks as Record<SinkId, Sink>,
 		loggers: [
-			{ category: "godex", lowestLevel, sinks: loggerSinkIds },
+			{ category: [], lowestLevel, sinks: loggerSinkIds },
 			{
 				category: ["logtape", "meta"],
 				lowestLevel: "warning",
