@@ -1,4 +1,4 @@
-import { isDevMode } from "../config";
+import { EnvVars } from "../config";
 import { ApplicationContext } from "../context/application-context";
 import type { Logger } from "../logger";
 import { createBuiltinRegistrar } from "../providers/builtin";
@@ -20,7 +20,7 @@ export function serve(opts: CliOptions, runtime: CliRuntime): void {
 	runtime.stdout?.write(
 		formatStartupBanner({
 			version: GODEX_VERSION,
-			env: isDevMode() ? "dev" : "prod",
+			env: EnvVars.current,
 			host: config.server.host,
 			port: config.server.port,
 			configPath,

@@ -1,5 +1,5 @@
 import type { GodexConfig } from "../config";
-import { isDevMode } from "../config";
+import { EnvVars } from "../config";
 import type { ApplicationContext } from "../context/application-context";
 import type { Logger } from "../logger";
 import { GODEX_VERSION } from "../version";
@@ -42,7 +42,7 @@ export function startServer(deps: ServerDeps): ReturnType<typeof Bun.serve> {
 	logger.info("server_started", {
 		version: GODEX_VERSION,
 		server: config.server,
-		env: isDevMode() ? "dev" : "prod",
+		env: EnvVars.current,
 		config: { path: deps.configPath },
 		session: config.session,
 	});
