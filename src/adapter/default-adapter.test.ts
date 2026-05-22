@@ -6,9 +6,10 @@ import type {
 	ResponseStreamEvent,
 } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
+import { DEFAULT_CAPABILITIES } from "./capabilities";
 import { DefaultAdapter } from "./default-adapter";
 import { StreamState } from "./mapper/stream-state";
-import { DEFAULT_CAPABILITIES, type Provider } from "./provider";
+import type { Provider } from "./provider";
 
 function createMockProvider(
 	providerRes: unknown,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { instructionsToSystemMessage } from "./utils";
+import { instructionsToSystemMessage } from "./message-utils";
 
 describe("instructionsToSystemMessage", () => {
 	test("converts string instructions to system message", () => {

@@ -1,6 +1,6 @@
 // src/providers/zhipu/request.test.ts
 import { describe, expect, test } from "bun:test";
-import { mergeCapabilities } from "../../adapter/provider";
+import { mergeCapabilities } from "../../adapter/capabilities";
 import type { ApplicationContext } from "../../context/application-context";
 import type { ResponsesContext } from "../../context/responses-context";
 import { AdapterError } from "../../error";
