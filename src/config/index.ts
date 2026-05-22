@@ -2,9 +2,9 @@
 
 export * from "./schema";
 
-import { isDevMode } from "./env";
+import { Env, EnvVars } from "./env";
 
-export { isDevMode };
+export { Env, EnvVars };
 
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -46,7 +46,7 @@ export function resolveDefaultConfigPath(): string {
 }
 
 export function resolveDefaultSqlitePath(): string {
-	if (isDevMode()) return "./data/sessions.db";
+	if (EnvVars.isDev) return "./data/sessions.db";
 	return join(homedir(), ".godex", "data", "sessions.db");
 }
 export function loadConfigFromFile(
