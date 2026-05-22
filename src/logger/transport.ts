@@ -4,9 +4,8 @@ import path from "node:path";
 import {
 	compareLogLevel,
 	configureSync,
-	type FormattedValues,
 	getConsoleSink,
-	getTextFormatter,
+	getJsonLinesFormatter,
 	type LogRecord,
 	type LogLevel as LogTapeLevel,
 	resetSync,
@@ -33,13 +32,6 @@ const TO_LOGTAPE_LEVEL: Record<LogLevel, LogTapeLevel> = {
 
 export { resetSync };
 
-function formatWithProps(values: FormattedValues): string {
-	const props = values.record.properties;
-	const base = `${values.timestamp} [${values.level}] ${values.category}: ${values.message}`;
-	if (!props || Object.keys(props).length === 0) return base;
-	return `${base} ${JSON.stringify(props)}`;
-}
-
 export function configureLogging(config: LoggingConfig): boolean {
 	type SinkId = "console" | "file";
 	const sinks: Partial<Record<SinkId, Sink>> = {};
@@ -56,7 +48,6 @@ export function configureLogging(config: LoggingConfig): boolean {
 							formatter: getPrettyFormatter({
 								timestamp: "date-time",
 								timeZone: null,
-								properties: true,
 							}),
 						}),
 						consoleLevel,
@@ -96,10 +87,8 @@ export function configureLogging(config: LoggingConfig): boolean {
 }
 
 function createFileSink(filepath: string): Sink {
-	const formatter = getTextFormatter({
-		timestamp: "date-time",
-		timeZone: null,
-		format: formatWithProps,
+	const formatter = getJsonLinesFormatter({
+		properties: "flatten",
 	});
 	const stream = createWriteStream(filepath, { flags: "a" });
 	return (record: LogRecord) => {
