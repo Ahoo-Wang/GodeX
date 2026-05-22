@@ -43,7 +43,10 @@ export function configureLogging(config: LoggingConfig): boolean {
 			TO_LOGTAPE_LEVEL[config.console?.level ?? config.level];
 		sinks.console = withFilter(
 			getConsoleSink({
-				formatter: getPrettyFormatter({ timestamp: "date-time" }),
+				formatter: getPrettyFormatter({
+					timestamp: "date-time",
+					properties: true,
+				}),
 			}),
 			consoleLevel,
 		);
