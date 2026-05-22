@@ -8,6 +8,7 @@ import { configureLogging } from "./transport";
 export type { LogLevel };
 export type LogAttr = Record<string, unknown> | (() => Record<string, unknown>);
 
+
 export interface Logger {
 	readonly level: LogLevel;
 	child(bindings: Record<string, unknown>): Logger;
