@@ -68,7 +68,12 @@ describe("createTransports", () => {
 	test("uses file level override when set", () => {
 		const config: LoggingConfig = {
 			level: "info",
-			file: { enabled: true, level: "debug", dir: "/tmp", filename: "godex.log" },
+			file: {
+				enabled: true,
+				level: "debug",
+				dir: "/tmp",
+				filename: "godex.log",
+			},
 		};
 		const transports = createTransports(config);
 
@@ -115,7 +120,12 @@ describe("createTransports", () => {
 		const config: LoggingConfig = {
 			level: "warn",
 			console: { enabled: true, level: "info" },
-			file: { enabled: true, level: "debug", dir: "/tmp", filename: "godex.log" },
+			file: {
+				enabled: true,
+				level: "debug",
+				dir: "/tmp",
+				filename: "godex.log",
+			},
 		};
 		const transports = createTransports(config);
 
