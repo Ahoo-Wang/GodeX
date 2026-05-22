@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
 import { getConfig } from "@logtape/logtape";
 import type { LoggingConfig } from "../config/schema";
-import { configureLogging, resetSync } from "./transport";
+import { configureLogging, resetSync } from "./configure";
 
 const packageJson = require("../../package.json") as {
 	dependencies?: Record<string, string>;
