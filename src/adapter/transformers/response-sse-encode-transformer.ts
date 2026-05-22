@@ -19,13 +19,6 @@ export class ResponseSseEncodeTransformer extends SafeTransformer<
 			this.encoder.encode(sseEvent(chunk, sequenceNumber)),
 		);
 	}
-
-	protected override onFlush(
-		controller: TransformStreamDefaultController<Uint8Array>,
-	): void {
-		this.enqueue(controller, this.encoder.encode("data: [DONE]\n\n"));
-		this.terminate(controller);
-	}
 }
 
 function sseEvent(event: ResponseStreamEvent, seq: number): string {

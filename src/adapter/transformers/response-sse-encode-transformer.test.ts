@@ -21,12 +21,12 @@ async function readText(stream: ReadableStream<Uint8Array>): Promise<string> {
 function dataPayloads(text: string): Array<Record<string, unknown>> {
 	return text
 		.split("\n")
-		.filter((line) => line.startsWith("data: ") && line !== "data: [DONE]")
+		.filter((line) => line.startsWith("data: "))
 		.map((line) => JSON.parse(line.slice(6)) as Record<string, unknown>);
 }
 
 describe("ResponseSseEncodeTransformer", () => {
-	test("encodes response stream events as SSE frames and appends DONE", async () => {
+	test("encodes response stream events as SSE frames", async () => {
 		const event: ResponseStreamEvent = {
 			type: "response.created",
 			response: {
@@ -51,7 +51,6 @@ describe("ResponseSseEncodeTransformer", () => {
 
 		expect(text).toContain("event: response.created\n");
 		expect(text).toContain('"id":"resp_1"');
-		expect(text).toEndWith("data: [DONE]\n\n");
 	});
 
 	test("preserves sequence_number already present on stream events", async () => {
