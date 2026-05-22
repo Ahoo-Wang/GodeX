@@ -2,7 +2,6 @@ import { writeFileSync } from "node:fs";
 import * as clack from "@clack/prompts";
 import { resolveDefaultSqlitePath } from "../config";
 import {
-	DEFAULT_ZHIPU_BASE_URL,
 	ZHIPU_BASE_URL,
 	ZHIPU_CODING_PLAN_BASE_URL,
 } from "../providers/zhipu/provider";
