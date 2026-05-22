@@ -1,7 +1,11 @@
 import { writeFileSync } from "node:fs";
 import * as clack from "@clack/prompts";
 import { resolveDefaultSqlitePath } from "../config";
-import { DEFAULT_ZHIPU_BASE_URL } from "../providers/zhipu/provider";
+import {
+	DEFAULT_ZHIPU_BASE_URL,
+	ZHIPU_BASE_URL,
+	ZHIPU_CODING_PLAN_BASE_URL,
+} from "../providers/zhipu/provider";
 
 interface InitOptions {
 	configPath: string;
@@ -26,6 +30,28 @@ export async function runInit(opts: InitOptions): Promise<void> {
 	});
 
 	if (clack.isCancel(apiKey)) {
+		clack.cancel("Operation cancelled");
+		return;
+	}
+
+	const baseUrl = await clack.select({
+		message: "Base URL:",
+		options: [
+			{
+				value: ZHIPU_CODING_PLAN_BASE_URL,
+				label: "Coding Plan (Recommended)",
+				hint: ZHIPU_CODING_PLAN_BASE_URL,
+			},
+			{
+				value: ZHIPU_BASE_URL,
+				label: "Standard",
+				hint: ZHIPU_BASE_URL,
+			},
+		],
+		initialValue: ZHIPU_CODING_PLAN_BASE_URL,
+	});
+
+	if (clack.isCancel(baseUrl)) {
 		clack.cancel("Operation cancelled");
 		return;
 	}
@@ -72,6 +98,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
 	const yaml = buildConfigYaml({
 		provider: provider as string,
 		apiKey: apiKey as string,
+		baseUrl: baseUrl as string,
 		port: port as string,
 		sessionBackend: sessionBackend as string,
 		logLevel: logLevel as string,
@@ -84,6 +111,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
 function buildConfigYaml(opts: {
 	provider: string;
 	apiKey: string;
+	baseUrl: string;
 	port: string;
 	sessionBackend: string;
 	logLevel: string;
@@ -97,7 +125,7 @@ function buildConfigYaml(opts: {
 		"providers:",
 		`  ${opts.provider}:`,
 		`    api_key: ${opts.apiKey}`,
-		`    base_url: ${DEFAULT_ZHIPU_BASE_URL}`,
+		`    base_url: ${opts.baseUrl}`,
 		"    models:",
 		`      gpt-5.5: glm-5.1`,
 		`      gpt-5: glm-5.1`,

@@ -11,8 +11,13 @@ import { buildResponseObject } from "./response";
 import { ZhipuStreamMapper } from "./stream";
 
 /** Default base URL for the Zhipu Coding Plan API. */
-export const DEFAULT_ZHIPU_BASE_URL =
+export const ZHIPU_BASE_URL = "https://open.bigmodel.cn/api/paas/v4";
+
+export const ZHIPU_CODING_PLAN_BASE_URL =
 	"https://open.bigmodel.cn/api/coding/paas/v4";
+
+/** Default base URL for the Zhipu Coding Plan API. */
+export const DEFAULT_ZHIPU_BASE_URL = ZHIPU_CODING_PLAN_BASE_URL;
 
 const ZHIPU_CAPABILITIES: ProviderCapabilities = mergeCapabilities({
 	supportedToolTypes: new Set([
