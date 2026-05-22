@@ -7,7 +7,10 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { GodexConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
 import { Registrar } from "../providers/registrar";
-import { DEFAULT_ZHIPU_BASE_URL, ZhipuProvider } from "../providers/zhipu/provider";
+import {
+	DEFAULT_ZHIPU_BASE_URL,
+	ZhipuProvider,
+} from "../providers/zhipu/provider";
 import { createBuiltinRoutes, startServer } from "../server";
 import { getLoopbackPort } from "./ports";
 
