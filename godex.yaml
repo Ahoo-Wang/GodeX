@@ -25,3 +25,14 @@ session:
 
 logging:
   level: info
+
+  console:
+    enabled: true
+    level: info
+    pretty: true
+
+  file:
+    enabled: true
+    level: debug
+    dir: ~/.godex/logs
+    filename: godex.log
