@@ -2,7 +2,6 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { isDevMode } from "../config";
 import type { ServerDeps } from "../server";
 import { runCli } from ".";
 
@@ -55,10 +54,9 @@ describe("CLI", () => {
 		expect(cli.starts).toHaveLength(1);
 		expect(cli.starts[0]?.config.server.port).toBe(3100);
 		const output = cli.stdout.join("");
-		expect(output).toContain(
-			`Godex v${version} [${isDevMode() ? "dev" : "prod"}]`,
-		);
-		expect(output).toContain("address: http://0.0.0.0:3100");
+		expect(output).toContain(`Godex v${version}`);
+		expect(output).toContain("address:  http://0.0.0.0:3100");
+		expect(output).toContain("env:");
 	});
 
 	test("starts the server from the explicit serve command", async () => {
@@ -95,10 +93,9 @@ describe("CLI", () => {
 		expect(code).toBe(0);
 		expect(cli.starts[0]?.config.server.host).toBe("0.0.0.0");
 		const output = cli.stdout.join("");
-		expect(output).toContain(
-			`Godex v${version} [${isDevMode() ? "dev" : "prod"}]`,
-		);
-		expect(output).toContain("address: http://0.0.0.0:3101");
+		expect(output).toContain(`Godex v${version}`);
+		expect(output).toContain("address:  http://0.0.0.0:3101");
+		expect(output).toContain("env:");
 	});
 
 	test("rejects invalid ports before starting the server", async () => {
