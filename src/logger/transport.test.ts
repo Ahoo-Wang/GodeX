@@ -1,11 +1,22 @@
 import { describe, expect, test } from "bun:test";
 import path from "node:path";
+import type { TransportTargetOptions } from "pino";
 import type { LoggingConfig } from "../config/schema";
 import { createTransports } from "./transport";
 
 const packageJson = require("../../package.json") as {
 	dependencies?: Record<string, string>;
 };
+
+function findFileLogTransport(
+	transports: TransportTargetOptions[],
+): TransportTargetOptions | undefined {
+	return transports.find(
+		(t) =>
+			t.target === "pino/file" &&
+			typeof (t.options as Record<string, unknown>)?.destination === "string",
+	);
+}
 
 describe("createTransports", () => {
 	test("returns pino-pretty for default console config", () => {
@@ -53,7 +64,7 @@ describe("createTransports", () => {
 		expect(transports).toEqual([]);
 	});
 
-	test("adds pino-roll transport for enabled file config", () => {
+	test("adds pino/file transport for enabled file config", () => {
 		const config: LoggingConfig = {
 			level: "info",
 			file: { enabled: true, dir: "/var/log/godex", filename: "app.log" },
@@ -61,17 +72,13 @@ describe("createTransports", () => {
 		const transports = createTransports(config);
 
 		expect(transports.length).toBe(2);
-		const fileTransport = transports.find((t) => t.target === "pino-roll");
+		const fileTransport = findFileLogTransport(transports);
 		expect(fileTransport).toBeDefined();
 		expect(fileTransport?.level).toBe("info");
-		expect(fileTransport?.options).toEqual(
-			expect.objectContaining({
-				file: "/var/log/godex/app.log",
-				frequency: "daily",
-				mkdir: true,
-				size: "100m",
-			}),
-		);
+		expect(fileTransport?.options).toEqual({
+			destination: "/var/log/godex/app.log",
+			mkdir: true,
+		});
 	});
 
 	test("uses file level override when set", () => {
@@ -86,7 +93,7 @@ describe("createTransports", () => {
 		};
 		const transports = createTransports(config);
 
-		const fileTransport = transports.find((t) => t.target === "pino-roll");
+		const fileTransport = findFileLogTransport(transports);
 		expect(fileTransport?.level).toBe("debug");
 	});
 
@@ -100,12 +107,11 @@ describe("createTransports", () => {
 		};
 		const transports = createTransports(config);
 
-		const fileTransport = transports.find((t) => t.target === "pino-roll");
-		expect(fileTransport?.options).toEqual(
-			expect.objectContaining({
-				file: "/home/testuser/logs/godex.log",
-			}),
-		);
+		const fileTransport = findFileLogTransport(transports);
+		expect(fileTransport?.options).toEqual({
+			destination: "/home/testuser/logs/godex.log",
+			mkdir: true,
+		});
 
 		process.env.HOME = originalHome;
 	});
@@ -121,12 +127,13 @@ describe("createTransports", () => {
 			};
 			const transports = createTransports(config);
 
-			const fileTransport = transports.find((t) => t.target === "pino-roll");
-			const file = (fileTransport?.options as { file?: string } | undefined)
-				?.file;
-			expect(file).toBeDefined();
-			expect(path.isAbsolute(file as string)).toBe(true);
-			expect(file).toEndWith(path.join("logs", "godex.log"));
+			const fileTransport = findFileLogTransport(transports);
+			const destination = (
+				fileTransport?.options as { destination?: string } | undefined
+			)?.destination;
+			expect(destination).toBeDefined();
+			expect(path.isAbsolute(destination as string)).toBe(true);
+			expect(destination).toEndWith(path.join("logs", "godex.log"));
 		} finally {
 			process.env.HOME = originalHome;
 		}
@@ -139,12 +146,11 @@ describe("createTransports", () => {
 		};
 		const transports = createTransports(config);
 
-		const fileTransport = transports.find((t) => t.target === "pino-roll");
-		expect(fileTransport?.options).toEqual(
-			expect.objectContaining({
-				file: "/absolute/path/godex.log",
-			}),
-		);
+		const fileTransport = findFileLogTransport(transports);
+		expect(fileTransport?.options).toEqual({
+			destination: "/absolute/path/godex.log",
+			mkdir: true,
+		});
 	});
 
 	test("returns both console and file transports when both enabled", () => {
@@ -163,7 +169,30 @@ describe("createTransports", () => {
 		expect(transports.length).toBe(2);
 		expect(transports[0]?.target).toBe("pino-pretty");
 		expect(transports[0]?.level).toBe("info");
-		expect(transports[1]?.target).toBe("pino-roll");
+		expect(transports[1]?.target).toBe("pino/file");
 		expect(transports[1]?.level).toBe("debug");
+	});
+
+	test("returns two pino/file transports when pretty is false and file is enabled", () => {
+		const config: LoggingConfig = {
+			level: "info",
+			console: { enabled: true, pretty: false },
+			file: { enabled: true, dir: "/tmp", filename: "godex.log" },
+		};
+		const transports = createTransports(config);
+
+		expect(transports.length).toBe(2);
+		expect(transports.every((t) => t.target === "pino/file")).toBe(true);
+		const stdoutTransport = transports.find(
+			(t) => (t.options as Record<string, unknown>)?.destination === 1,
+		);
+		expect(stdoutTransport).toBeDefined();
+		expect(stdoutTransport?.options).toEqual({ destination: 1 });
+		const fileTransport = findFileLogTransport(transports);
+		expect(fileTransport).toBeDefined();
+		expect(fileTransport?.options).toEqual({
+			destination: "/tmp/godex.log",
+			mkdir: true,
+		});
 	});
 });
