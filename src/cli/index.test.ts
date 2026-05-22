@@ -55,7 +55,7 @@ describe("CLI", () => {
 		expect(cli.starts[0]?.config.server.port).toBe(3100);
 		const output = cli.stdout.join("");
 		expect(output).toContain(`Godex v${version}`);
-		expect(output).toContain("address:  http://0.0.0.0:3100");
+		expect(output).toContain("address:   http://0.0.0.0:3100");
 		expect(output).toContain("env:");
 	});
 
@@ -94,7 +94,7 @@ describe("CLI", () => {
 		expect(cli.starts[0]?.config.server.host).toBe("0.0.0.0");
 		const output = cli.stdout.join("");
 		expect(output).toContain(`Godex v${version}`);
-		expect(output).toContain("address:  http://0.0.0.0:3101");
+		expect(output).toContain("address:   http://0.0.0.0:3101");
 		expect(output).toContain("env:");
 	});
 

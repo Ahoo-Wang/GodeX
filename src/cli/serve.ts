@@ -25,7 +25,6 @@ export function serve(opts: CliOptions, runtime: CliRuntime): void {
 			port: config.server.port,
 			configPath,
 			session: config.session,
-			defaultProvider: config.default_provider,
 			providers: Object.keys(config.providers),
 		}),
 	);
