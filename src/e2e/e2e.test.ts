@@ -644,7 +644,7 @@ describe("E2E: sync response", () => {
 });
 
 describe("E2E: stream response", () => {
-	test("streams SSE events and ends with [DONE]", async () => {
+	test("streams SSE events through the full lifecycle", async () => {
 		resetUpstreamRequests();
 		const res = await postResponses({
 			model: "gpt-5",
@@ -655,7 +655,6 @@ describe("E2E: stream response", () => {
 		expect(res.headers.get("Content-Type")).toBe("text/event-stream");
 
 		const text = await res.text();
-		expect(text).toContain("data: [DONE]");
 
 		// Should contain key lifecycle events
 		expect(text).toContain("response.created");

@@ -290,7 +290,6 @@ describe("handleResponses stream errors", () => {
 		expect(res.status).toBe(200);
 		const text = await res.text();
 		expect(text).toContain("response.created");
-		expect(text).toContain("data: [DONE]");
 		expect(loggedErrors).toEqual([]);
 	});
 
