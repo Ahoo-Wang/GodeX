@@ -54,9 +54,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
-    "@ahoo-wang/fetcher": "^3.16.5",
-    "@ahoo-wang/fetcher-decorator": "^3.16.5",
-    "@ahoo-wang/fetcher-eventstream": "^3.16.5",
+    "@ahoo-wang/fetcher": "^3.16.8",
+    "@ahoo-wang/fetcher-decorator": "^3.16.8",
+    "@ahoo-wang/fetcher-eventstream": "^3.16.8",
     "@clack/prompts": "^1.4.0",
     "@types/bun": "^1.2.0",
     "@types/js-yaml": "^4.0.9",
