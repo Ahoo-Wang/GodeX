@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
+import {
+	checkCapability,
+	DEFAULT_CAPABILITIES,
+	mergeCapabilities,
+} from "./capabilities";
 import type { ChatClient } from "./chatClient";
 import type {
 	RequestMapper,
 	ResponseMapper,
 	StreamMapper,
 } from "./mapper/contract";
-import {
-	checkCapability,
-	DEFAULT_CAPABILITIES,
-	mergeCapabilities,
-	type Provider,
-} from "./provider";
+import type { Provider } from "./provider";
 
 function addAtRuntime(set: ReadonlySet<string>, value: string): void {
 	try {

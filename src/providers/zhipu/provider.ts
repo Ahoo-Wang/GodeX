@@ -1,5 +1,6 @@
-import type { Provider, ProviderCapabilities } from "../../adapter/provider";
-import { mergeCapabilities } from "../../adapter/provider";
+import type { ProviderCapabilities } from "../../adapter/capabilities";
+import { mergeCapabilities } from "../../adapter/capabilities";
+import type { Provider } from "../../adapter/provider";
 import { ZhipuChatClient } from "./chat-client";
 import type {
 	ChatCompletionChunk,

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { DEFAULT_CAPABILITIES, type Provider } from "../adapter/provider";
+import { DEFAULT_CAPABILITIES } from "../adapter/capabilities";
+import type { Provider } from "../adapter/provider";
 import type { GodexConfig } from "../config";
 import {
 	SERVER_PROVIDER_NOT_REGISTERED,

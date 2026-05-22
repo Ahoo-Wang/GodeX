@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
+import { DEFAULT_CAPABILITIES } from "../../../adapter/capabilities";
 import type { ProviderMapper } from "../../../adapter/provider";
-import { DEFAULT_CAPABILITIES } from "../../../adapter/provider";
 import type { GodexConfig } from "../../../config";
 import { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";

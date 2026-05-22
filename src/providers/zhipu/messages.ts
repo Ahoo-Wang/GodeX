@@ -1,6 +1,7 @@
 // src/providers/zhipu/messages.ts
 
-import { instructionsToSystemMessage, isRecord } from "../../adapter/utils";
+import { instructionsToSystemMessage } from "../../adapter/mapper/message-utils";
+import { isRecord } from "../../adapter/utils";
 import {
 	ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 	ADAPTER_REQUEST_UNSUPPORTED_INPUT_ITEM,

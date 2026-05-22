@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { DEFAULT_CAPABILITIES } from "../adapter/provider";
+import { DEFAULT_CAPABILITIES } from "../adapter/capabilities";
 import type { GodexConfig } from "../config";
 import { Registrar } from "../providers/registrar";
 import { ApplicationContext } from "./application-context";

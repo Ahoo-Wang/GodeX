@@ -1,4 +1,6 @@
 export * from "./adapter";
+export * from "./capabilities";
+export * from "./chatClient";
 export * from "./default-adapter";
 export * from "./mapper";
 export * from "./provider";
