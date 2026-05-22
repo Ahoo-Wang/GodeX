@@ -17,6 +17,13 @@ export function serve(opts: CliOptions, runtime: CliRuntime): void {
 
 	const app = new ApplicationContext(config, registrar);
 
+	app.logger.info("config.loaded", {
+		path: configPath,
+		defaultProvider: config.default_provider,
+		providers: Object.keys(config.providers),
+		sessionBackend: config.session.backend,
+	});
+
 	runtime.stdout?.write(
 		formatStartupBanner({
 			version: GODEX_VERSION,

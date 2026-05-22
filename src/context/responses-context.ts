@@ -40,6 +40,10 @@ export class ResponsesContext {
 		app: ApplicationContext,
 		body: ResponseCreateRequest,
 	): Promise<ResponsesContext> {
+		const requestLogger = app.logger.child({
+			request_id: `req_${nanoid()}`,
+		});
+
 		let resolved: ResolvedModel;
 		try {
 			resolved = app.resolver.resolve(body.model);
@@ -52,6 +56,12 @@ export class ResponsesContext {
 				{ cause: err instanceof Error ? err : undefined },
 			);
 		}
+
+		requestLogger.debug("model.resolved", {
+			selector: body.model,
+			provider: resolved.provider,
+			model: resolved.model,
+		});
 
 		const providerConfig = app.config.providers[resolved.provider];
 		if (!providerConfig) {
@@ -68,6 +78,10 @@ export class ResponsesContext {
 				session = await app.sessionStore.resolveChain(
 					body.previous_response_id,
 				);
+				requestLogger.debug("session.chain.resolved", {
+					previous_response_id: body.previous_response_id,
+					turnCount: session.turns.length,
+				});
 			} catch (err) {
 				if (err instanceof SessionError) throw err;
 				throw err;
