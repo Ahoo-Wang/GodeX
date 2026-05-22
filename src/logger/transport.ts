@@ -1,10 +1,11 @@
+import { homedir } from "node:os";
 import path from "node:path";
 import type { TransportTargetOptions } from "pino";
 import type { LoggingConfig } from "../config/schema";
 
 function expandHomeDir(filepath: string): string {
 	if (filepath.startsWith("~/")) {
-		return path.join(process.env.HOME ?? "", filepath.slice(2));
+		return path.join(process.env.HOME ?? homedir(), filepath.slice(2));
 	}
 	return filepath;
 }

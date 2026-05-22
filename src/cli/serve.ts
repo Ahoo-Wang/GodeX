@@ -40,13 +40,13 @@ export function serve(opts: CliOptions, runtime: CliRuntime): void {
 	registerShutdownHandlers(server, app.sessionStore, app.logger);
 }
 
-function registerShutdownHandlers(
+export function registerShutdownHandlers(
 	server: { stop(): void } | { port: number },
 	sessionStore: ResponseSessionStore,
 	logger: Logger,
 ): void {
 	const shutdown = (signal: string) => {
-		logger.info("godex.shutting_down", { signal });
+		logger.info("godex.shutting.down", { signal });
 		if ("stop" in server && typeof server.stop === "function") {
 			server.stop();
 		}

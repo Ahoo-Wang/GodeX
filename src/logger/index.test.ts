@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { Writable } from "node:stream";
 import pino from "pino";
-import { formatTimestamp, wrapPino } from "./index";
+import { createLogger, formatTimestamp, wrapPino } from "./index";
 
 function createInMemoryLogger(level: string = "info") {
 	const chunks: string[] = [];
@@ -46,6 +47,15 @@ describe("Logger (wrapPino)", () => {
 		expect(parsed.key).toBe("value");
 		expect(parsed.level).toBe(30);
 		expect(parsed.time).toBeDefined();
+	});
+
+	test("does not let attrs override the event name", () => {
+		const { logger, chunks } = createInMemoryLogger();
+		logger.info("test.event", { event: "spoofed.event", key: "value" });
+
+		const parsed = JSON.parse(chunks[0] as string);
+		expect(parsed.event).toBe("test.event");
+		expect(parsed.key).toBe("value");
 	});
 
 	test("respects log level - filters out lower priority", () => {
@@ -101,5 +111,33 @@ describe("Logger (wrapPino)", () => {
 		logger.info("ts.test");
 		const parsed = JSON.parse(chunks[0] as string);
 		expect(parsed.time).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/);
+	});
+
+	test("returns a no-op logger when all transports are disabled", () => {
+		const logger = createLogger({ level: "info", console: { enabled: false } });
+
+		expect(logger.level).toBe("info");
+		expect(() => logger.info("suppressed.event")).not.toThrow();
+		expect(() =>
+			logger.child({ request_id: "req_1" }).warn("suppressed.child"),
+		).not.toThrow();
+	});
+
+	test("does not keep the process open when all transports are disabled", () => {
+		const result = spawnSync(
+			process.execPath,
+			[
+				"-e",
+				"import { createLogger } from './src/logger/index.ts'; const logger = createLogger({ level: 'info', console: { enabled: false } }); logger.info('suppressed.event');",
+			],
+			{
+				cwd: process.cwd(),
+				encoding: "utf8",
+				timeout: 2000,
+			},
+		);
+
+		expect(result.error).toBeUndefined();
+		expect(result.status).toBe(0);
 	});
 });

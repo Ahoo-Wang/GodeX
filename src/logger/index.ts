@@ -1,4 +1,4 @@
-import type { Logger as PinoLogger } from "pino";
+import type { Logger as PinoLogger, TransportTargetOptions } from "pino";
 import pino from "pino";
 import type { LoggingConfig, LogLevel } from "../config/schema";
 import { createTransports } from "./transport";
@@ -37,6 +37,19 @@ export function formatTimestamp(date: Date): string {
 	);
 }
 
+function createNoopLogger(level: LogLevel): Logger {
+	const logger: Logger = {
+		level,
+		child: () => logger,
+		trace: () => {},
+		debug: () => {},
+		info: () => {},
+		warn: () => {},
+		error: () => {},
+	};
+	return logger;
+}
+
 export function wrapPino(pinoInstance: PinoLogger): Logger {
 	function log(level: LogLevel, event: string, attr?: LogAttr): void {
 		if (
@@ -45,7 +58,7 @@ export function wrapPino(pinoInstance: PinoLogger): Logger {
 			return;
 		}
 		const resolved = resolveAttr(attr);
-		pinoInstance[level]({ event, ...resolved });
+		pinoInstance[level]({ ...resolved, event });
 	}
 
 	return {
@@ -73,8 +86,16 @@ export function wrapPino(pinoInstance: PinoLogger): Logger {
 	};
 }
 
-export function createPinoInstance(config: LoggingConfig): PinoLogger {
-	const transports = createTransports(config);
+export function createPinoInstance(
+	config: LoggingConfig,
+	transports: TransportTargetOptions[] = createTransports(config),
+): PinoLogger {
+	if (transports.length === 0) {
+		return pino({
+			level: "silent",
+			timestamp: () => `,"time":"${formatTimestamp(new Date())}"`,
+		});
+	}
 	return pino(
 		{
 			level: config.level,
@@ -85,5 +106,9 @@ export function createPinoInstance(config: LoggingConfig): PinoLogger {
 }
 
 export function createLogger(config: LoggingConfig): Logger {
-	return wrapPino(createPinoInstance(config));
+	const transports = createTransports(config);
+	if (transports.length === 0) {
+		return createNoopLogger(config.level);
+	}
+	return wrapPino(createPinoInstance(config, transports));
 }

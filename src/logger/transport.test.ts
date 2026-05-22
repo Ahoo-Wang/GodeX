@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import path from "node:path";
 import type { LoggingConfig } from "../config/schema";
 import { createTransports } from "./transport";
+
+const packageJson = require("../../package.json") as {
+	dependencies?: Record<string, string>;
+};
 
 describe("createTransports", () => {
 	test("returns pino-pretty for default console config", () => {
@@ -10,6 +15,10 @@ describe("createTransports", () => {
 		expect(transports.length).toBe(1);
 		expect(transports[0]?.target).toBe("pino-pretty");
 		expect(transports[0]?.level).toBe("info");
+	});
+
+	test("declares the default pretty transport as a runtime dependency", () => {
+		expect(packageJson.dependencies?.["pino-pretty"]).toBeDefined();
 	});
 
 	test("uses console level override when set", () => {
@@ -99,6 +108,28 @@ describe("createTransports", () => {
 		);
 
 		process.env.HOME = originalHome;
+	});
+
+	test("expands ~ with os homedir when HOME is unset", () => {
+		const originalHome = process.env.HOME;
+		delete process.env.HOME;
+
+		try {
+			const config: LoggingConfig = {
+				level: "info",
+				file: { enabled: true, dir: "~/logs", filename: "godex.log" },
+			};
+			const transports = createTransports(config);
+
+			const fileTransport = transports.find((t) => t.target === "pino-roll");
+			const file = (fileTransport?.options as { file?: string } | undefined)
+				?.file;
+			expect(file).toBeDefined();
+			expect(path.isAbsolute(file as string)).toBe(true);
+			expect(file).toEndWith(path.join("logs", "godex.log"));
+		} finally {
+			process.env.HOME = originalHome;
+		}
 	});
 
 	test("does not expand non-tilde paths", () => {

@@ -76,7 +76,80 @@ function createTestApp(
 	return new ApplicationContext(config, registrar);
 }
 
+type CapturedLog = {
+	level: "trace" | "debug" | "info" | "warn" | "error";
+	event: string;
+	attr?: Record<string, unknown>;
+};
+
+function createCapturingLogger(logs: CapturedLog[]): Logger {
+	const logger: Logger = {
+		level: "trace",
+		child: () => logger,
+		trace: (event, attr) => capture("trace", event, attr),
+		debug: (event, attr) => capture("debug", event, attr),
+		info: (event, attr) => capture("info", event, attr),
+		warn: (event, attr) => capture("warn", event, attr),
+		error: (event, attr) => capture("error", event, attr),
+	};
+
+	function capture(
+		level: CapturedLog["level"],
+		event: string,
+		attr?: Record<string, unknown> | (() => Record<string, unknown>),
+	): void {
+		logs.push({
+			level,
+			event,
+			attr: typeof attr === "function" ? attr() : attr,
+		});
+	}
+
+	return logger;
+}
+
 describe("handleResponses stream errors", () => {
+	test("logs request metadata with snake_case fields", async () => {
+		const logs: CapturedLog[] = [];
+		const app = createTestApp(new FakeMapper(), {
+			async chat(): Promise<Record<string, unknown>> {
+				return {};
+			},
+			async streamChat() {
+				return new ReadableStream();
+			},
+		});
+		Object.defineProperty(app, "logger", {
+			value: createCapturingLogger(logs),
+		});
+
+		const res = await handleResponses(
+			new Request("http://godex.test/v1/responses", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					model: "zhipu/glm-5.1",
+					input: ["hi", "there"],
+					store: false,
+				}),
+			}),
+			app,
+		);
+
+		expect(res.status).toBe(200);
+		const received = logs.find(
+			(log) => log.event === "responses.request.received",
+		);
+		expect(received?.attr).toEqual(
+			expect.objectContaining({
+				input_count: 2,
+				previous_response_id: undefined,
+			}),
+		);
+		expect(received?.attr).not.toHaveProperty("inputCount");
+		expect(received?.attr).not.toHaveProperty("previousResponseId");
+	});
+
 	test("rejects previous_response_id and conversation together before resolving session", async () => {
 		const app = createTestApp(new FakeMapper(), {
 			async chat(): Promise<Record<string, unknown>> {
@@ -330,6 +403,7 @@ describe("handleResponses stream errors", () => {
 	});
 
 	test("maps sync provider timeouts to request_timeout responses", async () => {
+		const logs: CapturedLog[] = [];
 		const app = createTestApp(new FakeMapper(), {
 			async chat(): Promise<Record<string, unknown>> {
 				throw new ProviderError(
@@ -345,6 +419,9 @@ describe("handleResponses stream errors", () => {
 			async streamChat() {
 				return new ReadableStream();
 			},
+		});
+		Object.defineProperty(app, "logger", {
+			value: createCapturingLogger(logs),
 		});
 
 		const res = await handleResponses(
@@ -363,6 +440,54 @@ describe("handleResponses stream errors", () => {
 		expect(res.headers.get("x-request-id")).toMatch(/^req_/);
 		const body = (await res.json()) as { error: { code: string } };
 		expect(body.error.code).toBe("request_timeout");
+		expect(logs).toContainEqual(
+			expect.objectContaining({
+				level: "error",
+				event: "responses.request.provider.error",
+			}),
+		);
+	});
+
+	test("logs unexpected errors with dot-only event name and request_id", async () => {
+		const logs: CapturedLog[] = [];
+		const app = createTestApp(
+			{
+				...new FakeMapper(),
+				request: {
+					map() {
+						throw new Error("boom");
+					},
+				},
+			},
+			{
+				async chat(): Promise<Record<string, unknown>> {
+					return {};
+				},
+				async streamChat() {
+					return new ReadableStream();
+				},
+			},
+		);
+		Object.defineProperty(app, "logger", {
+			value: createCapturingLogger(logs),
+		});
+
+		const res = await handleResponses(
+			new Request("http://godex.test/v1/responses", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					model: "zhipu/glm-5.1",
+					input: "hi",
+				}),
+			}),
+			app,
+		);
+
+		expect(res.status).toBe(500);
+		const errorLog = logs.find((log) => log.event === "godex.unexpected.error");
+		expect(errorLog?.attr?.request_id).toMatch(/^req_/);
+		expect(errorLog?.attr).not.toHaveProperty("requestId");
 	});
 
 	test("maps sync requests exactly once through the adapter", async () => {

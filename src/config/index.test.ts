@@ -68,6 +68,71 @@ describe("buildConfig", () => {
 		);
 	});
 
+	test("throws for invalid console log level", () => {
+		expect(() =>
+			buildConfig(
+				{
+					...validFileConfig,
+					logging: {
+						level: "info",
+						console: { enabled: true, level: "verbose" },
+					},
+				},
+				{},
+			),
+		).toThrow("Invalid console log level: verbose");
+	});
+
+	test("throws for invalid file log level", () => {
+		expect(() =>
+			buildConfig(
+				{
+					...validFileConfig,
+					logging: {
+						level: "info",
+						file: {
+							enabled: true,
+							level: "verbose",
+							dir: "/var/log/godex",
+							filename: "godex.log",
+						},
+					},
+				},
+				{},
+			),
+		).toThrow("Invalid file log level: verbose");
+	});
+
+	test("throws when file logging is enabled without a directory", () => {
+		expect(() =>
+			buildConfig(
+				{
+					...validFileConfig,
+					logging: {
+						level: "info",
+						file: { enabled: true, filename: "godex.log" },
+					},
+				},
+				{},
+			),
+		).toThrow("logging.file.dir is required when file logging is enabled");
+	});
+
+	test("throws when file logging is enabled without a filename", () => {
+		expect(() =>
+			buildConfig(
+				{
+					...validFileConfig,
+					logging: {
+						level: "info",
+						file: { enabled: true, dir: "/var/log/godex" },
+					},
+				},
+				{},
+			),
+		).toThrow("logging.file.filename is required when file logging is enabled");
+	});
+
 	test("throws for invalid session backend", () => {
 		expect(() => buildConfig({ session: { backend: "redis" } }, {})).toThrow(
 			"Invalid session backend: redis",

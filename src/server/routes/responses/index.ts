@@ -44,9 +44,9 @@ export async function handleResponses(
 			model: body.model,
 			resolved: ctx.resolved,
 			stream: body.stream,
-			previousResponseId: body.previous_response_id,
+			previous_response_id: body.previous_response_id,
 			store: body.store,
-			inputCount: Array.isArray(body.input)
+			input_count: Array.isArray(body.input)
 				? body.input.length
 				: body.input
 					? 1
@@ -76,7 +76,7 @@ export async function handleResponses(
 		return Response.json(responseObject);
 	} catch (err) {
 		if (err instanceof ProviderError) {
-			logger.error("responses.request.provider_error", () => err.toLogEntry());
+			logger.error("responses.request.provider.error", () => err.toLogEntry());
 			const mapped = providerErrorToHttp(err);
 			return jsonError(mapped.status, mapped.error.code, mapped.error.message, {
 				requestId,
@@ -88,9 +88,9 @@ export async function handleResponses(
 				requestId,
 			});
 		}
-		logger.error("godex.unexpected_error", () => ({
+		logger.error("godex.unexpected.error", () => ({
 			...toLogEntry(err),
-			requestId,
+			request_id: requestId,
 		}));
 		return jsonError(500, SERVER_ERROR, "Internal server error", {
 			requestId,
