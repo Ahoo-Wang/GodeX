@@ -15,8 +15,7 @@ import { createBuiltinRoutes, startServer } from "../server";
 import { getLoopbackPort } from "./ports";
 
 const apiKey = process.env.ZHIPU_API_KEY;
-const liveEnabled = process.env.ZHIPU_LIVE_TESTS === "1";
-const liveDescribe = apiKey && liveEnabled ? describe : describe.skip;
+const liveDescribe = apiKey ? describe : describe.skip;
 const zhipuBaseUrl = process.env.ZHIPU_BASE_URL ?? DEFAULT_ZHIPU_BASE_URL;
 const liveModel = process.env.ZHIPU_TEST_MODEL ?? "gpt-5-mini";
 const maxOutputTokens = Number(
@@ -47,7 +46,7 @@ function createLiveConfig(port: number): GodexConfig {
 }
 
 beforeAll(async () => {
-	if (!apiKey || !liveEnabled) return;
+	if (!apiKey) return;
 
 	const config = createLiveConfig(await getLoopbackPort());
 	const registrar = new Registrar();
