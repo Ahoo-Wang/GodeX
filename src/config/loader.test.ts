@@ -1,6 +1,6 @@
-// src/config/index.test.ts
+// src/config/loader.test.ts
 import { describe, expect, test } from "bun:test";
-import { buildConfig, resolveEnvVars } from ".";
+import { buildConfig, resolveEnvVars } from "./loader";
 
 describe("resolveEnvVars", () => {
 	test("replaces ${VAR} with environment value", () => {

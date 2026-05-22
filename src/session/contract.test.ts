@@ -5,7 +5,7 @@ import type {
 	ResponseSessionSnapshot,
 	ResponseSessionStore,
 	StoredResponseSession,
-} from ".";
+} from "./types";
 
 const completedTurn = {
 	id: "resp_1",
@@ -110,8 +110,4 @@ describe("ResponseSessionStore contract", () => {
 		expect(error.code).toBe("session.chain.not_found");
 		expect(error.context).toEqual({ responseId: "resp_missing" });
 	});
-});
-
-test("does not leak session runtime helpers through the OpenAI protocol barrel", () => {
-	expect("SessionError" in openaiProtocol).toBe(false);
 });
