@@ -4,6 +4,6 @@ export * from "./chatClient";
 export * from "./default-adapter";
 export * from "./mapper";
 export * from "./provider";
-export * from "./tools";
+export * from "./response-utils";
 export * from "./transformers";
 export * from "./utils";

@@ -1,12 +1,12 @@
 // src/providers/zhipu/tools.ts
 
-import { getBuiltinFunctionToolDefinition } from "../../adapter";
 import { isRecord } from "../../adapter/utils";
 import { ADAPTER_REQUEST_UNSUPPORTED_TOOL, AdapterError } from "../../error";
 import type {
 	ResponseTool,
 	ResponseToolChoice,
 } from "../../protocol/openai/responses";
+import { getBuiltinFunctionToolDefinition } from "../../tools";
 import { toZhipuFunctionName } from "./function-names";
 import type {
 	ChatTool,

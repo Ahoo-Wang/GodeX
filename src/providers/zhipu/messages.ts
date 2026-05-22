@@ -1,6 +1,5 @@
 // src/providers/zhipu/messages.ts
 
-import { instructionsToSystemMessage } from "../../adapter/mapper/message-utils";
 import { isRecord } from "../../adapter/utils";
 import {
 	ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
@@ -325,4 +324,11 @@ function contentPartType(part: unknown): string {
 		return String(part.type);
 	}
 	return typeof part;
+}
+
+function instructionsToSystemMessage(
+	instructions: string | undefined,
+): { role: "system"; content: string } | null {
+	if (!instructions) return null;
+	return { role: "system", content: instructions };
 }
