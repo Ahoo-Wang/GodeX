@@ -113,4 +113,51 @@ describe("buildConfig", () => {
 			),
 		).toThrow("Provider zhipu models.gpt-5 must be a string");
 	});
+
+	test("parses logging config with console and file", () => {
+		const config = buildConfig(
+			{
+				providers: {
+					zhipu: { api_key: "test-key", base_url: "https://example.test/api" },
+				},
+				logging: {
+					level: "debug",
+					console: { enabled: true, level: "info", pretty: false },
+					file: {
+						enabled: true,
+						level: "warn",
+						dir: "/var/log/godex",
+						filename: "godex.log",
+					},
+				},
+			},
+			{},
+		);
+		expect(config.logging.level).toBe("debug");
+		expect(config.logging.console).toEqual({
+			enabled: true,
+			level: "info",
+			pretty: false,
+		});
+		expect(config.logging.file).toEqual({
+			enabled: true,
+			level: "warn",
+			dir: "/var/log/godex",
+			filename: "godex.log",
+		});
+	});
+
+	test("logging console and file default to undefined when not set", () => {
+		const config = buildConfig(
+			{
+				providers: {
+					zhipu: { api_key: "test-key", base_url: "https://example.test/api" },
+				},
+			},
+			{},
+		);
+		expect(config.logging.level).toBe("info");
+		expect(config.logging.console).toBeUndefined();
+		expect(config.logging.file).toBeUndefined();
+	});
 });

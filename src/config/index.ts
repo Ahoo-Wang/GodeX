@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import yaml from "js-yaml";
-import type { GodexConfig, LogLevel, ProviderConfig } from "./schema";
+import type { ConsoleLoggingConfig, FileLoggingConfig, GodexConfig, LogLevel, ProviderConfig } from "./schema";
 
 export function resolveEnvVars(value: string): string {
 	return value.replace(/\$\{(\w+)\}/g, (match, name: string) => {
@@ -204,7 +204,7 @@ export function buildConfig(
 			backend: sessionBackend,
 			...(sqlitePath ? { sqlite: { path: sqlitePath } } : {}),
 		},
-		logging: { level },
+		logging: { level, console: parseConsoleLoggingConfig(logging), file: parseFileLoggingConfig(logging) },
 	};
 }
 
@@ -226,4 +226,35 @@ function validateHost(value: unknown): string {
 		throw new Error(`Invalid server host: ${String(value)}`);
 	}
 	return value;
+}
+
+function parseConsoleLoggingConfig(
+	logging: Record<string, unknown>,
+): ConsoleLoggingConfig | undefined {
+	const raw = logging.console;
+	if (typeof raw !== "object" || raw === null) return undefined;
+	const c = raw as Record<string, unknown>;
+	if (c.enabled !== true) return { enabled: false };
+	return {
+		enabled: true,
+		level: typeof c.level === "string" ? (c.level as LogLevel) : undefined,
+		pretty: typeof c.pretty === "boolean" ? c.pretty : undefined,
+	};
+}
+
+function parseFileLoggingConfig(
+	logging: Record<string, unknown>,
+): FileLoggingConfig | undefined {
+	const raw = logging.file;
+	if (typeof raw !== "object" || raw === null) return undefined;
+	const f = raw as Record<string, unknown>;
+	if (f.enabled !== true) return undefined;
+	const dir = typeof f.dir === "string" ? f.dir : "";
+	const filename = typeof f.filename === "string" ? f.filename : "godex.log";
+	return {
+		enabled: true,
+		level: typeof f.level === "string" ? (f.level as LogLevel) : undefined,
+		dir,
+		filename,
+	};
 }

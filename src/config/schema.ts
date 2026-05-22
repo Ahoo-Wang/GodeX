@@ -19,8 +19,23 @@ export interface SessionConfig {
 	sqlite?: { path: string };
 }
 
+export interface ConsoleLoggingConfig {
+	enabled: boolean;
+	level?: LogLevel;
+	pretty?: boolean;
+}
+
+export interface FileLoggingConfig {
+	enabled: boolean;
+	level?: LogLevel;
+	dir: string;
+	filename: string;
+}
+
 export interface LoggingConfig {
 	level: LogLevel;
+	console?: ConsoleLoggingConfig;
+	file?: FileLoggingConfig;
 }
 
 export interface GodexConfig {
