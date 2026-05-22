@@ -21,7 +21,7 @@ export function formatStartupBanner(opts: StartupBannerOptions): string {
 		`  provider: ${opts.defaultProvider} (${opts.providers.join(", ")})`,
 		`  session:  ${formatSessionBackend(opts.session)}`,
 	];
-	return `${lines.join("\n")}\n`;
+	return `${lines.join("\n")}\n\n`;
 }
 
 function formatSessionBackend(session: SessionConfig): string {
