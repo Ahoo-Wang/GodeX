@@ -159,7 +159,6 @@ export default withMermaid(
   defineConfig({
     title: 'Godex Wiki',
     description: 'Technical documentation for Godex — OpenAI Responses API Gateway',
-    lang: 'en-US',
     appearance: 'dark',
     cleanUrls: true,
     ignoreDeadLinks: true,
@@ -174,22 +173,38 @@ export default withMermaid(
       optimizeDeps: { include: ['mermaid'] },
     },
     locales: {
-      root: { label: 'English', lang: 'en', link: '/en/' },
-      zh: { label: '中文', lang: 'zh-CN', link: '/zh/' },
+      '/en/': {
+        label: 'English',
+        lang: 'en',
+        title: 'Godex Wiki',
+        description: 'Technical documentation for Godex — OpenAI Responses API Gateway',
+        themeConfig: {
+          nav: [
+            { text: 'Getting Started', link: '/en/01-getting-started/overview' },
+            { text: 'Architecture', link: '/en/02-architecture/overview' },
+            { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/Godex' },
+          ],
+          sidebar: enSidebar,
+        },
+      },
+      '/zh/': {
+        label: '中文',
+        lang: 'zh-CN',
+        title: 'Godex Wiki',
+        description: 'Godex 技术文档 — OpenAI Responses API 网关',
+        themeConfig: {
+          nav: [
+            { text: '快速入门', link: '/zh/01-getting-started/overview' },
+            { text: '架构', link: '/zh/02-architecture/overview' },
+            { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/Godex' },
+          ],
+          sidebar: zhSidebar,
+        },
+      },
     },
     themeConfig: {
       logo: '/logo.svg',
       siteTitle: 'Godex Wiki',
-      nav: [
-        { text: 'Home', link: '/en/' },
-        { text: 'Architecture', link: '/en/02-architecture/overview' },
-        { text: '中文', link: '/zh/' },
-        { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/Godex' },
-      ],
-      sidebar: {
-        '/en/': enSidebar,
-        '/zh/': zhSidebar,
-      },
       socialLinks: [
         { icon: 'github', link: 'https://github.com/Ahoo-Wang/Godex' },
       ],
