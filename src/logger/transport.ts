@@ -48,6 +48,7 @@ export function configureLogging(config: LoggingConfig): boolean {
 					properties: true,
 					align: false,
 					wordWrap: false,
+					inspectOptions: { compact: true },
 				}),
 			}),
 			consoleLevel,
