@@ -132,6 +132,7 @@ function buildConfigYaml(opts: {
 		`      gpt-5-mini: glm-5-turbo`,
 		`      gpt-4o: glm-4.7`,
 		`      gpt-4o-mini: glm-4.7-flash`,
+		`      "*": glm-5.1`,
 		"",
 		"session:",
 		`  backend: ${opts.sessionBackend}`,
