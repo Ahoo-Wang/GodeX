@@ -1,12 +1,24 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import * as ts from "typescript";
 
-const SRC_ROOT = new URL(".", import.meta.url).pathname;
+const SRC_ROOT = fileURLToPath(new URL(".", import.meta.url));
+const ROOT_INDEX = join(SRC_ROOT, "index.ts");
 
 function srcRelative(path: string): string {
 	return relative(SRC_ROOT, path).split(/[\\/]/).join("/");
+}
+
+function createSourceFile(path: string): ts.SourceFile {
+	return ts.createSourceFile(
+		path,
+		readFileSync(path, "utf-8"),
+		ts.ScriptTarget.Latest,
+		false,
+		ts.ScriptKind.TS,
+	);
 }
 
 function collectDirectories(path: string): string[] {
@@ -35,32 +47,13 @@ function collectTypeScriptFiles(path: string): string[] {
 	return files;
 }
 
-function reExportStatements(path: string): string[] {
-	const source = ts.createSourceFile(
-		path,
-		readFileSync(path, "utf-8"),
-		ts.ScriptTarget.Latest,
-		false,
-		ts.ScriptKind.TS,
-	);
-
-	return source.statements
-		.filter(
-			(statement) =>
-				ts.isExportDeclaration(statement) &&
-				statement.moduleSpecifier !== undefined,
-		)
-		.map((statement) => ts.SyntaxKind[statement.kind]);
+function moduleSpecifierText(statement: ts.ExportDeclaration): string {
+	const specifier = statement.moduleSpecifier;
+	return specifier && ts.isStringLiteral(specifier) ? specifier.text : "";
 }
 
-function reExportModuleSpecifiers(path: string): string[] {
-	const source = ts.createSourceFile(
-		path,
-		readFileSync(path, "utf-8"),
-		ts.ScriptTarget.Latest,
-		false,
-		ts.ScriptKind.TS,
-	);
+function reExportDetails(path: string): string[] {
+	const source = createSourceFile(path);
 
 	return source.statements
 		.filter(
@@ -68,20 +61,26 @@ function reExportModuleSpecifiers(path: string): string[] {
 				ts.isExportDeclaration(statement) &&
 				statement.moduleSpecifier !== undefined,
 		)
-		.map((statement) => {
-			const specifier = statement.moduleSpecifier;
-			return specifier && ts.isStringLiteral(specifier) ? specifier.text : "";
-		});
+		.map(
+			(statement) =>
+				`${moduleSpecifierText(statement)}: ${statement.getText(source)}`,
+		);
+}
+
+function reExportModuleSpecifiers(path: string): string[] {
+	const source = createSourceFile(path);
+
+	return source.statements
+		.filter(
+			(statement): statement is ts.ExportDeclaration =>
+				ts.isExportDeclaration(statement) &&
+				statement.moduleSpecifier !== undefined,
+		)
+		.map(moduleSpecifierText);
 }
 
 function nonExportStatements(path: string): string[] {
-	const source = ts.createSourceFile(
-		path,
-		readFileSync(path, "utf-8"),
-		ts.ScriptTarget.Latest,
-		false,
-		ts.ScriptKind.TS,
-	);
+	const source = createSourceFile(path);
 
 	return source.statements
 		.filter((statement) => {
@@ -90,12 +89,15 @@ function nonExportStatements(path: string): string[] {
 				statement.moduleSpecifier !== undefined
 			);
 		})
-		.map((statement) => ts.SyntaxKind[statement.kind]);
+		.map((statement) => statement.getText(source));
 }
 
 describe("src module boundaries", () => {
+	const sourceDirectories = collectDirectories(SRC_ROOT).sort();
+	const sourceFiles = collectTypeScriptFiles(SRC_ROOT).sort();
+
 	test("every src subdirectory has an index barrel", () => {
-		const missing = collectDirectories(SRC_ROOT)
+		const missing = sourceDirectories
 			.filter((directory) => !existsSync(join(directory, "index.ts")))
 			.map(srcRelative)
 			.sort();
@@ -104,7 +106,7 @@ describe("src module boundaries", () => {
 	});
 
 	test("subdirectory index.ts files only re-export local modules", () => {
-		const offenders = collectDirectories(SRC_ROOT)
+		const offenders = sourceDirectories
 			.map((directory) => join(directory, "index.ts"))
 			.filter(existsSync)
 			.map((indexPath) => ({
@@ -117,7 +119,7 @@ describe("src module boundaries", () => {
 	});
 
 	test("subdirectory index.ts files only re-export modules from their own directory", () => {
-		const offenders = collectDirectories(SRC_ROOT)
+		const offenders = sourceDirectories
 			.map((directory) => join(directory, "index.ts"))
 			.filter(existsSync)
 			.map((indexPath) => ({
@@ -132,11 +134,11 @@ describe("src module boundaries", () => {
 	});
 
 	test("non-index TypeScript modules do not re-export other modules", () => {
-		const offenders = collectTypeScriptFiles(SRC_ROOT)
+		const offenders = sourceFiles
 			.filter((path) => basename(path) !== "index.ts")
 			.map((path) => ({
 				path: srcRelative(path),
-				statements: reExportStatements(path),
+				statements: reExportDetails(path),
 			}))
 			.filter((offender) => offender.statements.length > 0);
 
@@ -144,7 +146,11 @@ describe("src module boundaries", () => {
 	});
 
 	test("the root src/index.ts stays an executable entrypoint", () => {
-		expect(basename(join(SRC_ROOT, "index.ts"))).toBe("index.ts");
-		expect(existsSync(join(SRC_ROOT, "index.ts"))).toBe(true);
+		expect(basename(ROOT_INDEX)).toBe("index.ts");
+		expect(existsSync(ROOT_INDEX)).toBe(true);
+		expect(nonExportStatements(ROOT_INDEX)).toEqual([
+			'import { runCli } from "./cli";',
+			"process.exitCode = await runCli(process.argv);",
+		]);
 	});
 });
