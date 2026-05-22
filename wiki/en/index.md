@@ -8,6 +8,4 @@ layout: home
 
 Godex is an **OpenAI Responses API gateway** that translates `/v1/responses` requests into upstream Chat Completions API calls, enabling any LLM provider to drive tools like Codex.
 
-[Browse English Docs](/en/01-getting-started/overview) | [浏览中文文档](/zh/01-getting-started/overview)
-
-[GitHub](https://github.com/Ahoo-Wang/Godex)
+[Getting Started](/en/01-getting-started/overview) | [Architecture](/en/02-architecture/overview) | [GitHub](https://github.com/Ahoo-Wang/Godex)

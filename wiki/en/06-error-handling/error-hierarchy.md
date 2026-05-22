@@ -1,0 +1,77 @@
+---
+title: "Error Hierarchy"
+description: "Structured error types with domain codes for consistent error handling and logging."
+---
+
+# Error Hierarchy
+
+All errors in Godex extend the abstract `GodexError` base class. Each error carries a domain, code, HTTP status, structured context, and a timestamp.
+
+## Class Hierarchy
+
+```mermaid
+classDiagram
+  direction TB
+
+  class GodexError {
+    <<abstract>>
+    +domain: string
+    +code: string
+    +status: number
+    +context: Record
+    +timestamp: number
+    +toLogEntry() Record
+  }
+
+  class ServerError {
+    +domain: server
+    +status: 400-499
+  }
+
+  class AdapterError {
+    +domain: adapter
+    +status: 400-499
+  }
+
+  class ProviderError {
+    +domain: provider
+    +status: 502
+  }
+
+  class SessionError {
+    +domain: session
+    +status: 400-409
+  }
+
+  GodexError <|-- ServerError
+  GodexError <|-- AdapterError
+  GodexError <|-- ProviderError
+  GodexError <|-- SessionError
+```
+
+## Error Domains
+
+| Domain | Class | When It Occurs |
+|--------|-------|----------------|
+| `server` | `ServerError` | Invalid JSON, missing model, unknown provider |
+| `adapter` | `AdapterError` | Unsupported parameters, tools, or input items |
+| `provider` | `ProviderError` | Upstream rate limits, timeouts, 5xx errors |
+| `session` | `SessionError` | Chain not found, cycles, depth exceeded |
+
+## Structured Logging
+
+Every `GodexError` produces a structured log entry via `toLogEntry()`:
+
+```json
+{
+  "domain": "session",
+  "code": "session.chain.cycle_detected",
+  "message": "Previous response chain contains a cycle.",
+  "status": 400,
+  "timestamp": 1716451200000,
+  "responseId": "resp_abc",
+  "previousResponseId": "resp_xyz"
+}
+```
+
+[Error Codes](/en/06-error-handling/error-codes)
