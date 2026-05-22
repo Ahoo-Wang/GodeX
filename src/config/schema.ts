@@ -22,7 +22,6 @@ export interface SessionConfig {
 export interface ConsoleLoggingConfig {
 	enabled: boolean;
 	level?: LogLevel;
-	pretty?: boolean;
 }
 
 export interface FileLoggingConfig {

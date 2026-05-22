@@ -41,18 +41,12 @@ export function configureLogging(config: LoggingConfig): boolean {
 	if (config.console?.enabled !== false) {
 		const consoleLevel =
 			TO_LOGTAPE_LEVEL[config.console?.level ?? config.level];
-		sinks.console =
-			config.console?.pretty !== false
-				? withFilter(
-						getConsoleSink({
-							formatter: getPrettyFormatter({
-								timestamp: "date-time",
-								timeZone: null,
-							}),
-						}),
-						consoleLevel,
-					)
-				: withFilter(getConsoleSink(), consoleLevel);
+		sinks.console = withFilter(
+			getConsoleSink({
+				formatter: getPrettyFormatter({ timestamp: "date-time" }),
+			}),
+			consoleLevel,
+		);
 		loggerSinkIds.push("console");
 		lowestLevel = consoleLevel;
 	}
@@ -87,9 +81,7 @@ export function configureLogging(config: LoggingConfig): boolean {
 }
 
 function createFileSink(filepath: string): Sink {
-	const formatter = getJsonLinesFormatter({
-		properties: "flatten",
-	});
+	const formatter = getJsonLinesFormatter({ properties: "flatten" });
 	const stream = createWriteStream(filepath, { flags: "a" });
 	return (record: LogRecord) => {
 		stream.write(`${formatter(record)}\n`);

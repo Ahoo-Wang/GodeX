@@ -187,7 +187,7 @@ describe("buildConfig", () => {
 				},
 				logging: {
 					level: "debug",
-					console: { enabled: true, level: "info", pretty: false },
+					console: { enabled: true, level: "info" },
 					file: {
 						enabled: true,
 						level: "warn",
@@ -202,7 +202,6 @@ describe("buildConfig", () => {
 		expect(config.logging.console).toEqual({
 			enabled: true,
 			level: "info",
-			pretty: false,
 		});
 		expect(config.logging.file).toEqual({
 			enabled: true,

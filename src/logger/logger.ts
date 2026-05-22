@@ -1,6 +1,5 @@
 import {
 	getLogger as getLogTapeLogger,
-	type LogLevel as LogTapeLevel,
 	type Logger as LogTapeLogger,
 } from "@logtape/logtape";
 import type { LoggingConfig, LogLevel } from "../config/schema";
@@ -19,11 +18,6 @@ export interface Logger {
 	error(event: string, attr?: LogAttr): void;
 }
 
-function resolveAttr(attr: LogAttr | undefined): Record<string, unknown> {
-	if (!attr) return {};
-	return typeof attr === "function" ? attr() : attr;
-}
-
 function createNoopLogger(level: LogLevel): Logger {
 	const logger: Logger = {
 		level,
@@ -37,41 +31,10 @@ function createNoopLogger(level: LogLevel): Logger {
 	return logger;
 }
 
-const TO_LOGTAPE: Record<LogLevel, LogTapeLevel> = {
-	trace: "trace",
-	debug: "debug",
-	info: "info",
-	warn: "warning",
-	error: "error",
-};
-
 export function wrapLogTape(
 	logtapeLogger: LogTapeLogger,
 	configLevel: LogLevel,
 ): Logger {
-	function log(level: LogLevel, event: string, attr?: LogAttr): void {
-		const logtapeLevel = TO_LOGTAPE[level];
-		if (!logtapeLogger.isEnabledFor(logtapeLevel)) return;
-		const props = resolveAttr(attr);
-		switch (logtapeLevel) {
-			case "trace":
-				logtapeLogger.trace(event, props);
-				break;
-			case "debug":
-				logtapeLogger.debug(event, props);
-				break;
-			case "info":
-				logtapeLogger.info(event, props);
-				break;
-			case "warning":
-				logtapeLogger.warning(event, props);
-				break;
-			case "error":
-				logtapeLogger.error(event, props);
-				break;
-		}
-	}
-
 	return {
 		get level(): LogLevel {
 			return configLevel;
@@ -80,19 +43,19 @@ export function wrapLogTape(
 			return wrapLogTape(logtapeLogger.with(bindings), configLevel);
 		},
 		trace(event, attr) {
-			log("trace", event, attr);
+			logtapeLogger.trace(event, attr);
 		},
 		debug(event, attr) {
-			log("debug", event, attr);
+			logtapeLogger.debug(event, attr);
 		},
 		info(event, attr) {
-			log("info", event, attr);
+			logtapeLogger.info(event, attr);
 		},
 		warn(event, attr) {
-			log("warn", event, attr);
+			logtapeLogger.warn(event, attr);
 		},
 		error(event, attr) {
-			log("error", event, attr);
+			logtapeLogger.error(event, attr);
 		},
 	};
 }

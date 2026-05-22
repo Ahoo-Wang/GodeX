@@ -253,7 +253,6 @@ function parseConsoleLoggingConfig(
 			c.level !== undefined
 				? validateLogLevel(c.level, "console log")
 				: undefined,
-		pretty: typeof c.pretty === "boolean" ? c.pretty : undefined,
 	};
 }
 

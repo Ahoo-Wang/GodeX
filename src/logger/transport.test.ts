@@ -34,14 +34,6 @@ describe("configureLogging", () => {
 		expect(getConfig()).not.toBeNull();
 	});
 
-	test("configures console sink when pretty is false", () => {
-		const config: LoggingConfig = {
-			level: "info",
-			console: { enabled: true, pretty: false },
-		};
-		expect(configureLogging(config)).toBe(true);
-	});
-
 	test("uses console level override when set", () => {
 		const config: LoggingConfig = {
 			level: "info",
