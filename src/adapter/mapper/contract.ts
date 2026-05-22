@@ -6,13 +6,6 @@ import type {
 } from "../../protocol/openai/responses";
 import type { StreamState } from "./stream-state";
 
-export type {
-	StatusFields,
-	StreamState,
-	ToolCallAccumulator,
-} from "./stream-state";
-export { StreamPhase } from "./stream-state";
-
 export interface RequestMapper<TReq> {
 	map(ctx: ResponsesContext): TReq | Promise<TReq>;
 }

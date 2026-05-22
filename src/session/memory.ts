@@ -1,4 +1,5 @@
 import { SESSION_CONFLICT, SessionError } from "../error";
+import { resolveResponseSessionChain } from "./chain";
 import type {
 	ResolveResponseSessionOptions,
 	ResponseId,
@@ -6,8 +7,7 @@ import type {
 	ResponseSessionStore,
 	SaveResponseSessionOptions,
 	StoredResponseSession,
-} from ".";
-import { resolveResponseSessionChain } from "./chain";
+} from "./types";
 
 /**
  * In-memory session store for tests, demos, and single-process deployments.

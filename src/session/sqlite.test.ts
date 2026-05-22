@@ -2,8 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { SessionError } from "../error";
 import type { ResponseItem } from "../protocol/openai/responses";
-import { SessionError, type StoredResponseSession } from ".";
+import type { StoredResponseSession } from ".";
 import { SQLiteResponseSessionStore } from "./sqlite";
 
 const userInput: ResponseItem = {

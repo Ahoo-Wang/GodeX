@@ -12,7 +12,7 @@ import type {
 	ResponseSessionSnapshot,
 	StoredResponseRequestSnapshot,
 	StoredResponseSession,
-} from ".";
+} from "./types";
 
 const DEFAULT_MAX_DEPTH = 64;
 

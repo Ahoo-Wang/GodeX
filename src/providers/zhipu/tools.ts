@@ -14,8 +14,6 @@ import type {
 	ToolChoice,
 } from "./protocol/completions";
 
-export { toZhipuFunctionName } from "./function-names";
-
 type UnsupportedToolMode = "throw" | "skip";
 
 interface MapToolsOptions {
