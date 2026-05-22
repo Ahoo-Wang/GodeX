@@ -1,3 +1,4 @@
+import { SafeTransformer } from "@ahoo-wang/fetcher-eventstream";
 import type { ResponsesContext } from "../../context/responses-context";
 import type {
 	ResponseObject,
@@ -5,7 +6,6 @@ import type {
 } from "../../protocol/openai/responses";
 import type { ResponseSessionStore } from "../../session";
 import { StreamState } from "../mapper/stream-state";
-import { enqueue } from "./stream-utils";
 
 export interface ResponseSessionPersistenceTransformerOptions {
 	ctx: ResponsesContext;
@@ -20,17 +20,20 @@ export interface ResponseSessionPersistenceTransformerOptions {
 	) => ResponseObject | Promise<ResponseObject>;
 }
 
-export class ResponseSessionPersistenceTransformer
-	implements Transformer<ResponseStreamEvent, ResponseStreamEvent>
-{
+export class ResponseSessionPersistenceTransformer extends SafeTransformer<
+	ResponseStreamEvent,
+	ResponseStreamEvent
+> {
 	private completedResponse?: ResponseObject;
 	private persistenceAttempted = false;
 
 	constructor(
 		private readonly options: ResponseSessionPersistenceTransformerOptions,
-	) {}
+	) {
+		super();
+	}
 
-	async transform(
+	protected async onTransform(
 		chunk: ResponseStreamEvent,
 		controller: TransformStreamDefaultController<ResponseStreamEvent>,
 	): Promise<void> {
@@ -38,13 +41,13 @@ export class ResponseSessionPersistenceTransformer
 		if (terminalResponse) {
 			this.completedResponse = terminalResponse;
 		}
-		enqueue(controller, chunk);
+		this.enqueue(controller, chunk);
 		if (terminalResponse) {
 			await this.persist(terminalResponse);
 		}
 	}
 
-	async flush(): Promise<void> {
+	protected override async onFlush(): Promise<void> {
 		const ctx = this.options.ctx;
 		const state = StreamState.from(ctx);
 		if (!this.completedResponse && !state.completedAt) return;
