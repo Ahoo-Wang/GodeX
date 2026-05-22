@@ -45,6 +45,7 @@ export function startServer(deps: ServerDeps): ReturnType<typeof Bun.serve> {
 		env: EnvVars.current,
 		config: { path: deps.configPath },
 		session: config.session,
+		logging: config.logging,
 	});
 	return server;
 }
