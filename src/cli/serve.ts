@@ -25,9 +25,49 @@ export function serve(opts: CliOptions, runtime: CliRuntime): void {
 	});
 
 	runtime.stdout?.write(
-		`Godex v${GODEX_VERSION} [${isDevMode() ? "dev" : "prod"}] listening on http://${config.server.host}:${server.port}\n`,
+		formatStartupBanner({
+			version: GODEX_VERSION,
+			env: isDevMode() ? "dev" : "prod",
+			host: config.server.host,
+			port: server.port ?? config.server.port,
+			configPath,
+			session: config.session,
+			defaultProvider: config.default_provider,
+			providers: Object.keys(config.providers),
+		}),
 	);
 	registerShutdownHandlers(server, app.sessionStore, app.logger);
+}
+
+function formatStartupBanner(opts: {
+	version: string;
+	env: string;
+	host: string;
+	port: number;
+	configPath: string;
+	session: { backend: string; sqlite?: { path: string } };
+	defaultProvider: string;
+	providers: string[];
+}): string {
+	const lines: string[] = [
+		`Godex v${opts.version} [${opts.env}]`,
+		``,
+		`  address: http://${opts.host}:${opts.port}`,
+		`  config: ${opts.configPath}`,
+		`  provider: ${opts.defaultProvider} (${opts.providers.join(", ")})`,
+		`  session: ${formatSessionBackend(opts.session)}`,
+	];
+	return `${lines.join("\n")}\n`;
+}
+
+function formatSessionBackend(session: {
+	backend: string;
+	sqlite?: { path: string };
+}): string {
+	if (session.backend === "sqlite" && session.sqlite?.path) {
+		return `sqlite (${session.sqlite.path})`;
+	}
+	return session.backend;
 }
 
 function registerShutdownHandlers(

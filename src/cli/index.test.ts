@@ -54,9 +54,11 @@ describe("CLI", () => {
 		expect(code).toBe(0);
 		expect(cli.starts).toHaveLength(1);
 		expect(cli.starts[0]?.config.server.port).toBe(3100);
-		expect(cli.stdout.join("")).toContain(
-			`Godex v${version} [${isDevMode() ? "dev" : "prod"}] listening on http://0.0.0.0:3100`,
+		const output = cli.stdout.join("");
+		expect(output).toContain(
+			`Godex v${version} [${isDevMode() ? "dev" : "prod"}]`,
 		);
+		expect(output).toContain("address: http://0.0.0.0:3100");
 	});
 
 	test("starts the server from the explicit serve command", async () => {
@@ -92,9 +94,11 @@ describe("CLI", () => {
 
 		expect(code).toBe(0);
 		expect(cli.starts[0]?.config.server.host).toBe("0.0.0.0");
-		expect(cli.stdout.join("")).toContain(
-			`Godex v${version} [${isDevMode() ? "dev" : "prod"}] listening on http://0.0.0.0:3101`,
+		const output = cli.stdout.join("");
+		expect(output).toContain(
+			`Godex v${version} [${isDevMode() ? "dev" : "prod"}]`,
 		);
+		expect(output).toContain("address: http://0.0.0.0:3101");
 	});
 
 	test("rejects invalid ports before starting the server", async () => {
