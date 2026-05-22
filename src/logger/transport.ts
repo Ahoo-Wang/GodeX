@@ -46,6 +46,7 @@ export function configureLogging(config: LoggingConfig): boolean {
 				formatter: getPrettyFormatter({
 					timestamp: "date-time",
 					properties: true,
+					align: false,
 				}),
 			}),
 			consoleLevel,
