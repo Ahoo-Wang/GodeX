@@ -3,7 +3,7 @@ import { Env, EnvVars } from "./env";
 
 describe("EnvVars", () => {
 	test("current returns Development when GODEX_BUILD_ENV is not set", () => {
-		expect(EnvVars.current).toBe(Env.Development);
+		expect(EnvVars.current).toBe(Env.Dev);
 	});
 
 	test("isDev returns true in development mode", () => {
@@ -15,7 +15,7 @@ describe("EnvVars", () => {
 	});
 
 	test("current returns correct enum values", () => {
-		expect(Env.Development as string).toBe("dev");
-		expect(Env.Production as string).toBe("prod");
+		expect(Env.Dev as string).toBe("dev");
+		expect(Env.Prod as string).toBe("prod");
 	});
 });

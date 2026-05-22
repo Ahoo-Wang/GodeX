@@ -1,7 +1,7 @@
 /** Runtime environment identifier. */
 export enum Env {
-	Development = "dev",
-	Production = "prod",
+	Dev = "dev",
+	Prod = "prod",
 }
 
 declare const GODEX_BUILD_ENV: string | undefined;
@@ -16,17 +16,15 @@ export const EnvVars = {
 	/** Resolved runtime environment. */
 	get current(): Env {
 		if (typeof GODEX_BUILD_ENV !== "undefined")
-			return GODEX_BUILD_ENV === "production"
-				? Env.Production
-				: Env.Development;
-		return Env.Development;
+			return GODEX_BUILD_ENV === "production" ? Env.Prod : Env.Dev;
+		return Env.Dev;
 	},
 
 	get isDev(): boolean {
-		return this.current === Env.Development;
+		return this.current === Env.Dev;
 	},
 
 	get isProd(): boolean {
-		return this.current === Env.Production;
+		return this.current === Env.Prod;
 	},
 };
