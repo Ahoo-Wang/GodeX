@@ -16,7 +16,7 @@ export const EnvVars = {
 	/** Resolved runtime environment. */
 	get current(): Env {
 		if (typeof GODEX_BUILD_ENV !== "undefined")
-			return GODEX_BUILD_ENV === "prod" ? Env.Prod : Env.Dev;
+			return GODEX_BUILD_ENV === Env.Prod ? Env.Prod : Env.Dev;
 		return Env.Dev;
 	},
 
