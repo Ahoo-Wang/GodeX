@@ -154,3 +154,9 @@ describe("src module boundaries", () => {
 		]);
 	});
 });
+
+import * as openaiProtocol from "./protocol/openai";
+
+test("session runtime helpers do not leak through the OpenAI protocol barrel", () => {
+	expect("SessionError" in openaiProtocol).toBe(false);
+});
