@@ -15,7 +15,7 @@ describe("EnvVars", () => {
 	});
 
 	test("current returns correct enum values", () => {
-		expect(Env.Development).toBe("dev");
-		expect(Env.Production).toBe("prod");
+		expect(Env.Development as string).toBe("dev");
+		expect(Env.Production as string).toBe("prod");
 	});
 });
