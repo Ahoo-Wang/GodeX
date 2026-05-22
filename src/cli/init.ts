@@ -107,7 +107,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
 	clack.outro(`Created ${opts.configPath}`);
 }
 
-function buildConfigYaml(opts: {
+export function buildConfigYaml(opts: {
 	provider: string;
 	apiKey: string;
 	baseUrl: string;
