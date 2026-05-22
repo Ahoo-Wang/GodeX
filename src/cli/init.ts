@@ -1,6 +1,10 @@
 import { writeFileSync } from "node:fs";
 import * as clack from "@clack/prompts";
 import { resolveDefaultSqlitePath } from "../config";
+import {
+	ZHIPU_BASE_URL,
+	ZHIPU_CODING_PLAN_BASE_URL,
+} from "../providers/zhipu/provider";
 
 interface InitOptions {
 	configPath: string;
@@ -25,6 +29,28 @@ export async function runInit(opts: InitOptions): Promise<void> {
 	});
 
 	if (clack.isCancel(apiKey)) {
+		clack.cancel("Operation cancelled");
+		return;
+	}
+
+	const baseUrl = await clack.select({
+		message: "Base URL:",
+		options: [
+			{
+				value: ZHIPU_CODING_PLAN_BASE_URL,
+				label: "Coding Plan (Recommended)",
+				hint: ZHIPU_CODING_PLAN_BASE_URL,
+			},
+			{
+				value: ZHIPU_BASE_URL,
+				label: "Standard",
+				hint: ZHIPU_BASE_URL,
+			},
+		],
+		initialValue: ZHIPU_CODING_PLAN_BASE_URL,
+	});
+
+	if (clack.isCancel(baseUrl)) {
 		clack.cancel("Operation cancelled");
 		return;
 	}
@@ -71,6 +97,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
 	const yaml = buildConfigYaml({
 		provider: provider as string,
 		apiKey: apiKey as string,
+		baseUrl: baseUrl as string,
 		port: port as string,
 		sessionBackend: sessionBackend as string,
 		logLevel: logLevel as string,
@@ -80,9 +107,10 @@ export async function runInit(opts: InitOptions): Promise<void> {
 	clack.outro(`Created ${opts.configPath}`);
 }
 
-function buildConfigYaml(opts: {
+export function buildConfigYaml(opts: {
 	provider: string;
 	apiKey: string;
+	baseUrl: string;
 	port: string;
 	sessionBackend: string;
 	logLevel: string;
@@ -96,13 +124,14 @@ function buildConfigYaml(opts: {
 		"providers:",
 		`  ${opts.provider}:`,
 		`    api_key: ${opts.apiKey}`,
-		`    base_url: https://open.bigmodel.cn/api/paas/v4`,
+		`    base_url: ${opts.baseUrl}`,
 		"    models:",
 		`      gpt-5.5: glm-5.1`,
 		`      gpt-5: glm-5.1`,
 		`      gpt-5-mini: glm-5-turbo`,
 		`      gpt-4o: glm-4.7`,
 		`      gpt-4o-mini: glm-4.7-flash`,
+		`      "*": glm-5.1`,
 		"",
 		"session:",
 		`  backend: ${opts.sessionBackend}`,

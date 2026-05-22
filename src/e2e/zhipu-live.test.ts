@@ -7,15 +7,17 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { GodexConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
 import { Registrar } from "../providers/registrar";
-import { ZhipuProvider } from "../providers/zhipu/provider";
+import {
+	DEFAULT_ZHIPU_BASE_URL,
+	ZhipuProvider,
+} from "../providers/zhipu/provider";
 import { createBuiltinRoutes, startServer } from "../server";
 import { getLoopbackPort } from "./ports";
 
 const apiKey = process.env.ZHIPU_API_KEY;
 const liveEnabled = process.env.ZHIPU_LIVE_TESTS === "1";
 const liveDescribe = apiKey && liveEnabled ? describe : describe.skip;
-const zhipuBaseUrl =
-	process.env.ZHIPU_BASE_URL ?? "https://open.bigmodel.cn/api/paas/v4";
+const zhipuBaseUrl = process.env.ZHIPU_BASE_URL ?? DEFAULT_ZHIPU_BASE_URL;
 const liveModel = process.env.ZHIPU_TEST_MODEL ?? "gpt-5-mini";
 const maxOutputTokens = Number(
 	process.env.ZHIPU_TEST_MAX_OUTPUT_TOKENS ?? 1024,
