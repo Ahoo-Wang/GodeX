@@ -29,6 +29,8 @@ export interface FileLoggingConfig {
 	level?: LogLevel;
 	dir: string;
 	filename: string;
+	max_size?: number;
+	max_files?: number;
 }
 
 export interface LoggingConfig {

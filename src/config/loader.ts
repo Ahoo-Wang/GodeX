@@ -279,5 +279,7 @@ function parseFileLoggingConfig(
 			f.level !== undefined ? validateLogLevel(f.level, "file log") : undefined,
 		dir: f.dir,
 		filename: f.filename,
+		max_size: typeof f.max_size === "number" ? f.max_size : undefined,
+		max_files: typeof f.max_files === "number" ? f.max_files : undefined,
 	};
 }

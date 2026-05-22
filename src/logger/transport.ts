@@ -64,6 +64,8 @@ export function configureLogging(config: LoggingConfig): boolean {
 		const filepath = path.join(dir, config.file.filename);
 		sinks.file = withFilter(
 			getRotatingFileSink(filepath, {
+				maxSize: (config.file.max_size ?? 10) * 1024 * 1024,
+				maxFiles: config.file.max_files ?? 5,
 				formatter: getJsonLinesFormatter({ properties: "flatten" }),
 			}),
 			fileLevel,
