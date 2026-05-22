@@ -2,6 +2,10 @@
 
 export * from "./schema";
 
+import { isDevMode } from "./env";
+
+export { isDevMode };
+
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
@@ -25,12 +29,6 @@ function resolveEnvVarsDeep(obj: unknown): unknown {
 		return result;
 	}
 	return obj;
-}
-
-export function isDevMode(): boolean {
-	return (
-		process.env.NODE_ENV === "development" || process.env.NODE_ENV === "dev"
-	);
 }
 
 /** Config file search paths, in priority order. */
