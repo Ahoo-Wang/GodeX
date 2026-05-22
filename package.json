@@ -66,6 +66,7 @@
     "typescript": "^6"
   },
   "dependencies": {
+    "@logtape/file": "^2.1.1",
     "@logtape/logtape": "^2.1.1",
     "@logtape/pretty": "^2.1.1"
   }

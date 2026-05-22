@@ -1,12 +1,12 @@
-import { createWriteStream, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
+import { getFileSink } from "@logtape/file";
 import {
 	compareLogLevel,
 	configureSync,
 	getConsoleSink,
 	getJsonLinesFormatter,
-	type LogRecord,
 	type LogLevel as LogTapeLevel,
 	resetSync,
 	type Sink,
@@ -56,7 +56,12 @@ export function configureLogging(config: LoggingConfig): boolean {
 		const dir = expandHomeDir(config.file.dir);
 		mkdirSync(dir, { recursive: true });
 		const filepath = path.join(dir, config.file.filename);
-		sinks.file = withFilter(createFileSink(filepath), fileLevel);
+		sinks.file = withFilter(
+			getFileSink(filepath, {
+				formatter: getJsonLinesFormatter({ properties: "flatten" }),
+			}),
+			fileLevel,
+		);
 		loggerSinkIds.push("file");
 		lowestLevel =
 			compareLogLevel(lowestLevel, fileLevel) <= 0 ? lowestLevel : fileLevel;
@@ -78,12 +83,4 @@ export function configureLogging(config: LoggingConfig): boolean {
 	});
 
 	return true;
-}
-
-function createFileSink(filepath: string): Sink {
-	const formatter = getJsonLinesFormatter({ properties: "flatten" });
-	const stream = createWriteStream(filepath, { flags: "a" });
-	return (record: LogRecord) => {
-		stream.write(`${formatter(record)}\n`);
-	};
 }
