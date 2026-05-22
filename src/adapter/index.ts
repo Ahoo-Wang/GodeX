@@ -3,7 +3,6 @@ export * from "./capabilities";
 export * from "./chatClient";
 export * from "./default-adapter";
 export * from "./mapper";
-export * from "./message-utils";
 export * from "./provider";
 export * from "./tools";
 export * from "./transformers";

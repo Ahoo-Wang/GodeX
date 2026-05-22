@@ -1,7 +1,7 @@
-// src/adapter/message-utils.ts
+// src/adapter/mapper/message-utils.ts
 // Helpers for converting Responses API instructions and input items into chat messages.
 
-import type { ResponseItem } from "../protocol/openai/responses";
+import type { ResponseItem } from "../../protocol/openai/responses";
 
 export function instructionsToSystemMessage(
 	instructions: string | undefined,
