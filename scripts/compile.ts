@@ -80,7 +80,7 @@ for (const { name, flag, bunTarget } of targets) {
       "bun",
       "build",
       "--compile",
-      "--define", "GODEX_BUILD_ENV=\"production\"",
+      "--define", "GODEX_BUILD_ENV=\"prod\"",
       `--target=${bunTarget}`,
       "src/index.ts",
       "--outfile",
