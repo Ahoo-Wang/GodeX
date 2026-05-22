@@ -17,6 +17,19 @@ export function serve(opts: CliOptions, runtime: CliRuntime): void {
 
 	const app = new ApplicationContext(config, registrar);
 
+	runtime.stdout?.write(
+		formatStartupBanner({
+			version: GODEX_VERSION,
+			env: isDevMode() ? "dev" : "prod",
+			host: config.server.host,
+			port: config.server.port,
+			configPath,
+			session: config.session,
+			defaultProvider: config.default_provider,
+			providers: Object.keys(config.providers),
+		}),
+	);
+
 	const runServer = runtime.startServer ?? startServer;
 	const server = runServer({
 		config,
@@ -25,18 +38,6 @@ export function serve(opts: CliOptions, runtime: CliRuntime): void {
 		routes: createBuiltinRoutes(app),
 	});
 
-	runtime.stdout?.write(
-		formatStartupBanner({
-			version: GODEX_VERSION,
-			env: isDevMode() ? "dev" : "prod",
-			host: config.server.host,
-			port: server.port ?? config.server.port,
-			configPath,
-			session: config.session,
-			defaultProvider: config.default_provider,
-			providers: Object.keys(config.providers),
-		}),
-	);
 	registerShutdownHandlers(server, app.sessionStore, app.logger);
 }
 
