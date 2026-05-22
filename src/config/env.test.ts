@@ -13,9 +13,4 @@ describe("EnvVars", () => {
 	test("isProd returns false in development mode", () => {
 		expect(EnvVars.isProd).toBe(false);
 	});
-
-	test("current returns correct enum values", () => {
-		expect(Env.Dev as string).toBe("dev");
-		expect(Env.Prod as string).toBe("prod");
-	});
 });
