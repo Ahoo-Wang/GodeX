@@ -11,7 +11,7 @@ import { buildZhipuRequest } from "./request";
 function ctx(
 	partial: Partial<ResponseCreateRequest> = {},
 	session?: ResponsesContext["session"],
-	logger: Logger = createLogger("error"),
+	logger: Logger = createLogger({ level: "error" }),
 	capabilities = mergeCapabilities(),
 ): ResponsesContext {
 	return {
@@ -239,7 +239,7 @@ describe("buildZhipuRequest", () => {
 	test("downgrades truncation auto instead of rejecting the request", () => {
 		const warnings: Array<Record<string, unknown> | undefined> = [];
 		const logger: Logger = {
-			...createLogger("warn"),
+			...createLogger({ level: "warn" }),
 			warn: (_event, attr) => {
 				warnings.push(typeof attr === "function" ? attr() : attr);
 			},
@@ -253,7 +253,7 @@ describe("buildZhipuRequest", () => {
 		expect("truncation" in result).toBe(false);
 		expect(warnings).toContainEqual(
 			expect.objectContaining({
-				requestId: "req_1",
+				request_id: "req_1",
 				field: "truncation",
 				strategy: "ignored",
 			}),
@@ -263,7 +263,7 @@ describe("buildZhipuRequest", () => {
 	test("does not map parallel_tool_calls to Zhipu tool_stream", () => {
 		const warnings: Array<Record<string, unknown> | undefined> = [];
 		const logger: Logger = {
-			...createLogger("warn"),
+			...createLogger({ level: "warn" }),
 			warn: (_event, attr) => {
 				warnings.push(typeof attr === "function" ? attr() : attr);
 			},
@@ -276,7 +276,7 @@ describe("buildZhipuRequest", () => {
 		expect("tool_stream" in result).toBe(false);
 		expect(warnings).toContainEqual(
 			expect.objectContaining({
-				requestId: "req_1",
+				request_id: "req_1",
 				field: "parallel_tool_calls",
 				strategy: "ignored",
 			}),
@@ -343,7 +343,7 @@ describe("buildZhipuRequest", () => {
 	test("warns when downgrading unsupported tool_choice to auto", () => {
 		const warnings: Array<Record<string, unknown> | undefined> = [];
 		const logger: Logger = {
-			...createLogger("warn"),
+			...createLogger({ level: "warn" }),
 			warn: (_event, attr) => {
 				warnings.push(typeof attr === "function" ? attr() : attr);
 			},
@@ -370,7 +370,7 @@ describe("buildZhipuRequest", () => {
 		expect(result.tool_choice).toBe("auto");
 		expect(warnings).toContainEqual(
 			expect.objectContaining({
-				requestId: "req_1",
+				request_id: "req_1",
 				field: "tool_choice",
 				strategy: "auto",
 			}),
@@ -397,7 +397,7 @@ describe("buildZhipuRequest", () => {
 				],
 			},
 			null,
-			createLogger("error"),
+			createLogger({ level: "error" }),
 			mergeCapabilities({ maxTools: 1 }),
 		);
 
@@ -426,7 +426,7 @@ describe("buildZhipuRequest", () => {
 	test("skips tools that provider capabilities do not declare as supported", () => {
 		const warnings: string[] = [];
 		const logger: Logger = {
-			...createLogger("error"),
+			...createLogger({ level: "error" }),
 			warn: (_event: string, attr?: LogAttr) => {
 				const data = typeof attr === "function" ? attr() : attr;
 				warnings.push(data?.toolType as string);
@@ -710,7 +710,7 @@ describe("buildZhipuRequest", () => {
 				],
 			}),
 			logger: {
-				...createLogger("error"),
+				...createLogger({ level: "error" }),
 				warn: (_event: string, attr?: LogAttr) => {
 					const data = typeof attr === "function" ? attr() : attr;
 					warnings.push(data?.toolType as string);

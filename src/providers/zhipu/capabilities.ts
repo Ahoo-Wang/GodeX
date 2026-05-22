@@ -35,8 +35,8 @@ export function assertZhipuRequestSupported(
 
 export function warnZhipuRequestDowngrades(ctx: ResponsesContext): void {
 	if (ctx.request.truncation === "auto") {
-		ctx.logger.warn("unsupported_parameter_downgraded", {
-			requestId: ctx.requestId,
+		ctx.logger.warn("provider.parameter.downgraded", {
+			request_id: ctx.requestId,
 			field: "truncation",
 			strategy: "ignored",
 			reason:
@@ -44,8 +44,8 @@ export function warnZhipuRequestDowngrades(ctx: ResponsesContext): void {
 		});
 	}
 	if (ctx.request.parallel_tool_calls !== undefined) {
-		ctx.logger.warn("unsupported_parameter_downgraded", {
-			requestId: ctx.requestId,
+		ctx.logger.warn("provider.parameter.downgraded", {
+			request_id: ctx.requestId,
 			field: "parallel_tool_calls",
 			strategy: "ignored",
 			reason:

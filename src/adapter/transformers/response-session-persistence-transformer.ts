@@ -62,7 +62,7 @@ export class ResponseSessionPersistenceTransformer extends SafeTransformer<
 		if (this.persistenceAttempted) return;
 		this.persistenceAttempted = true;
 		const ctx = this.options.ctx;
-		ctx.logger.info("stream_completed", {
+		ctx.logger.info("responses.stream.completed", {
 			status: responseObject.status,
 			model: responseObject.model,
 			outputCount: responseObject.output.length,
@@ -71,8 +71,8 @@ export class ResponseSessionPersistenceTransformer extends SafeTransformer<
 		try {
 			await this.options.saveSession(ctx.app.sessionStore, responseObject, ctx);
 		} catch (err) {
-			ctx.logger.warn("stream_session_save_error", {
-				requestId: ctx.requestId,
+			ctx.logger.warn("session.save.stream_error", {
+				request_id: ctx.requestId,
 				error: String(err),
 			});
 		}

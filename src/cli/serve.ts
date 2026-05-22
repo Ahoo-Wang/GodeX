@@ -46,7 +46,7 @@ function registerShutdownHandlers(
 	logger: Logger,
 ): void {
 	const shutdown = (signal: string) => {
-		logger.info("shutting_down", { signal });
+		logger.info("godex.shutting_down", { signal });
 		if ("stop" in server && typeof server.stop === "function") {
 			server.stop();
 		}

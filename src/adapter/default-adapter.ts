@@ -19,9 +19,9 @@ export class DefaultAdapter implements Adapter {
 		try {
 			await saveSession(ctx.app.sessionStore, response, ctx);
 		} catch (err) {
-			ctx.logger.warn("session_save_error", {
-				requestId: ctx.requestId,
-				responseId: response.id,
+			ctx.logger.warn("session.save.error", {
+				request_id: ctx.requestId,
+				response_id: response.id,
 				error: String(err),
 			});
 		}
@@ -91,5 +91,5 @@ async function saveSession(
 	};
 
 	await store.save(session);
-	ctx.logger.debug("session_saved", { responseId: responseObject.id });
+	ctx.logger.debug("session.saved", { response_id: responseObject.id });
 }

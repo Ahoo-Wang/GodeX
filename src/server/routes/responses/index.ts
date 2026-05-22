@@ -40,7 +40,7 @@ export async function handleResponses(
 		const ctx = await ResponsesContext.create(app, body);
 		requestId = ctx.requestId;
 
-		logger.info("request_received", {
+		logger.info("responses.request.received", {
 			model: body.model,
 			resolved: ctx.resolved,
 			stream: body.stream,
@@ -76,19 +76,19 @@ export async function handleResponses(
 		return Response.json(responseObject);
 	} catch (err) {
 		if (err instanceof ProviderError) {
-			logger.error("provider_error", () => err.toLogEntry());
+			logger.error("responses.request.provider_error", () => err.toLogEntry());
 			const mapped = providerErrorToHttp(err);
 			return jsonError(mapped.status, mapped.error.code, mapped.error.message, {
 				requestId,
 			});
 		}
 		if (err instanceof GodexError) {
-			logger.warn("request_error", err.toLogEntry());
+			logger.warn("responses.request.error", err.toLogEntry());
 			return jsonError(err.status, err.code, err.message, {
 				requestId,
 			});
 		}
-		logger.error("unexpected_error", () => ({
+		logger.error("godex.unexpected_error", () => ({
 			...toLogEntry(err),
 			requestId,
 		}));

@@ -44,8 +44,8 @@ export function buildZhipuRequest(
 				supportedToolTypes: ctx.provider.capabilities.supportedToolTypes,
 				unsupported: "skip",
 				onUnsupported: (type) => {
-					ctx.logger.warn("unsupported_tool_skipped", {
-						requestId: ctx.requestId,
+					ctx.logger.warn("provider.tool.skipped", {
+						request_id: ctx.requestId,
 						toolType: type,
 					});
 				},
@@ -55,8 +55,8 @@ export function buildZhipuRequest(
 		result.tools = tools;
 	}
 	if (shouldWarnToolChoiceDowngrade(requestedToolChoice)) {
-		ctx.logger.warn("unsupported_parameter_downgraded", {
-			requestId: ctx.requestId,
+		ctx.logger.warn("provider.parameter.downgraded", {
+			request_id: ctx.requestId,
 			field: "tool_choice",
 			strategy: "auto",
 			reason: "Zhipu Chat Completions only supports auto tool choice.",

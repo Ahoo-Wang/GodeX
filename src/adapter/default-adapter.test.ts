@@ -187,10 +187,10 @@ describe("DefaultAdapter", () => {
 		expect(result).toBe(responseObject);
 		expect(warnings).toEqual([
 			{
-				event: "session_save_error",
+				event: "session.save.error",
 				attr: {
-					requestId: "req_test",
-					responseId: "resp_save_failed",
+					request_id: "req_test",
+					response_id: "resp_save_failed",
 					error: "Error: session write failed",
 				},
 			},
