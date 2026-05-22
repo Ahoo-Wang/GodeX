@@ -10,7 +10,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import yaml from "js-yaml";
-import type { ConsoleLoggingConfig, FileLoggingConfig, GodexConfig, LogLevel, ProviderConfig } from "./schema";
+import type {
+	ConsoleLoggingConfig,
+	FileLoggingConfig,
+	GodexConfig,
+	LogLevel,
+	ProviderConfig,
+} from "./schema";
 
 export function resolveEnvVars(value: string): string {
 	return value.replace(/\$\{(\w+)\}/g, (match, name: string) => {
@@ -204,7 +210,11 @@ export function buildConfig(
 			backend: sessionBackend,
 			...(sqlitePath ? { sqlite: { path: sqlitePath } } : {}),
 		},
-		logging: { level, console: parseConsoleLoggingConfig(logging), file: parseFileLoggingConfig(logging) },
+		logging: {
+			level,
+			console: parseConsoleLoggingConfig(logging),
+			file: parseFileLoggingConfig(logging),
+		},
 	};
 }
 

@@ -1,7 +1,7 @@
-import { Writable } from "node:stream";
 import { describe, expect, test } from "bun:test";
+import { Writable } from "node:stream";
 import pino from "pino";
-import { wrapPino, formatTimestamp } from "./index";
+import { formatTimestamp, wrapPino } from "./index";
 
 function createInMemoryLogger(level: string = "info") {
 	const chunks: string[] = [];
@@ -41,7 +41,7 @@ describe("Logger (wrapPino)", () => {
 		const { logger, chunks } = createInMemoryLogger();
 		logger.info("test.event", { key: "value" });
 		expect(chunks.length).toBe(1);
-		const parsed = JSON.parse(chunks[0]!);
+		const parsed = JSON.parse(chunks[0] as string);
 		expect(parsed.event).toBe("test.event");
 		expect(parsed.key).toBe("value");
 		expect(parsed.level).toBe(30);
@@ -60,7 +60,7 @@ describe("Logger (wrapPino)", () => {
 		const { logger, chunks } = createInMemoryLogger();
 		const child = logger.child({ request_id: "req_1", response_id: "resp_1" });
 		child.info("child.event", { extra: true });
-		const parsed = JSON.parse(chunks[0]!);
+		const parsed = JSON.parse(chunks[0] as string);
 		expect(parsed.request_id).toBe("req_1");
 		expect(parsed.response_id).toBe("resp_1");
 		expect(parsed.extra).toBe(true);
@@ -85,21 +85,21 @@ describe("Logger (wrapPino)", () => {
 	test("lazy thunk IS called when level passes", () => {
 		const { logger, chunks } = createInMemoryLogger();
 		logger.info("lazy.event", () => ({ computed: true }));
-		const parsed = JSON.parse(chunks[0]!);
+		const parsed = JSON.parse(chunks[0] as string);
 		expect(parsed.computed).toBe(true);
 	});
 
 	test("handles no attr", () => {
 		const { logger, chunks } = createInMemoryLogger();
 		logger.info("no_attr");
-		const parsed = JSON.parse(chunks[0]!);
+		const parsed = JSON.parse(chunks[0] as string);
 		expect(parsed.event).toBe("no_attr");
 	});
 
 	test("timestamp is human-readable format", () => {
 		const { logger, chunks } = createInMemoryLogger();
 		logger.info("ts.test");
-		const parsed = JSON.parse(chunks[0]!);
+		const parsed = JSON.parse(chunks[0] as string);
 		expect(parsed.time).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/);
 	});
 });

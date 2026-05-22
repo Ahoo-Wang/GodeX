@@ -1,5 +1,5 @@
-import pino from "pino";
 import type { Logger as PinoLogger } from "pino";
+import pino from "pino";
 import type { LoggingConfig, LogLevel } from "../config/schema";
 import { createTransports } from "./transport";
 
@@ -39,7 +39,9 @@ export function formatTimestamp(date: Date): string {
 
 export function wrapPino(pinoInstance: PinoLogger): Logger {
 	function log(level: LogLevel, event: string, attr?: LogAttr): void {
-		if (LEVEL_PRIORITY[level] < LEVEL_PRIORITY[pinoInstance.level as LogLevel]) {
+		if (
+			LEVEL_PRIORITY[level] < LEVEL_PRIORITY[pinoInstance.level as LogLevel]
+		) {
 			return;
 		}
 		const resolved = resolveAttr(attr);
