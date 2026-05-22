@@ -24,7 +24,6 @@ const logEvents: Array<{ event: string; attr?: Record<string, unknown> }> = [];
 
 const logger: Logger = {
 	level: "error",
-	component: "test",
 	child: () => logger,
 	trace: () => {},
 	debug: () => {},
@@ -85,7 +84,7 @@ describe("startServer", () => {
 
 		expect(logEvents).toContainEqual(
 			expect.objectContaining({
-				event: "server_started",
+				event: "godex.started",
 				attr: expect.objectContaining({ version }),
 			}),
 		);

@@ -39,7 +39,7 @@ export function startServer(deps: ServerDeps): ReturnType<typeof Bun.serve> {
 		},
 	});
 
-	logger.info("server_started", {
+	logger.info("godex.started", {
 		version: GODEX_VERSION,
 		server: config.server,
 		env: EnvVars.current,

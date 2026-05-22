@@ -30,7 +30,7 @@ export class ApplicationContext {
 
 	constructor(config: GodexConfig, registrar?: Registrar) {
 		this.config = config;
-		this.logger = createLogger(config.logging.level, { component: "server" });
+		this.logger = createLogger(config.logging);
 		this.resolver = new ModelResolver(
 			config.default_provider,
 			config.providers,

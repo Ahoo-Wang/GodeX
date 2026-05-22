@@ -30,8 +30,8 @@ export class ResponsesContext {
 		this.requestId = `req_${nanoid()}`;
 		this.createdAt = Math.floor(Date.now() / 1000);
 		this.logger = app.logger.child({
-			component: "stream",
-			defaults: { requestId: this.requestId, responseId: this.responseId },
+			request_id: this.requestId,
+			response_id: this.responseId,
 		});
 		this.attributes = new Map();
 	}

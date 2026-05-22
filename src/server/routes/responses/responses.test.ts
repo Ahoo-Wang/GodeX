@@ -192,7 +192,6 @@ describe("handleResponses stream errors", () => {
 		const loggedErrors: string[] = [];
 		const logger: Logger = {
 			level: "error",
-			component: "server",
 			child: () => logger,
 			trace: () => {},
 			debug: () => {},
