@@ -3,7 +3,7 @@ import {
 	type Logger as LogTapeLogger,
 } from "@logtape/logtape";
 import type { LoggingConfig, LogLevel } from "../config/schema";
-import { configureLogging } from "./transport";
+import { configureLogging } from "./configure";
 
 export type { LogLevel };
 export type LogAttr = Record<string, unknown> | (() => Record<string, unknown>);
