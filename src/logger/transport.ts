@@ -47,6 +47,7 @@ export function configureLogging(config: LoggingConfig): boolean {
 					timestamp: "date-time",
 					properties: true,
 					align: false,
+					wordWrap: false,
 				}),
 			}),
 			consoleLevel,
