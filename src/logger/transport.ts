@@ -5,7 +5,6 @@ import {
 	compareLogLevel,
 	configureSync,
 	type FormattedValues,
-	getAnsiColorFormatter,
 	getConsoleSink,
 	getTextFormatter,
 	type LogRecord,
@@ -14,6 +13,7 @@ import {
 	type Sink,
 	withFilter,
 } from "@logtape/logtape";
+import { getPrettyFormatter } from "@logtape/pretty";
 import type { LoggingConfig, LogLevel } from "../config/schema";
 
 function expandHomeDir(filepath: string): string {
@@ -53,10 +53,10 @@ export function configureLogging(config: LoggingConfig): boolean {
 			config.console?.pretty !== false
 				? withFilter(
 						getConsoleSink({
-							formatter: getAnsiColorFormatter({
+							formatter: getPrettyFormatter({
 								timestamp: "date-time",
 								timeZone: null,
-								format: formatWithProps,
+								properties: true,
 							}),
 						}),
 						consoleLevel,
