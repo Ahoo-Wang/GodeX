@@ -42,13 +42,11 @@ export function createTransports(
 		const filepath = path.join(dir, config.file.filename);
 
 		transports.push({
-			target: "pino-roll",
+			target: "pino/file",
 			level: fileLevel,
 			options: {
-				file: filepath,
-				frequency: "daily",
+				destination: filepath,
 				mkdir: true,
-				size: "100m",
 			},
 		});
 	}
