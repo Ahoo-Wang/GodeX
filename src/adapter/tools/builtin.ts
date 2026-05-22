@@ -6,12 +6,6 @@ import type {
 import { LOCAL_SHELL_TOOL_DEFINITION } from "./local-shell";
 import { SHELL_TOOL_DEFINITION } from "./shell";
 
-export type {
-	BuiltinFunctionToolDefinition,
-	BuiltinFunctionToolParameters,
-	BuiltinFunctionToolType,
-} from "./definition";
-
 export const BUILTIN_FUNCTION_TOOL_DEFINITIONS = {
 	local_shell: LOCAL_SHELL_TOOL_DEFINITION,
 	shell: SHELL_TOOL_DEFINITION,

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { SessionError } from "../error";
 import type { ResponseItem } from "../protocol/openai/responses";
-import { SessionError, type StoredResponseSession } from ".";
+import type { StoredResponseSession } from ".";
 import { MemoryResponseSessionStore } from "./memory";
 
 const userInput: ResponseItem = {

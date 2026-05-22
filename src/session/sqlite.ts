@@ -3,6 +3,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { SESSION_CONFLICT, SessionError } from "../error";
 import type { ResponseStatus } from "../protocol/openai/responses";
+import { resolveResponseSessionChain } from "./chain";
 import type {
 	ResolveResponseSessionOptions,
 	ResponseId,
@@ -12,8 +13,7 @@ import type {
 	StoredResponseRequestSnapshot,
 	StoredResponseSession,
 	StoredResponseSnapshot,
-} from ".";
-import { resolveResponseSessionChain } from "./chain";
+} from "./types";
 
 interface SQLiteResponseSessionRow {
 	id: string;

@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import { SessionError } from "../error";
 import * as openaiProtocol from "../protocol/openai";
-import {
-	type ResponseSessionSnapshot,
-	type ResponseSessionStore,
-	SessionError,
-	type StoredResponseSession,
+import type {
+	ResponseSessionSnapshot,
+	ResponseSessionStore,
+	StoredResponseSession,
 } from ".";
 
 const completedTurn = {
