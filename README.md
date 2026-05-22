@@ -345,7 +345,7 @@ default_provider: zhipu
 providers:
   zhipu:
     api_key: ${ZHIPU_API_KEY}
-    base_url: https://open.bigmodel.cn/api/paas/v4
+    base_url: https://open.bigmodel.cn/api/coding/paas/v4
     models:
       "gpt-4o": glm-4.7         # model name mapping
       "*": glm-5.1              # catch-all fallback

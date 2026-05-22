@@ -75,7 +75,7 @@ curl https://api.openai.com/v1/responses \
 
 **智谱（等价调用）:**
 ```bash
-curl https://open.bigmodel.cn/api/paas/v4/chat/completions \
+curl https://open.bigmodel.cn/api/coding/paas/v4/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ZHIPU_API_KEY" \
   -d '{

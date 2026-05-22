@@ -1,6 +1,7 @@
 import { writeFileSync } from "node:fs";
 import * as clack from "@clack/prompts";
 import { resolveDefaultSqlitePath } from "../config";
+import { DEFAULT_ZHIPU_BASE_URL } from "../providers/zhipu/provider";
 
 interface InitOptions {
 	configPath: string;
@@ -96,7 +97,7 @@ function buildConfigYaml(opts: {
 		"providers:",
 		`  ${opts.provider}:`,
 		`    api_key: ${opts.apiKey}`,
-		`    base_url: https://open.bigmodel.cn/api/paas/v4`,
+		`    base_url: ${DEFAULT_ZHIPU_BASE_URL}`,
 		"    models:",
 		`      gpt-5.5: glm-5.1`,
 		`      gpt-5: glm-5.1`,
