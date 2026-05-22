@@ -61,7 +61,11 @@ describe("createTransports", () => {
 		const transports = createTransports(config);
 
 		expect(transports.length).toBe(2);
-		const fileTransport = transports.find((t) => t.target === "pino/file" && (t.options as Record<string, unknown>)?.destination !== 1);
+		const fileTransport = transports.find(
+			(t) =>
+				t.target === "pino/file" &&
+				(t.options as Record<string, unknown>)?.destination !== 1,
+		);
 		expect(fileTransport).toBeDefined();
 		expect(fileTransport?.level).toBe("info");
 		expect(fileTransport?.options).toEqual({
@@ -82,7 +86,11 @@ describe("createTransports", () => {
 		};
 		const transports = createTransports(config);
 
-		const fileTransport = transports.find((t) => t.target === "pino/file" && (t.options as Record<string, unknown>)?.destination !== 1);
+		const fileTransport = transports.find(
+			(t) =>
+				t.target === "pino/file" &&
+				(t.options as Record<string, unknown>)?.destination !== 1,
+		);
 		expect(fileTransport?.level).toBe("debug");
 	});
 
@@ -96,7 +104,11 @@ describe("createTransports", () => {
 		};
 		const transports = createTransports(config);
 
-		const fileTransport = transports.find((t) => t.target === "pino/file" && (t.options as Record<string, unknown>)?.destination !== 1);
+		const fileTransport = transports.find(
+			(t) =>
+				t.target === "pino/file" &&
+				(t.options as Record<string, unknown>)?.destination !== 1,
+		);
 		expect(fileTransport?.options).toEqual({
 			destination: "/home/testuser/logs/godex.log",
 			mkdir: true,
@@ -116,9 +128,14 @@ describe("createTransports", () => {
 			};
 			const transports = createTransports(config);
 
-			const fileTransport = transports.find((t) => t.target === "pino/file" && (t.options as Record<string, unknown>)?.destination !== 1);
-			const destination = (fileTransport?.options as { destination?: string } | undefined)
-				?.destination;
+			const fileTransport = transports.find(
+				(t) =>
+					t.target === "pino/file" &&
+					(t.options as Record<string, unknown>)?.destination !== 1,
+			);
+			const destination = (
+				fileTransport?.options as { destination?: string } | undefined
+			)?.destination;
 			expect(destination).toBeDefined();
 			expect(path.isAbsolute(destination as string)).toBe(true);
 			expect(destination).toEndWith(path.join("logs", "godex.log"));
@@ -134,7 +151,11 @@ describe("createTransports", () => {
 		};
 		const transports = createTransports(config);
 
-		const fileTransport = transports.find((t) => t.target === "pino/file" && (t.options as Record<string, unknown>)?.destination !== 1);
+		const fileTransport = transports.find(
+			(t) =>
+				t.target === "pino/file" &&
+				(t.options as Record<string, unknown>)?.destination !== 1,
+		);
 		expect(fileTransport?.options).toEqual({
 			destination: "/absolute/path/godex.log",
 			mkdir: true,
