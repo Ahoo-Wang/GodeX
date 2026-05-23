@@ -5,7 +5,7 @@ description: "Core interfaces every provider must implement: Provider, ProviderM
 
 # Provider Interface
 
-Adding a new LLM provider to Godex means implementing four interfaces. The system handles routing, session management, and SSE encoding — providers only deal with protocol translation and HTTP calls.
+Adding a new LLM provider to GodeX means implementing four interfaces. The system handles routing, session management, and SSE encoding — providers only deal with protocol translation and HTTP calls.
 
 ## Core Interfaces
 

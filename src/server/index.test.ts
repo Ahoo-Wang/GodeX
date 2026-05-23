@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import type { GodexConfig } from "../config";
+import type { GodeXConfig } from "../config";
 import type { Logger } from "../logger";
 import { startServer } from ".";
 
@@ -7,7 +7,7 @@ const { version } = require("../../package.json");
 
 const originalServe = Bun.serve;
 
-const config: GodexConfig = {
+const config: GodeXConfig = {
 	server: { port: 31_456, host: "127.0.0.1" },
 	default_provider: "zhipu",
 	providers: {
@@ -68,7 +68,7 @@ describe("startServer", () => {
 		);
 	});
 
-	test("logs the Godex version when the server starts", () => {
+	test("logs the GodeX version when the server starts", () => {
 		Bun.serve = (() =>
 			({
 				port: config.server.port,

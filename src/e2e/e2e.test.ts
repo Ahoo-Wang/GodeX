@@ -1,12 +1,12 @@
 // src/e2e/e2e.test.ts
 //
-// End-to-end tests for the full Godex proxy pipeline.
+// End-to-end tests for the full GodeX proxy pipeline.
 //
-// A mock Zhipu upstream server is started alongside the Godex server so no
+// A mock Zhipu upstream server is started alongside the GodeX server so no
 // real API key is required.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import type { GodexConfig } from "../config";
+import type { GodeXConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
 import { Registrar } from "../providers/registrar";
 import { ZhipuProvider } from "../providers/zhipu/provider";
@@ -186,7 +186,7 @@ function handleMockStream(_body: Record<string, unknown>) {
 beforeAll(async () => {
 	await startMockUpstream();
 
-	const config: GodexConfig = {
+	const config: GodeXConfig = {
 		server: { port: await getLoopbackPort(), host: "127.0.0.1" },
 		default_provider: "zhipu",
 		providers: {

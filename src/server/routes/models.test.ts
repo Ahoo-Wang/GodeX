@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { DEFAULT_CAPABILITIES } from "../../adapter/capabilities";
-import type { GodexConfig } from "../../config";
+import type { GodeXConfig } from "../../config";
 import { ApplicationContext } from "../../context/application-context";
 import { Registrar } from "../../providers/registrar";
 import { handleModels } from "./models";
 
-const config: GodexConfig = {
+const config: GodeXConfig = {
 	server: { port: 0, host: "127.0.0.1" },
 	default_provider: "zhipu",
 	providers: {

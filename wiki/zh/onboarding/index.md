@@ -1,11 +1,11 @@
 ---
 title: "入门指南"
-description: "针对不同角色的 Godex 入门文档。"
+description: "针对不同角色的 GodeX 入门文档。"
 ---
 
 # 入门指南
 
-Godex 是一个 OpenAI Responses API 网关，将 `/v1/responses` 请求转换为上游 Chat Completions API 调用，使任何 LLM 提供商都能驱动 Codex 及其他 OpenAI 兼容客户端。
+GodeX 是一个 OpenAI Responses API 网关，将 `/v1/responses` 请求转换为上游 Chat Completions API 调用，使任何 LLM 提供商都能驱动 Codex 及其他 OpenAI 兼容客户端。
 
 选择适合你角色的指南：
 

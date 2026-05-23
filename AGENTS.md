@@ -1,6 +1,6 @@
-# AGENTS.md — Godex
+# AGENTS.md — GodeX
 
-AI coding agent instructions for the Godex project.
+AI coding agent instructions for the GodeX project.
 
 ## Build & Run Commands
 
@@ -48,7 +48,7 @@ src/
 ├── resolver/         ModelResolver (model selector → provider + model)
 ├── server/           Bun HTTP server, routes (/v1/responses, /health, /v1/models)
 ├── session/          ResponseSessionStore (Memory + SQLite), chain resolution
-├── error/            GodexError hierarchy with domain codes
+├── error/            GodeXError hierarchy with domain codes
 ├── protocol/openai/  OpenAI Responses API type definitions
 ├── providers/zhipu/protocol/  Zhipu-specific type definitions
 ├── logger/           Structured JSON logger
@@ -63,12 +63,12 @@ src/
 - **Linter**: Biome with recommended rules
 - **Imports**: ESM (`"type": "module"`), `verbatimModuleSyntax`
 - **Naming**: camelCase for variables/functions, PascalCase for classes/interfaces/types
-- **Error handling**: Use the GodexError hierarchy (ServerError, AdapterError, ProviderError, SessionError) with domain codes from src/error/codes.ts
+- **Error handling**: Use the GodeXError hierarchy (ServerError, AdapterError, ProviderError, SessionError) with domain codes from src/error/codes.ts
 - **No comments** unless explaining WHY (not WHAT)
 
 ## Architecture
 
-Godex translates OpenAI Responses API requests into upstream Chat Completions API calls.
+GodeX translates OpenAI Responses API requests into upstream Chat Completions API calls.
 
 Request flow: CLI → ApplicationContext → Bun HTTP server → POST /v1/responses → ResponsesContext.create() → ModelResolver → Session chain → Registrar → DefaultAdapter → ProviderMapper → ChatClient → Upstream
 
@@ -102,7 +102,7 @@ Key abstractions:
 - Modifying stream pipeline transformers
 
 🚫 Never:
-- Bypass the GodexError hierarchy with raw Error throws in adapter/provider code
+- Bypass the GodeXError hierarchy with raw Error throws in adapter/provider code
 - Use Node.js-specific APIs when Bun equivalents exist
 - Add external test frameworks (use Bun's built-in test runner)
 - Modify generated wiki content in wiki/ without understanding VitePress structure

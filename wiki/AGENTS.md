@@ -1,6 +1,6 @@
-# AGENTS.md — Godex Wiki
+# AGENTS.md — GodeX Wiki
 
-AI agent instructions for the Godex VitePress wiki.
+AI agent instructions for the GodeX VitePress wiki.
 
 ## Build & Run
 
@@ -37,7 +37,7 @@ wiki/
 ## Content Conventions
 
 - **Mermaid diagrams**: Always use dark-mode colors (`#2d333b`, `#6d5dfc`, `#e6edf3`, `#161b22`, `#8b949e`)
-- **Citations**: `[file_path:line](https://github.com/Ahoo-Wang/Godex/blob/main/file_path#Lline)`
+- **Citations**: `[file_path:line](https://github.com/Ahoo-Wang/GodeX/blob/main/file_path#Lline)`
 - **Frontmatter**: Every page needs `title` and `description`
 - **Self-closing tags**: Use `<br>` not `<br/>` in Mermaid blocks
 - **Sequence diagrams**: Always include `autonumber`

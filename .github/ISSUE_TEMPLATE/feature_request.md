@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest a feature for Godex
+about: Suggest a feature for GodeX
 labels: enhancement
 ---
 

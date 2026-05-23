@@ -1,6 +1,6 @@
 ---
 title: "错误码"
-description: "Godex 中使用的所有域特定错误码完整参考。"
+description: "GodeX 中使用的所有域特定错误码完整参考。"
 ---
 
 # 错误码

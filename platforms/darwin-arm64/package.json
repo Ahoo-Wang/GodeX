@@ -1,11 +1,11 @@
 {
   "name": "@ahoo-wang/godex-darwin-arm64",
   "version": "0.0.2",
-  "description": "godex native binary for macOS Apple Silicon",
+  "description": "GodeX native binary for macOS Apple Silicon",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Ahoo-Wang/Godex.git",
+    "url": "git+https://github.com/Ahoo-Wang/GodeX.git",
     "directory": "platforms/darwin-arm64"
   },
   "publishConfig": {

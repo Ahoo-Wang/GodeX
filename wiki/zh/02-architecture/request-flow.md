@@ -1,6 +1,6 @@
 ---
 title: "请求流程"
-description: "/v1/responses 请求在 Godex 中的端到端生命周期。"
+description: "/v1/responses 请求在 GodeX 中的端到端生命周期。"
 ---
 
 # 请求流程

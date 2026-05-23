@@ -1,13 +1,13 @@
 ---
 title: "贡献者指南"
-description: "开始为 Godex 贡献代码所需的一切。"
+description: "开始为 GodeX 贡献代码所需的一切。"
 ---
 
 # 贡献者指南
 
 ## 项目简介
 
-Godex 是一个 **OpenAI Responses API 网关**。它接受 OpenAI Responses API (`POST /v1/responses`) 请求，转换为上游提供商的 Chat Completions API 调用。一次编写客户端代码，Godex 路由到任何已配置的提供商。
+GodeX 是一个 **OpenAI Responses API 网关**。它接受 OpenAI Responses API (`POST /v1/responses`) 请求，转换为上游提供商的 Chat Completions API 调用。一次编写客户端代码，GodeX 路由到任何已配置的提供商。
 
 ## 环境准备
 
@@ -18,8 +18,8 @@ Godex 是一个 **OpenAI Responses API 网关**。它接受 OpenAI Responses API
 | Git | 任意 | 系统包管理器 |
 
 ```bash
-git clone https://github.com/Ahoo-Wang/Godex.git
-cd Godex
+git clone https://github.com/Ahoo-Wang/GodeX.git
+cd GodeX
 bun install
 bun run dev          # 开发服务器，热重载，端口 13145
 ```
@@ -39,7 +39,7 @@ src/
 ├── resolver/         ModelResolver（模型选择器 → provider + model）
 ├── server/           Bun HTTP 服务器、路由
 ├── session/          ResponseSessionStore（Memory + SQLite）、链式解析
-├── error/            GodexError 层次结构与领域错误码
+├── error/            GodeXError 层次结构与领域错误码
 ├── protocol/openai/  OpenAI Responses API 类型定义
 └── logger/           结构化 JSON 日志
 ```
@@ -120,7 +120,7 @@ sequenceDiagram
 
 ### 错误层次
 
-所有领域错误继承自 `GodexError`，使用 [src/error/codes.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/error/codes.ts) 中的结构化错误码：
+所有领域错误继承自 `GodeXError`，使用 [src/error/codes.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts) 中的结构化错误码：
 
 | 错误类 | 领域 | 示例错误码 |
 |--------|------|-----------|
@@ -160,7 +160,7 @@ bun run test:coverage              # 带覆盖率报告的测试
    - `ChatClient`（到上游的 HTTP 边界）
    - `ProviderCapabilities`（功能声明）
 3. 创建 `ProviderFactory` 函数
-4. 在 [src/providers/builtin.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/providers/builtin.ts) 中注册
+4. 在 [src/providers/builtin.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts) 中注册
 5. 在源文件旁添加测试（`*.test.ts`）
 6. 在 `godex.yaml` 中配置提供商
 
@@ -171,7 +171,7 @@ bun run test:coverage              # 带覆盖率报告的测试
 - **TypeScript** strict 模式、ESNext 目标、ESM 模块
 - **Biome** 用于检查和格式化（Tab 缩进）
 - **Bun 测试运行器** — 不使用外部测试框架
-- **GodexError 层次** 用于所有领域错误 — adapter/provider 代码中不抛出原生 `Error`
+- **GodeXError 层次** 用于所有领域错误 — adapter/provider 代码中不抛出原生 `Error`
 - **不写注释** 除非解释为什么（WHY），而非是什么（WHAT）
 
 ## 常见陷阱
@@ -187,11 +187,11 @@ bun run test:coverage              # 带覆盖率报告的测试
 
 | 路径 | 用途 |
 |------|------|
-| [src/index.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/index.ts) | 入口点，委托给 CLI |
-| [src/cli/serve.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/cli/serve.ts) | 服务器启动、配置加载 |
-| [src/context/application-context.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/context/application-context.ts) | DI 容器，组装所有组件 |
-| [src/adapter/default-adapter.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/default-adapter.ts) | 请求/流编排 |
-| [src/providers/zhipu/](https://github.com/Ahoo-Wang/Godex/blob/main/src/providers/zhipu/) | 参考提供商实现 |
-| [src/error/codes.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/error/codes.ts) | 所有领域错误码 |
+| [src/index.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/index.ts) | 入口点，委托给 CLI |
+| [src/cli/serve.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/cli/serve.ts) | 服务器启动、配置加载 |
+| [src/context/application-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts) | DI 容器，组装所有组件 |
+| [src/adapter/default-adapter.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/default-adapter.ts) | 请求/流编排 |
+| [src/providers/zhipu/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/) | 参考提供商实现 |
+| [src/error/codes.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts) | 所有领域错误码 |
 
 [架构概览](/zh/02-architecture/overview) · [Provider 开发](/zh/03-provider-development/provider-interface) · [测试指南](/zh/08-testing/testing-guide)

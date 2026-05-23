@@ -1,5 +1,5 @@
 // src/error/server-error.ts
-import { GodexError } from "./godex-error";
+import { GodeXError } from "./godex-error";
 
 export interface ServerErrorContext {
 	[key: string]: unknown;
@@ -7,7 +7,7 @@ export interface ServerErrorContext {
 	method?: string;
 }
 
-export class ServerError extends GodexError {
+export class ServerError extends GodeXError {
 	readonly domain = "server";
 
 	constructor(

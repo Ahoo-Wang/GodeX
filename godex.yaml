@@ -1,4 +1,4 @@
-# godex.yaml — Default Godex configuration
+# godex.yaml — Default GodeX configuration
 
 server:
   port: 5678

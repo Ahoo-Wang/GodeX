@@ -6,7 +6,7 @@ import { EnvVars } from "./env";
 import type {
 	ConsoleLoggingConfig,
 	FileLoggingConfig,
-	GodexConfig,
+	GodeXConfig,
 	LogLevel,
 	ProviderConfig,
 } from "./schema";
@@ -125,7 +125,7 @@ export function buildConfig(
 		config?: string;
 		logLevel?: string;
 	},
-): GodexConfig {
+): GodeXConfig {
 	const file = fileConfig ?? {};
 	const server =
 		typeof file.server === "object" && file.server !== null

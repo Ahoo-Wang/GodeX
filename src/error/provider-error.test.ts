@@ -1,16 +1,16 @@
 // src/error/provider-error.test.ts
 import { describe, expect, test } from "bun:test";
-import { GodexError } from "./godex-error";
+import { GodeXError } from "./godex-error";
 import { ProviderError } from "./provider-error";
 
 describe("ProviderError", () => {
-	test("extends GodexError with domain provider", () => {
+	test("extends GodeXError with domain provider", () => {
 		const err = new ProviderError("provider.upstream.error", "msg", {
 			provider: "zhipu",
 			model: "glm-4",
 			upstreamStatus: 500,
 		});
-		expect(err).toBeInstanceOf(GodexError);
+		expect(err).toBeInstanceOf(GodeXError);
 		expect(err.domain).toBe("provider");
 	});
 

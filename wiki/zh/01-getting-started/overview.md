@@ -1,15 +1,15 @@
 ---
 title: "概述"
-description: "Godex 介绍 — 它是什么、为什么存在，以及如何快速上手。"
+description: "GodeX 介绍 — 它是什么、为什么存在，以及如何快速上手。"
 ---
 
 # 概述
 
-Godex 是一个基于 [Bun](https://bun.sh) 和 **TypeScript** 构建的 **OpenAI Responses API 网关**。它将标准的 `/v1/responses` 请求转换为上游 Chat Completions API 调用，使任何 LLM 提供商都能作为支持 OpenAI 协议工具（包括 Codex CLI）的后端。
+GodeX 是一个基于 [Bun](https://bun.sh) 和 **TypeScript** 构建的 **OpenAI Responses API 网关**。它将标准的 `/v1/responses` 请求转换为上游 Chat Completions API 调用，使任何 LLM 提供商都能作为支持 OpenAI 协议工具（包括 Codex CLI）的后端。
 
-## 为什么选择 Godex？
+## 为什么选择 GodeX？
 
-- **协议转换**：Codex 等工具期望 OpenAI Responses API，但许多提供商仅提供 Chat Completions。Godex 弥补了这一差距。
+- **协议转换**：Codex 等工具期望 OpenAI Responses API，但许多提供商仅提供 Chat Completions。GodeX 弥补了这一差距。
 - **提供商无关**：基于插件的适配器系统意味着添加新提供商只需实现少量接口，无需重写服务器。
 - **流式优先**：整个管道围绕 `ReadableStream` 和 `TransformStream` 构建，确保低延迟 SSE 传输。
 - **会话历史**：内置 `previous_response_id` 链式解析，支持 SQLite 或内存后端。
@@ -18,10 +18,10 @@ Godex 是一个基于 [Bun](https://bun.sh) 和 **TypeScript** 构建的 **OpenA
 
 ```mermaid
 C4Context
-  title Godex — 系统上下文
+  title GodeX — 系统上下文
 
   Person(user, "开发者 / Codex CLI", "通过 OpenAI 兼容端点发送 Responses API 请求")
-  System(godex_svr, "Godex 服务器", "将 Responses API 转换为 Chat Completions API. Bun HTTP 服务器，端口可配置")
+  System(godex_svr, "GodeX 服务器", "将 Responses API 转换为 Chat Completions API. Bun HTTP 服务器，端口可配置")
   SystemDb(sessions, "会话存储", "存储响应历史，用于 previous_response_id 链式解析. SQLite 或内存")
   System_Ext(zhipu, "智谱 (Zhipu)", "Chat Completions API 提供商")
   System_Ext(openai, "OpenAI", "Chat Completions API 提供商")
@@ -58,7 +58,7 @@ src/
 ├── resolver/         ModelResolver（模型选择器到提供商+模型）
 ├── server/           Bun HTTP 服务器、路由器、路由
 ├── session/          ResponseSessionStore（内存 + SQLite）、链式解析
-├── error/            GodexError 层次结构，带域代码
+├── error/            GodeXError 层次结构，带域代码
 ├── protocol/openai/  OpenAI 兼容类型定义
 ├── logger/           结构化 JSON 日志
 └── e2e/              带模拟上游的端到端测试

@@ -12,7 +12,7 @@ export interface StartupBannerOptions {
 
 export function formatStartupBanner(opts: StartupBannerOptions): string {
 	const lines: string[] = [
-		`Godex v${opts.version}`,
+		`GodeX v${opts.version}`,
 		``,
 		`  address:   http://${opts.host}:${opts.port}`,
 		`  env:       ${opts.env}`,

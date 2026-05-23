@@ -1,8 +1,8 @@
 // src/error/godex-error.test.ts
 import { describe, expect, test } from "bun:test";
-import { GodexError, toLogEntry } from "./godex-error";
+import { GodeXError, toLogEntry } from "./godex-error";
 
-class TestError extends GodexError {
+class TestError extends GodeXError {
 	readonly domain = "test";
 
 	constructor(
@@ -16,7 +16,7 @@ class TestError extends GodexError {
 	}
 }
 
-describe("GodexError", () => {
+describe("GodeXError", () => {
 	test("sets name to constructor name", () => {
 		const err = new TestError("test.error", "test message");
 		expect(err.name).toBe("TestError");
@@ -77,12 +77,12 @@ describe("GodexError", () => {
 });
 
 describe("toLogEntry utility", () => {
-	test("serializes GodexError", () => {
+	test("serializes GodeXError", () => {
 		const err = new TestError("test.error", "msg", 500, { detail: "x" });
 		expect(toLogEntry(err)).toEqual(err.toLogEntry());
 	});
 
-	test("fallback for non-GodexError", () => {
+	test("fallback for non-GodeXError", () => {
 		expect(toLogEntry(new Error("oops"))).toEqual({ message: "Error: oops" });
 	});
 

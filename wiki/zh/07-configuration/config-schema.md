@@ -5,7 +5,7 @@ description: "godex.yaml 配置选项完整参考。"
 
 # 配置 Schema
 
-Godex 通过 `godex.yaml` 文件配置，通常由 `godex init` 创建。环境变量使用 `${VAR_NAME}` 语法插值。
+GodeX 通过 `godex.yaml` 文件配置，通常由 `godex init` 创建。环境变量使用 `${VAR_NAME}` 语法插值。
 
 ## 完整 Schema
 
@@ -50,7 +50,7 @@ logging:
 classDiagram
   direction TB
 
-  class GodexConfig {
+  class GodeXConfig {
     +server: ServerConfig
     +default_provider: string
     +providers: Record
@@ -81,10 +81,10 @@ classDiagram
     +file: FileLoggingConfig
   }
 
-  GodexConfig --> ServerConfig
-  GodexConfig --> ProviderConfig
-  GodexConfig --> SessionConfig
-  GodexConfig --> LoggingConfig
+  GodeXConfig --> ServerConfig
+  GodeXConfig --> ProviderConfig
+  GodeXConfig --> SessionConfig
+  GodeXConfig --> LoggingConfig
 ```
 
 [CLI 命令](/zh/07-configuration/cli-commands)

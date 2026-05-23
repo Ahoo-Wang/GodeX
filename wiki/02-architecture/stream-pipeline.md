@@ -5,7 +5,7 @@ description: "Three-stage transformer pipeline that converts upstream SSE chunks
 
 # Stream Pipeline
 
-The streaming pipeline is the heart of Godex's real-time delivery. It chains three `TransformStream` stages to convert provider-specific SSE chunks into OpenAI Responses API events, while persisting session state along the way.
+The streaming pipeline is the heart of GodeX's real-time delivery. It chains three `TransformStream` stages to convert provider-specific SSE chunks into OpenAI Responses API events, while persisting session state along the way.
 
 ## Pipeline Overview
 
@@ -15,7 +15,7 @@ flowchart LR
     SSE["SSE Chunks"]
   end
 
-  subgraph godex["Godex Stream Pipeline"]
+  subgraph godex["GodeX Stream Pipeline"]
     T1["ProviderEventToResponseTransformer"]
     T2["ResponseSessionPersistenceTransformer"]
     T3["ResponseSseEncodeTransformer"]

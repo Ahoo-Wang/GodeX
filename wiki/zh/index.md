@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: Godex
+  name: GodeX
   text: OpenAI Responses API 网关
   tagline: 将 /v1/responses 请求转换为上游 Chat Completions API 调用，使任何 LLM 提供商都能驱动 Codex。
   actions:
@@ -14,7 +14,7 @@ hero:
       link: /zh/02-architecture/overview
     - theme: alt
       text: GitHub
-      link: https://github.com/Ahoo-Wang/Godex
+      link: https://github.com/Ahoo-Wang/GodeX
 
 features:
   - icon: 🔄

@@ -88,7 +88,7 @@ function addServeCommand(program: Command, runtime: CliRuntime): void {
 }
 
 function addConfigCommand(program: Command, runtime: CliRuntime): void {
-	const config = program.command("config").description("inspect Godex config");
+	const config = program.command("config").description("inspect GodeX config");
 
 	config
 		.command("check")

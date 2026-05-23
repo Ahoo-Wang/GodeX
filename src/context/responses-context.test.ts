@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { DEFAULT_CAPABILITIES } from "../adapter/capabilities";
-import type { GodexConfig } from "../config";
+import type { GodeXConfig } from "../config";
 import {
 	SERVER_PROVIDER_NOT_REGISTERED,
 	SERVER_REQUEST_INVALID_PARAMETER,
@@ -14,7 +14,7 @@ import type { StoredResponseSession } from "../session";
 import { ApplicationContext } from "./application-context";
 import { ResponsesContext } from "./responses-context";
 
-const config: GodexConfig = {
+const config: GodeXConfig = {
 	server: { port: 0, host: "127.0.0.1" },
 	default_provider: "zhipu",
 	providers: {

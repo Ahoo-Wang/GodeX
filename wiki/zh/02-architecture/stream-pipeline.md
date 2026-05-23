@@ -5,7 +5,7 @@ description: "三阶段转换器管道，将上游 SSE 数据块转换为 Respon
 
 # 流式管道
 
-流式管道是 Godex 实时传输的核心。它链接三个 `TransformStream` 阶段，将提供商特定的 SSE 数据块转换为 OpenAI Responses API 事件，同时沿途持久化会话状态。
+流式管道是 GodeX 实时传输的核心。它链接三个 `TransformStream` 阶段，将提供商特定的 SSE 数据块转换为 OpenAI Responses API 事件，同时沿途持久化会话状态。
 
 ## 管道总览
 
@@ -15,7 +15,7 @@ flowchart LR
     SSE["SSE 数据块"]
   end
 
-  subgraph godex["Godex 流式管道"]
+  subgraph godex["GodeX 流式管道"]
     T1["ProviderEventToResponseTransformer"]
     T2["ResponseSessionPersistenceTransformer"]
     T3["ResponseSseEncodeTransformer"]

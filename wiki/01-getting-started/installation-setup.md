@@ -1,6 +1,6 @@
 ---
 title: "Installation & Setup"
-description: "Install Godex, create configuration, and start the server."
+description: "Install GodeX, create configuration, and start the server."
 ---
 
 # Installation & Setup
@@ -16,13 +16,13 @@ description: "Install Godex, create configuration, and start the server."
 npm install -g @ahoo-wang/godex
 ```
 
-Godex ships as a **standalone native binary** with zero runtime dependencies. npm's `postinstall` automatically selects the correct binary for your platform.
+GodeX ships as a **standalone native binary** with zero runtime dependencies. npm's `postinstall` automatically selects the correct binary for your platform.
 
 ## Build from Source
 
 ```bash
-git clone https://github.com/Ahoo-Wang/Godex.git
-cd Godex
+git clone https://github.com/Ahoo-Wang/GodeX.git
+cd GodeX
 bun install
 bun run build
 ```

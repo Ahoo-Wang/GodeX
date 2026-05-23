@@ -2,10 +2,10 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Godex, please report it privately:
+If you discover a security vulnerability in GodeX, please report it privately:
 
 - **Email:** ahoowang@gmail.com
-- **GitHub:** Use the [Security Advisories](https://github.com/Ahoo-Wang/Godex/security/advisories/new) page
+- **GitHub:** Use the [Security Advisories](https://github.com/Ahoo-Wang/GodeX/security/advisories/new) page
 
 Please **do not** file a public issue for security vulnerabilities.
 

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
 import { DEFAULT_CAPABILITIES } from "../../../adapter/capabilities";
 import type { ProviderMapper } from "../../../adapter/provider";
-import type { GodexConfig } from "../../../config";
+import type { GodeXConfig } from "../../../config";
 import { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";
 import { AdapterError, ProviderError } from "../../../error";
@@ -14,7 +14,7 @@ import type {
 import { Registrar } from "../../../providers/registrar";
 import { handleResponses } from "./index";
 
-const config: GodexConfig = {
+const config: GodeXConfig = {
 	server: { port: 0, host: "127.0.0.1" },
 	default_provider: "zhipu",
 	providers: {

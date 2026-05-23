@@ -1,4 +1,4 @@
-import type { GodexConfig } from "../config";
+import type { GodeXConfig } from "../config";
 import { EnvVars } from "../config";
 import type { ApplicationContext } from "../context/application-context";
 import type { Logger } from "../logger";
@@ -12,7 +12,7 @@ export type RouteHandler = (req: Request) => Response | Promise<Response>;
 export type RouteMap = Record<string, RouteHandler>;
 
 export interface ServerDeps {
-	config: GodexConfig;
+	config: GodeXConfig;
 	configPath: string;
 	logger: Logger;
 	routes: RouteMap;

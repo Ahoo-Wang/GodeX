@@ -5,7 +5,7 @@ description: "Command-line interface reference for the godex binary."
 
 # CLI Commands
 
-Godex ships as a single binary (`godex`) with three subcommands.
+GodeX ships as a single binary (`godex`) with three subcommands.
 
 ## `godex serve`
 

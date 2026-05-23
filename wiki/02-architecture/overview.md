@@ -1,11 +1,11 @@
 ---
 title: "System Overview"
-description: "High-level architecture of Godex — component model, dependency graph, and design patterns."
+description: "High-level architecture of GodeX — component model, dependency graph, and design patterns."
 ---
 
 # System Overview
 
-Godex follows a layered architecture with clear separation of concerns: protocol handling at the boundary, adapter logic in the middle, and provider-specific code isolated in plugins.
+GodeX follows a layered architecture with clear separation of concerns: protocol handling at the boundary, adapter logic in the middle, and provider-specific code isolated in plugins.
 
 ## Component Model
 
@@ -14,7 +14,7 @@ classDiagram
   direction TB
 
   class ApplicationContext {
-    +config: GodexConfig
+    +config: GodeXConfig
     +logger: Logger
     +resolver: ModelResolver
     +registrar: Registrar

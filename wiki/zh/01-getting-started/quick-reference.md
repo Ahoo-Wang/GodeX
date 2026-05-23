@@ -40,8 +40,8 @@ model: "openai/gpt-4o"  → 路由到配置的 openai 提供商
 | 变量 | 说明 |
 |------|------|
 | `ZHIPU_API_KEY` | 智谱提供商 API 密钥 |
-| `OPENAI_BASE_URL` | 将 Codex CLI 指向 Godex |
-| `OPENAI_API_KEY` | 必须设置（Godex 不验证） |
+| `OPENAI_BASE_URL` | 将 Codex CLI 指向 GodeX |
+| `OPENAI_API_KEY` | 必须设置（GodeX 不验证） |
 
 ## OpenAI SDK 使用
 

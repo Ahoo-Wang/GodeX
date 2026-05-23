@@ -5,7 +5,7 @@ description: "带域代码的结构化错误类型，用于一致的错误处理
 
 # 错误层次
 
-Godex 中所有错误都继承自抽象 `GodexError` 基类。每个错误携带域、代码、HTTP 状态、结构化上下文和时间戳。
+GodeX 中所有错误都继承自抽象 `GodeXError` 基类。每个错误携带域、代码、HTTP 状态、结构化上下文和时间戳。
 
 ## 类层次
 
@@ -13,7 +13,7 @@ Godex 中所有错误都继承自抽象 `GodexError` 基类。每个错误携带
 classDiagram
   direction TB
 
-  class GodexError {
+  class GodeXError {
     <<abstract>>
     +domain: string
     +code: string
@@ -43,10 +43,10 @@ classDiagram
     +status: 400-409
   }
 
-  GodexError <|-- ServerError
-  GodexError <|-- AdapterError
-  GodexError <|-- ProviderError
-  GodexError <|-- SessionError
+  GodeXError <|-- ServerError
+  GodeXError <|-- AdapterError
+  GodeXError <|-- ProviderError
+  GodeXError <|-- SessionError
 ```
 
 ## 错误域

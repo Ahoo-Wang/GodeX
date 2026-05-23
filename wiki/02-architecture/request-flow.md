@@ -1,6 +1,6 @@
 ---
 title: "Request Flow"
-description: "End-to-end journey of a /v1/responses request through Godex."
+description: "End-to-end journey of a /v1/responses request through GodeX."
 ---
 
 # Request Flow

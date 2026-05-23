@@ -1,5 +1,5 @@
 // src/error/godex-error.ts
-export abstract class GodexError extends Error {
+export abstract class GodeXError extends Error {
 	abstract readonly domain: string;
 	readonly code: string;
 	readonly status: number;
@@ -35,6 +35,6 @@ export abstract class GodexError extends Error {
 }
 
 export function toLogEntry(err: unknown): Record<string, unknown> {
-	if (err instanceof GodexError) return err.toLogEntry();
+	if (err instanceof GodeXError) return err.toLogEntry();
 	return { message: String(err) };
 }

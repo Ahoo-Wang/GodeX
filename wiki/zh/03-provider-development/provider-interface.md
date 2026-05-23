@@ -5,7 +5,7 @@ description: "每个提供商必须实现的核心接口：Provider、ProviderMa
 
 # Provider 接口
 
-向 Godex 添加新的 LLM 提供商意味着实现四个接口。系统负责路由、会话管理和 SSE 编码——提供商只需处理协议转换和 HTTP 调用。
+向 GodeX 添加新的 LLM 提供商意味着实现四个接口。系统负责路由、会话管理和 SSE 编码——提供商只需处理协议转换和 HTTP 调用。
 
 ## 核心接口
 

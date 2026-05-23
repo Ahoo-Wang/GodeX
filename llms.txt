@@ -1,4 +1,4 @@
-# Godex
+# GodeX
 
 > OpenAI Responses API gateway — translates /v1/responses into upstream Chat Completions API calls so any LLM provider can drive Codex. Built with Bun and TypeScript using the @ahoo-wang/fetcher ecosystem.
 
@@ -31,7 +31,7 @@
 - [Chain Resolution](wiki/04-session-management/chain-resolution.md): Multi-turn conversation chain traversal
 - [Transformers](wiki/05-streaming-pipeline/transformers.md): Stream pipeline transformer stages
 - [Stream State](wiki/05-streaming-pipeline/stream-state.md): Accumulation state during streaming
-- [Error Hierarchy](wiki/06-error-handling/error-hierarchy.md): GodexError class hierarchy and HTTP mapping
+- [Error Hierarchy](wiki/06-error-handling/error-hierarchy.md): GodeXError class hierarchy and HTTP mapping
 - [Error Codes](wiki/06-error-handling/error-codes.md): Complete error code reference
 - [Config Schema](wiki/07-configuration/config-schema.md): godex.yaml configuration reference
 - [CLI Commands](wiki/07-configuration/cli-commands.md): Command-line interface reference

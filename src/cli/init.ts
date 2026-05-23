@@ -11,7 +11,7 @@ interface InitOptions {
 }
 
 export async function runInit(opts: InitOptions): Promise<void> {
-	clack.intro("Godex Configuration Wizard");
+	clack.intro("GodeX Configuration Wizard");
 
 	const provider = await clack.select({
 		message: "Which LLM provider?",

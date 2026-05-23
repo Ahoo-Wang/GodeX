@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a bug in Godex
+about: Report a bug in GodeX
 labels: bug
 ---
 
@@ -24,7 +24,7 @@ What you expected to happen.
 **Environment**
 
 - OS:
-- Godex version (`godex --version`):
+- GodeX version (`godex --version`):
 - Provider:
 
 **Logs**

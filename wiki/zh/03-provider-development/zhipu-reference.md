@@ -5,7 +5,7 @@ description: "智谱（Zhipu）提供商的完整实现，展示了所有 provid
 
 # 智谱参考实现
 
-智谱（Zhipu）提供商是 Godex 中内置的参考实现。它演示了如何构建一个完整的提供商，在 OpenAI Responses API 和智谱的 Chat Completions API 之间进行映射。
+智谱（Zhipu）提供商是 GodeX 中内置的参考实现。它演示了如何构建一个完整的提供商，在 OpenAI Responses API 和智谱的 Chat Completions API 之间进行映射。
 
 ## 模块结构
 

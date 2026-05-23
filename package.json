@@ -5,11 +5,11 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Ahoo-Wang/Godex.git"
+    "url": "git+https://github.com/Ahoo-Wang/GodeX.git"
   },
-  "homepage": "https://github.com/Ahoo-Wang/Godex#readme",
+  "homepage": "https://github.com/Ahoo-Wang/GodeX#readme",
   "bugs": {
-    "url": "https://github.com/Ahoo-Wang/Godex/issues"
+    "url": "https://github.com/Ahoo-Wang/GodeX/issues"
   },
   "publishConfig": {
     "access": "public"

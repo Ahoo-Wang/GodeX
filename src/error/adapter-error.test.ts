@@ -1,10 +1,10 @@
 // src/error/adapter-error.test.ts
 import { describe, expect, test } from "bun:test";
 import { AdapterError } from "./adapter-error";
-import { GodexError } from "./godex-error";
+import { GodeXError } from "./godex-error";
 
 describe("AdapterError", () => {
-	test("extends GodexError with domain adapter", () => {
+	test("extends GodeXError with domain adapter", () => {
 		const err = new AdapterError(
 			"adapter.request.unsupported_parameter",
 			"msg",
@@ -13,7 +13,7 @@ describe("AdapterError", () => {
 				model: "glm-4",
 			},
 		);
-		expect(err).toBeInstanceOf(GodexError);
+		expect(err).toBeInstanceOf(GodeXError);
 		expect(err.domain).toBe("adapter");
 	});
 

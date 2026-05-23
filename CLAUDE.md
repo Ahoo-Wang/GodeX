@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Godex is an OpenAI Responses API gateway that translates `/v1/responses` requests into upstream Chat Completions API calls. It exposes an OpenAI-compatible HTTP API while proxying to provider-specific backends (starting with Zhipu/智谱). Built with **Bun** and **TypeScript**, using the `@ahoo-wang/fetcher` ecosystem for HTTP clients and SSE streaming.
+GodeX is an OpenAI Responses API gateway that translates `/v1/responses` requests into upstream Chat Completions API calls. It exposes an OpenAI-compatible HTTP API while proxying to provider-specific backends (starting with Zhipu/智谱). Built with **Bun** and **TypeScript**, using the `@ahoo-wang/fetcher` ecosystem for HTTP clients and SSE streaming.
 
 ## Commands
 
@@ -85,7 +85,7 @@ Sessions track `previous_response_id` chains for multi-turn conversations. Chain
 
 ### Error hierarchy
 
-`src/error/` — all errors extend `GodexError` with domain/code/status/context:
+`src/error/` — all errors extend `GodeXError` with domain/code/status/context:
 - `ServerError` (4xx) — request validation, missing model, unknown provider
 - `AdapterError` — unsupported parameters, tools, or input items
 - `ProviderError` — upstream HTTP errors (rate limits, timeouts, 5xx)
@@ -93,7 +93,7 @@ Sessions track `previous_response_id` chains for multi-turn conversations. Chain
 
 ### Configuration
 
-`godex.yaml` → `GodexConfig` type (`src/config/schema.ts`). Environment variable interpolation via `${ENV_VAR}` syntax. Dev mode (when `godex.yaml` exists in cwd or `NODE_ENV=development`) changes default paths to local instead of `~/.godex/`.
+`godex.yaml` → `GodeXConfig` type (`src/config/schema.ts`). Environment variable interpolation via `${ENV_VAR}` syntax. Dev mode (when `godex.yaml` exists in cwd or `NODE_ENV=development`) changes default paths to local instead of `~/.godex/`.
 
 ### Testing
 

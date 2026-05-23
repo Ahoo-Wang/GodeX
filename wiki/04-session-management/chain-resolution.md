@@ -5,7 +5,7 @@ description: "How previous_response_id chains are traversed, validated, and reco
 
 # Chain Resolution
 
-When a request includes `previous_response_id`, Godex must reconstruct the full conversation history by walking the parent pointer chain. This is handled by `resolveResponseSessionChain()`.
+When a request includes `previous_response_id`, GodeX must reconstruct the full conversation history by walking the parent pointer chain. This is handled by `resolveResponseSessionChain()`.
 
 ## Chain Traversal Algorithm
 

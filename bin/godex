@@ -59,7 +59,7 @@ function findBinary() {
 const binary = findBinary();
 if (!binary) {
   console.error(
-    "godex: binary not found. Re-run npm install or build from source.",
+    "GodeX: binary not found. Re-run npm install or build from source.",
   );
   process.exit(1);
 }

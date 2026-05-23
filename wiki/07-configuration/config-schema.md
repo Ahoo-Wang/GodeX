@@ -5,7 +5,7 @@ description: "Complete reference for godex.yaml configuration options."
 
 # Config Schema
 
-Godex is configured via a `godex.yaml` file, typically created by `godex init`. Environment variables are interpolated using `${VAR_NAME}` syntax.
+GodeX is configured via a `godex.yaml` file, typically created by `godex init`. Environment variables are interpolated using `${VAR_NAME}` syntax.
 
 ## Full Schema
 
@@ -50,7 +50,7 @@ logging:
 classDiagram
   direction TB
 
-  class GodexConfig {
+  class GodeXConfig {
     +server: ServerConfig
     +default_provider: string
     +providers: Record~string, ProviderConfig~
@@ -81,10 +81,10 @@ classDiagram
     +file: FileLoggingConfig
   }
 
-  GodexConfig --> ServerConfig
-  GodexConfig --> ProviderConfig
-  GodexConfig --> SessionConfig
-  GodexConfig --> LoggingConfig
+  GodeXConfig --> ServerConfig
+  GodeXConfig --> ProviderConfig
+  GodeXConfig --> SessionConfig
+  GodeXConfig --> LoggingConfig
 ```
 
 ## Environment Interpolation

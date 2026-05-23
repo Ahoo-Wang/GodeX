@@ -7,7 +7,7 @@ export enum Env {
 declare const GODEX_BUILD_ENV: string | undefined;
 
 /**
- * Static helper that resolves the current Godex environment from the
+ * Static helper that resolves the current GodeX environment from the
  * compile-time define `GODEX_BUILD_ENV`.
  *
  * Only `GODEX_BUILD_ENV` is asserted — no dependency on `NODE_ENV`.

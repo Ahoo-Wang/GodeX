@@ -1,12 +1,12 @@
 // src/error/session-error.test.ts
 import { describe, expect, test } from "bun:test";
-import { GodexError } from "./godex-error";
+import { GodeXError } from "./godex-error";
 import { SessionError } from "./session-error";
 
 describe("SessionError", () => {
-	test("extends GodexError with domain session", () => {
+	test("extends GodeXError with domain session", () => {
 		const err = new SessionError("session.chain.not_found", "msg");
-		expect(err).toBeInstanceOf(GodexError);
+		expect(err).toBeInstanceOf(GodeXError);
 		expect(err.domain).toBe("session");
 	});
 

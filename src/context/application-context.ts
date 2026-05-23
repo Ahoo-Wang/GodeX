@@ -1,6 +1,6 @@
 import type { Adapter } from "../adapter/adapter";
 import { DefaultAdapter } from "../adapter/default-adapter";
-import type { GodexConfig } from "../config";
+import type { GodeXConfig } from "../config";
 import { resolveDefaultSqlitePath } from "../config";
 import { createLogger, type Logger } from "../logger";
 import { createBuiltinRegistrar } from "../providers/builtin";
@@ -21,14 +21,14 @@ function createSessionStore(config: {
 }
 
 export class ApplicationContext {
-	readonly config: GodexConfig;
+	readonly config: GodeXConfig;
 	readonly logger: Logger;
 	readonly resolver: ModelResolver;
 	readonly registrar: Registrar;
 	readonly adapter: Adapter;
 	readonly sessionStore: ResponseSessionStore;
 
-	constructor(config: GodexConfig, registrar?: Registrar) {
+	constructor(config: GodeXConfig, registrar?: Registrar) {
 		this.config = config;
 		this.logger = createLogger(config.logging);
 		this.resolver = new ModelResolver(

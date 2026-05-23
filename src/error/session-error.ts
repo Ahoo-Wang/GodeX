@@ -1,5 +1,5 @@
 // src/error/session-error.ts
-import { GodexError } from "./godex-error";
+import { GodeXError } from "./godex-error";
 
 export interface SessionErrorContext {
 	[key: string]: unknown;
@@ -8,7 +8,7 @@ export interface SessionErrorContext {
 	maxDepth?: number;
 }
 
-export class SessionError extends GodexError {
+export class SessionError extends GodeXError {
 	readonly domain = "session";
 
 	constructor(

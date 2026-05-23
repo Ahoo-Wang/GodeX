@@ -1,11 +1,11 @@
 ---
 title: "系统总览"
-description: "Godex 高层架构 — 组件模型、依赖关系图和设计模式。"
+description: "GodeX 高层架构 — 组件模型、依赖关系图和设计模式。"
 ---
 
 # 系统总览
 
-Godex 采用分层架构，关注点清晰分离：协议处理在边界、适配器逻辑在中间、提供商特定代码隔离在插件中。
+GodeX 采用分层架构，关注点清晰分离：协议处理在边界、适配器逻辑在中间、提供商特定代码隔离在插件中。
 
 ## 组件模型
 
@@ -14,7 +14,7 @@ classDiagram
   direction TB
 
   class ApplicationContext {
-    +config: GodexConfig
+    +config: GodeXConfig
     +logger: Logger
     +resolver: ModelResolver
     +registrar: Registrar

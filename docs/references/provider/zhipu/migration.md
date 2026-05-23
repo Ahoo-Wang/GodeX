@@ -132,9 +132,9 @@ curl https://open.bigmodel.cn/api/coding/paas/v4/chat/completions \
 | `temperature` | `temperature` | ✅ 支持 | 智谱范围 `[0.0, 1.0]`，OpenAI 范围 `[0, 2]`。需将 OpenAI 的 1.0-2.0 映射到智谱的 1.0 |
 | `top_p` | `top_p` | ✅ 支持 | 智谱范围 `[0.01, 1.0]`，OpenAI 范围 `[0, 1]` |
 | `max_output_tokens` | `max_tokens` | ✅ 支持 | 语义一致，参数名不同。智谱 GLM-5.1/5/4.7 系列最大 128K，GLM-4.5 系列最大 96K |
-| `text.verbosity` | 无 | ❌ 不支持 | 智谱无独立 verbosity 控制；Godex 接受并回显该字段，但不会传给上游 |
+| `text.verbosity` | 无 | ❌ 不支持 | 智谱无独立 verbosity 控制；GodeX 接受并回显该字段，但不会传给上游 |
 | `stop` (内联在 text 中) | `stop` (顶层数组) | ⚠️ 部分支持 | 智谱支持字符串数组，最多 4 个停止词 |
-| `truncation` | 无 | ❌ 不支持 | 智谱无自动截断策略配置；Godex 接受省略/`disabled`，对 `auto` 会在上游调用前返回明确错误 |
+| `truncation` | 无 | ❌ 不支持 | 智谱无自动截断策略配置；GodeX 接受省略/`disabled`，对 `auto` 会在上游调用前返回明确错误 |
 
 ### 3.4 推理 / 思考
 
@@ -152,8 +152,8 @@ OpenAI Responses 使用 `reasoning` 对象配置：
 | Responses 参数 | 智谱参数 | 状态 | 说明 |
 |------|------|------|------|
 | `reasoning.effort` | `thinking.type: "enabled"` | ⚠️ 部分支持 | 智谱仅支持 enabled/disabled 二元开关，不支持 effort 级别微调。GLM-5.1/5/5-Turbo/5v-Turbo/4.7/4.5V 开启后为强制思考，GLM-4.6/4.6V/4.5 为自动判断 |
-| `reasoning.summary` | `reasoning_content` (响应字段) | ⚠️ 部分支持 | 智谱返回 `reasoning_content` 在流式 delta 和完成响应中，但不支持 summary 压缩级别控制；Godex 接受并降级为普通 thinking |
-| `reasoning.generate_summary` (废弃) | 同上 | ⚠️ 部分支持 | Godex 接受但不向上游传递该控制项 |
+| `reasoning.summary` | `reasoning_content` (响应字段) | ⚠️ 部分支持 | 智谱返回 `reasoning_content` 在流式 delta 和完成响应中，但不支持 summary 压缩级别控制；GodeX 接受并降级为普通 thinking |
+| `reasoning.generate_summary` (废弃) | 同上 | ⚠️ 部分支持 | GodeX 接受但不向上游传递该控制项 |
 | 加密推理 `reasoning.encrypted_content` | 无 | ❌ 不支持 | 智谱不提供加密推理功能 |
 | 保留历史推理 `clear_thinking: false` | `thinking.clear_thinking` | ✅ 支持 | 智谱支持通过 `clear_thinking: false` 保留历史推理内容 |
 
@@ -232,7 +232,7 @@ OpenAI Responses (Structured Outputs):
 | Responses 参数 | 智谱参数 | 状态 | 说明 |
 |------|------|------|------|
 | `stream: true` | `stream: true` | ✅ 支持 | 两者均使用 SSE，以 `data: [DONE]` 结束 |
-| `stream_options.include_obfuscation` | 无 | ❌ 不支持 | 智谱无可混淆化选项；Godex 接受并忽略该可选项 |
+| `stream_options.include_obfuscation` | 无 | ❌ 不支持 | 智谱无可混淆化选项；GodeX 接受并忽略该可选项 |
 
 **流式响应结构差异：**
 
@@ -262,7 +262,7 @@ OpenAI Responses 流式事件：
 | `prompt_cache_retention` | 无 | ❌ 不支持 | 智谱自动缓存，无 retention 配置 |
 | `service_tier` | 无 | ❌ 不支持 | 智谱无服务层级选择 |
 | `background` | 无 | ❌ 不支持 | 智谱无后台异步执行 |
-| `max_tool_calls` | 无 | ❌ 不支持 | 智谱无工具调用次数上限控制；Godex 接受并回显，但不向上游传递 |
+| `max_tool_calls` | 无 | ❌ 不支持 | 智谱无工具调用次数上限控制；GodeX 接受并回显，但不向上游传递 |
 | `parallel_tool_calls` | 无（默认并行） | ⚠️ 无显式控制 | 智谱无显式并行开关 |
 | `context_management` | 无 | ❌ 不支持 | 智谱无自动压缩配置 |
 
@@ -389,17 +389,17 @@ if msg.tool_calls:
 | 函数定义结构 | 内部标记：`{"type": "function", "name": "...", "parameters": {...}}` | 外部标记：`{"type": "function", "function": {"name": "...", "parameters": {...}}}` | ⚠️ 结构不同 |
 | strict 模式 | 默认 `true` | 不支持 | ❌ |
 | tool_choice: auto | ✅ | ✅ (默认，仅支持 auto) | ⚠️ 智谱仅支持 `auto` |
-| tool_choice: required | ✅ | ❌ | Godex 降级为智谱 `auto` |
-| tool_choice: none | ✅ | ❌ (不传 tools 即可) | Godex 会通过省略 `tools` 和 `tool_choice` 降级实现 |
-| tool_choice: 指定函数 / custom / shell / apply_patch | ✅ | ❌ | Godex 降级为智谱 `auto` |
+| tool_choice: required | ✅ | ❌ | GodeX 降级为智谱 `auto` |
+| tool_choice: none | ✅ | ❌ (不传 tools 即可) | GodeX 会通过省略 `tools` 和 `tool_choice` 降级实现 |
+| tool_choice: 指定函数 / custom / shell / apply_patch | ✅ | ❌ | GodeX 降级为智谱 `auto` |
 | 并行工具调用 | `parallel_tool_calls: true` | 默认并行，无显式控制 | ⚠️ |
 | 流式工具调用 | — | `tool_stream: true` (仅 GLM-5.1/5/5-Turbo/4.7/4.6) | N/A |
 
 ### 5.2 Codex 工具降级
 
-Codex 常用的客户端执行工具在智谱侧没有原生 Responses item 类型。Godex 会尽量保留语义，将这些工具降级成智谱 `function` tool，并在后续请求中把工具调用历史转换成 Chat Completions 的 `assistant.tool_calls` + `tool` 消息：
+Codex 常用的客户端执行工具在智谱侧没有原生 Responses item 类型。GodeX 会尽量保留语义，将这些工具降级成智谱 `function` tool，并在后续请求中把工具调用历史转换成 Chat Completions 的 `assistant.tool_calls` + `tool` 消息：
 
-| Responses / Codex 工具 | Godex 降级策略 |
+| Responses / Codex 工具 | GodeX 降级策略 |
 |------|------|
 | `local_shell` | 降级为 `function.name = "local_shell"` |
 | `shell` | 降级为 `function.name = "shell"` |

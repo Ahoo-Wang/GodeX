@@ -7,7 +7,7 @@ description: "Architecture deep-dive for staff/principal engineers — design de
 
 ## Executive Summary
 
-Godex is a **protocol translation gateway** that accepts OpenAI Responses API requests (`/v1/responses`) and translates them into upstream provider-specific Chat Completions API calls. It owns request mapping, streaming pipeline orchestration, session persistence, and model resolution — it delegates HTTP transport to providers and stores sessions in pluggable backends (memory or SQLite).
+GodeX is a **protocol translation gateway** that accepts OpenAI Responses API requests (`/v1/responses`) and translates them into upstream provider-specific Chat Completions API calls. It owns request mapping, streaming pipeline orchestration, session persistence, and model resolution — it delegates HTTP transport to providers and stores sessions in pluggable backends (memory or SQLite).
 
 ## The Core Architectural Insight
 
@@ -36,7 +36,7 @@ graph TB
         SDK["OpenAI SDK / HTTP Client"]
     end
 
-    subgraph Gateway["Godex Gateway"]
+    subgraph Gateway["GodeX Gateway"]
         CLI["CLI"]
         APP["ApplicationContext"]
         ROUTER["Bun HTTP Server"]
@@ -96,24 +96,24 @@ graph TB
 
 | Abstraction | File | Purpose |
 |-------------|------|---------|
-| `ApplicationContext` | [src/context/application-context.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/context/application-context.ts) | Composition root, assembles all components |
-| `ResponsesContext` | [src/context/responses-context.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/context/responses-context.ts) | Per-request context, validation, attribute bag |
-| `Adapter` | [src/adapter/adapter.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/adapter.ts) | Orchestrates request/stream paths |
-| `Provider<TReq, TRes, TChunk>` | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/provider.ts) | Bundles mapper + client + capabilities |
-| `ProviderMapper<TReq, TRes, TChunk>` | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/provider.ts) | Protocol translation (3 maps) |
-| `ModelResolver` | [src/resolver/index.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/resolver/index.ts) | Parses "provider/model" selectors |
-| `Registrar` | [src/providers/registrar.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/providers/registrar.ts) | Two-phase provider lifecycle |
+| `ApplicationContext` | [src/context/application-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts) | Composition root, assembles all components |
+| `ResponsesContext` | [src/context/responses-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/responses-context.ts) | Per-request context, validation, attribute bag |
+| `Adapter` | [src/adapter/adapter.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/adapter.ts) | Orchestrates request/stream paths |
+| `Provider<TReq, TRes, TChunk>` | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) | Bundles mapper + client + capabilities |
+| `ProviderMapper<TReq, TRes, TChunk>` | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) | Protocol translation (3 maps) |
+| `ModelResolver` | [src/resolver/index.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/resolver/index.ts) | Parses "provider/model" selectors |
+| `Registrar` | [src/providers/registrar.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/registrar.ts) | Two-phase provider lifecycle |
 
 ## Decision Log
 
 | Decision | Alternatives Considered | Rationale | Source |
 |----------|------------------------|-----------|--------|
-| Bun runtime | Node.js, Deno | Native TS, `Bun.serve()` routing, `bun:sqlite` for sessions, single-binary compilation | [package.json](https://github.com/Ahoo-Wang/Godex/blob/main/package.json) |
-| Tab indentation | Spaces | Biome default, consistency with existing codebase | [biome.json](https://github.com/Ahoo-Wang/Godex/blob/main/biome.json) |
-| Web Streams TransformStream | RxJS, custom EventEmitter | Zero-dependency, native platform API, composable pipe() | [src/adapter/transformers/](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/transformers/) |
-| SQLite session backend | Redis, file-per-session | Zero external deps via `bun:sqlite`, ACID, simple deployment | [src/session/sqlite.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/session/sqlite.ts) |
-| Three-generic Provider type | any/dynamic typing | Compile-time safety across entire adapter chain | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/provider.ts) |
-| `nanoid` for IDs | UUID v4 | Shorter, URL-safe, sufficient entropy | [src/context/responses-context.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/context/responses-context.ts) |
+| Bun runtime | Node.js, Deno | Native TS, `Bun.serve()` routing, `bun:sqlite` for sessions, single-binary compilation | [package.json](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json) |
+| Tab indentation | Spaces | Biome default, consistency with existing codebase | [biome.json](https://github.com/Ahoo-Wang/GodeX/blob/main/biome.json) |
+| Web Streams TransformStream | RxJS, custom EventEmitter | Zero-dependency, native platform API, composable pipe() | [src/adapter/transformers/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/transformers/) |
+| SQLite session backend | Redis, file-per-session | Zero external deps via `bun:sqlite`, ACID, simple deployment | [src/session/sqlite.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/session/sqlite.ts) |
+| Three-generic Provider type | any/dynamic typing | Compile-time safety across entire adapter chain | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) |
+| `nanoid` for IDs | UUID v4 | Shorter, URL-safe, sufficient entropy | [src/context/responses-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/responses-context.ts) |
 
 ## Stream Pipeline
 
@@ -172,10 +172,10 @@ Each transformer has a single responsibility:
 ## Where to Go Deep
 
 Recommended reading order:
-1. [src/adapter/provider.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/provider.ts) — the core type contract
-2. [src/adapter/default-adapter.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/default-adapter.ts) — orchestration logic
-3. [src/context/application-context.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/context/application-context.ts) — how everything wires together
-4. [src/providers/zhipu/](https://github.com/Ahoo-Wang/Godex/blob/main/src/providers/zhipu/) — complete provider reference
-5. [src/adapter/transformers/](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/transformers/) — stream pipeline internals
+1. [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) — the core type contract
+2. [src/adapter/default-adapter.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/default-adapter.ts) — orchestration logic
+3. [src/context/application-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts) — how everything wires together
+4. [src/providers/zhipu/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/) — complete provider reference
+5. [src/adapter/transformers/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/transformers/) — stream pipeline internals
 
 [Architecture Overview](/02-architecture/overview) · [Stream Pipeline](/02-architecture/stream-pipeline) · [Adapter Pattern](/02-architecture/adapter-pattern)

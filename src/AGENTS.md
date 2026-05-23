@@ -1,6 +1,6 @@
 # AGENTS.md — Source Code
 
-AI agent instructions for the Godex source code.
+AI agent instructions for the GodeX source code.
 
 ## Build & Test
 
@@ -12,7 +12,7 @@ bun run test:e2e                # E2E with mocked upstream
 
 ## Architecture
 
-This directory contains the core Godex gateway. Key modules:
+This directory contains the core GodeX gateway. Key modules:
 
 | Module | Purpose |
 |--------|---------|
@@ -33,7 +33,7 @@ This directory contains the core Godex gateway. Key modules:
 - TypeScript strict mode, ESNext, ESM modules
 - Biome for linting/formatting (tab indentation)
 - Bun test runner (no external frameworks)
-- GodexError hierarchy for all domain errors
+- GodeXError hierarchy for all domain errors
 
 ## Boundaries
 

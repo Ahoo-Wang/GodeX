@@ -3,7 +3,7 @@ import { pipeTransform } from "../../../adapter/transformers/stream-utils";
 import type { ApplicationContext } from "../../../context/application-context";
 import { ResponsesContext } from "../../../context/responses-context";
 import {
-	GodexError,
+	GodeXError,
 	ProviderError,
 	SERVER_ERROR,
 	SERVER_REQUEST_INVALID_JSON,
@@ -90,7 +90,7 @@ export async function handleResponses(
 				requestId,
 			});
 		}
-		if (err instanceof GodexError) {
+		if (err instanceof GodeXError) {
 			logger.info("responses.request.error", err.toLogEntry());
 			return jsonError(err.status, err.code, err.message, {
 				requestId,

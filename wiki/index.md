@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: Godex
+  name: GodeX
   text: OpenAI Responses API Gateway
   tagline: Translate /v1/responses into upstream Chat Completions API calls, so any LLM provider can drive Codex.
   actions:
@@ -14,7 +14,7 @@ hero:
       link: /02-architecture/overview
     - theme: alt
       text: GitHub
-      link: https://github.com/Ahoo-Wang/Godex
+      link: https://github.com/Ahoo-Wang/GodeX
 
 features:
   - icon: 🔄

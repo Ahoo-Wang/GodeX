@@ -1,11 +1,11 @@
 ---
 title: "Onboarding"
-description: "Audience-tailored guides to help you understand Godex."
+description: "Audience-tailored guides to help you understand GodeX."
 ---
 
 # Onboarding
 
-Godex is an OpenAI Responses API gateway that translates `/v1/responses` requests into upstream Chat Completions API calls, letting any LLM provider drive Codex and other OpenAI-compatible clients.
+GodeX is an OpenAI Responses API gateway that translates `/v1/responses` requests into upstream Chat Completions API calls, letting any LLM provider drive Codex and other OpenAI-compatible clients.
 
 Choose the guide that matches your role:
 

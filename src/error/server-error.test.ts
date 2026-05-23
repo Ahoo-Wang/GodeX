@@ -1,12 +1,12 @@
 // src/error/server-error.test.ts
 import { describe, expect, test } from "bun:test";
-import { GodexError } from "./godex-error";
+import { GodeXError } from "./godex-error";
 import { ServerError } from "./server-error";
 
 describe("ServerError", () => {
-	test("extends GodexError with domain server", () => {
+	test("extends GodeXError with domain server", () => {
 		const err = new ServerError("server.request.invalid_json", "msg");
-		expect(err).toBeInstanceOf(GodexError);
+		expect(err).toBeInstanceOf(GodeXError);
 		expect(err.domain).toBe("server");
 	});
 

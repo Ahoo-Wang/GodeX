@@ -1,11 +1,11 @@
 ---
 title: "测试指南"
-description: "Godex 中的单元测试、集成测试和端到端测试策略。"
+description: "GodeX 中的单元测试、集成测试和端到端测试策略。"
 ---
 
 # 测试指南
 
-Godex 使用分层测试方法：针对单个模块的单元测试、针对组件交互的集成测试，以及带模拟上游服务器的端到端测试。
+GodeX 使用分层测试方法：针对单个模块的单元测试、针对组件交互的集成测试，以及带模拟上游服务器的端到端测试。
 
 ## 测试命令
 
@@ -48,10 +48,10 @@ src/
 
 **会话存储测试**：`MemoryResponseSessionStore` 和 `SQLiteResponseSessionStore` 共享相同的测试契约，确保行为一致性。
 
-**E2E 测试**：在动态端口上启动真实的 Godex 服务器，配合模拟上游提供商，测试完整的请求生命周期（包括流式传输）。
+**E2E 测试**：在动态端口上启动真实的 GodeX 服务器，配合模拟上游提供商，测试完整的请求生命周期（包括流式传输）。
 
 ## 覆盖率
 
-覆盖率通过 [Codecov](https://codecov.io/gh/Ahoo-Wang/Godex) 追踪。
+覆盖率通过 [Codecov](https://codecov.io/gh/Ahoo-Wang/GodeX) 追踪。
 
 [CI/CD 与发布](/zh/09-deployment/ci-cd)

@@ -7,7 +7,7 @@ description: "面向资深/首席工程师的架构深度分析 — 设计决策
 
 ## 概要
 
-Godex 是一个**协议翻译网关**，接受 OpenAI Responses API 请求（`/v1/responses`）并转换为上游提供商的 Chat Completions API 调用。它负责请求映射、流式管道编排、会话持久化和模型解析——将 HTTP 传输委托给 provider，将会话存储委托给可插拔后端（内存或 SQLite）。
+GodeX 是一个**协议翻译网关**，接受 OpenAI Responses API 请求（`/v1/responses`）并转换为上游提供商的 Chat Completions API 调用。它负责请求映射、流式管道编排、会话持久化和模型解析——将 HTTP 传输委托给 provider，将会话存储委托给可插拔后端（内存或 SQLite）。
 
 ## 核心架构洞察
 
@@ -25,20 +25,20 @@ class ProviderMapper[TReq, TRes, TChunk]:
 
 | 抽象 | 文件 | 职责 |
 |------|------|------|
-| `ApplicationContext` | [src/context/application-context.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/context/application-context.ts) | 组合根，组装所有组件 |
-| `ResponsesContext` | [src/context/responses-context.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/context/responses-context.ts) | 每请求上下文、校验、属性袋 |
-| `Adapter` | [src/adapter/adapter.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/adapter.ts) | 编排请求/流路径 |
-| `Provider<TReq, TRes, TChunk>` | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/provider.ts) | 打包 mapper + client + capabilities |
-| `ModelResolver` | [src/resolver/index.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/resolver/index.ts) | 解析 "provider/model" 选择器 |
+| `ApplicationContext` | [src/context/application-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts) | 组合根，组装所有组件 |
+| `ResponsesContext` | [src/context/responses-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/responses-context.ts) | 每请求上下文、校验、属性袋 |
+| `Adapter` | [src/adapter/adapter.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/adapter.ts) | 编排请求/流路径 |
+| `Provider<TReq, TRes, TChunk>` | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) | 打包 mapper + client + capabilities |
+| `ModelResolver` | [src/resolver/index.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/resolver/index.ts) | 解析 "provider/model" 选择器 |
 
 ## 技术决策日志
 
 | 决策 | 备选方案 | 理由 | 来源 |
 |------|---------|------|------|
-| Bun 运行时 | Node.js, Deno | 原生 TS、`Bun.serve()` 路由、`bun:sqlite`、单二进制编译 | [package.json](https://github.com/Ahoo-Wang/Godex/blob/main/package.json) |
-| Web Streams TransformStream | RxJS、自定义 EventEmitter | 零依赖、原生平台 API、可组合 pipe() | [src/adapter/transformers/](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/transformers/) |
-| SQLite 会话后端 | Redis、文件存储 | 通过 `bun:sqlite` 零外部依赖、ACID、部署简单 | [src/session/sqlite.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/session/sqlite.ts) |
-| 三泛型 Provider 类型 | any/动态类型 | 编译时安全覆盖整个 adapter 链 | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/provider.ts) |
+| Bun 运行时 | Node.js, Deno | 原生 TS、`Bun.serve()` 路由、`bun:sqlite`、单二进制编译 | [package.json](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json) |
+| Web Streams TransformStream | RxJS、自定义 EventEmitter | 零依赖、原生平台 API、可组合 pipe() | [src/adapter/transformers/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/transformers/) |
+| SQLite 会话后端 | Redis、文件存储 | 通过 `bun:sqlite` 零外部依赖、ACID、部署简单 | [src/session/sqlite.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/session/sqlite.ts) |
+| 三泛型 Provider 类型 | any/动态类型 | 编译时安全覆盖整个 adapter 链 | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) |
 
 ## 流式管道
 
@@ -75,10 +75,10 @@ graph LR
 
 ## 深入阅读推荐
 
-1. [src/adapter/provider.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/provider.ts) — 核心类型契约
-2. [src/adapter/default-adapter.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/default-adapter.ts) — 编排逻辑
-3. [src/context/application-context.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/context/application-context.ts) — 组件组装
-4. [src/providers/zhipu/](https://github.com/Ahoo-Wang/Godex/blob/main/src/providers/zhipu/) — 完整参考实现
-5. [src/adapter/transformers/](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/transformers/) — 流式管道内部
+1. [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) — 核心类型契约
+2. [src/adapter/default-adapter.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/default-adapter.ts) — 编排逻辑
+3. [src/context/application-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts) — 组件组装
+4. [src/providers/zhipu/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/) — 完整参考实现
+5. [src/adapter/transformers/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/transformers/) — 流式管道内部
 
 [架构概览](/zh/02-architecture/overview) · [流式管道](/zh/02-architecture/stream-pipeline) · [适配器模式](/zh/02-architecture/adapter-pattern)

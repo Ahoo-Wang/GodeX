@@ -1,6 +1,6 @@
 ---
 title: "安装与配置"
-description: "安装 Godex、创建配置文件并启动服务器。"
+description: "安装 GodeX、创建配置文件并启动服务器。"
 ---
 
 # 安装与配置
@@ -16,13 +16,13 @@ description: "安装 Godex、创建配置文件并启动服务器。"
 npm install -g @ahoo-wang/godex
 ```
 
-Godex 以**独立原生二进制文件**发布，零运行时依赖。npm 的 `postinstall` 自动选择适合您平台的二进制文件。
+GodeX 以**独立原生二进制文件**发布，零运行时依赖。npm 的 `postinstall` 自动选择适合您平台的二进制文件。
 
 ## 从源码构建
 
 ```bash
-git clone https://github.com/Ahoo-Wang/Godex.git
-cd Godex
+git clone https://github.com/Ahoo-Wang/GodeX.git
+cd GodeX
 bun install
 bun run build
 ```

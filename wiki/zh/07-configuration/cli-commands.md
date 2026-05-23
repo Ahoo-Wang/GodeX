@@ -5,7 +5,7 @@ description: "godex 二进制文件的命令行接口参考。"
 
 # CLI 命令
 
-Godex 以单一二进制文件（`godex`）发布，包含三个子命令。
+GodeX 以单一二进制文件（`godex`）发布，包含三个子命令。
 
 ## `godex serve`
 

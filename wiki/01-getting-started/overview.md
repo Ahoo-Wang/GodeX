@@ -1,15 +1,15 @@
 ---
 title: "Overview"
-description: "Introduction to Godex — what it is, why it exists, and how to get started."
+description: "Introduction to GodeX — what it is, why it exists, and how to get started."
 ---
 
 # Overview
 
-Godex is an **OpenAI Responses API gateway** built with [Bun](https://bun.sh) and **TypeScript**. It translates standard `/v1/responses` requests into upstream Chat Completions API calls, allowing any LLM provider to serve as a backend for tools that speak the OpenAI protocol — including the Codex CLI.
+GodeX is an **OpenAI Responses API gateway** built with [Bun](https://bun.sh) and **TypeScript**. It translates standard `/v1/responses` requests into upstream Chat Completions API calls, allowing any LLM provider to serve as a backend for tools that speak the OpenAI protocol — including the Codex CLI.
 
-## Why Godex?
+## Why GodeX?
 
-- **Protocol translation**: Tools like Codex expect the OpenAI Responses API, but many providers only offer Chat Completions. Godex bridges this gap.
+- **Protocol translation**: Tools like Codex expect the OpenAI Responses API, but many providers only offer Chat Completions. GodeX bridges this gap.
 - **Provider-agnostic**: A plugin-based adapter system means adding a new provider requires implementing a small set of interfaces, not rewriting the server.
 - **Streaming-first**: The entire pipeline is built around `ReadableStream` and `TransformStream`, ensuring low-latency SSE delivery to clients.
 - **Session history**: Built-in `previous_response_id` chain resolution with SQLite or in-memory backends.
@@ -18,10 +18,10 @@ Godex is an **OpenAI Responses API gateway** built with [Bun](https://bun.sh) an
 
 ```mermaid
 C4Context
-  title Godex — System Context
+  title GodeX — System Context
 
   Person(user, "Developer / Codex CLI", "Sends Responses API requests via the OpenAI-compatible endpoint")
-  System(godex_svr, "Godex Server", "Translates Responses API to Chat Completions API. Bun HTTP server on configurable port")
+  System(godex_svr, "GodeX Server", "Translates Responses API to Chat Completions API. Bun HTTP server on configurable port")
   SystemDb(sessions, "Session Store", "Stores response history for previous_response_id chain resolution. SQLite or In-Memory")
   System_Ext(zhipu, "Zhipu", "Chat Completions API provider")
   System_Ext(openai, "OpenAI", "Chat Completions API provider")
@@ -58,7 +58,7 @@ src/
 ├── resolver/         ModelResolver (model selector to provider + model)
 ├── server/           Bun HTTP server, Router, routes
 ├── session/          ResponseSessionStore (Memory + SQLite), chain resolution
-├── error/            GodexError hierarchy with domain codes
+├── error/            GodeXError hierarchy with domain codes
 ├── protocol/openai/  OpenAI-compatible type definitions
 ├── logger/           Structured JSON logger
 └── e2e/              End-to-end tests with mocked upstream

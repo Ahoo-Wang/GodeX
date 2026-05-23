@@ -5,7 +5,7 @@ description: "Structured error types with domain codes for consistent error hand
 
 # Error Hierarchy
 
-All errors in Godex extend the abstract `GodexError` base class. Each error carries a domain, code, HTTP status, structured context, and a timestamp.
+All errors in GodeX extend the abstract `GodeXError` base class. Each error carries a domain, code, HTTP status, structured context, and a timestamp.
 
 ## Class Hierarchy
 
@@ -13,7 +13,7 @@ All errors in Godex extend the abstract `GodexError` base class. Each error carr
 classDiagram
   direction TB
 
-  class GodexError {
+  class GodeXError {
     <<abstract>>
     +domain: string
     +code: string
@@ -43,10 +43,10 @@ classDiagram
     +status: 400-409
   }
 
-  GodexError <|-- ServerError
-  GodexError <|-- AdapterError
-  GodexError <|-- ProviderError
-  GodexError <|-- SessionError
+  GodeXError <|-- ServerError
+  GodeXError <|-- AdapterError
+  GodeXError <|-- ProviderError
+  GodeXError <|-- SessionError
 ```
 
 ## Error Domains
@@ -60,7 +60,7 @@ classDiagram
 
 ## Structured Logging
 
-Every `GodexError` produces a structured log entry via `toLogEntry()`:
+Every `GodeXError` produces a structured log entry via `toLogEntry()`:
 
 ```json
 {

@@ -1,4 +1,4 @@
-import type { GodexError, ProviderError } from "../error";
+import type { GodeXError, ProviderError } from "../error";
 
 export interface ErrorPayload {
 	code: string;
@@ -10,7 +10,7 @@ export interface HttpError {
 	error: ErrorPayload;
 }
 
-export function godexErrorToHttp(err: GodexError): HttpError {
+export function godeXErrorToHttp(err: GodeXError): HttpError {
 	return {
 		status: err.status,
 		error: { code: err.code, message: err.message },

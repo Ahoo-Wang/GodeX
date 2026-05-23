@@ -1,3 +1,3 @@
-# CLAUDE.md — Godex Wiki
+# CLAUDE.md — GodeX Wiki
 
 > This file was generated automatically. For full agent instructions, see [AGENTS.md](./AGENTS.md).

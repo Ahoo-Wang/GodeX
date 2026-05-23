@@ -1,5 +1,5 @@
 // src/error/adapter-error.ts
-import { GodexError } from "./godex-error";
+import { GodeXError } from "./godex-error";
 
 export interface AdapterErrorContext {
 	[key: string]: unknown;
@@ -8,7 +8,7 @@ export interface AdapterErrorContext {
 	parameter?: string;
 }
 
-export class AdapterError extends GodexError {
+export class AdapterError extends GodeXError {
 	readonly domain = "adapter";
 
 	constructor(

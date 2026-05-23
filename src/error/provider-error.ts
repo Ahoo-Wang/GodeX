@@ -1,5 +1,5 @@
 // src/error/provider-error.ts
-import { GodexError } from "./godex-error";
+import { GodeXError } from "./godex-error";
 
 export interface ProviderErrorContext {
 	[key: string]: unknown;
@@ -9,7 +9,7 @@ export interface ProviderErrorContext {
 	upstreamBody?: unknown;
 }
 
-export class ProviderError extends GodexError {
+export class ProviderError extends GodeXError {
 	readonly domain = "provider";
 
 	constructor(

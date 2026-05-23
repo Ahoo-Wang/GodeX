@@ -1,13 +1,13 @@
 ---
 title: "Contributor Guide"
-description: "Everything you need to start contributing to Godex."
+description: "Everything you need to start contributing to GodeX."
 ---
 
 # Contributor Guide
 
 ## What This Project Does
 
-Godex is an **OpenAI Responses API gateway**. It accepts OpenAI Responses API (`POST /v1/responses`) requests and translates them into upstream provider-specific Chat Completions API calls. Write your client code once against the OpenAI Responses API, and Godex routes to any configured provider.
+GodeX is an **OpenAI Responses API gateway**. It accepts OpenAI Responses API (`POST /v1/responses`) requests and translates them into upstream provider-specific Chat Completions API calls. Write your client code once against the OpenAI Responses API, and GodeX routes to any configured provider.
 
 ## Prerequisites & Setup
 
@@ -18,8 +18,8 @@ Godex is an **OpenAI Responses API gateway**. It accepts OpenAI Responses API (`
 | Git | any | system package manager |
 
 ```bash
-git clone https://github.com/Ahoo-Wang/Godex.git
-cd Godex
+git clone https://github.com/Ahoo-Wang/GodeX.git
+cd GodeX
 bun install
 bun run dev          # Dev server with hot reload on port 13145
 ```
@@ -39,7 +39,7 @@ src/
 ├── resolver/         ModelResolver (model selector → provider + model)
 ├── server/           Bun HTTP server, routes (/v1/responses, /health, /v1/models)
 ├── session/          ResponseSessionStore (Memory + SQLite), chain resolution
-├── error/            GodexError hierarchy with domain codes
+├── error/            GodeXError hierarchy with domain codes
 ├── protocol/openai/  OpenAI Responses API type definitions
 └── logger/           Structured JSON logger
 ```
@@ -120,7 +120,7 @@ sequenceDiagram
 
 ### Error Hierarchy
 
-All domain errors extend `GodexError` with structured codes from [src/error/codes.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/error/codes.ts):
+All domain errors extend `GodeXError` with structured codes from [src/error/codes.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts):
 
 | Error Class | Domain | Example Code |
 |-------------|--------|-------------|
@@ -160,7 +160,7 @@ To add a new LLM provider (e.g., "acme"):
    - `ChatClient` (HTTP boundary to upstream)
    - `ProviderCapabilities` (feature declaration)
 3. Create a `ProviderFactory` function
-4. Register it in [src/providers/builtin.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/providers/builtin.ts)
+4. Register it in [src/providers/builtin.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts)
 5. Add tests alongside source files (`*.test.ts`)
 6. Update `godex.yaml` to configure the provider
 
@@ -171,7 +171,7 @@ The Zhipu provider at `src/providers/zhipu/` serves as a complete reference impl
 - **TypeScript** strict mode, ESNext target, ESM modules
 - **Biome** for linting and formatting (tab indentation)
 - **Bun test runner** — no external test frameworks
-- **GodexError hierarchy** for all domain errors — never throw raw `Error` in adapter/provider code
+- **GodeXError hierarchy** for all domain errors — never throw raw `Error` in adapter/provider code
 - **No comments** unless explaining WHY, not WHAT
 
 ## Common Pitfalls
@@ -187,11 +187,11 @@ The Zhipu provider at `src/providers/zhipu/` serves as a complete reference impl
 
 | Path | Purpose |
 |------|---------|
-| [src/index.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/index.ts) | Entry point, delegates to CLI |
-| [src/cli/serve.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/cli/serve.ts) | Server startup, config loading |
-| [src/context/application-context.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/context/application-context.ts) | DI container, assembles all components |
-| [src/adapter/default-adapter.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/adapter/default-adapter.ts) | Request/stream orchestration |
-| [src/providers/zhipu/](https://github.com/Ahoo-Wang/Godex/blob/main/src/providers/zhipu/) | Reference provider implementation |
-| [src/error/codes.ts](https://github.com/Ahoo-Wang/Godex/blob/main/src/error/codes.ts) | All domain error codes |
+| [src/index.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/index.ts) | Entry point, delegates to CLI |
+| [src/cli/serve.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/cli/serve.ts) | Server startup, config loading |
+| [src/context/application-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts) | DI container, assembles all components |
+| [src/adapter/default-adapter.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/default-adapter.ts) | Request/stream orchestration |
+| [src/providers/zhipu/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/) | Reference provider implementation |
+| [src/error/codes.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts) | All domain error codes |
 
 [Architecture Overview](/02-architecture/overview) · [Provider Development](/03-provider-development/provider-interface) · [Testing Guide](/08-testing/testing-guide)

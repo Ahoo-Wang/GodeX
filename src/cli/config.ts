@@ -1,4 +1,4 @@
-import type { GodexConfig } from "../config";
+import type { GodeXConfig } from "../config";
 import {
 	buildConfig,
 	loadConfigFromFile,
@@ -15,7 +15,7 @@ export interface CliOptions {
 
 export interface LoadedConfig {
 	path: string;
-	config: GodexConfig;
+	config: GodeXConfig;
 }
 
 export interface ConfigDiagnostic {
@@ -67,7 +67,7 @@ export function parsePort(value: string | undefined): number | undefined {
 }
 
 export function assertConfigReady(
-	config: GodexConfig,
+	config: GodeXConfig,
 	registrar?: { hasFactory: (name: string) => boolean },
 ): void {
 	const diagnostics = collectConfigDiagnostics(config, registrar);
@@ -85,7 +85,7 @@ export function assertConfigReady(
 }
 
 export function collectConfigDiagnostics(
-	config: GodexConfig,
+	config: GodeXConfig,
 	registrar?: { hasFactory: (name: string) => boolean },
 ): ConfigDiagnostic[] {
 	const diagnostics: ConfigDiagnostic[] = [];
@@ -160,7 +160,7 @@ export function formatConfigSummary(loaded: LoadedConfig): string {
 	].join("\n");
 }
 
-export function redactConfig(config: GodexConfig): GodexConfig {
+export function redactConfig(config: GodeXConfig): GodeXConfig {
 	const redacted = structuredClone(config);
 	for (const provider of Object.values(redacted.providers)) {
 		if (provider.api_key) {

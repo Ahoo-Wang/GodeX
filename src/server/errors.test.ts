@@ -3,7 +3,7 @@
 import { describe, expect, test } from "bun:test";
 import { AdapterError, ProviderError } from "../error";
 import {
-	godexErrorToHttp,
+	godeXErrorToHttp,
 	jsonError,
 	providerErrorToHttp,
 	providerErrorToPayload,
@@ -93,7 +93,7 @@ describe("server error mapping", () => {
 		});
 	});
 
-	test("godexErrorToHttp returns status, code, and message from a GodexError", () => {
+	test("godeXErrorToHttp returns status, code, and message from a GodeXError", () => {
 		const err = new AdapterError(
 			"adapter.request.unsupported_input_content",
 			"Unsupported input content",
@@ -102,7 +102,7 @@ describe("server error mapping", () => {
 				model: "test",
 			},
 		);
-		expect(godexErrorToHttp(err)).toEqual({
+		expect(godeXErrorToHttp(err)).toEqual({
 			status: 400,
 			error: {
 				code: "adapter.request.unsupported_input_content",

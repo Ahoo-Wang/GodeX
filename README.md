@@ -1,8 +1,10 @@
-# Godex
+# GodeX
 
-OpenAI Responses API gateway — translates `/v1/responses` into upstream Chat Completions API calls, so **any LLM provider can drive Codex**.
+**Make every model a Codex engine.**
 
-[![codecov](https://codecov.io/gh/Ahoo-Wang/Godex/graph/badge.svg?token=dJQrmUAiXu)](https://codecov.io/gh/Ahoo-Wang/Godex)
+OpenAI-compatible Responses API gateway — translates `/v1/responses` into upstream Chat Completions API calls, connecting Codex, CLI, IDE, and automation tools with any model provider.
+
+[![codecov](https://codecov.io/gh/Ahoo-Wang/GodeX/graph/badge.svg?token=dJQrmUAiXu)](https://codecov.io/gh/Ahoo-Wang/GodeX)
 [![Bun](https://img.shields.io/badge/runtime-bun-f9f1e0?logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/lang-typescript-3178c6?logo=typescript)](https://www.typescriptlang.org/)
 
@@ -10,10 +12,10 @@ OpenAI Responses API gateway — translates `/v1/responses` into upstream Chat C
 
 ```mermaid
 C4Context
-  title Godex — System Context
+  title GodeX — System Context
 
   Person(user, "Developer / Codex CLI", "Sends Responses API requests<br/>via the OpenAI-compatible endpoint")
-  System(godex_svr, "Godex Server", "Translates Responses API → Chat Completions API<br/>Bun HTTP server on configurable port")
+  System(godex_svr, "GodeX Server", "Translates Responses API → Chat Completions API<br/>Bun HTTP server on configurable port")
   SystemDb(sessions, "Session Store", "Stores response history for<br/>previous_response_id chain resolution<br/>SQLite (persistent) or In-Memory")
   System_Ext(zhipu, "Zhipu (智谱)", "Chat Completions API provider")
   System_Ext(openai, "OpenAI", "Chat Completions API provider")
@@ -99,7 +101,7 @@ classDiagram
   direction TB
 
   class ApplicationContext {
-    +config: GodexConfig
+    +config: GodeXConfig
     +logger: Logger
     +resolver: ModelResolver
     +registrar: Registrar
@@ -222,7 +224,7 @@ flowchart LR
     SSE["SSE Chunks<br/>(JsonServerSentEvent)"]
   end
 
-  subgraph godex["Godex Stream Pipeline"]
+  subgraph godex["GodeX Stream Pipeline"]
     T1["ProviderEventTo<br/>ResponseTransformer"]
     T2["ResponseSession<br/>PersistenceTransformer"]
     T3["ResponseSse<br/>EncodeTransformer"]
@@ -256,7 +258,7 @@ flowchart LR
 classDiagram
   direction TB
 
-  class GodexError {
+  class GodeXError {
     +name: string
     +code: string
     +status: number
@@ -284,12 +286,12 @@ classDiagram
     +context: chain metadata
   }
 
-  GodexError <|-- ServerError
-  GodexError <|-- AdapterError
-  GodexError <|-- ProviderError
-  GodexError <|-- SessionError
+  GodeXError <|-- ServerError
+  GodeXError <|-- AdapterError
+  GodeXError <|-- ProviderError
+  GodeXError <|-- SessionError
 
-  note for GodexError "Base error with structured logging support.<br/>All errors carry domain codes (e.g. server.request.invalid_json)."
+  note for GodeXError "Base error with structured logging support.<br/>All errors carry domain codes (e.g. server.request.invalid_json)."
   note for ProviderError "Wraps upstream HTTP failures:<br/>rate limits, timeouts, 5xx."
   note for SessionError "Chain resolution failures:<br/>not found, cycles, depth exceeded."
 ```
@@ -309,7 +311,7 @@ src/
 ├── resolver/         ModelResolver (model selector → provider + model)
 ├── server/           Bun HTTP server, Router, routes (/v1/responses, /health, /v1/models)
 ├── session/          ResponseSessionStore (Memory + SQLite), chain resolution
-├── error/            GodexError hierarchy with domain codes
+├── error/            GodeXError hierarchy with domain codes
 ├── protocol/openai/  OpenAI-compatible type definitions
 ├── logger/           Structured JSON logger
 └── e2e/              End-to-end tests with mocked upstream
@@ -390,15 +392,15 @@ godex init
 godex serve
 ```
 
-Godex ships as a **standalone native binary** with zero runtime dependencies. npm's `postinstall` automatically selects the correct binary for your platform. The only prerequisite is Node.js >= 18 (needed only during `npm install`).
+GodeX ships as a **standalone native binary** with zero runtime dependencies. npm's `postinstall` automatically selects the correct binary for your platform. The only prerequisite is Node.js >= 18 (needed only during `npm install`).
 
-Godex exposes an **OpenAI-compatible Responses API** at `http://localhost:5678` (port is configurable). Point any tool that speaks the OpenAI protocol at this endpoint:
+GodeX exposes an **OpenAI-compatible Responses API** at `http://localhost:5678` (port is configurable). Point any tool that speaks the OpenAI protocol at this endpoint:
 
 ### With Codex CLI
 
 ```bash
 export OPENAI_BASE_URL=http://localhost:5678/v1
-export OPENAI_API_KEY=any-value          # not validated by Godex, must be set
+export OPENAI_API_KEY=any-value          # not validated by GodeX, must be set
 codex
 ```
 

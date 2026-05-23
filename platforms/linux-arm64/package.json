@@ -1,11 +1,11 @@
 {
   "name": "@ahoo-wang/godex-linux-arm64",
   "version": "0.0.2",
-  "description": "godex native binary for Linux ARM64",
+  "description": "GodeX native binary for Linux ARM64",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Ahoo-Wang/Godex.git",
+    "url": "git+https://github.com/Ahoo-Wang/GodeX.git",
     "directory": "platforms/linux-arm64"
   },
   "publishConfig": {

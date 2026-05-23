@@ -65,13 +65,13 @@ function link(src, dest) {
 
 const platform = detectPlatform();
 if (!platform) {
-  console.log("godex: skipping binary setup — unsupported platform", process.platform, process.arch);
+  console.log("GodeX: skipping binary setup — unsupported platform", process.platform, process.arch);
   process.exit(0);
 }
 
 const binary = findBinary("@ahoo-wang/godex-" + platform, platform);
 if (!binary) {
-  console.log("godex: no prebuilt binary for", platform, "— dev mode, skipping");
+  console.log("GodeX: no prebuilt binary for", platform, "— dev mode, skipping");
   process.exit(0);
 }
 
@@ -80,4 +80,4 @@ if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
 const dest = path.join(destDir, "godex-binary");
 
 link(binary, dest);
-console.log("godex: installed native binary for", platform);
+console.log("GodeX: installed native binary for", platform);

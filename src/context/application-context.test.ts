@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { DEFAULT_CAPABILITIES } from "../adapter/capabilities";
-import type { GodexConfig } from "../config";
+import type { GodeXConfig } from "../config";
 import { Registrar } from "../providers/registrar";
 import { ApplicationContext } from "./application-context";
 
-const config: GodexConfig = {
+const config: GodeXConfig = {
 	server: { port: 0, host: "127.0.0.1" },
 	default_provider: "zhipu",
 	providers: {
@@ -36,7 +36,7 @@ describe("ApplicationContext", () => {
 	});
 
 	test("creates sqlite session store when configured", () => {
-		const sqliteConfig: GodexConfig = {
+		const sqliteConfig: GodeXConfig = {
 			...config,
 			session: { backend: "sqlite", sqlite: { path: ":memory:" } },
 		};

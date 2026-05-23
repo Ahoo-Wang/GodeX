@@ -1,19 +1,19 @@
 ---
 title: "Product Manager Guide"
-description: "Feature-focused overview for product managers — what Godex does, what's possible, and where the boundaries are."
+description: "Feature-focused overview for product managers — what GodeX does, what's possible, and where the boundaries are."
 ---
 
 # Product Manager Guide
 
 ## What This System Does
 
-Godex is a **translator** between two AI API formats. Your team writes code using OpenAI's Responses API once, and Godex automatically converts those requests to work with different AI providers (like Zhipu GLM). Think of it as a universal adapter — plug in any AI model, and your existing tools (like Codex) just work.
+GodeX is a **translator** between two AI API formats. Your team writes code using OpenAI's Responses API once, and GodeX automatically converts those requests to work with different AI providers (like Zhipu GLM). Think of it as a universal adapter — plug in any AI model, and your existing tools (like Codex) just work.
 
 ## User Journey
 
 ```mermaid
 graph LR
-    DEV["Developer"] -->|"Configure godex.yaml"| GODEX["Godex Gateway"]
+    DEV["Developer"] -->|"Configure godex.yaml"| GODEX["GodeX Gateway"]
     GODEX -->|"Route to provider"| PROVIDER["AI Provider"]
     PROVIDER -->|"Response"| GODEX
     GODEX -->|"OpenAI format"| DEV
@@ -90,20 +90,20 @@ graph LR
 
 ## FAQ
 
-**Q: Do I need to change my OpenAI SDK code to use Godex?**
-A: No. Just point your OpenAI SDK's `baseURL` to Godex and configure the provider in `godex.yaml`.
+**Q: Do I need to change my OpenAI SDK code to use GodeX?**
+A: No. Just point your OpenAI SDK's `baseURL` to GodeX and configure the provider in `godex.yaml`.
 
 **Q: Can I use multiple AI providers at the same time?**
 A: Yes. Use `"provider/model"` syntax in the model field to route to different providers.
 
 **Q: What happens if the upstream AI provider goes down?**
-A: Godex returns a structured error with a provider-specific error code. It does not currently retry or failover to another provider.
+A: GodeX returns a structured error with a provider-specific error code. It does not currently retry or failover to another provider.
 
 **Q: Is my data sent anywhere besides the configured AI provider?**
-A: No. Godex is a pass-through gateway. Session data is stored locally in memory or SQLite.
+A: No. GodeX is a pass-through gateway. Session data is stored locally in memory or SQLite.
 
-**Q: Can I deploy Godex in production?**
-A: Yes. Godex compiles to a standalone binary. You can run it on any server. For production, consider adding authentication and rate limiting via a reverse proxy.
+**Q: Can I deploy GodeX in production?**
+A: Yes. GodeX compiles to a standalone binary. You can run it on any server. For production, consider adding authentication and rate limiting via a reverse proxy.
 
 **Q: How do I add a new AI provider?**
 A: A developer needs to implement the Provider interface. See the [Contributor Guide](./contributor-guide.md) for details.

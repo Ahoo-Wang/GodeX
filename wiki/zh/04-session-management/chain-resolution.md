@@ -5,7 +5,7 @@ description: "previous_response_id 链如何被遍历、验证和重建。"
 
 # 链式解析
 
-当请求包含 `previous_response_id` 时，Godex 必须通过遍历父指针链来重建完整的对话历史。这由 `resolveResponseSessionChain()` 处理。
+当请求包含 `previous_response_id` 时，GodeX 必须通过遍历父指针链来重建完整的对话历史。这由 `resolveResponseSessionChain()` 处理。
 
 ## 链遍历算法
 

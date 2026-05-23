@@ -39,7 +39,7 @@ export interface LoggingConfig {
 	file?: FileLoggingConfig;
 }
 
-export interface GodexConfig {
+export interface GodeXConfig {
 	server: ServerConfig;
 	default_provider: string;
 	providers: Record<string, ProviderConfig>;

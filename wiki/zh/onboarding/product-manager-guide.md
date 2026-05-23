@@ -1,19 +1,19 @@
 ---
 title: "产品经理指南"
-description: "面向产品经理的功能概览 — Godex 做什么、能做什么、边界在哪里。"
+description: "面向产品经理的功能概览 — GodeX 做什么、能做什么、边界在哪里。"
 ---
 
 # 产品经理指南
 
 ## 系统简介
 
-Godex 是两种 AI API 格式之间的**翻译器**。你的团队只需用 OpenAI 的 Responses API 编写一次代码，Godex 自动将请求转换为不同 AI 提供商（如智谱 GLM）的格式。可以把它想象成一个万能适配器——接入任何 AI 模型，现有工具（如 Codex）就能直接使用。
+GodeX 是两种 AI API 格式之间的**翻译器**。你的团队只需用 OpenAI 的 Responses API 编写一次代码，GodeX 自动将请求转换为不同 AI 提供商（如智谱 GLM）的格式。可以把它想象成一个万能适配器——接入任何 AI 模型，现有工具（如 Codex）就能直接使用。
 
 ## 用户旅程
 
 ```mermaid
 graph LR
-    DEV["开发者"] -->|"配置 godex.yaml"| GODEX["Godex 网关"]
+    DEV["开发者"] -->|"配置 godex.yaml"| GODEX["GodeX 网关"]
     GODEX -->|"路由到提供商"| PROVIDER["AI 提供商"]
     PROVIDER -->|"响应"| GODEX
     GODEX -->|"OpenAI 格式"| DEV
@@ -73,19 +73,19 @@ graph LR
 
 ## 常见问题
 
-**问：我需要修改 OpenAI SDK 代码才能使用 Godex 吗？**
-答：不需要。只需将 OpenAI SDK 的 `baseURL` 指向 Godex，并在 `godex.yaml` 中配置提供商即可。
+**问：我需要修改 OpenAI SDK 代码才能使用 GodeX 吗？**
+答：不需要。只需将 OpenAI SDK 的 `baseURL` 指向 GodeX，并在 `godex.yaml` 中配置提供商即可。
 
 **问：可以同时使用多个 AI 提供商吗？**
 答：可以。在 model 字段中使用 `"provider/model"` 语法路由到不同提供商。
 
 **问：上游 AI 提供商宕机会怎样？**
-答：Godex 返回带有提供商特定错误码的结构化错误。目前不会自动重试或切换到其他提供商。
+答：GodeX 返回带有提供商特定错误码的结构化错误。目前不会自动重试或切换到其他提供商。
 
 **问：我的数据会被发送到已配置的 AI 提供商以外的地方吗？**
-答：不会。Godex 是直通网关。会话数据存储在本地的内存或 SQLite 中。
+答：不会。GodeX 是直通网关。会话数据存储在本地的内存或 SQLite 中。
 
-**问：可以在生产环境部署 Godex 吗？**
-答：可以。Godex 编译为独立二进制文件，可在任何服务器运行。生产环境建议通过反向代理添加认证和限流。
+**问：可以在生产环境部署 GodeX 吗？**
+答：可以。GodeX 编译为独立二进制文件，可在任何服务器运行。生产环境建议通过反向代理添加认证和限流。
 
 [贡献者指南](./contributor-guide.md) · [快速入门](/zh/01-getting-started/overview)

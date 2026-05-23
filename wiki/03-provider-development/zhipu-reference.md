@@ -5,7 +5,7 @@ description: "Walkthrough of the Zhipu provider — the reference implementation
 
 # Zhipu Reference Implementation
 
-The Zhipu (智谱) provider is the bundled reference implementation in Godex. It demonstrates how to build a complete provider that maps between the OpenAI Responses API and Zhipu's Chat Completions API.
+The Zhipu (智谱) provider is the bundled reference implementation in GodeX. It demonstrates how to build a complete provider that maps between the OpenAI Responses API and Zhipu's Chat Completions API.
 
 ## Module Structure
 

@@ -7,7 +7,7 @@ description: "Strategic overview for engineering leaders — capabilities, risks
 
 ## System Overview
 
-Godex is an **API gateway** that translates OpenAI's Responses API into provider-specific Chat Completions API calls. It enables organizations to use Codex and other OpenAI-compatible clients with any configured LLM provider, without modifying client code. Built with TypeScript on Bun for high throughput and low latency.
+GodeX is an **API gateway** that translates OpenAI's Responses API into provider-specific Chat Completions API calls. It enables organizations to use Codex and other OpenAI-compatible clients with any configured LLM provider, without modifying client code. Built with TypeScript on Bun for high throughput and low latency.
 
 ## Capability Map
 
@@ -28,7 +28,7 @@ Godex is an **API gateway** that translates OpenAI's Responses API into provider
 
 ```mermaid
 graph LR
-    CLIENT["OpenAI SDK<br>Codex"] --> GODEX["Godex Gateway"]
+    CLIENT["OpenAI SDK<br>Codex"] --> GODEX["GodeX Gateway"]
     GODEX --> ZHIPU["Zhipu GLM"]
     GODEX --> FUTURE["Future Providers"]
     GODEX --> SESSION["Session Store<br>(SQLite/Memory)"]
@@ -67,7 +67,7 @@ graph LR
 
 ```mermaid
 graph TB
-    GODEX["Godex"]
+    GODEX["GodeX"]
     BUN["Bun Runtime"]
     ZHIPU["Zhipu API"]
     FETCHER["@ahoo-wang/fetcher"]

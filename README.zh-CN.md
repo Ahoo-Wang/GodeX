@@ -1,8 +1,10 @@
-# Godex
+# GodeX
 
-OpenAI Responses API 网关 — 将 `/v1/responses` 请求转换为上游 Chat Completions API 调用，让**任何 LLM 提供商都能驱动 Codex**。
+**让每个模型都成为 Codex 引擎。**
 
-[![codecov](https://codecov.io/gh/Ahoo-Wang/Godex/graph/badge.svg?token=dJQrmUAiXu)](https://codecov.io/gh/Ahoo-Wang/Godex)
+通过 OpenAI 兼容的 Responses API 网关连接任意模型 — 将 `/v1/responses` 请求转换为上游 Chat Completions API 调用，连接 Codex、CLI、IDE 和自动化开发工具与不同模型供应商。
+
+[![codecov](https://codecov.io/gh/Ahoo-Wang/GodeX/graph/badge.svg?token=dJQrmUAiXu)](https://codecov.io/gh/Ahoo-Wang/GodeX)
 [![Bun](https://img.shields.io/badge/runtime-bun-f9f1e0?logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/lang-typescript-3178c6?logo=typescript)](https://www.typescriptlang.org/)
 
@@ -10,10 +12,10 @@ OpenAI Responses API 网关 — 将 `/v1/responses` 请求转换为上游 Chat C
 
 ```mermaid
 C4Context
-  title Godex — 系统上下文
+  title GodeX — 系统上下文
 
   Person(user, "开发者 / Codex CLI", "通过 OpenAI 兼容端点<br/>发送 Responses API 请求")
-  System(godex_svr, "Godex 服务器", "转换 Responses API → Chat Completions API<br/>基于 Bun HTTP 服务器，端口可配置")
+  System(godex_svr, "GodeX 服务器", "转换 Responses API → Chat Completions API<br/>基于 Bun HTTP 服务器，端口可配置")
   SystemDb(sessions, "会话存储", "存储响应历史，用于<br/>previous_response_id 链式解析<br/>SQLite（持久化）或内存")
   System_Ext(zhipu, "智谱 (Zhipu)", "Chat Completions API 提供商")
   System_Ext(openai, "OpenAI", "Chat Completions API 提供商")
@@ -99,7 +101,7 @@ classDiagram
   direction TB
 
   class ApplicationContext {
-    +config: GodexConfig
+    +config: GodeXConfig
     +logger: Logger
     +resolver: ModelResolver
     +registrar: Registrar
@@ -222,7 +224,7 @@ flowchart LR
     SSE["SSE 数据块<br/>(JsonServerSentEvent)"]
   end
 
-  subgraph godex["Godex 流式管道"]
+  subgraph godex["GodeX 流式管道"]
     T1["ProviderEventTo<br/>ResponseTransformer"]
     T2["ResponseSession<br/>PersistenceTransformer"]
     T3["ResponseSse<br/>EncodeTransformer"]
@@ -256,7 +258,7 @@ flowchart LR
 classDiagram
   direction TB
 
-  class GodexError {
+  class GodeXError {
     +name: string
     +code: string
     +status: number
@@ -284,12 +286,12 @@ classDiagram
     +context: 链元数据
   }
 
-  GodexError <|-- ServerError
-  GodexError <|-- AdapterError
-  GodexError <|-- ProviderError
-  GodexError <|-- SessionError
+  GodeXError <|-- ServerError
+  GodeXError <|-- AdapterError
+  GodeXError <|-- ProviderError
+  GodeXError <|-- SessionError
 
-  note for GodexError "基础错误，支持结构化日志。<br/>所有错误携带领域编码（如 server.request.invalid_json）。"
+  note for GodeXError "基础错误，支持结构化日志。<br/>所有错误携带领域编码（如 server.request.invalid_json）。"
   note for ProviderError "包装上游 HTTP 失败：<br/>速率限制、超时、5xx。"
   note for SessionError "链式解析失败：<br/>未找到、循环、深度超限。"
 ```
@@ -309,7 +311,7 @@ src/
 ├── resolver/         ModelResolver（模型选择器 → 提供商 + 模型）
 ├── server/           Bun HTTP 服务器、Router、路由（/v1/responses、/health、/v1/models）
 ├── session/          ResponseSessionStore（内存 + SQLite）、链式解析
-├── error/            GodexError 错误体系及领域编码
+├── error/            GodeXError 错误体系及领域编码
 ├── protocol/openai/  OpenAI 兼容类型定义
 ├── logger/           结构化 JSON 日志
 └── e2e/              模拟上游的端到端测试
@@ -390,15 +392,15 @@ godex init
 godex serve
 ```
 
-Godex 以**独立原生二进制文件**发布，零运行时依赖。npm 的 `postinstall` 脚本自动为您的平台选择正确的二进制文件。唯一前置条件是 Node.js >= 18（仅在 `npm install` 期间需要）。
+GodeX 以**独立原生二进制文件**发布，零运行时依赖。npm 的 `postinstall` 脚本自动为您的平台选择正确的二进制文件。唯一前置条件是 Node.js >= 18（仅在 `npm install` 期间需要）。
 
-Godex 在 `http://localhost:5678` 暴露**与 OpenAI 兼容的 Responses API**（端口可配置）。将任何使用 OpenAI 协议的工具指向此端点即可：
+GodeX 在 `http://localhost:5678` 暴露**与 OpenAI 兼容的 Responses API**（端口可配置）。将任何使用 OpenAI 协议的工具指向此端点即可：
 
 ### 搭配 Codex CLI
 
 ```bash
 export OPENAI_BASE_URL=http://localhost:5678/v1
-export OPENAI_API_KEY=any-value          # Godex 不验证此值，但必须设置
+export OPENAI_API_KEY=any-value          # GodeX 不验证此值，但必须设置
 codex
 ```
 

@@ -4,7 +4,7 @@
 // ZHIPU_API_KEY is not set.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import type { GodexConfig } from "../config";
+import type { GodeXConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
 import { Registrar } from "../providers/registrar";
 import {
@@ -26,7 +26,7 @@ const maxOutputTokens = Number(
 let godexServer: ReturnType<typeof Bun.serve> | null = null;
 let godexBase = "";
 
-function createLiveConfig(port: number): GodexConfig {
+function createLiveConfig(port: number): GodeXConfig {
 	return {
 		server: { port, host: "127.0.0.1" },
 		default_provider: "zhipu",
