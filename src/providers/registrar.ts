@@ -30,7 +30,10 @@ export class Registrar {
 			}
 			this.providers.set(name, factory(config));
 		}
-		const builtProviders = this.providers!;
+		const builtProviders = this.providers;
+		if (!builtProviders) {
+			throw new Error("Registrar.build: providers not initialized");
+		}
 		const getPayload = () => ({
 			registered: [...builtProviders.keys()],
 			skipped: this.unsupportedProviders,
