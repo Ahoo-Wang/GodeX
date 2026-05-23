@@ -30,7 +30,7 @@ export class Registrar {
 			}
 			this.providers.set(name, factory(config));
 		}
-		logger?.info("providers.built", {
+		logger?.debug("providers.built", {
 			registered: [...this.providers.keys()],
 			skipped: this.unsupportedProviders,
 		});

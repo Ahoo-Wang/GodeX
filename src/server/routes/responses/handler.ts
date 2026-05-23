@@ -40,7 +40,7 @@ export async function handleResponses(
 		const ctx = await ResponsesContext.create(app, body);
 		requestId = ctx.requestId;
 
-		ctx.logger.info("responses.request.received", {
+		ctx.logger.debug("responses.request.received", {
 			model: body.model,
 			resolved: ctx.resolved,
 			stream: body.stream,
@@ -84,7 +84,7 @@ export async function handleResponses(
 			});
 		}
 		if (err instanceof GodexError) {
-			logger.warn("responses.request.error", err.toLogEntry());
+			logger.info("responses.request.error", err.toLogEntry());
 			return jsonError(err.status, err.code, err.message, {
 				requestId,
 			});
