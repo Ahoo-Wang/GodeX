@@ -6,6 +6,7 @@ import type {
 } from "../../protocol/openai/responses";
 import type { ResponseSessionStore } from "../../session";
 import { StreamState } from "../mapper/stream-state";
+import { responseFromTerminalEvent } from "./stream-utils";
 
 export interface ResponseSessionPersistenceTransformerOptions {
 	ctx: ResponsesContext;
@@ -71,17 +72,4 @@ export class ResponseSessionPersistenceTransformer extends SafeTransformer<
 			});
 		}
 	}
-}
-
-function responseFromTerminalEvent(
-	chunk: ResponseStreamEvent,
-): ResponseObject | null {
-	if (
-		chunk.type !== "response.completed" &&
-		chunk.type !== "response.incomplete" &&
-		chunk.type !== "response.failed"
-	) {
-		return null;
-	}
-	return chunk.response ?? null;
 }

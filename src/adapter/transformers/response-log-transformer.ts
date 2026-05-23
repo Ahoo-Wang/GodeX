@@ -1,10 +1,8 @@
 import { SafeTransformer } from "@ahoo-wang/fetcher-eventstream";
 import type { ResponsesContext } from "../../context/responses-context";
-import type {
-	ResponseObject,
-	ResponseStreamEvent,
-} from "../../protocol/openai/responses";
+import type { ResponseStreamEvent } from "../../protocol/openai/responses";
 import { StreamState } from "../mapper/stream-state";
+import { responseFromTerminalEvent } from "./stream-utils";
 
 export class ResponseLogTransformer extends SafeTransformer<
 	ResponseStreamEvent,
@@ -55,17 +53,4 @@ export class ResponseLogTransformer extends SafeTransformer<
 		});
 		this.logged = true;
 	}
-}
-
-function responseFromTerminalEvent(
-	chunk: ResponseStreamEvent,
-): ResponseObject | null {
-	if (
-		chunk.type !== "response.completed" &&
-		chunk.type !== "response.incomplete" &&
-		chunk.type !== "response.failed"
-	) {
-		return null;
-	}
-	return chunk.response ?? null;
 }
