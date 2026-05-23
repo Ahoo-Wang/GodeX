@@ -113,15 +113,7 @@ sequenceDiagram
     Upstream-->>Provider: response
     Provider-->>Adapter: mapped ResponseObject
     Adapter-->>Server: result
-    Server-->>Client: JSON or SSE stream
-
-    style Client fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Server fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style Ctx fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style Resolver fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style Adapter fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style Provider fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style Upstream fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+   Server-->>Client: JSON or SSE stream
 ```
 
 <!-- Sources: src/server/routes/responses/index.ts, src/adapter/default-adapter.ts -->
