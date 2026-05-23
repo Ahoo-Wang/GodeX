@@ -1,6 +1,7 @@
 ---
 title: "System Overview"
 description: "High-level architecture of GodeX — component model, dependency graph, and design patterns."
+keywords: "GodeX, architecture, system overview, component model, design patterns"
 ---
 
 # System Overview

@@ -1,6 +1,7 @@
 ---
 title: "错误层次"
 description: "带域代码的结构化错误类型，用于一致的错误处理和日志记录。"
+keywords: "GodeX, 错误层次, GodeXError, 错误处理"
 ---
 
 # 错误层次

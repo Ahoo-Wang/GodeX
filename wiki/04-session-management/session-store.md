@@ -1,6 +1,7 @@
 ---
 title: "Session Store"
 description: "ResponseSessionStore interface and the Memory and SQLite implementations."
+keywords: "GodeX, session store, SQLite, memory, ResponseSessionStore"
 ---
 
 # Session Store

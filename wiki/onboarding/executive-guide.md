@@ -1,6 +1,7 @@
 ---
 title: "Executive Guide"
 description: "Strategic overview for engineering leaders — capabilities, risks, and investment thesis."
+keywords: "GodeX, executive guide, product overview"
 ---
 
 # Executive Guide

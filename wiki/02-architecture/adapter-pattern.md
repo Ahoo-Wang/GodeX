@@ -1,6 +1,7 @@
 ---
 title: "Adapter Pattern"
 description: "How the DefaultAdapter bridges the Responses API to provider-specific Chat Completions."
+keywords: "GodeX, adapter pattern, DefaultAdapter, Provider, ProviderMapper, ChatClient"
 ---
 
 # Adapter Pattern

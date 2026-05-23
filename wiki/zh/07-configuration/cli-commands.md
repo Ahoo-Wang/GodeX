@@ -1,6 +1,7 @@
 ---
 title: "CLI 命令"
 description: "godex 二进制文件的命令行接口参考。"
+keywords: "GodeX, CLI 命令, serve, init"
 ---
 
 # CLI 命令

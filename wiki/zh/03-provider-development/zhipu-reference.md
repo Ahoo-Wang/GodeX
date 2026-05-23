@@ -1,6 +1,7 @@
 ---
 title: "智谱参考实现"
 description: "智谱（Zhipu）提供商的完整实现，展示了所有 provider 接口的用法。"
+keywords: "GodeX, 智谱, 参考实现, 提供商"
 ---
 
 # 智谱参考实现

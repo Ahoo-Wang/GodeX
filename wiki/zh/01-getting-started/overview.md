@@ -1,6 +1,7 @@
 ---
 title: "概述"
 description: "GodeX 介绍 — 它是什么、为什么存在，以及如何快速上手。"
+keywords: "GodeX, 快速入门, 概述, OpenAI, Responses API, 网关"
 ---
 
 # 概述

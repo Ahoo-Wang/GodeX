@@ -1,6 +1,7 @@
 ---
 title: "会话存储"
 description: "ResponseSessionStore 接口及 Memory 和 SQLite 实现。"
+keywords: "GodeX, 会话存储, SQLite, 内存"
 ---
 
 # 会话存储

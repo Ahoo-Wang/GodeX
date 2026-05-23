@@ -1,6 +1,7 @@
 ---
 title: "Message & Tool Mapping"
 description: "How Responses API messages and tools are translated to provider-specific formats."
+keywords: "GodeX, message mapping, tool mapping, RequestMapper, StreamMapper"
 ---
 
 # Message & Tool Mapping

@@ -1,6 +1,7 @@
 ---
 title: "消息与工具映射"
 description: "Responses API 消息和工具如何转换为提供商特定格式。"
+keywords: "GodeX, 消息映射, 工具映射"
 ---
 
 # 消息与工具映射

@@ -1,6 +1,7 @@
 ---
 title: "Zhipu Reference Implementation"
 description: "Walkthrough of the Zhipu provider — the reference implementation that demonstrates all provider interfaces."
+keywords: "GodeX, Zhipu, 智谱, provider reference, implementation"
 ---
 
 # Zhipu Reference Implementation

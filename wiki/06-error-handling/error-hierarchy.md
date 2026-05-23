@@ -1,6 +1,7 @@
 ---
 title: "Error Hierarchy"
 description: "Structured error types with domain codes for consistent error handling and logging."
+keywords: "GodeX, error hierarchy, GodeXError, ServerError, AdapterError, ProviderError"
 ---
 
 # Error Hierarchy

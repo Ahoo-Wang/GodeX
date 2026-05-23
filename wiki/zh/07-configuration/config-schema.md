@@ -1,6 +1,7 @@
 ---
 title: "配置 Schema"
 description: "godex.yaml 配置选项完整参考。"
+keywords: "GodeX, 配置 Schema, godex.yaml, YAML"
 ---
 
 # 配置 Schema

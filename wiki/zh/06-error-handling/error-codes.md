@@ -1,6 +1,7 @@
 ---
 title: "错误码"
 description: "GodeX 中使用的所有域特定错误码完整参考。"
+keywords: "GodeX, 错误码, 诊断"
 ---
 
 # 错误码

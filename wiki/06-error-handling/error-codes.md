@@ -1,6 +1,7 @@
 ---
 title: "Error Codes"
 description: "Complete reference of domain-specific error codes used throughout GodeX."
+keywords: "GodeX, error codes, domain codes, diagnostics"
 ---
 
 # Error Codes

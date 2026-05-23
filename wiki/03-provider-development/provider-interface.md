@@ -1,6 +1,7 @@
 ---
 title: "Provider Interface"
 description: "Core interfaces every provider must implement: Provider, ProviderMapper, ChatClient, and capabilities."
+keywords: "GodeX, provider interface, Provider, ProviderMapper, ChatClient, development"
 ---
 
 # Provider Interface
