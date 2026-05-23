@@ -24,22 +24,23 @@
   stroke: #6d5dfc !important;
 }
 
-/* Mermaid click-to-zoom modal */
-.mermaid-zoom-modal {
+/* Mermaid zoom overlay */
+.mermaid-zoom-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.92);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  cursor: zoom-out;
 }
-.mermaid-zoom-modal .mermaid {
-  transform: scale(1.5);
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow: auto;
+
+.mermaid-zoom-content {
+  transform-origin: center center;
+  transition: transform 0.1s ease-out;
+  max-width: 95vw;
+  max-height: 95vh;
+  overflow: visible;
 }
 
 /* VitePress tweaks */
