@@ -32,6 +32,7 @@ export class DefaultAdapter implements Adapter {
 			model: response.model,
 			outputCount: response.output.length,
 			durationMillis: Date.now() - ctx.createdAt * 1000,
+			usage: response.usage,
 		});
 		try {
 			await saveSession(ctx.app.sessionStore, response, ctx);
@@ -55,7 +56,14 @@ export class DefaultAdapter implements Adapter {
 			model: ctx.resolved.model,
 			stream: true,
 		});
+		const upstreamStart = Date.now();
 		const events = await chatClient.streamChat(req);
+		ctx.logger.debug("provider.stream.connected", {
+			provider: ctx.resolved.provider,
+			model: ctx.resolved.model,
+			upstreamLatencyMillis: Date.now() - upstreamStart,
+		});
+		ctx.attributes.set("upstreamLatencyMillis", Date.now() - upstreamStart);
 
 		const eventStream = pipeTransform(
 			events,

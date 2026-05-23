@@ -40,7 +40,7 @@ export async function handleResponses(
 		const ctx = await ResponsesContext.create(app, body);
 		requestId = ctx.requestId;
 
-		logger.info("responses.request.received", {
+		ctx.logger.info("responses.request.received", {
 			model: body.model,
 			resolved: ctx.resolved,
 			stream: body.stream,
@@ -51,6 +51,7 @@ export async function handleResponses(
 				: body.input
 					? 1
 					: 0,
+			tools_count: body.tools?.length ?? 0,
 			safety_identifier: body.safety_identifier,
 			prompt_cache_key: body.prompt_cache_key,
 			prompt_cache_retention: body.prompt_cache_retention,
