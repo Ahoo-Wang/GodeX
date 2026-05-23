@@ -15,8 +15,6 @@ OpenAI-compatible Responses API gateway — translates `/v1/responses` into upst
 
 </div>
 
----
-
 ## Features
 
 | | Feature | Description |

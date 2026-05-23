@@ -15,7 +15,6 @@ OpenAI 兼容的 Responses API 网关 — 将 `/v1/responses` 请求转换为上
 
 </div>
 
----
 
 ## 功能特性
 
