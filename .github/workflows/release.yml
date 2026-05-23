@@ -16,10 +16,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Verify repository is public for npm provenance
+      - name: Verify repository is public for OIDC publishing
         if: ${{ github.event.repository.private }}
         run: |
-          echo "::error::Set the GitHub repository to public before publishing with npm provenance."
+          echo "::error::Set the GitHub repository to public before publishing via OIDC Trusted Publisher."
           exit 1
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
