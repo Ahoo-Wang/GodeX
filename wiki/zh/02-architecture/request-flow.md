@@ -1,6 +1,7 @@
 ---
 title: "请求流程"
 description: "/v1/responses 请求在 GodeX 中的端到端生命周期。"
+keywords: "GodeX, 请求流程, 序列图, ResponsesContext, ModelResolver"
 ---
 
 # 请求流程

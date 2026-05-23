@@ -1,6 +1,7 @@
 ---
 title: "Config Schema"
 description: "Complete reference for godex.yaml configuration options."
+keywords: "GodeX, config schema, godex.yaml, YAML, server, providers, session"
 ---
 
 # Config Schema

@@ -1,6 +1,7 @@
 ---
 title: "Provider 接口"
 description: "每个提供商必须实现的核心接口：Provider、ProviderMapper、ChatClient 和能力标志。"
+keywords: "GodeX, Provider 接口, 提供商开发"
 ---
 
 # Provider 接口

@@ -1,6 +1,7 @@
 ---
 title: "链式解析"
 description: "previous_response_id 链如何被遍历、验证和重建。"
+keywords: "GodeX, 链式解析, 会话历史"
 ---
 
 # 链式解析

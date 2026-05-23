@@ -1,6 +1,7 @@
 ---
 title: "安装与配置"
 description: "安装 GodeX、创建配置文件并启动服务器。"
+keywords: "GodeX, 安装, 配置, npm, 二进制"
 ---
 
 # 安装与配置

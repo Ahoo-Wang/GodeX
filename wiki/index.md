@@ -1,5 +1,11 @@
 ---
 layout: home
+title: GodeX
+description: OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents. Translate /v1/responses into upstream Chat Completions API calls.
+head:
+  - - meta
+    - name: keywords
+      content: GodeX, OpenAI, Responses API, gateway, Codex, CLI, LLM, proxy, Chat Completions, provider, streaming, SSE
 
 hero:
   name: GodeX

@@ -1,6 +1,7 @@
 ---
 title: "流式管道"
 description: "三阶段转换器管道，将上游 SSE 数据块转换为 Responses API 事件。"
+keywords: "GodeX, 流式管道, TransformStream, SSE, 转换器"
 ---
 
 # 流式管道

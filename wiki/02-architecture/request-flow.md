@@ -1,6 +1,7 @@
 ---
 title: "Request Flow"
 description: "End-to-end journey of a /v1/responses request through GodeX."
+keywords: "GodeX, request flow, sequence diagram, ResponsesContext, ModelResolver"
 ---
 
 # Request Flow

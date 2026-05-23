@@ -1,6 +1,7 @@
 ---
 title: "Installation & Setup"
 description: "Install GodeX, create configuration, and start the server."
+keywords: "GodeX, installation, setup, npm, binary, configuration"
 ---
 
 # Installation & Setup

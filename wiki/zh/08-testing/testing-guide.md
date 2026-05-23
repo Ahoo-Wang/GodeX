@@ -1,6 +1,7 @@
 ---
 title: "测试指南"
 description: "GodeX 中的单元测试、集成测试和端到端测试策略。"
+keywords: "GodeX, 测试, 单元测试, e2e"
 ---
 
 # 测试指南

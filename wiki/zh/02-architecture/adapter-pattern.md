@@ -1,6 +1,7 @@
 ---
 title: "适配器模式"
 description: "DefaultAdapter 如何将 Responses API 桥接到提供商特定的 Chat Completions。"
+keywords: "GodeX, 适配器模式, DefaultAdapter, Provider"
 ---
 
 # 适配器模式

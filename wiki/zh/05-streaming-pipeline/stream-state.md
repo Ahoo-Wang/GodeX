@@ -1,6 +1,7 @@
 ---
 title: "流状态"
 description: "StreamState 如何在流式传输期间累积部分结果。"
+keywords: "GodeX, 流状态, StreamState"
 ---
 
 # 流状态

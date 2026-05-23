@@ -272,6 +272,81 @@ describe("DefaultAdapter", () => {
 		expect(sessionStore.saved[0]?.id).toBe("resp_from_state");
 	});
 
+	test("request logs trace for responses request body, upstream request body, and upstream response body", async () => {
+		const responseObject = {
+			id: "resp_trace",
+			object: "response" as const,
+			status: "completed" as const,
+			model: "test",
+			created_at: 1,
+			completed_at: 1,
+			output: [],
+			output_text: "",
+			usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 },
+		};
+		const provider = createMockProvider(responseObject);
+		const sessionStore = createMockSessionStore();
+
+		const traces: Array<{ event: string; attr?: Record<string, unknown> }> = [];
+		const ctx = createMockCtx(provider, sessionStore, true, {
+			trace: (event, attr) => {
+				traces.push({
+					event,
+					attr: typeof attr === "function" ? attr() : attr,
+				});
+			},
+		});
+
+		const adapter = new DefaultAdapter();
+		await adapter.request(ctx);
+
+		expect(traces).toEqual([
+			{ event: "responses.request.body", attr: { body: ctx.request } },
+			{ event: "upstream.request.body", attr: { body: { model: "test" } } },
+			{ event: "upstream.response.body", attr: { body: responseObject } },
+		]);
+	});
+
+	test("stream logs trace for responses request body, upstream request body, and stream events", async () => {
+		const responseObject: ResponseObject = {
+			id: "resp_stream_trace",
+			object: "response",
+			status: "completed",
+			model: "test",
+			created_at: 1,
+			completed_at: 2,
+			output: [],
+			output_text: "",
+		};
+		const provider = createMockProvider(
+			responseObject,
+			[{ type: "response.completed", response: responseObject }],
+			[{ event: "chunk", data: { text: "hi" } }],
+		);
+		const sessionStore = createMockSessionStore();
+
+		const traces: Array<{ event: string; attr?: Record<string, unknown> }> = [];
+		const ctx = createMockCtx(provider, sessionStore, true, {
+			trace: (event, attr) => {
+				traces.push({
+					event,
+					attr: typeof attr === "function" ? attr() : attr,
+				});
+			},
+		});
+
+		const adapter = new DefaultAdapter();
+		await readStream(await adapter.stream(ctx));
+
+		const eventNames = traces.map((t) => t.event);
+		expect(eventNames).toEqual([
+			"responses.request.body",
+			"upstream.request.body",
+			"upstream.stream.event.raw",
+			"upstream.stream.event.transformed",
+		]);
+	});
+
 	test("stream propagates provider read errors", async () => {
 		const upstreamError = new Error("upstream stream failed");
 		const provider = createMockProvider({});

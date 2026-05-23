@@ -1,6 +1,7 @@
 ---
 title: "Staff Engineer Guide"
 description: "Architecture deep-dive for staff/principal engineers — design decisions, boundaries, and tradeoffs."
+keywords: "GodeX, staff engineer guide, architecture review"
 ---
 
 # Staff Engineer Guide

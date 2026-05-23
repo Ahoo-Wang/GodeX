@@ -1,6 +1,7 @@
 ---
 title: "贡献者指南"
 description: "开始为 GodeX 贡献代码所需的一切。"
+keywords: "GodeX, 贡献者指南, 开发"
 ---
 
 # 贡献者指南

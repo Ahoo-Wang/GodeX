@@ -1,6 +1,7 @@
 ---
 title: "Stream Pipeline"
 description: "Three-stage transformer pipeline that converts upstream SSE chunks into Responses API events."
+keywords: "GodeX, stream pipeline, TransformStream, SSE, transformers"
 ---
 
 # Stream Pipeline

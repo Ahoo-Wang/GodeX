@@ -1,6 +1,7 @@
 ---
 title: "Product Manager Guide"
 description: "Feature-focused overview for product managers — what GodeX does, what's possible, and where the boundaries are."
+keywords: "GodeX, product manager guide, features, roadmap"
 ---
 
 # Product Manager Guide

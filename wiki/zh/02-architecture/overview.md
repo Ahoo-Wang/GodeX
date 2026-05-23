@@ -1,6 +1,7 @@
 ---
 title: "系统总览"
 description: "GodeX 高层架构 — 组件模型、依赖关系图和设计模式。"
+keywords: "GodeX, 架构, 系统总览, 组件模型, 设计模式"
 ---
 
 # 系统总览
