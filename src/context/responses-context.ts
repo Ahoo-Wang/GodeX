@@ -83,9 +83,10 @@ export class ResponsesContext {
 				session = await app.sessionStore.resolveChain(
 					body.previous_response_id,
 				);
+				const turnCount = session.turns.length;
 				logger.debug("session.chain.resolved", () => ({
 					previous_response_id: body.previous_response_id,
-					turnCount: session.turns.length,
+					turnCount,
 				}));
 			} catch (err) {
 				if (err instanceof SessionError) throw err;
