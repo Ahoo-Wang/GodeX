@@ -59,12 +59,13 @@ export class DefaultAdapter implements Adapter {
 		});
 		const upstreamStart = Date.now();
 		const events = await chatClient.streamChat(req);
+		const upstreamLatencyMillis = Date.now() - upstreamStart;
 		ctx.logger.debug("provider.stream.connected", {
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
-			upstreamLatencyMillis: Date.now() - upstreamStart,
+			upstreamLatencyMillis,
 		});
-		ctx.attributes.set("upstreamLatencyMillis", Date.now() - upstreamStart);
+		ctx.attributes.set("upstreamLatencyMillis", upstreamLatencyMillis);
 
 		const eventStream = pipeTransform(
 			events,

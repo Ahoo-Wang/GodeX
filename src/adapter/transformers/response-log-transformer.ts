@@ -4,6 +4,7 @@ import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../../protocol/openai/responses";
+import { StreamState } from "../mapper/stream-state";
 
 export class ResponseLogTransformer extends SafeTransformer<
 	ResponseStreamEvent,
@@ -27,12 +28,10 @@ export class ResponseLogTransformer extends SafeTransformer<
 
 	protected override async onFlush(): Promise<void> {
 		if (this.logged) return;
-		const state = this.ctx.attributes.get("streamState") as
-			| { status?: string; completedAt?: number }
-			| undefined;
-		if (!state?.completedAt) return;
+		const state = StreamState.from(this.ctx);
+		if (!state.completedAt) return;
 		this.ctx.logger.info("responses.stream.completed", {
-			status: state.status,
+			status: state.finalStatus.status,
 			model: this.ctx.resolved.model,
 			streamEventCount: this.eventCount,
 			durationMillis: Date.now() - this.ctx.createdAt * 1000,
