@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import type { ResponsesContext } from "../../context/responses-context";
 import type { Logger } from "../../logger";
-import { TraceTransformer } from "./trace-transformer";
 import { pipeTransform } from "./stream-utils";
+import { TraceTransformer } from "./trace-transformer";
 
 async function drain<T>(stream: ReadableStream<T>): Promise<T[]> {
 	const reader = stream.getReader();
@@ -29,8 +29,7 @@ function createTestContext(logger: Logger): ResponsesContext {
 
 describe("TraceTransformer", () => {
 	test("logs each event with the given event name", async () => {
-		const traces: Array<{ event: string; attr?: Record<string, unknown> }> =
-			[];
+		const traces: Array<{ event: string; attr?: Record<string, unknown> }> = [];
 		const logger: Logger = {
 			level: "trace",
 			child: () => logger,
@@ -59,9 +58,7 @@ describe("TraceTransformer", () => {
 			},
 		});
 
-		await drain(
-			pipeTransform(stream, new TraceTransformer("test.event", ctx)),
-		);
+		await drain(pipeTransform(stream, new TraceTransformer("test.event", ctx)));
 
 		expect(traces).toHaveLength(2);
 		expect(traces[0]?.event).toBe("test.event");

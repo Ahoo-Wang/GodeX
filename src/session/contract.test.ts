@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { SessionError } from "../error";
-import * as openaiProtocol from "../protocol/openai";
 import type {
 	ResponseSessionSnapshot,
 	ResponseSessionStore,
