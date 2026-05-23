@@ -30,10 +30,15 @@ export class Registrar {
 			}
 			this.providers.set(name, factory(config));
 		}
-		logger?.debug("providers.built", {
+		const payload = {
 			registered: [...this.providers.keys()],
 			skipped: this.unsupportedProviders,
-		});
+		};
+		if (this.unsupportedProviders.length > 0) {
+			logger?.info("providers.built", payload);
+			return;
+		}
+		logger?.debug("providers.built", payload);
 	}
 
 	resolve(name: string): Provider<unknown, unknown, unknown> {

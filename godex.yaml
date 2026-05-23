@@ -28,7 +28,7 @@ logging:
 
   console:
     enabled: true
-    level: info
+    level: debug
     pretty: true
 
   file:

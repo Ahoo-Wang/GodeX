@@ -23,8 +23,10 @@ export async function handleResponses(
 	let body: ResponseCreateRequest;
 	try {
 		body = (await req.json()) as ResponseCreateRequest;
-	} catch {
-		logger.debug("responses.request.invalid_json");
+	} catch (err) {
+		logger.debug("responses.request.invalid_json", {
+			error: String(err),
+		});
 		return jsonError(400, SERVER_REQUEST_INVALID_JSON, "Invalid JSON body");
 	}
 
