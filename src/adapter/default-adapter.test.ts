@@ -345,6 +345,15 @@ describe("DefaultAdapter", () => {
 			"upstream.stream.event.raw",
 			"upstream.stream.event.transformed",
 		]);
+
+		expect(traces[0]?.attr).toMatchObject({ body: ctx.request });
+		expect(traces[1]?.attr).toMatchObject({ body: { model: "test" } });
+		expect(traces[2]?.attr).toMatchObject({
+			data: { event: "chunk", data: { text: "hi" } },
+		});
+		expect(traces[3]?.attr).toMatchObject({
+			data: { type: "response.completed", response: responseObject },
+		});
 	});
 
 	test("stream propagates provider read errors", async () => {

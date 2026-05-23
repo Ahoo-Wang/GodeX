@@ -3,7 +3,7 @@ import type { ResponsesContext } from "../../context/responses-context";
 
 export class TraceTransformer<T> extends SafeTransformer<T, T> {
 	constructor(
-		private readonly event: string,
+		private readonly eventName: string,
 		private readonly ctx: ResponsesContext,
 	) {
 		super();
@@ -13,7 +13,7 @@ export class TraceTransformer<T> extends SafeTransformer<T, T> {
 		chunk: T,
 		controller: TransformStreamDefaultController<T>,
 	): Promise<void> {
-		this.ctx.logger.trace(this.event, { data: chunk });
+		this.ctx.logger.trace(this.eventName, { data: chunk });
 		this.enqueue(controller, chunk);
 	}
 }
