@@ -172,6 +172,9 @@ export default withMermaid(
     appearance: 'dark',
     cleanUrls: true,
     ignoreDeadLinks: true,
+    sitemap: {
+      hostname: "https://godex.ahoo.me",
+    },
     head: [
       ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
       ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
