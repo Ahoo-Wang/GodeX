@@ -28,12 +28,14 @@ export class ResponseLogTransformer extends SafeTransformer<
 		if (this.logged) return;
 		const state = StreamState.from(this.ctx);
 		if (!state.completedAt) return;
+		const outputCount = state.toolCalls.length + (state.outputText ? 1 : 0);
 		this.ctx.logger.info("responses.stream.completed", {
 			status: state.finalStatus.status,
 			model: this.ctx.resolved.model,
-			streamEventCount: this.eventCount,
+			outputCount,
 			durationMillis: Date.now() - this.ctx.createdAt * 1000,
 			upstreamLatencyMillis: this.ctx.attributes.get("upstreamLatencyMillis"),
+			streamEventCount: this.eventCount,
 		});
 		this.logged = true;
 	}

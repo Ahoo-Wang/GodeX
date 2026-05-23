@@ -185,6 +185,7 @@ describe("ResponseLogTransformer", () => {
 		const state = StreamState.from(ctx);
 		state.completedAt = Date.now();
 		state.finalStatus = { status: "completed" };
+		state.outputText = "hello";
 
 		const stream = new ReadableStream<ResponseStreamEvent>({
 			start(controller) {
@@ -202,6 +203,7 @@ describe("ResponseLogTransformer", () => {
 		expect(infos[0]?.event).toBe("responses.stream.completed");
 		expect(infos[0]?.attr).toMatchObject({
 			status: "completed",
+			outputCount: 1,
 			streamEventCount: 1,
 		});
 	});
