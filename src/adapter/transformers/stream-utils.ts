@@ -10,6 +10,8 @@ export function pipeTransform<I, O>(
 	return stream.pipeThrough(new TransformStream(transformer));
 }
 
+export const ATTR_UPSTREAM_LATENCY_MILLIS = "upstreamLatencyMillis";
+
 export function responseFromTerminalEvent(
 	chunk: ResponseStreamEvent,
 ): ResponseObject | null {

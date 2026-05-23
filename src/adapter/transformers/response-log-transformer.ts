@@ -2,7 +2,10 @@ import { SafeTransformer } from "@ahoo-wang/fetcher-eventstream";
 import type { ResponsesContext } from "../../context/responses-context";
 import type { ResponseStreamEvent } from "../../protocol/openai/responses";
 import { StreamState } from "../mapper/stream-state";
-import { responseFromTerminalEvent } from "./stream-utils";
+import {
+	ATTR_UPSTREAM_LATENCY_MILLIS,
+	responseFromTerminalEvent,
+} from "./stream-utils";
 
 export class ResponseLogTransformer extends SafeTransformer<
 	ResponseStreamEvent,
@@ -34,7 +37,9 @@ export class ResponseLogTransformer extends SafeTransformer<
 			model: this.ctx.resolved.model,
 			outputCount,
 			durationMillis: Date.now() - this.ctx.createdAt * 1000,
-			upstreamLatencyMillis: this.ctx.attributes.get("upstreamLatencyMillis"),
+			upstreamLatencyMillis: this.ctx.attributes.get(
+				ATTR_UPSTREAM_LATENCY_MILLIS,
+			),
 			streamEventCount: this.eventCount,
 		});
 		this.logged = true;
@@ -50,7 +55,9 @@ export class ResponseLogTransformer extends SafeTransformer<
 			outputCount: response.output.length,
 			durationMillis: Date.now() - this.ctx.createdAt * 1000,
 			usage: response.usage,
-			upstreamLatencyMillis: this.ctx.attributes.get("upstreamLatencyMillis"),
+			upstreamLatencyMillis: this.ctx.attributes.get(
+				ATTR_UPSTREAM_LATENCY_MILLIS,
+			),
 			streamEventCount: this.eventCount,
 		});
 		this.logged = true;

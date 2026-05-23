@@ -9,7 +9,10 @@ import type { StreamState } from "./mapper/stream-state";
 import { ProviderEventToResponseTransformer } from "./transformers/provider-event-to-response-transformer";
 import { ResponseLogTransformer } from "./transformers/response-log-transformer";
 import { ResponseSessionPersistenceTransformer } from "./transformers/response-session-persistence-transformer";
-import { pipeTransform } from "./transformers/stream-utils";
+import {
+	ATTR_UPSTREAM_LATENCY_MILLIS,
+	pipeTransform,
+} from "./transformers/stream-utils";
 
 export class DefaultAdapter implements Adapter {
 	async request(ctx: ResponsesContext): Promise<ResponseObject> {
@@ -65,7 +68,7 @@ export class DefaultAdapter implements Adapter {
 			model: ctx.resolved.model,
 			upstreamLatencyMillis,
 		});
-		ctx.attributes.set("upstreamLatencyMillis", upstreamLatencyMillis);
+		ctx.attributes.set(ATTR_UPSTREAM_LATENCY_MILLIS, upstreamLatencyMillis);
 
 		const eventStream = pipeTransform(
 			events,
