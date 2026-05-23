@@ -4,13 +4,11 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 const enNav = [
   { text: 'Getting Started', link: '/01-getting-started/overview' },
   { text: 'Architecture', link: '/02-architecture/overview' },
-  { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/Godex' },
 ]
 
 const zhNav = [
   { text: '快速入门', link: '/zh/01-getting-started/overview' },
   { text: '架构', link: '/zh/02-architecture/overview' },
-  { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/Godex' },
 ]
 
 const enSidebar = [
