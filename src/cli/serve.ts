@@ -19,9 +19,9 @@ export function serve(opts: CliOptions, runtime: CliRuntime): void {
 
 	app.logger.info("config.loaded", {
 		path: configPath,
-		defaultProvider: config.default_provider,
+		default_provider: config.default_provider,
 		providers: Object.keys(config.providers),
-		sessionBackend: config.session.backend,
+		session_backend: config.session.backend,
 	});
 
 	runtime.stdout?.write(
