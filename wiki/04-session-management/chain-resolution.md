@@ -51,4 +51,4 @@ flowchart TD
 - `turns`: Array of `StoredResponseSession` ordered oldest to newest
 - `input_items`: Flattened array of all input and output items across turns, ready for provider message construction
 
-[Transformers](/en/05-streaming-pipeline/transformers)
+[Transformers](/05-streaming-pipeline/transformers)

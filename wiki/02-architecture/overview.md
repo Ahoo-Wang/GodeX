@@ -139,4 +139,4 @@ flowchart TD
   Reg --> Prov
 ```
 
-[Request Flow](/en/02-architecture/request-flow)
+[Request Flow](/02-architecture/request-flow)

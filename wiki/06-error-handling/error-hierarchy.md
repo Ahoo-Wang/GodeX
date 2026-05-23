@@ -74,4 +74,4 @@ Every `GodexError` produces a structured log entry via `toLogEntry()`:
 }
 ```
 
-[Error Codes](/en/06-error-handling/error-codes)
+[Error Codes](/06-error-handling/error-codes)

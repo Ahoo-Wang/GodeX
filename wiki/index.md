@@ -8,10 +8,10 @@ hero:
   actions:
     - theme: brand
       text: Getting Started
-      link: /en/01-getting-started/overview
+      link: /01-getting-started/overview
     - theme: alt
       text: Architecture
-      link: /en/02-architecture/overview
+      link: /02-architecture/overview
     - theme: alt
       text: GitHub
       link: https://github.com/Ahoo-Wang/Godex
@@ -19,14 +19,20 @@ hero:
 features:
   - icon: 🔄
     title: Protocol Translation
-    details: Bridges the gap between the OpenAI Responses API and provider-specific Chat Completions APIs.
+    details: Bridges the gap between the OpenAI Responses API and provider-specific Chat Completions APIs. Tools like Codex work out of the box.
   - icon: 🔌
     title: Provider-agnostic
-    details: Plugin-based adapter system — add a new provider by implementing a small set of interfaces.
+    details: A plugin-based adapter system means adding a new provider requires implementing a small set of interfaces, not rewriting the server.
   - icon: ⚡
     title: Streaming-first
-    details: Built around ReadableStream and TransformStream for low-latency SSE delivery.
+    details: Built around ReadableStream and TransformStream for low-latency SSE delivery. Three-stage transformer pipeline with automatic session persistence.
   - icon: 💾
     title: Session History
-    details: Built-in previous_response_id chain resolution with SQLite or in-memory backends.
+    details: Built-in previous_response_id chain resolution with SQLite or in-memory backends. Automatic cycle detection and depth limiting.
+  - icon: 🛡️
+    title: Structured Errors
+    details: Domain-specific error hierarchy with structured codes. Every error carries context for diagnostics and logging.
+  - icon: 📦
+    title: Standalone Binary
+    details: Ships as a native binary with zero runtime dependencies. Six platform builds via GitHub Actions CI/CD.
 ---

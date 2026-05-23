@@ -64,4 +64,4 @@ src/
 └── e2e/              End-to-end tests with mocked upstream
 ```
 
-[Installation & Setup](/en/01-getting-started/installation-setup)
+[Installation & Setup](/01-getting-started/installation-setup)

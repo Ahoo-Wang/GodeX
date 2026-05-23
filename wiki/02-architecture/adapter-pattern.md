@@ -98,4 +98,4 @@ classDiagram
 
 Each provider implements these three mapper interfaces to handle the translation between Responses API semantics and its native protocol.
 
-[Stream Pipeline](/en/02-architecture/stream-pipeline)
+[Stream Pipeline](/02-architecture/stream-pipeline)

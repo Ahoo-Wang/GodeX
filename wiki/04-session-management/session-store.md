@@ -68,4 +68,4 @@ session:
 
 **SQLite store**: Auto-creates the database file and schema on construction. Uses `bun:sqlite` for synchronous reads within the async chain resolution algorithm. Creates indexes on `previous_response_id` and `conversation_id` for chain traversal performance.
 
-[Chain Resolution](/en/04-session-management/chain-resolution)
+[Chain Resolution](/04-session-management/chain-resolution)

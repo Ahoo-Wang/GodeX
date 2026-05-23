@@ -59,4 +59,4 @@ When the provider returns tool calls in its response, the stream mapper extracts
 
 These are wrapped as `function_call` output items in the Responses API response.
 
-[Session Store](/en/04-session-management/session-store)
+[Session Store](/04-session-management/session-store)

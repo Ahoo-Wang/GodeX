@@ -35,4 +35,4 @@ As each `ResponseStreamEvent` flows through the transformer:
 
 When the terminal event arrives, `StreamMapper.buildResponseObject(ctx, state)` constructs the complete `ResponseObject` from the accumulated state.
 
-[Error Hierarchy](/en/06-error-handling/error-hierarchy)
+[Error Hierarchy](/06-error-handling/error-hierarchy)

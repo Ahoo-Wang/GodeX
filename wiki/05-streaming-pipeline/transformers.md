@@ -56,4 +56,4 @@ data: {"type":"response.output_item.added","output_index":0,"item":{...}}
 
 ```
 
-[Stream State](/en/05-streaming-pipeline/stream-state)
+[Stream State](/05-streaming-pipeline/stream-state)

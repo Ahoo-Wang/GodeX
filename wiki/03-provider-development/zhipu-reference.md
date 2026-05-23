@@ -55,4 +55,4 @@ flowchart TD
 - **Function names**: Zhipu has restrictions on function name characters; `function-names.ts` sanitizes them
 - **Streaming**: The stream mapper handles incremental content, tool call deltas, and usage accumulation
 
-[Message & Tool Mapping](/en/03-provider-development/message-tool-mapping)
+[Message & Tool Mapping](/03-provider-development/message-tool-mapping)

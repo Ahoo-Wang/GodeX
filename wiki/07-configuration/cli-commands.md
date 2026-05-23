@@ -56,4 +56,4 @@ bun run build        # Compile native binary for current platform
 bun run compile:all  # Cross-compile all 6 platform binaries
 ```
 
-[Testing Guide](/en/08-testing/testing-guide)
+[Testing Guide](/08-testing/testing-guide)

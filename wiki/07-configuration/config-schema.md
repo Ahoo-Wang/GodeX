@@ -91,4 +91,4 @@ classDiagram
 
 Values like `${ZHIPU_API_KEY}` are resolved at load time from `process.env`. Missing variables produce a startup error.
 
-[CLI Commands](/en/07-configuration/cli-commands)
+[CLI Commands](/07-configuration/cli-commands)

@@ -85,4 +85,4 @@ The adapter layer checks capabilities before forwarding requests:
 - `checkCapability()` validates boolean feature flags
 - Unsupported parameters produce `AdapterError` responses
 
-[Zhipu Reference](/en/03-provider-development/zhipu-reference)
+[Zhipu Reference](/03-provider-development/zhipu-reference)

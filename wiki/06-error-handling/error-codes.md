@@ -44,4 +44,4 @@ description: "Complete reference of domain-specific error codes used throughout 
 | `server.provider.not_registered` | Provider has no registered factory |
 | `server_error` | Catch-all server error |
 
-[Configuration](/en/07-configuration/config-schema)
+[Configuration](/07-configuration/config-schema)

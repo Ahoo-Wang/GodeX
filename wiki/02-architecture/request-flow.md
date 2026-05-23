@@ -85,4 +85,4 @@ sequenceDiagram
 
 5. **Response mapping**: Either a single `ResponseMapper.map()` call (non-streaming) or a `StreamMapper.map()` pipeline (streaming).
 
-[Adapter Pattern](/en/02-architecture/adapter-pattern)
+[Adapter Pattern](/02-architecture/adapter-pattern)

@@ -100,4 +100,4 @@ codex
 | Windows x86_64 | `@ahoo-wang/godex-win32-x64` |
 | Windows ARM64 | `@ahoo-wang/godex-win32-arm64` |
 
-[Quick Reference](/en/01-getting-started/quick-reference)
+[Quick Reference](/01-getting-started/quick-reference)

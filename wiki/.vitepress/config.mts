@@ -2,8 +2,8 @@ import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const enNav = [
-  { text: 'Getting Started', link: '/en/01-getting-started/overview' },
-  { text: 'Architecture', link: '/en/02-architecture/overview' },
+  { text: 'Getting Started', link: '/01-getting-started/overview' },
+  { text: 'Architecture', link: '/02-architecture/overview' },
   { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/Godex' },
 ]
 
@@ -18,74 +18,74 @@ const enSidebar = [
     text: 'Getting Started',
     collapsed: false,
     items: [
-      { text: 'Overview', link: '/en/01-getting-started/overview' },
-      { text: 'Installation & Setup', link: '/en/01-getting-started/installation-setup' },
-      { text: 'Quick Reference', link: '/en/01-getting-started/quick-reference' },
+      { text: 'Overview', link: '/01-getting-started/overview' },
+      { text: 'Installation & Setup', link: '/01-getting-started/installation-setup' },
+      { text: 'Quick Reference', link: '/01-getting-started/quick-reference' },
     ],
   },
   {
     text: 'Architecture',
     collapsed: false,
     items: [
-      { text: 'System Overview', link: '/en/02-architecture/overview' },
-      { text: 'Request Flow', link: '/en/02-architecture/request-flow' },
-      { text: 'Adapter Pattern', link: '/en/02-architecture/adapter-pattern' },
-      { text: 'Stream Pipeline', link: '/en/02-architecture/stream-pipeline' },
+      { text: 'System Overview', link: '/02-architecture/overview' },
+      { text: 'Request Flow', link: '/02-architecture/request-flow' },
+      { text: 'Adapter Pattern', link: '/02-architecture/adapter-pattern' },
+      { text: 'Stream Pipeline', link: '/02-architecture/stream-pipeline' },
     ],
   },
   {
     text: 'Provider Development',
     collapsed: false,
     items: [
-      { text: 'Provider Interface', link: '/en/03-provider-development/provider-interface' },
-      { text: 'Zhipu Reference', link: '/en/03-provider-development/zhipu-reference' },
-      { text: 'Message & Tool Mapping', link: '/en/03-provider-development/message-tool-mapping' },
+      { text: 'Provider Interface', link: '/03-provider-development/provider-interface' },
+      { text: 'Zhipu Reference', link: '/03-provider-development/zhipu-reference' },
+      { text: 'Message & Tool Mapping', link: '/03-provider-development/message-tool-mapping' },
     ],
   },
   {
     text: 'Session Management',
     collapsed: true,
     items: [
-      { text: 'Session Store', link: '/en/04-session-management/session-store' },
-      { text: 'Chain Resolution', link: '/en/04-session-management/chain-resolution' },
+      { text: 'Session Store', link: '/04-session-management/session-store' },
+      { text: 'Chain Resolution', link: '/04-session-management/chain-resolution' },
     ],
   },
   {
     text: 'Streaming Pipeline',
     collapsed: true,
     items: [
-      { text: 'Transformers', link: '/en/05-streaming-pipeline/transformers' },
-      { text: 'Stream State', link: '/en/05-streaming-pipeline/stream-state' },
+      { text: 'Transformers', link: '/05-streaming-pipeline/transformers' },
+      { text: 'Stream State', link: '/05-streaming-pipeline/stream-state' },
     ],
   },
   {
     text: 'Error Handling',
     collapsed: true,
     items: [
-      { text: 'Error Hierarchy', link: '/en/06-error-handling/error-hierarchy' },
-      { text: 'Error Codes', link: '/en/06-error-handling/error-codes' },
+      { text: 'Error Hierarchy', link: '/06-error-handling/error-hierarchy' },
+      { text: 'Error Codes', link: '/06-error-handling/error-codes' },
     ],
   },
   {
     text: 'Configuration',
     collapsed: true,
     items: [
-      { text: 'Config Schema', link: '/en/07-configuration/config-schema' },
-      { text: 'CLI Commands', link: '/en/07-configuration/cli-commands' },
+      { text: 'Config Schema', link: '/07-configuration/config-schema' },
+      { text: 'CLI Commands', link: '/07-configuration/cli-commands' },
     ],
   },
   {
     text: 'Testing',
     collapsed: true,
     items: [
-      { text: 'Testing Guide', link: '/en/08-testing/testing-guide' },
+      { text: 'Testing Guide', link: '/08-testing/testing-guide' },
     ],
   },
   {
     text: 'Deployment',
     collapsed: true,
     items: [
-      { text: 'CI/CD & Publishing', link: '/en/09-deployment/ci-cd' },
+      { text: 'CI/CD & Publishing', link: '/09-deployment/ci-cd' },
     ],
   },
 ]
@@ -185,21 +185,18 @@ export default withMermaid(
       optimizeDeps: { include: ['mermaid'] },
     },
     locales: {
-      '/en/': {
+      root: {
         label: 'English',
         lang: 'en',
-        title: 'Godex Wiki',
-        description: 'Technical documentation for Godex — OpenAI Responses API Gateway',
         themeConfig: {
           nav: enNav,
           sidebar: enSidebar,
         },
       },
-      '/zh/': {
+      zh: {
         label: '中文',
         lang: 'zh-CN',
-        title: 'Godex Wiki',
-        description: 'Godex 技术文档 — OpenAI Responses API 网关',
+        link: '/zh/',
         themeConfig: {
           nav: zhNav,
           sidebar: zhSidebar,
@@ -209,8 +206,6 @@ export default withMermaid(
     themeConfig: {
       logo: '/logo.svg',
       siteTitle: 'Godex Wiki',
-      nav: enNav,
-      sidebar: enSidebar,
       socialLinks: [
         { icon: 'github', link: 'https://github.com/Ahoo-Wang/Godex' },
       ],

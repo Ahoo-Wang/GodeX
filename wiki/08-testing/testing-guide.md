@@ -54,4 +54,4 @@ src/
 
 Coverage is tracked via [Codecov](https://codecov.io/gh/Ahoo-Wang/Godex).
 
-[CI/CD & Publishing](/en/09-deployment/ci-cd)
+[CI/CD & Publishing](/09-deployment/ci-cd)

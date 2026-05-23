@@ -52,4 +52,4 @@ The release workflow:
 4. Uploads binary archives and SHA256 checksums to Release Assets
 5. Publishes platform packages first, then `@ahoo-wang/godex`
 
-[Back to Overview](/en/01-getting-started/overview)
+[Back to Overview](/01-getting-started/overview)
