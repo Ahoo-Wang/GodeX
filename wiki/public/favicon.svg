@@ -27,4 +27,17 @@
   <path d="M165 88 L91 168" stroke-width="17"/>
 </g>
 
+<g fill="none" stroke="url(#godexGrad)" stroke-width="4" stroke-linecap="round" opacity="0.96">
+  <path d="M18 88 H48"/>
+  <path d="M18 128 H48"/>
+  <path d="M18 168 H48"/>
+  <path d="M208 88 H238"/>
+  <path d="M208 128 H238"/>
+  <path d="M208 168 H238"/>
+  <circle cx="16" cy="88" r="6" fill="none"/>
+  <circle cx="16" cy="168" r="6" fill="none"/>
+  <circle cx="240" cy="88" r="6" fill="none"/>
+  <circle cx="240" cy="168" r="6" fill="none"/>
+</g>
+
 </svg>

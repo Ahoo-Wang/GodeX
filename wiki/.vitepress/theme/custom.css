@@ -1,3 +1,187 @@
+/* GodeX brand tokens — safe for both themes */
+:root {
+  --gx-bg-deep: #0B1220;
+  --gx-bg-panel: #112240;
+  --gx-bg-light: #F8FAFC;
+
+  --gx-text: #0F172A;
+  --gx-text-muted: #64748B;
+  --gx-text-subtle: #94A3B8;
+  --gx-text-invert: #F8FAFC;
+
+  --gx-blue: #2563FF;
+  --gx-cyan: #00D4FF;
+  --gx-purple: #7C3AED;
+  --gx-violet: #A855F7;
+
+  --gx-success: #22C55E;
+  --gx-warning: #F59E0B;
+  --gx-danger: #EF4444;
+
+  --gx-border: #E6ECF5;
+  --gx-border-dark: rgba(148, 163, 184, 0.18);
+
+  --gx-gradient-brand: linear-gradient(135deg, #00D4FF 0%, #2563FF 45%, #7C3AED 100%);
+
+  --vp-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --vp-font-family-mono: 'JetBrains Mono', monospace;
+
+  --vp-c-brand-1: var(--gx-blue);
+  --vp-c-brand-2: var(--gx-cyan);
+  --vp-c-brand-3: var(--gx-purple);
+
+  --vp-button-brand-bg: var(--gx-blue);
+  --vp-button-brand-hover-bg: #3b75ff;
+  --vp-button-brand-active-bg: #1a56e6;
+
+  --vp-code-bg: rgba(37, 99, 255, 0.06);
+  --vp-code-color: var(--gx-cyan);
+}
+
+/* ============================================================
+   Dark theme overrides
+   ============================================================ */
+.dark {
+  --vp-c-bg: var(--gx-bg-deep);
+  --vp-c-bg-soft: #0f1a2e;
+  --vp-c-bg-mute: #162240;
+  --vp-c-bg-alt: #0d1525;
+
+  --vp-c-text-1: #e6edf3;
+  --vp-c-text-2: #8b949e;
+  --vp-c-text-3: #6e7681;
+
+  --vp-c-border: rgba(148, 163, 184, 0.12);
+  --vp-c-divider: rgba(148, 163, 184, 0.08);
+  --vp-c-gutter: rgba(148, 163, 184, 0.06);
+
+  --vp-c-sponsor: #fd1d7c;
+}
+
+/* Hero section — dark only */
+.dark .VPHero .name {
+  background: var(--gx-gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dark .VPHero .text {
+  color: var(--gx-text-invert) !important;
+}
+
+.dark .VPHero .tagline {
+  color: var(--gx-text-subtle) !important;
+}
+
+/* Home hero dark background */
+.dark .VPHome {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(37, 99, 255, 0.15), transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(124, 58, 237, 0.12), transparent 35%),
+    linear-gradient(180deg, var(--gx-bg-deep) 0%, #08101D 100%);
+}
+
+/* Feature cards — dark */
+.dark .VPFeature {
+  border-radius: 12px !important;
+  border: 1px solid rgba(148, 163, 184, 0.1) !important;
+  background: rgba(17, 34, 64, 0.5) !important;
+  backdrop-filter: blur(12px);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.dark .VPFeature:hover {
+  border-color: rgba(37, 99, 255, 0.35) !important;
+  box-shadow: 0 8px 32px rgba(37, 99, 255, 0.12);
+}
+
+.dark .VPFeature .title {
+  color: #e6edf3 !important;
+}
+
+.dark .VPFeature .details {
+  color: var(--gx-text-subtle) !important;
+}
+
+/* Feature cards — shared */
+.VPFeature .icon {
+  font-size: 28px !important;
+  width: 48px !important;
+  height: 48px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Code blocks — dark */
+.dark .vp-doc div[class*='language-'] {
+  border-radius: 10px !important;
+  background: #0d1117 !important;
+  border: 1px solid rgba(148, 163, 184, 0.1) !important;
+}
+
+.vp-doc div[class*='language-'] > button.copy {
+  border-radius: 6px;
+}
+
+/* Badges / custom containers */
+.vp-doc .custom-block {
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.dark .vp-doc .custom-block.info {
+  background: rgba(37, 99, 255, 0.06);
+  border-color: rgba(37, 99, 255, 0.2);
+}
+
+.dark .vp-doc .custom-block.tip {
+  background: rgba(34, 197, 94, 0.06);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.dark .vp-doc .custom-block.warning {
+  background: rgba(245, 158, 11, 0.06);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.dark .vp-doc .custom-block.danger {
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Sidebar — dark */
+.dark .VPSidebar {
+  background: rgba(11, 18, 32, 0.85) !important;
+  backdrop-filter: blur(16px);
+}
+
+/* Nav bar — dark */
+.dark .VPNav {
+  background: rgba(11, 18, 32, 0.82) !important;
+  backdrop-filter: blur(16px);
+}
+
+/* Search */
+.VPLocalSearchBox .search-input {
+  border-radius: 8px;
+}
+
+/* Architecture flow section in docs — dark */
+.dark .gx-flow {
+  background: #0d1117;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 16px 0;
+  text-align: center;
+  font-family: var(--vp-font-family-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  color: #e6edf3;
+}
+
 /* Dark-mode Mermaid overrides */
 .mermaid .node rect,
 .mermaid .node circle,
@@ -43,8 +227,51 @@
   overflow: visible;
 }
 
-/* VitePress tweaks */
-:root {
-  --vp-font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  --vp-font-family-mono: 'JetBrains Mono', monospace;
+/* Doc content typography — dark */
+.dark .vp-doc h1, .dark .vp-doc h2, .dark .vp-doc h3 {
+  color: #e6edf3;
+}
+
+.dark .vp-doc a {
+  color: var(--gx-cyan);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.dark .vp-doc a:hover {
+  color: #33ddff;
+}
+
+/* Table styling — dark */
+.dark .vp-doc th {
+  background: rgba(37, 99, 255, 0.08);
+  border-bottom: 2px solid rgba(37, 99, 255, 0.2);
+  font-weight: 600;
+}
+
+.vp-doc table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+}
+
+.vp-doc th, .vp-doc td {
+  padding: 10px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  text-align: left;
+}
+
+.dark .vp-doc tr:nth-child(even) {
+  background: rgba(148, 163, 184, 0.03);
+}
+
+/* Hero logo — larger display */
+.VPHero .VPImage {
+  max-width: 560px !important;
+  width: 100% !important;
+}
+
+.VPHero .VPImage img {
+  width: 100% !important;
+  max-width: 560px !important;
 }
