@@ -157,8 +157,8 @@ jobs:
         run: |
           for pkg in platforms/*/; do
             echo "Publishing $(basename $pkg)..."
-            (cd "$pkg" && npm publish --access public --provenance)
+            (cd "$pkg" && npm publish --access public)
           done
 
       - name: Publish main package
-        run: npm publish --access public --provenance
+        run: npm publish --access public
