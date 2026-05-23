@@ -1,5 +1,6 @@
 import type { Provider } from "../adapter/provider";
 import type { ProviderConfig } from "../config";
+import type { Logger } from "../logger";
 
 export type ProviderFactory = (
 	config: ProviderConfig,
@@ -18,7 +19,7 @@ export class Registrar {
 		return this.factories.has(name);
 	}
 
-	build(providers: Record<string, ProviderConfig>): void {
+	build(providers: Record<string, ProviderConfig>, logger?: Logger): void {
 		this.providers = new Map();
 		this.unsupportedProviders = [];
 		for (const [name, config] of Object.entries(providers)) {
@@ -29,6 +30,10 @@ export class Registrar {
 			}
 			this.providers.set(name, factory(config));
 		}
+		logger?.info("providers.built", {
+			registered: [...this.providers.keys()],
+			skipped: this.unsupportedProviders,
+		});
 	}
 
 	resolve(name: string): Provider<unknown, unknown, unknown> {

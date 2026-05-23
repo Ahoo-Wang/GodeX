@@ -13,26 +13,27 @@ import type { ResponseSessionSnapshot } from "../session";
 import type { ApplicationContext } from "./application-context";
 
 export class ResponsesContext {
-	readonly responseId: string;
 	readonly requestId: string;
+	readonly responseId: string;
 	readonly createdAt: number;
 	readonly logger: Logger;
 	readonly attributes: Map<string, unknown>;
 
-	constructor(
+	private constructor(
 		readonly app: ApplicationContext,
 		readonly request: ResponseCreateRequest,
 		readonly session: ResponseSessionSnapshot | null,
 		readonly resolved: ResolvedModel,
 		readonly provider: Provider<unknown, unknown, unknown>,
+		requestId: string,
+		responseId: string,
+		createdAt: number,
+		logger: Logger,
 	) {
-		this.responseId = `resp_${nanoid()}`;
-		this.requestId = `req_${nanoid()}`;
-		this.createdAt = Math.floor(Date.now() / 1000);
-		this.logger = app.logger.child({
-			request_id: this.requestId,
-			response_id: this.responseId,
-		});
+		this.requestId = requestId;
+		this.responseId = responseId;
+		this.createdAt = createdAt;
+		this.logger = logger;
 		this.attributes = new Map();
 	}
 
@@ -40,6 +41,14 @@ export class ResponsesContext {
 		app: ApplicationContext,
 		body: ResponseCreateRequest,
 	): Promise<ResponsesContext> {
+		const requestId = `req_${nanoid()}`;
+		const responseId = `resp_${nanoid()}`;
+		const createdAt = Math.floor(Date.now() / 1000);
+		const logger = app.logger.child({
+			request_id: requestId,
+			response_id: responseId,
+		});
+
 		let resolved: ResolvedModel;
 		try {
 			resolved = app.resolver.resolve(body.model);
@@ -52,6 +61,12 @@ export class ResponsesContext {
 				{ cause: err instanceof Error ? err : undefined },
 			);
 		}
+
+		logger.debug("model.resolved", {
+			selector: body.model,
+			provider: resolved.provider,
+			model: resolved.model,
+		});
 
 		const providerConfig = app.config.providers[resolved.provider];
 		if (!providerConfig) {
@@ -68,6 +83,10 @@ export class ResponsesContext {
 				session = await app.sessionStore.resolveChain(
 					body.previous_response_id,
 				);
+				logger.debug("session.chain.resolved", {
+					previous_response_id: body.previous_response_id,
+					turnCount: session.turns.length,
+				});
 			} catch (err) {
 				if (err instanceof SessionError) throw err;
 				throw err;
@@ -86,6 +105,16 @@ export class ResponsesContext {
 			);
 		}
 
-		return new ResponsesContext(app, body, session, resolved, provider);
+		return new ResponsesContext(
+			app,
+			body,
+			session,
+			resolved,
+			provider,
+			requestId,
+			responseId,
+			createdAt,
+			logger,
+		);
 	}
 }

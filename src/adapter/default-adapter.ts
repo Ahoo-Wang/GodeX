@@ -14,8 +14,25 @@ export class DefaultAdapter implements Adapter {
 	async request(ctx: ResponsesContext): Promise<ResponseObject> {
 		const { mapper, chatClient } = ctx.provider;
 		const req = await mapper.request.map(ctx);
+		ctx.logger.debug("provider.request.sending", {
+			provider: ctx.resolved.provider,
+			model: ctx.resolved.model,
+			stream: false,
+		});
+		const upstreamStart = Date.now();
 		const res = await chatClient.chat(req);
+		ctx.logger.debug("provider.response.received", {
+			provider: ctx.resolved.provider,
+			model: ctx.resolved.model,
+			upstreamDurationMillis: Date.now() - upstreamStart,
+		});
 		const response = await mapper.response.map(ctx, res);
+		ctx.logger.info("responses.request.completed", {
+			status: response.status,
+			model: response.model,
+			outputCount: response.output.length,
+			durationMillis: Date.now() - ctx.createdAt * 1000,
+		});
 		try {
 			await saveSession(ctx.app.sessionStore, response, ctx);
 		} catch (err) {
@@ -33,6 +50,11 @@ export class DefaultAdapter implements Adapter {
 	): Promise<ReadableStream<ResponseStreamEvent>> {
 		const { mapper, chatClient } = ctx.provider;
 		const req = await mapper.request.map(ctx);
+		ctx.logger.debug("provider.request.sending", {
+			provider: ctx.resolved.provider,
+			model: ctx.resolved.model,
+			stream: true,
+		});
 		const events = await chatClient.streamChat(req);
 
 		const eventStream = pipeTransform(
