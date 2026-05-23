@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { DEFAULT_CAPABILITIES } from "../adapter/capabilities";
-import type { Provider } from "../adapter/provider";
 import type { GodexConfig } from "../config";
 import {
 	SERVER_PROVIDER_NOT_REGISTERED,
@@ -11,7 +10,6 @@ import {
 	SessionError,
 } from "../error";
 import { Registrar } from "../providers/registrar";
-import type { ResolvedModel } from "../resolver";
 import type { StoredResponseSession } from "../session";
 import { ApplicationContext } from "./application-context";
 import { ResponsesContext } from "./responses-context";
@@ -50,103 +48,59 @@ function createTestApp(): ApplicationContext {
 	return new ApplicationContext(config, registrar);
 }
 
-function mockResolved(overrides: Partial<ResolvedModel> = {}): ResolvedModel {
-	return { provider: "zhipu", model: "glm-5.1", ...overrides };
-}
-
-function mockProvider(): Provider<unknown, unknown, unknown> {
-	return {
-		name: "mock",
-		capabilities: DEFAULT_CAPABILITIES,
-		mapper: {
-			request: { map: () => ({}) },
-			response: { map: () => ({}) as never },
-			stream: {
-				map: () => [] as never[],
-				buildResponseObject: () => ({}) as never,
-			},
-		},
-		chatClient: {
-			chat: async () => ({}),
-			streamChat: async () => new ReadableStream(),
-		},
-	};
-}
-
 describe("ResponsesContext", () => {
-	test("stores app, request, resolved, provider from constructor", () => {
+	test("auto-generates IDs via create", async () => {
 		const app = createTestApp();
-		const resolved = mockResolved();
-		const provider = mockProvider();
-		const ctx = new ResponsesContext(
-			app,
-			{ model: "glm-5.1", input: "hi" },
-			null,
-			resolved,
-			provider,
-		);
-
-		expect(ctx.app).toBe(app);
-		expect(ctx.resolved).toBe(resolved);
-		expect(ctx.provider).toBe(provider);
-	});
-
-	test("auto-generates IDs", () => {
-		const app = createTestApp();
-		const ctx = new ResponsesContext(
-			app,
-			{ model: "glm-5.1", input: "hi" },
-			null,
-			mockResolved(),
-			mockProvider(),
-		);
+		const ctx = await ResponsesContext.create(app, {
+			model: "glm-5.1",
+			input: "hi",
+		});
 
 		expect(ctx.responseId).toMatch(/^resp_/);
 		expect(ctx.requestId).toMatch(/^req_/);
 		expect(ctx.createdAt).toBeGreaterThan(0);
 	});
 
-	test("creates child logger with requestId and responseId", () => {
+	test("creates child logger with requestId and responseId", async () => {
 		const app = createTestApp();
-		const ctx = new ResponsesContext(
-			app,
-			{ model: "glm-5.1", input: "hi" },
-			null,
-			mockResolved(),
-			mockProvider(),
-		);
+		const ctx = await ResponsesContext.create(app, {
+			model: "glm-5.1",
+			input: "hi",
+		});
 
 		expect(ctx.logger).not.toBe(app.logger);
 		expect(ctx.logger.level).toBe("info");
 	});
 
-	test("passes session through", () => {
+	test("passes session through", async () => {
 		const app = createTestApp();
-		const session = {
-			previous_response_id: "resp_prev",
-			turns: [],
-			input_items: [],
-		};
-		const ctx = new ResponsesContext(
-			app,
-			{ model: "glm-5.1", input: "hi" },
-			session,
-			mockResolved(),
-			mockProvider(),
-		);
+		const responseId = "resp_prev";
+		const now = Math.floor(Date.now() / 1000);
 
-		expect(ctx.session).toBe(session);
+		await app.sessionStore.save({
+			id: responseId,
+			created_at: now,
+			status: "completed",
+			request: { input: "hello" },
+			response: { id: responseId, output: [] },
+		} as StoredResponseSession);
+
+		const ctx = await ResponsesContext.create(app, {
+			model: "glm-5.1",
+			input: "hi",
+			previous_response_id: responseId,
+		});
+
+		expect(ctx.session).not.toBeNull();
+		expect(ctx.session?.previous_response_id).toBe(responseId);
 	});
 
-	test("attributes is an empty mutable map at construction", () => {
+	test("attributes is an empty mutable map", async () => {
 		const app = createTestApp();
-		const ctx = new ResponsesContext(
-			app,
-			{ model: "glm-5.1", input: "hi" },
-			null,
-			mockResolved(),
-			mockProvider(),
-		);
+		const ctx = await ResponsesContext.create(app, {
+			model: "glm-5.1",
+			input: "hi",
+		});
 
 		expect(ctx.attributes.size).toBe(0);
 
@@ -155,6 +109,19 @@ describe("ResponsesContext", () => {
 		expect(ctx.attributes.get("traceId")).toBe("trace_123");
 		expect(ctx.attributes.get("userId")).toBe("user_456");
 		expect(ctx.attributes.size).toBe(2);
+	});
+
+	test("stores app, request, resolved, provider", async () => {
+		const app = createTestApp();
+		const ctx = await ResponsesContext.create(app, {
+			model: "zhipu/glm-5.1",
+			input: "hi",
+		});
+
+		expect(ctx.app).toBe(app);
+		expect(ctx.resolved.provider).toBe("zhipu");
+		expect(ctx.resolved.model).toBe("glm-5.1");
+		expect(ctx.provider).toBeDefined();
 	});
 });
 
