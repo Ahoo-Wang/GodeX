@@ -17,7 +17,7 @@ flowchart LR
 
   subgraph godex["Godex 流式管道"]
     T1["ProviderEventToResponseTransformer"]
-    T2["SessionPersistenceTransformer"]
+    T2["ResponseSessionPersistenceTransformer"]
     T3["ResponseSseEncodeTransformer"]
   end
 
@@ -36,12 +36,12 @@ flowchart LR
 | 阶段 | 转换器 | 输入 | 输出 | 副作用 |
 |------|--------|------|------|---------|
 | 1 | `ProviderEventToResponseTransformer` | `JsonServerSentEvent` | `ResponseStreamEvent` | 每事件调用 `StreamMapper.map()` |
-| 2 | `SessionPersistenceTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | 累积 `StreamState`，终止事件时保存会话 |
+| 2 | `ResponseSessionPersistenceTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | 累积 `StreamState`，终止事件时保存会话 |
 | 3 | `ResponseSseEncodeTransformer` | `ResponseStreamEvent` | `Uint8Array` | 序列化为 `event:` / `data:` 行 |
 
 ## 流状态累积
 
-`SessionPersistenceTransformer` 在整个流过程中维护 `StreamState` 对象：
+`ResponseSessionPersistenceTransformer` 在整个流过程中维护 `StreamState` 对象：
 
 - 收集输出项（内容、工具调用等）
 - 跟踪 token 使用量

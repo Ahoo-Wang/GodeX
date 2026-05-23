@@ -17,7 +17,7 @@ flowchart LR
 
   subgraph godex["Godex Stream Pipeline"]
     T1["ProviderEventToResponseTransformer"]
-    T2["SessionPersistenceTransformer"]
+    T2["ResponseSessionPersistenceTransformer"]
     T3["ResponseSseEncodeTransformer"]
   end
 
@@ -36,12 +36,12 @@ flowchart LR
 | Stage | Transformer | Input | Output | Side Effects |
 |-------|------------|-------|--------|-------------|
 | 1 | `ProviderEventToResponseTransformer` | `JsonServerSentEvent` | `ResponseStreamEvent` | Calls `StreamMapper.map()` per event |
-| 2 | `ResponseSessionPersistenceTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Accumulates `StreamState`, saves session on terminal event |
+| 2 | `ResponseResponseSessionPersistenceTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Accumulates `StreamState`, saves session on terminal event |
 | 3 | `ResponseSseEncodeTransformer` | `ResponseStreamEvent` | `Uint8Array` | Serializes to `event:` / `data:` lines |
 
 ## Stream State Accumulation
 
-The `SessionPersistenceTransformer` maintains a `StreamState` object throughout the stream:
+The `ResponseSessionPersistenceTransformer` maintains a `StreamState` object throughout the stream:
 
 - Collects output items (content, tool calls, etc.)
 - Tracks token usage

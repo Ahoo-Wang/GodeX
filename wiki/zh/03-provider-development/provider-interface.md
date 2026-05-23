@@ -36,10 +36,16 @@ classDiagram
 
   class ProviderCapabilities {
     +streaming: boolean
-    +supportedToolTypes: ReadonlySet
+    +supportedToolTypes: ReadonlySet~string~
     +reasoning: boolean
     +structuredOutput: boolean
+    +webSearch: boolean
+    +fileSearch: boolean
+    +imageGeneration: boolean
+    +computerUse: boolean
     +parallelToolCalls: boolean
+    +streamingToolCalls: boolean
+    +features: ReadonlySet~string~
     +maxTools: number
   }
 

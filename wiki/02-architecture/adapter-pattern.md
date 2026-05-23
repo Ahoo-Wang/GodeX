@@ -54,7 +54,7 @@ flowchart LR
     RM["RequestMapper.map()"]
     CC["ChatClient.streamChat()"]
     T1["ProviderEventToResponseTransformer"]
-    T2["SessionPersistenceTransformer"]
+    T2["ResponseSessionPersistenceTransformer"]
   end
   subgraph output["Output"]
     EVENTS["ReadableStream of ResponseStreamEvent"]
@@ -63,7 +63,7 @@ flowchart LR
   CTX --> RM --> CC --> T1 --> T2 --> EVENTS
 ```
 
-When `store === false`, the `SessionPersistenceTransformer` is skipped entirely.
+When `store === false`, the `ResponseSessionPersistenceTransformer` is skipped entirely.
 
 ## Provider Mapper Contracts
 

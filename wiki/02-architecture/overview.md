@@ -82,11 +82,11 @@ classDiagram
 
   class ResponseSessionStore {
     <<interface>>
-    +get(id) StoredResponseSession
-    +save(session, opts)
-    +resolveChain(id, opts) ResponseSessionSnapshot
-    +delete(id)
-    +close()
+    +get(id) Promise~StoredResponseSession~
+    +save(session, opts) Promise~void~
+    +resolveChain(id, opts) Promise~ResponseSessionSnapshot~
+    +delete(id) Promise~void~
+    +close() Promise~void~
   }
 
   ApplicationContext --> ResponsesContext : creates
