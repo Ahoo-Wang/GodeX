@@ -24,10 +24,15 @@ export async function handleResponses(
 	try {
 		body = (await req.json()) as ResponseCreateRequest;
 	} catch {
+		logger.debug("responses.request.invalid_json");
 		return jsonError(400, SERVER_REQUEST_INVALID_JSON, "Invalid JSON body");
 	}
 
 	if (body.previous_response_id && body.conversation) {
+		logger.debug("responses.request.parameter.conflict", {
+			previous_response_id: body.previous_response_id,
+			conversation: true,
+		});
 		return jsonError(
 			400,
 			SERVER_REQUEST_INVALID_PARAMETER,
