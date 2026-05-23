@@ -44,10 +44,10 @@ export function buildZhipuRequest(
 				supportedToolTypes: ctx.provider.capabilities.supportedToolTypes,
 				unsupported: "skip",
 				onUnsupported: (type) => {
-					ctx.logger.warn("provider.tool.skipped", {
+					ctx.logger.warn("provider.tool.skipped", () => ({
 						request_id: ctx.requestId,
 						toolType: type,
-					});
+					}));
 				},
 			});
 	if (tools.length > 0) {
@@ -55,12 +55,12 @@ export function buildZhipuRequest(
 		result.tools = tools;
 	}
 	if (shouldWarnToolChoiceDowngrade(requestedToolChoice)) {
-		ctx.logger.warn("provider.parameter.downgraded", {
+		ctx.logger.warn("provider.parameter.downgraded", () => ({
 			request_id: ctx.requestId,
 			field: "tool_choice",
 			strategy: "auto",
 			reason: "Zhipu Chat Completions only supports auto tool choice.",
-		});
+		}));
 	}
 	const choice = mapToolChoice(requestedToolChoice);
 	if (choice && tools.length > 0) result.tool_choice = choice;

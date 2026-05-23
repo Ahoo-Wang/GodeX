@@ -35,10 +35,10 @@ export class Registrar {
 			skipped: this.unsupportedProviders,
 		};
 		if (this.unsupportedProviders.length > 0) {
-			logger?.info("providers.built", payload);
+			logger?.info("providers.built", () => payload);
 			return;
 		}
-		logger?.debug("providers.built", payload);
+		logger?.debug("providers.built", () => payload);
 	}
 
 	resolve(name: string): Provider<unknown, unknown, unknown> {
