@@ -113,15 +113,7 @@ sequenceDiagram
     Upstream-->>Provider: 响应
     Provider-->>Adapter: 映射后的 ResponseObject
     Adapter-->>Server: 结果
-    Server-->>Client: JSON 或 SSE 流
-
-    style Client fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Server fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style Ctx fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style Resolver fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style Adapter fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style Provider fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style Upstream fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+   Server-->>Client: JSON 或 SSE 流
 ```
 
 <!-- Sources: src/server/routes/responses/index.ts, src/adapter/default-adapter.ts -->
