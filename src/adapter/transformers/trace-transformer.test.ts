@@ -65,9 +65,9 @@ describe("TraceTransformer", () => {
 
 		expect(traces).toHaveLength(2);
 		expect(traces[0]?.event).toBe("test.event");
-		expect(traces[0]?.attr).toMatchObject({ event: events[0] });
+		expect(traces[0]?.attr).toMatchObject({ data: events[0] });
 		expect(traces[1]?.event).toBe("test.event");
-		expect(traces[1]?.attr).toMatchObject({ event: events[1] });
+		expect(traces[1]?.attr).toMatchObject({ data: events[1] });
 	});
 
 	test("passes through all events unchanged", async () => {
