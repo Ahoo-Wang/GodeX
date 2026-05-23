@@ -54,11 +54,13 @@ describe("Registrar", () => {
 		expect(registrar.list()).toEqual(["zhipu"]);
 	});
 
-	test("resolve throws before build is called", () => {
+	test("resolve throws when provider not registered", () => {
 		const registrar = new Registrar();
 		registrar.registerFactory("zhipu", () => stubProvider);
 
-		expect(() => registrar.resolve("zhipu")).toThrow("Registrar not built yet");
+		expect(() => registrar.resolve("zhipu")).toThrow(
+			"Provider not registered: zhipu",
+		);
 	});
 
 	test("tracks unsupported configured providers without writing console warnings", () => {
