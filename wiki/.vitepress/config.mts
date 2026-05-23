@@ -23,6 +23,16 @@ const zhNav = [
 
 const enSidebar = [
   {
+    text: 'Onboarding',
+    collapsed: true,
+    items: [
+      { text: 'Contributor Guide', link: '/onboarding/contributor-guide' },
+      { text: 'Staff Engineer Guide', link: '/onboarding/staff-engineer-guide' },
+      { text: 'Executive Guide', link: '/onboarding/executive-guide' },
+      { text: 'Product Manager Guide', link: '/onboarding/product-manager-guide' },
+    ],
+  },
+  {
     text: 'Getting Started',
     collapsed: false,
     items: [
@@ -99,6 +109,16 @@ const enSidebar = [
 ]
 
 const zhSidebar = [
+  {
+    text: '入门指南',
+    collapsed: true,
+    items: [
+      { text: '贡献者指南', link: '/zh/onboarding/contributor-guide' },
+      { text: '架构师指南', link: '/zh/onboarding/staff-engineer-guide' },
+      { text: '管理者指南', link: '/zh/onboarding/executive-guide' },
+      { text: '产品经理指南', link: '/zh/onboarding/product-manager-guide' },
+    ],
+  },
   {
     text: '快速入门',
     collapsed: false,
