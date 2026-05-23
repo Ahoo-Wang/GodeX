@@ -36,7 +36,7 @@ export class ApplicationContext {
 			config.providers,
 		);
 		this.registrar = registrar ?? createBuiltinRegistrar();
-		this.registrar.build(config.providers, this.logger);
+		this.registrar.registerProviders(config.providers, this.logger);
 		this.adapter = new DefaultAdapter();
 		this.sessionStore = createSessionStore(config);
 	}

@@ -19,8 +19,10 @@ export class Registrar {
 		return this.factories.has(name);
 	}
 
-	build(providers: Record<string, ProviderConfig>, logger?: Logger): void {
-		this.providers = new Map();
+	registerProviders(
+		providers: Record<string, ProviderConfig>,
+		logger?: Logger,
+	): void {
 		this.unsupportedProviders = [];
 		for (const [name, config] of Object.entries(providers)) {
 			const factory = this.factories.get(name);
