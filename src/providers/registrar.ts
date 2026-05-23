@@ -8,7 +8,7 @@ export type ProviderFactory = (
 
 export class Registrar {
 	private readonly factories = new Map<string, ProviderFactory>();
-	private providers?: Map<string, Provider<unknown, unknown, unknown>>;
+	private providers = new Map<string, Provider<unknown, unknown, unknown>>();
 	private unsupportedProviders: string[] = [];
 
 	registerFactory(name: string, factory: ProviderFactory): void {
@@ -19,8 +19,10 @@ export class Registrar {
 		return this.factories.has(name);
 	}
 
-	build(providers: Record<string, ProviderConfig>, logger?: Logger): void {
-		this.providers = new Map();
+	registerProviders(
+		providers: Record<string, ProviderConfig>,
+		logger?: Logger,
+	): void {
 		this.unsupportedProviders = [];
 		for (const [name, config] of Object.entries(providers)) {
 			const factory = this.factories.get(name);
@@ -30,9 +32,8 @@ export class Registrar {
 			}
 			this.providers.set(name, factory(config));
 		}
-		const builtProviders = this.providers!;
 		const getPayload = () => ({
-			registered: [...builtProviders.keys()],
+			registered: [...this.providers.keys()],
 			skipped: this.unsupportedProviders,
 		});
 		if (this.unsupportedProviders.length > 0) {
@@ -43,14 +44,13 @@ export class Registrar {
 	}
 
 	resolve(name: string): Provider<unknown, unknown, unknown> {
-		if (!this.providers) throw new Error("Registrar not built yet");
 		const provider = this.providers.get(name);
 		if (!provider) throw new Error(`Provider not registered: ${name}`);
 		return provider;
 	}
 
 	list(): string[] {
-		return [...(this.providers?.keys() ?? [])];
+		return [...this.providers.keys()];
 	}
 
 	unsupported(): string[] {
@@ -60,6 +60,6 @@ export class Registrar {
 	capabilities(
 		name: string,
 	): Provider<unknown, unknown, unknown>["capabilities"] | undefined {
-		return this.providers?.get(name)?.capabilities;
+		return this.providers.get(name)?.capabilities;
 	}
 }
