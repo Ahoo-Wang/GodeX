@@ -1,4 +1,5 @@
 import type { SessionConfig } from "../config";
+import { GODEX_BRAND_NAME } from "../version";
 
 export interface StartupBannerOptions {
 	version: string;
@@ -12,7 +13,7 @@ export interface StartupBannerOptions {
 
 export function formatStartupBanner(opts: StartupBannerOptions): string {
 	const lines: string[] = [
-		`GodeX v${opts.version}`,
+		`${GODEX_BRAND_NAME} v${opts.version}`,
 		``,
 		`  address:   http://${opts.host}:${opts.port}`,
 		`  env:       ${opts.env}`,

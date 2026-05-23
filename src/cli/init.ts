@@ -5,13 +5,14 @@ import {
 	ZHIPU_BASE_URL,
 	ZHIPU_CODING_PLAN_BASE_URL,
 } from "../providers/zhipu/provider";
+import { GODEX_BRAND_NAME } from "../version";
 
 interface InitOptions {
 	configPath: string;
 }
 
 export async function runInit(opts: InitOptions): Promise<void> {
-	clack.intro("GodeX Configuration Wizard");
+	clack.intro(`${GODEX_BRAND_NAME} Configuration Wizard`);
 
 	const provider = await clack.select({
 		message: "Which LLM provider?",

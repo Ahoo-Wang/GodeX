@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { createBuiltinRegistrar } from "../providers/builtin";
 import type { ServerDeps } from "../server";
-import { GODEX_VERSION } from "../version";
+import { GODEX_BRAND_NAME, GODEX_VERSION } from "../version";
 import type { CliOptions } from "./config";
 import {
 	assertConfigReady,
@@ -88,7 +88,9 @@ function addServeCommand(program: Command, runtime: CliRuntime): void {
 }
 
 function addConfigCommand(program: Command, runtime: CliRuntime): void {
-	const config = program.command("config").description("inspect GodeX config");
+	const config = program
+		.command("config")
+		.description(`inspect ${GODEX_BRAND_NAME} config`);
 
 	config
 		.command("check")

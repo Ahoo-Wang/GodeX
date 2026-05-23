@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ServerDeps } from "../server";
+import { GODEX_BRAND_NAME } from "../version";
 import { runCli } from ".";
 
 const { version } = require("../../package.json");
@@ -54,7 +55,7 @@ describe("CLI", () => {
 		expect(cli.starts).toHaveLength(1);
 		expect(cli.starts[0]?.config.server.port).toBe(3100);
 		const output = cli.stdout.join("");
-		expect(output).toContain(`GodeX v${version}`);
+		expect(output).toContain(`${GODEX_BRAND_NAME} v${version}`);
 		expect(output).toContain("address:   http://0.0.0.0:3100");
 		expect(output).toContain("env:");
 	});
@@ -93,7 +94,7 @@ describe("CLI", () => {
 		expect(code).toBe(0);
 		expect(cli.starts[0]?.config.server.host).toBe("0.0.0.0");
 		const output = cli.stdout.join("");
-		expect(output).toContain(`GodeX v${version}`);
+		expect(output).toContain(`${GODEX_BRAND_NAME} v${version}`);
 		expect(output).toContain("address:   http://0.0.0.0:3101");
 		expect(output).toContain("env:");
 	});
