@@ -1,6 +1,7 @@
 ---
 title: "CLI Commands"
 description: "Command-line interface reference for the godex binary."
+keywords: "GodeX, CLI commands, serve, init, config"
 ---
 
 # CLI Commands

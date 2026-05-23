@@ -1,6 +1,7 @@
 ---
 title: "CI/CD & Publishing"
 description: "GitHub Actions CI pipeline and multi-platform binary publishing workflow."
+keywords: "GodeX, deployment, CI/CD, GitHub Actions, publishing, npm"
 ---
 
 # CI/CD & Publishing

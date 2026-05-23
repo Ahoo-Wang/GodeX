@@ -1,5 +1,11 @@
 ---
 layout: home
+title: GodeX
+description: OpenAI 兼容的 Responses API 网关，让 Codex、CLI 工具和开发者 Agent 接入任意模型。
+head:
+  - - meta
+    - name: keywords
+      content: GodeX, OpenAI, Responses API, 网关, Codex, CLI, LLM, 代理, Chat Completions, 提供商, 流式, SSE
 
 hero:
   name: GodeX

@@ -1,6 +1,7 @@
 ---
 title: "转换器"
 description: "处理流式事件的三阶段 TransformStream。"
+keywords: "GodeX, 转换器, 流式管道"
 ---
 
 # 转换器

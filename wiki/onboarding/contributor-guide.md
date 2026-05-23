@@ -1,6 +1,7 @@
 ---
 title: "Contributor Guide"
 description: "Everything you need to start contributing to GodeX."
+keywords: "GodeX, contributor guide, contributing, development setup"
 ---
 
 # Contributor Guide

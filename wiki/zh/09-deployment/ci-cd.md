@@ -1,6 +1,7 @@
 ---
 title: "CI/CD 与发布"
 description: "GitHub Actions CI 流水线和多平台二进制发布工作流。"
+keywords: "GodeX, 部署, CI/CD, 发布, npm"
 ---
 
 # CI/CD 与发布

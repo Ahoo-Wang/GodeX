@@ -1,6 +1,7 @@
 ---
 title: "Testing Guide"
 description: "Unit, integration, and end-to-end testing strategies in GodeX."
+keywords: "GodeX, testing, unit tests, e2e, Bun test"
 ---
 
 # Testing Guide

@@ -1,6 +1,7 @@
 ---
 title: "Overview"
 description: "Introduction to GodeX — what it is, why it exists, and how to get started."
+keywords: "GodeX, getting started, overview, OpenAI, Responses API, gateway"
 ---
 
 # Overview

@@ -23,6 +23,16 @@ const zhNav = [
 
 const enSidebar = [
   {
+    text: 'Onboarding',
+    collapsed: true,
+    items: [
+      { text: 'Contributor Guide', link: '/onboarding/contributor-guide' },
+      { text: 'Staff Engineer Guide', link: '/onboarding/staff-engineer-guide' },
+      { text: 'Executive Guide', link: '/onboarding/executive-guide' },
+      { text: 'Product Manager Guide', link: '/onboarding/product-manager-guide' },
+    ],
+  },
+  {
     text: 'Getting Started',
     collapsed: false,
     items: [
@@ -99,6 +109,16 @@ const enSidebar = [
 ]
 
 const zhSidebar = [
+  {
+    text: '入门指南',
+    collapsed: true,
+    items: [
+      { text: '贡献者指南', link: '/zh/onboarding/contributor-guide' },
+      { text: '架构师指南', link: '/zh/onboarding/staff-engineer-guide' },
+      { text: '管理者指南', link: '/zh/onboarding/executive-guide' },
+      { text: '产品经理指南', link: '/zh/onboarding/product-manager-guide' },
+    ],
+  },
   {
     text: '快速入门',
     collapsed: false,
@@ -185,19 +205,43 @@ export default withMermaid(
     sitemap: {
       hostname: 'https://godex.ahoo.me',
     },
+    transformPageData(pageData) {
+      const keywords = pageData.frontmatter.keywords
+      if (keywords) {
+        pageData.frontmatter.head ??= []
+        pageData.frontmatter.head.push(['meta', { name: 'keywords', content: keywords }])
+      }
+    },
     head: [
       ['link', { rel: 'icon', href: '/favicon.ico', sizes: 'any' }],
       ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
       ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }],
       ['link', { rel: 'manifest', href: '/site.webmanifest' }],
       ['meta', { name: 'theme-color', content: '#0B1220' }],
-      ['meta', { name: 'og:type', content: 'website' }],
-      ['meta', { name: 'og:title', content: 'GodeX — Make every model a Codex engine' }],
-      ['meta', { name: 'og:description', content: 'OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents.' }],
-      ['meta', { name: 'og:image', content: 'https://godex.ahoo.me/og-image.png' }],
-      ['meta', { name: 'og:url', content: 'https://godex.ahoo.me' }],
-      ['meta', { name: 'og:site_name', content: 'GodeX' }],
+      ['meta', { name: 'color-scheme', content: 'dark light' }],
+      ['meta', { property: 'og:type', content: 'website' }],
+      ['meta', { property: 'og:title', content: 'GodeX — Make every model a Codex engine' }],
+      ['meta', { property: 'og:description', content: 'OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents.' }],
+      ['meta', { property: 'og:image', content: 'https://godex.ahoo.me/og-image.png' }],
+      ['meta', { property: 'og:url', content: 'https://godex.ahoo.me' }],
+      ['meta', { property: 'og:site_name', content: 'GodeX' }],
+      ['meta', { property: 'og:locale', content: 'en_US' }],
+      ['meta', { property: 'og:locale:alternate', content: 'zh_CN' }],
       ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+      ['meta', { name: 'twitter:title', content: 'GodeX — Make every model a Codex engine' }],
+      ['meta', { name: 'twitter:description', content: 'OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents.' }],
+      ['meta', { name: 'twitter:image', content: 'https://godex.ahoo.me/og-image.png' }],
+      ['script', { type: 'application/ld+json' }, JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "GodeX",
+        "description": "OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents.",
+        "url": "https://godex.ahoo.me",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "macOS, Linux, Windows",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "programmingLanguage": "TypeScript",
+      })],
       ['script', { async: '', src: 'https://www.googletagmanager.com/gtag/js?id=G-Q0RBTTN9VG' }],
       ['script', {}, `
         window.dataLayer = window.dataLayer || [];

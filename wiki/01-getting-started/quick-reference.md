@@ -1,6 +1,7 @@
 ---
 title: "Quick Reference"
 description: "Common commands, environment variables, and API endpoints."
+keywords: "GodeX, quick reference, API, endpoints, models, health check"
 ---
 
 # Quick Reference

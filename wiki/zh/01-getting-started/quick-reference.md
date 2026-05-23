@@ -1,6 +1,7 @@
 ---
 title: "快速参考"
 description: "常用命令、环境变量和 API 端点速查表。"
+keywords: "GodeX, 快速参考, API, 端点, 模型"
 ---
 
 # 快速参考

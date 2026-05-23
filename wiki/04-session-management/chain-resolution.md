@@ -1,6 +1,7 @@
 ---
 title: "Chain Resolution"
 description: "How previous_response_id chains are traversed, validated, and reconstructed."
+keywords: "GodeX, chain resolution, previous_response_id, session history"
 ---
 
 # Chain Resolution

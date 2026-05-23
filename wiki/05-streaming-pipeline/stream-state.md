@@ -1,6 +1,7 @@
 ---
 title: "Stream State"
 description: "How StreamState accumulates partial results during streaming."
+keywords: "GodeX, stream state, StreamState, accumulation"
 ---
 
 # Stream State
