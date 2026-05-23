@@ -1,6 +1,18 @@
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 
+const enNav = [
+  { text: 'Getting Started', link: '/en/01-getting-started/overview' },
+  { text: 'Architecture', link: '/en/02-architecture/overview' },
+  { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/Godex' },
+]
+
+const zhNav = [
+  { text: '快速入门', link: '/zh/01-getting-started/overview' },
+  { text: '架构', link: '/zh/02-architecture/overview' },
+  { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/Godex' },
+]
+
 const enSidebar = [
   {
     text: 'Getting Started',
@@ -179,11 +191,7 @@ export default withMermaid(
         title: 'Godex Wiki',
         description: 'Technical documentation for Godex — OpenAI Responses API Gateway',
         themeConfig: {
-          nav: [
-            { text: 'Getting Started', link: '/en/01-getting-started/overview' },
-            { text: 'Architecture', link: '/en/02-architecture/overview' },
-            { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/Godex' },
-          ],
+          nav: enNav,
           sidebar: enSidebar,
         },
       },
@@ -193,11 +201,7 @@ export default withMermaid(
         title: 'Godex Wiki',
         description: 'Godex 技术文档 — OpenAI Responses API 网关',
         themeConfig: {
-          nav: [
-            { text: '快速入门', link: '/zh/01-getting-started/overview' },
-            { text: '架构', link: '/zh/02-architecture/overview' },
-            { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/Godex' },
-          ],
+          nav: zhNav,
           sidebar: zhSidebar,
         },
       },
@@ -205,6 +209,8 @@ export default withMermaid(
     themeConfig: {
       logo: '/logo.svg',
       siteTitle: 'Godex Wiki',
+      nav: enNav,
+      sidebar: enSidebar,
       socialLinks: [
         { icon: 'github', link: 'https://github.com/Ahoo-Wang/Godex' },
       ],
