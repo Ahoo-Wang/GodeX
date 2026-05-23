@@ -2,26 +2,26 @@ import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const enNav = [
-  { text: 'Getting Started', link: '/01-getting-started/overview' },
+  { text: 'Guide', link: '/01-getting-started/overview' },
   { text: 'Architecture', link: '/02-architecture/overview' },
+  { text: 'Providers', link: '/03-provider-development/provider-interface' },
+  { text: 'Configuration', link: '/07-configuration/config-schema' },
+  { text: 'Diagnostics', link: '/06-error-handling/error-codes' },
+  { text: 'Deployment', link: '/09-deployment/ci-cd' },
+  { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/GodeX' },
 ]
 
 const zhNav = [
-  { text: '快速入门', link: '/zh/01-getting-started/overview' },
+  { text: '指南', link: '/zh/01-getting-started/overview' },
   { text: '架构', link: '/zh/02-architecture/overview' },
+  { text: '提供商', link: '/zh/03-provider-development/provider-interface' },
+  { text: '配置', link: '/zh/07-configuration/config-schema' },
+  { text: '诊断', link: '/zh/06-error-handling/error-codes' },
+  { text: '部署', link: '/zh/09-deployment/ci-cd' },
+  { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/GodeX' },
 ]
 
 const enSidebar = [
-  {
-    text: 'Onboarding',
-    collapsed: false,
-    items: [
-      { text: 'Contributor Guide', link: '/onboarding/contributor-guide' },
-      { text: 'Staff Engineer Guide', link: '/onboarding/staff-engineer-guide' },
-      { text: 'Executive Guide', link: '/onboarding/executive-guide' },
-      { text: 'Product Manager Guide', link: '/onboarding/product-manager-guide' },
-    ],
-  },
   {
     text: 'Getting Started',
     collapsed: false,
@@ -100,16 +100,6 @@ const enSidebar = [
 
 const zhSidebar = [
   {
-    text: '入门指南',
-    collapsed: false,
-    items: [
-      { text: '贡献者指南', link: '/zh/onboarding/contributor-guide' },
-      { text: '架构师指南', link: '/zh/onboarding/staff-engineer-guide' },
-      { text: '管理者指南', link: '/zh/onboarding/executive-guide' },
-      { text: '产品经理指南', link: '/zh/onboarding/product-manager-guide' },
-    ],
-  },
-  {
     text: '快速入门',
     collapsed: false,
     items: [
@@ -129,7 +119,7 @@ const zhSidebar = [
     ],
   },
   {
-    text: 'Provider 开发',
+    text: '提供商开发',
     collapsed: false,
     items: [
       { text: 'Provider 接口', link: '/zh/03-provider-development/provider-interface' },
@@ -187,15 +177,27 @@ const zhSidebar = [
 
 export default withMermaid(
   defineConfig({
-    title: 'Godex Wiki',
-    description: 'Technical documentation for Godex — OpenAI Responses API Gateway',
+    title: 'GodeX',
+    description: 'OpenAI-compatible Responses API gateway for Codex and developer tools',
     appearance: 'dark',
     cleanUrls: true,
     ignoreDeadLinks: true,
     sitemap: {
-      hostname: "https://godex.ahoo.me",
+      hostname: 'https://godex.ahoo.me',
     },
     head: [
+      ['link', { rel: 'icon', href: '/favicon.ico', sizes: 'any' }],
+      ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
+      ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }],
+      ['link', { rel: 'manifest', href: '/site.webmanifest' }],
+      ['meta', { name: 'theme-color', content: '#0B1220' }],
+      ['meta', { name: 'og:type', content: 'website' }],
+      ['meta', { name: 'og:title', content: 'GodeX — Make every model a Codex engine' }],
+      ['meta', { name: 'og:description', content: 'OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents.' }],
+      ['meta', { name: 'og:image', content: 'https://godex.ahoo.me/og-image.png' }],
+      ['meta', { name: 'og:url', content: 'https://godex.ahoo.me' }],
+      ['meta', { name: 'og:site_name', content: 'GodeX' }],
+      ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
       ['script', { async: '', src: 'https://www.googletagmanager.com/gtag/js?id=G-Q0RBTTN9VG' }],
       ['script', {}, `
         window.dataLayer = window.dataLayer || [];
@@ -205,7 +207,7 @@ export default withMermaid(
       `],
       ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
       ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
-      ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap' }],
+      ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap' }],
     ],
     markdown: { lineNumbers: true },
     outline: { level: [2, 3] },
@@ -233,9 +235,9 @@ export default withMermaid(
     },
     themeConfig: {
       logo: '/logo.svg',
-      siteTitle: 'Godex Wiki',
+      siteTitle: 'GodeX',
       socialLinks: [
-        { icon: 'github', link: 'https://github.com/Ahoo-Wang/Godex' },
+        { icon: 'github', link: 'https://github.com/Ahoo-Wang/GodeX' },
       ],
       search: { provider: 'local' },
     },

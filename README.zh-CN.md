@@ -1,12 +1,74 @@
-# GodeX
+<div align="center">
+
+<img src="design/assets/01-logo-system/png/godex-logo-horizontal-transparent-800x233.png" alt="GodeX" width="480" />
 
 **让每个模型都成为 Codex 引擎。**
 
-通过 OpenAI 兼容的 Responses API 网关连接任意模型 — 将 `/v1/responses` 请求转换为上游 Chat Completions API 调用，连接 Codex、CLI、IDE 和自动化开发工具与不同模型供应商。
+OpenAI 兼容的 Responses API 网关 — 将 `/v1/responses` 请求转换为上游 Chat Completions API 调用，连接 Codex、CLI、IDE 和自动化开发工具与不同模型供应商。
 
 [![codecov](https://codecov.io/gh/Ahoo-Wang/GodeX/graph/badge.svg?token=dJQrmUAiXu)](https://codecov.io/gh/Ahoo-Wang/GodeX)
 [![Bun](https://img.shields.io/badge/runtime-bun-f9f1e0?logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/lang-typescript-3178c6?logo=typescript)](https://www.typescriptlang.org/)
+
+[快速入门](https://godex.ahoo.me/zh/01-getting-started/overview) · [架构](https://godex.ahoo.me/zh/02-architecture/overview) · [配置](https://godex.ahoo.me/zh/07-configuration/config-schema) · [API 参考](https://godex.ahoo.me/zh/01-getting-started/quick-reference) · [文档](https://godex.ahoo.me/zh/)
+
+</div>
+
+---
+
+## 快速开始
+
+```bash
+# 安装 — 运行时无需 Bun
+npm install -g @ahoo-wang/godex
+
+# 交互式创建配置
+godex init
+
+# 启动网关
+godex serve
+```
+
+将 Codex CLI 指向你的 GodeX 实例：
+
+```bash
+export OPENAI_BASE_URL=http://localhost:5678/v1
+export OPENAI_API_KEY=any-value          # GodeX 不验证此值，但必须设置
+codex
+```
+
+或使用 OpenAI SDK：
+
+```ts
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "http://localhost:5678/v1",
+  apiKey: "any-value",
+});
+
+const response = await client.responses.create({
+  model: "gpt-4o",          // 通过 godex.yaml 的 models 表映射为 glm-4.7
+  input: "Hello!",
+});
+```
+
+## 工作原理
+
+```
+Codex / CLI / IDE
+      │
+      ▼  POST /v1/responses
+┌─────────────────┐
+│   GodeX 网关    │
+└────────┬────────┘
+         │  提供商适配器
+         ▼
+┌─────────────────────────┐
+│  Chat Completions API   │
+│  (任意兼容模型)          │
+└─────────────────────────┘
+```
 
 ## 架构
 
@@ -94,128 +156,6 @@ sequenceDiagram
   end
 ```
 
-## 组件模型
-
-```mermaid
-classDiagram
-  direction TB
-
-  class ApplicationContext {
-    +config: GodeXConfig
-    +logger: Logger
-    +resolver: ModelResolver
-    +registrar: Registrar
-    +adapter: Adapter
-    +sessionStore: ResponseSessionStore
-  }
-
-  class ResponsesContext {
-    +app: ApplicationContext
-    +request: ResponseCreateRequest
-    +session: ResponseSessionSnapshot
-    +resolved: ResolvedModel
-    +provider: Provider
-    +responseId: string
-    +requestId: string
-    +logger: Logger
-    +create(app, body)$ Promise~ResponsesContext~
-  }
-
-  class ModelResolver {
-    -defaultProvider: string
-    -providerConfigs: Record
-    +resolve(model) ResolvedModel
-  }
-
-  class Registrar {
-    -factories: Map~string, ProviderFactory~
-    +registerFactory(name, factory)
-    +build(providers)
-    +resolve(name) Provider
-    +list() string[]
-  }
-
-  class Adapter {
-    <<interface>>
-    +request(ctx) Promise~ResponseObject~
-    +stream(ctx) Promise~ReadableStream~
-  }
-
-  class DefaultAdapter {
-    +request(ctx) Promise~ResponseObject~
-    +stream(ctx) Promise~ReadableStream~
-  }
-
-  class Provider {
-    <<interface>>
-    +name: string
-    +mapper: ProviderMapper
-    +chatClient: ChatClient
-    +capabilities: ProviderCapabilities
-  }
-
-  class ProviderMapper {
-    <<interface>>
-    +request: RequestMapper
-    +response: ResponseMapper
-    +stream: StreamMapper
-  }
-
-  class ChatClient {
-    <<interface>>
-    +chat(req) Promise~TRes~
-    +streamChat(req) Promise~ReadableStream~
-  }
-
-  class RequestMapper {
-    <<interface>>
-    +map(ctx) TReq
-  }
-
-  class ResponseMapper {
-    <<interface>>
-    +map(ctx, result) ResponseObject
-  }
-
-  class StreamMapper {
-    <<interface>>
-    +map(ctx, event) ResponseStreamEvent[]
-    +buildResponseObject(ctx, state) ResponseObject
-  }
-
-  class ResponseSessionStore {
-    <<interface>>
-    +get(id) StoredResponseSession
-    +save(session, opts)
-    +resolveChain(id, opts) ResponseSessionSnapshot
-    +delete(id)
-    +close()
-  }
-
-  class Router {
-    -routes: Route[]
-    +register(route)
-    +dispatch(req) Promise~Response~
-  }
-
-  ApplicationContext --> ResponsesContext : 创建
-  ApplicationContext --> ModelResolver
-  ApplicationContext --> Registrar
-  ApplicationContext --> Adapter
-  ApplicationContext --> ResponseSessionStore
-  ResponsesContext --> Provider : 使用
-  Provider --> ProviderMapper
-  Provider --> ChatClient
-  ProviderMapper --> RequestMapper
-  ProviderMapper --> ResponseMapper
-  ProviderMapper --> StreamMapper
-  Adapter <|.. DefaultAdapter
-  DefaultAdapter --> ProviderMapper : 调用
-  DefaultAdapter --> ChatClient : 调用
-  DefaultAdapter --> ResponseSessionStore : 保存
-  Router --> ResponsesContext : 分发至
-```
-
 ## 流式管道
 
 ```mermaid
@@ -244,57 +184,11 @@ flowchart LR
   style client fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
 ```
 
-### Transformer 职责
-
 | 阶段 | Transformer | 输入 | 输出 | 副作用 |
 |------|------------|------|------|--------|
 | 1 | `ProviderEventToResponseTransformer` | `JsonServerSentEvent<TChunk>` | `ResponseStreamEvent` | 逐事件调用 `StreamMapper.map()` |
-| 2 | `ResponseSessionPersistenceTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | 累积 `StreamState`，终止事件时调用 `buildResponseObject()` 并保存会话（`store=false` 时跳过） |
+| 2 | `ResponseSessionPersistenceTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | 累积 `StreamState`，终止事件时调用 `buildResponseObject()` 并保存会话 |
 | 3 | `ResponseSseEncodeTransformer` | `ResponseStreamEvent` | `Uint8Array`（SSE 传输格式） | 序列化为 `event:` / `data:` 行 |
-
-## 错误体系
-
-```mermaid
-classDiagram
-  direction TB
-
-  class GodeXError {
-    +name: string
-    +code: string
-    +status: number
-    +context: object
-    +toLogEntry() object
-  }
-
-  class ServerError {
-    +status: 400-499
-    +context: object
-  }
-
-  class AdapterError {
-    +status: 400-499
-    +context: 不支持的参数 / 工具 / 输入项
-  }
-
-  class ProviderError {
-    +status: 502
-    +context: 上游状态码 / 响应体 / 响应头
-  }
-
-  class SessionError {
-    +status: 400-409
-    +context: 链元数据
-  }
-
-  GodeXError <|-- ServerError
-  GodeXError <|-- AdapterError
-  GodeXError <|-- ProviderError
-  GodeXError <|-- SessionError
-
-  note for GodeXError "基础错误，支持结构化日志。<br/>所有错误携带领域编码（如 server.request.invalid_json）。"
-  note for ProviderError "包装上游 HTTP 失败：<br/>速率限制、超时、5xx。"
-  note for SessionError "链式解析失败：<br/>未找到、循环、深度超限。"
-```
 
 ## 项目结构
 
@@ -317,24 +211,7 @@ src/
 └── e2e/              模拟上游的端到端测试
 ```
 
-## 快速开始
-
-```bash
-# 安装依赖
-bun install
-
-# 构建独立二进制文件（当前平台）
-bun run build
-
-# 交互式创建配置
-bun run start -- init
-
-# 启动服务器（默认端口 5678）
-bun run dev
-
-# 或直接运行编译后的二进制文件
-./platforms/darwin-arm64/bin/godex serve
-```
+## 配置
 
 ### godex.yaml
 
@@ -361,6 +238,14 @@ logging:
   level: info                   # trace | debug | info | warn | error
 ```
 
+### 模型选择
+
+```
+model: "gpt-4o"              → 通过 default_provider 的模型映射解析
+model: "zhipu/glm-4.7"       → 显式指定 provider/model 选择器
+model: "openai/gpt-4o"       → 路由到已配置的 openai 提供商
+```
+
 ### 添加提供商
 
 在 `src/providers/<name>/` 中实现以下接口：
@@ -379,62 +264,17 @@ registrar.registerFactory("myprovider", (config) =>
 );
 ```
 
-## 使用
+## 命令
 
 ```bash
-# 安装 — 运行时无需 Bun
-npm install -g @ahoo-wang/godex
-
-# 交互式创建配置
-godex init
-
-# 启动网关
-godex serve
-```
-
-GodeX 以**独立原生二进制文件**发布，零运行时依赖。npm 的 `postinstall` 脚本自动为您的平台选择正确的二进制文件。唯一前置条件是 Node.js >= 18（仅在 `npm install` 期间需要）。
-
-GodeX 在 `http://localhost:5678` 暴露**与 OpenAI 兼容的 Responses API**（端口可配置）。将任何使用 OpenAI 协议的工具指向此端点即可：
-
-### 搭配 Codex CLI
-
-```bash
-export OPENAI_BASE_URL=http://localhost:5678/v1
-export OPENAI_API_KEY=any-value          # GodeX 不验证此值，但必须设置
-codex
-```
-
-### 搭配 OpenAI SDK
-
-```ts
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "http://localhost:5678/v1",
-  apiKey: "any-value",      // 透传，不验证
-});
-
-const response = await client.responses.create({
-  model: "gpt-4o",          // 通过 godex.yaml 的 models 表映射为 glm-4.7
-  input: "Hello!",
-});
-```
-
-### 模型选择
-
-```
-model: "gpt-4o"              → 通过 default_provider 的模型映射解析
-model: "zhipu/glm-4.7"       → 显式指定 provider/model 选择器
-model: "openai/gpt-4o"       → 路由到已配置的 openai 提供商
-```
-
-`godex.yaml` 中的 `models` 映射表可将标准模型名称转换为提供商原生名称 — 客户端无需修改代码。
-
-### 健康检查
-
-```bash
-curl http://localhost:5678/health
-# {"status":"ok","providers":["zhipu"],"unsupported_providers":[]}
+bun run dev          # 热重载开发服务器，端口 13145
+bun run build        # 为当前平台编译原生二进制
+bun run compile:all  # 本地交叉编译全部 6 个平台
+bun run test         # 单元 + 集成测试
+bun run test:e2e     # 模拟上游的端到端测试
+bun run typecheck    # tsc --noEmit
+bun run lint         # Biome 检查
+bun run ci           # 完整 CI 流水线
 ```
 
 ## 发布
@@ -452,24 +292,8 @@ curl http://localhost:5678/health
     ├── @ahoo-wang/godex-linux-arm64            ← Linux ARM64
     ├── @ahoo-wang/godex-win32-x64              ← Windows x86_64
     └── @ahoo-wang/godex-win32-arm64            ← Windows ARM64
-
-# 发布流程：
-# 1. 将 GitHub 仓库设为公开，配置 NPM_TOKEN，然后推送发布提交。
-# 2. 创建标签为 vX.Y.Z 的 GitHub Release。
-# 3. Release 工作流构建所有平台二进制文件。
-# 4. Release 工作流上传二进制压缩包和 SHA256SUMS 到 Release Assets。
-# 5. Release 工作流先发布平台包，再发布 @ahoo-wang/godex。
 ```
 
-## 命令
+## 许可证
 
-```bash
-bun run dev          # 热重载开发服务器，端口 13145
-bun run build        # 为当前平台编译原生二进制
-bun run compile:all  # 本地交叉编译全部 6 个平台
-bun run test         # 单元 + 集成测试
-bun run test:e2e     # 模拟上游的端到端测试
-bun run typecheck    # tsc --noEmit
-bun run lint         # Biome 检查
-bun run ci           # 完整 CI 流水线
-```
+[Apache License 2.0](LICENSE)
