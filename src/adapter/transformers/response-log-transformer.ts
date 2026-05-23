@@ -32,7 +32,7 @@ export class ResponseLogTransformer extends SafeTransformer<
 		const state = StreamState.from(this.ctx);
 		if (!state.completedAt) return;
 		const outputCount = state.toolCalls.length + (state.outputText ? 1 : 0);
-		this.ctx.logger.info("responses.stream.completed", {
+		this.ctx.logger.info("responses.stream.completed", () => ({
 			status: state.finalStatus.status,
 			model: this.ctx.resolved.model,
 			outputCount,
@@ -41,7 +41,7 @@ export class ResponseLogTransformer extends SafeTransformer<
 				ATTR_UPSTREAM_LATENCY_MILLIS,
 			),
 			streamEventCount: this.eventCount,
-		});
+		}));
 		this.logged = true;
 	}
 
@@ -49,7 +49,7 @@ export class ResponseLogTransformer extends SafeTransformer<
 		if (this.logged) return;
 		const response = responseFromTerminalEvent(chunk);
 		if (!response) return;
-		this.ctx.logger.info("responses.stream.completed", {
+		this.ctx.logger.info("responses.stream.completed", () => ({
 			status: response.status,
 			model: response.model,
 			outputCount: response.output.length,
@@ -59,7 +59,7 @@ export class ResponseLogTransformer extends SafeTransformer<
 				ATTR_UPSTREAM_LATENCY_MILLIS,
 			),
 			streamEventCount: this.eventCount,
-		});
+		}));
 		this.logged = true;
 	}
 }

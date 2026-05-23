@@ -66,10 +66,10 @@ export class ResponseSessionPersistenceTransformer extends SafeTransformer<
 		try {
 			await this.options.saveSession(ctx.app.sessionStore, responseObject, ctx);
 		} catch (err) {
-			ctx.logger.warn("session.save.stream.error", {
+			ctx.logger.warn("session.save.stream.error", () => ({
 				request_id: ctx.requestId,
 				error: String(err),
-			});
+			}));
 		}
 	}
 }

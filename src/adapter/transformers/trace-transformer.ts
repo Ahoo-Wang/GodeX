@@ -13,7 +13,7 @@ export class TraceTransformer<T> extends SafeTransformer<T, T> {
 		chunk: T,
 		controller: TransformStreamDefaultController<T>,
 	): Promise<void> {
-		this.ctx.logger.trace(this.eventName, { data: chunk });
+		this.ctx.logger.trace(this.eventName, () => ({ data: chunk }));
 		this.enqueue(controller, chunk);
 	}
 }
