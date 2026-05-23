@@ -13,11 +13,14 @@ import {
 	ATTR_UPSTREAM_LATENCY_MILLIS,
 	pipeTransform,
 } from "./transformers/stream-utils";
+import { TraceTransformer } from "./transformers/trace-transformer";
 
 export class DefaultAdapter implements Adapter {
 	async request(ctx: ResponsesContext): Promise<ResponseObject> {
+		ctx.logger.trace("responses.request.body", { body: ctx.request });
 		const { mapper, chatClient } = ctx.provider;
 		const req = await mapper.request.map(ctx);
+		ctx.logger.trace("upstream.request.body", { body: req });
 		ctx.logger.debug("provider.request.sending", {
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
@@ -25,6 +28,7 @@ export class DefaultAdapter implements Adapter {
 		});
 		const upstreamStart = Date.now();
 		const res = await chatClient.chat(req);
+		ctx.logger.trace("upstream.response.body", { body: res });
 		ctx.logger.debug("provider.response.received", {
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
@@ -53,8 +57,10 @@ export class DefaultAdapter implements Adapter {
 	async stream(
 		ctx: ResponsesContext,
 	): Promise<ReadableStream<ResponseStreamEvent>> {
+		ctx.logger.trace("responses.request.body", { body: ctx.request });
 		const { mapper, chatClient } = ctx.provider;
 		const req = await mapper.request.map(ctx);
+		ctx.logger.trace("upstream.request.body", { body: req });
 		ctx.logger.debug("provider.request.sending", {
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
@@ -70,13 +76,23 @@ export class DefaultAdapter implements Adapter {
 		});
 		ctx.attributes.set(ATTR_UPSTREAM_LATENCY_MILLIS, upstreamLatencyMillis);
 
-		const eventStream = pipeTransform(
+		const traceRawStream = pipeTransform(
 			events,
+			new TraceTransformer("upstream.stream.event.raw", ctx),
+		);
+
+		const eventStream = pipeTransform(
+			traceRawStream,
 			new ProviderEventToResponseTransformer(mapper.stream, ctx),
 		);
 
-		const logStream = pipeTransform(
+		const traceTransformedStream = pipeTransform(
 			eventStream,
+			new TraceTransformer("upstream.stream.event.transformed", ctx),
+		);
+
+		const logStream = pipeTransform(
+			traceTransformedStream,
 			new ResponseLogTransformer(ctx),
 		);
 
