@@ -1,14 +1,41 @@
 import DefaultTheme from 'vitepress/theme'
-import { onMounted, watch } from 'vue'
-import { useRoute } from 'vitepress'
+import { onMounted, onBeforeUnmount, watch } from 'vue'
+import { useData, useRoute } from 'vitepress'
 import './custom.css'
+
+const LIGHT_HERO = '/godex-logo-horizontal.svg'
+const DARK_HERO = '/godex-logo-hero.svg'
+
+let heroObserver: MutationObserver | null = null
+
+function startHeroObserver(isDark: boolean) {
+  stopHeroObserver()
+  const apply = () => {
+    const img = document.querySelector<HTMLImageElement>('.VPHero .VPImage')
+    if (img) {
+      const target = isDark ? DARK_HERO : LIGHT_HERO
+      if (!img.src.endsWith(new URL(target, location.origin).pathname)) {
+        img.src = target
+      }
+    }
+  }
+  apply()
+  heroObserver = new MutationObserver(apply)
+  heroObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] })
+}
+
+function stopHeroObserver() {
+  if (heroObserver) {
+    heroObserver.disconnect()
+    heroObserver = null
+  }
+}
 
 function initMermaidZoom() {
   document.querySelectorAll('.mermaid').forEach(el => {
     if ((el as HTMLElement).dataset.zoomBound) return
     ;(el as HTMLElement).dataset.zoomBound = 'true'
     ;(el as HTMLElement).style.cursor = 'zoom-in'
-
     el.addEventListener('click', () => openMermaidZoom(el as HTMLElement))
   })
 }
@@ -112,15 +139,25 @@ export default {
   extends: DefaultTheme,
   setup() {
     const route = useRoute()
+    const { isDark } = useData()
 
     onMounted(() => {
+      startHeroObserver(isDark.value)
       fixMermaidDarkMode()
       setTimeout(initMermaidZoom, 3000)
+    })
+
+    onBeforeUnmount(() => {
+      stopHeroObserver()
     })
 
     watch(() => route.path, () => {
       fixMermaidDarkMode()
       setTimeout(initMermaidZoom, 3000)
+    })
+
+    watch(isDark, (v) => {
+      startHeroObserver(v)
     })
   },
 }
