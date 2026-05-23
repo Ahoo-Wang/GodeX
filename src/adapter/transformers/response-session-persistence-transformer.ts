@@ -26,7 +26,6 @@ export class ResponseSessionPersistenceTransformer extends SafeTransformer<
 > {
 	private completedResponse?: ResponseObject;
 	private persistenceAttempted = false;
-	private eventCount = 0;
 
 	constructor(
 		private readonly options: ResponseSessionPersistenceTransformerOptions,
@@ -38,7 +37,6 @@ export class ResponseSessionPersistenceTransformer extends SafeTransformer<
 		chunk: ResponseStreamEvent,
 		controller: TransformStreamDefaultController<ResponseStreamEvent>,
 	): Promise<void> {
-		this.eventCount++;
 		const terminalResponse = responseFromTerminalEvent(chunk);
 		if (terminalResponse) {
 			this.completedResponse = terminalResponse;
@@ -64,15 +62,6 @@ export class ResponseSessionPersistenceTransformer extends SafeTransformer<
 		if (this.persistenceAttempted) return;
 		this.persistenceAttempted = true;
 		const ctx = this.options.ctx;
-		ctx.logger.info("responses.stream.completed", {
-			status: responseObject.status,
-			model: responseObject.model,
-			outputCount: responseObject.output.length,
-			durationMillis: Date.now() - ctx.createdAt * 1000,
-			usage: responseObject.usage,
-			upstreamLatencyMillis: ctx.attributes.get("upstreamLatencyMillis"),
-			streamEventCount: this.eventCount,
-		});
 		try {
 			await this.options.saveSession(ctx.app.sessionStore, responseObject, ctx);
 		} catch (err) {

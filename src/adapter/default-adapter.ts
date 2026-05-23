@@ -7,6 +7,7 @@ import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import type { Adapter } from "./adapter";
 import type { StreamState } from "./mapper/stream-state";
 import { ProviderEventToResponseTransformer } from "./transformers/provider-event-to-response-transformer";
+import { ResponseLogTransformer } from "./transformers/response-log-transformer";
 import { ResponseSessionPersistenceTransformer } from "./transformers/response-session-persistence-transformer";
 import { pipeTransform } from "./transformers/stream-utils";
 
@@ -70,12 +71,17 @@ export class DefaultAdapter implements Adapter {
 			new ProviderEventToResponseTransformer(mapper.stream, ctx),
 		);
 
+		const logStream = pipeTransform(
+			eventStream,
+			new ResponseLogTransformer(ctx),
+		);
+
 		if (ctx.request.store === false) {
-			return eventStream;
+			return logStream;
 		}
 
 		return pipeTransform(
-			eventStream,
+			logStream,
 			new ResponseSessionPersistenceTransformer({
 				ctx,
 				saveSession,
