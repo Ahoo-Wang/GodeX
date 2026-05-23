@@ -151,17 +151,7 @@
   border-color: rgba(239, 68, 68, 0.2);
 }
 
-/* Sidebar — dark */
-.dark .VPSidebar {
-  background: rgba(11, 18, 32, 0.85) !important;
-  backdrop-filter: blur(16px);
-}
 
-/* Nav bar — dark */
-.dark .VPNav {
-  background: rgba(11, 18, 32, 0.82) !important;
-  backdrop-filter: blur(16px);
-}
 
 /* Search */
 .VPLocalSearchBox .search-input {
