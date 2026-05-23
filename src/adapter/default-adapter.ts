@@ -17,39 +17,39 @@ import { TraceTransformer } from "./transformers/trace-transformer";
 
 export class DefaultAdapter implements Adapter {
 	async request(ctx: ResponsesContext): Promise<ResponseObject> {
-		ctx.logger.trace("responses.request.body", { body: ctx.request });
+		ctx.logger.trace("responses.request.body", () => ({ body: ctx.request }));
 		const { mapper, chatClient } = ctx.provider;
 		const req = await mapper.request.map(ctx);
-		ctx.logger.trace("upstream.request.body", { body: req });
-		ctx.logger.debug("provider.request.sending", {
+		ctx.logger.trace("upstream.request.body", () => ({ body: req }));
+		ctx.logger.debug("provider.request.sending", () => ({
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
 			stream: false,
-		});
+		}));
 		const upstreamStart = Date.now();
 		const res = await chatClient.chat(req);
-		ctx.logger.trace("upstream.response.body", { body: res });
-		ctx.logger.debug("provider.response.received", {
+		ctx.logger.trace("upstream.response.body", () => ({ body: res }));
+		ctx.logger.debug("provider.response.received", () => ({
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
 			upstreamDurationMillis: Date.now() - upstreamStart,
-		});
+		}));
 		const response = await mapper.response.map(ctx, res);
-		ctx.logger.info("responses.request.completed", {
+		ctx.logger.info("responses.request.completed", () => ({
 			status: response.status,
 			model: response.model,
 			outputCount: response.output.length,
 			durationMillis: Date.now() - ctx.createdAt * 1000,
 			usage: response.usage,
-		});
+		}));
 		try {
 			await saveSession(ctx.app.sessionStore, response, ctx);
 		} catch (err) {
-			ctx.logger.warn("session.save.error", {
+			ctx.logger.warn("session.save.error", () => ({
 				request_id: ctx.requestId,
 				response_id: response.id,
 				error: String(err),
-			});
+			}));
 		}
 		return response;
 	}
@@ -57,23 +57,23 @@ export class DefaultAdapter implements Adapter {
 	async stream(
 		ctx: ResponsesContext,
 	): Promise<ReadableStream<ResponseStreamEvent>> {
-		ctx.logger.trace("responses.request.body", { body: ctx.request });
+		ctx.logger.trace("responses.request.body", () => ({ body: ctx.request }));
 		const { mapper, chatClient } = ctx.provider;
 		const req = await mapper.request.map(ctx);
-		ctx.logger.trace("upstream.request.body", { body: req });
-		ctx.logger.debug("provider.request.sending", {
+		ctx.logger.trace("upstream.request.body", () => ({ body: req }));
+		ctx.logger.debug("provider.request.sending", () => ({
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
 			stream: true,
-		});
+		}));
 		const upstreamStart = Date.now();
 		const events = await chatClient.streamChat(req);
 		const upstreamLatencyMillis = Date.now() - upstreamStart;
-		ctx.logger.debug("provider.stream.connected", {
+		ctx.logger.debug("provider.stream.connected", () => ({
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
 			upstreamLatencyMillis,
-		});
+		}));
 		ctx.attributes.set(ATTR_UPSTREAM_LATENCY_MILLIS, upstreamLatencyMillis);
 
 		const traceRawStream = pipeTransform(
@@ -147,5 +147,5 @@ async function saveSession(
 	};
 
 	await store.save(session);
-	ctx.logger.debug("session.saved", { response_id: responseObject.id });
+	ctx.logger.debug("session.saved", () => ({ response_id: responseObject.id }));
 }

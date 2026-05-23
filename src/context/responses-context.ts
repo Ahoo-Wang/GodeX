@@ -62,11 +62,11 @@ export class ResponsesContext {
 			);
 		}
 
-		logger.debug("model.resolved", {
+		logger.debug("model.resolved", () => ({
 			selector: body.model,
 			provider: resolved.provider,
 			model: resolved.model,
-		});
+		}));
 
 		const providerConfig = app.config.providers[resolved.provider];
 		if (!providerConfig) {
@@ -83,10 +83,11 @@ export class ResponsesContext {
 				session = await app.sessionStore.resolveChain(
 					body.previous_response_id,
 				);
-				logger.debug("session.chain.resolved", {
+				const chain = session;
+				logger.debug("session.chain.resolved", () => ({
 					previous_response_id: body.previous_response_id,
-					turnCount: session.turns.length,
-				});
+					turnCount: chain.turns.length,
+				}));
 			} catch (err) {
 				if (err instanceof SessionError) throw err;
 				throw err;

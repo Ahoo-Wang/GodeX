@@ -24,17 +24,17 @@ export async function handleResponses(
 	try {
 		body = (await req.json()) as ResponseCreateRequest;
 	} catch (err) {
-		logger.debug("responses.request.invalid_json", {
+		logger.debug("responses.request.invalid_json", () => ({
 			error: String(err),
-		});
+		}));
 		return jsonError(400, SERVER_REQUEST_INVALID_JSON, "Invalid JSON body");
 	}
 
 	if (body.previous_response_id && body.conversation) {
-		logger.debug("responses.request.parameter.conflict", {
+		logger.debug("responses.request.parameter.conflict", () => ({
 			previous_response_id: body.previous_response_id,
 			conversation: true,
-		});
+		}));
 		return jsonError(
 			400,
 			SERVER_REQUEST_INVALID_PARAMETER,
@@ -47,7 +47,7 @@ export async function handleResponses(
 		const ctx = await ResponsesContext.create(app, body);
 		requestId = ctx.requestId;
 
-		ctx.logger.debug("responses.request.received", {
+		ctx.logger.debug("responses.request.received", () => ({
 			model: body.model,
 			resolved: ctx.resolved,
 			stream: body.stream,
@@ -67,7 +67,7 @@ export async function handleResponses(
 			max_tool_calls: body.max_tool_calls,
 			parallel_tool_calls: body.parallel_tool_calls,
 			context_management: body.context_management,
-		});
+		}));
 
 		if (body.stream) {
 			const eventStream = await app.adapter.stream(ctx);

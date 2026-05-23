@@ -17,12 +17,12 @@ export function serve(opts: CliOptions, runtime: CliRuntime): void {
 
 	const app = new ApplicationContext(config, registrar);
 
-	app.logger.info("config.loaded", {
+	app.logger.info("config.loaded", () => ({
 		path: configPath,
 		default_provider: config.default_provider,
 		providers: Object.keys(config.providers),
 		session_backend: config.session.backend,
-	});
+	}));
 
 	runtime.stdout?.write(
 		formatStartupBanner({
@@ -53,7 +53,7 @@ export function registerShutdownHandlers(
 	logger: Logger,
 ): void {
 	const shutdown = (signal: string) => {
-		logger.info("godex.shutting.down", { signal });
+		logger.info("godex.shutting.down", () => ({ signal }));
 		if ("stop" in server && typeof server.stop === "function") {
 			server.stop();
 		}
