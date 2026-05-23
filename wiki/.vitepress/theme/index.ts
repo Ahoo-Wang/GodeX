@@ -68,6 +68,7 @@ function openMermaidZoom(source: HTMLElement) {
     document.removeEventListener('mousemove', onMouseMove)
     document.removeEventListener('mouseup', onMouseUp)
     overlay.removeEventListener('mousedown', onMouseDown)
+    document.removeEventListener('keydown', onKeyDown)
     overlay.remove()
   }
 
@@ -79,20 +80,20 @@ function openMermaidZoom(source: HTMLElement) {
     if (e.target === overlay) close()
   })
 
-  document.addEventListener('keydown', function onKey(e) {
-    if (e.key === 'Escape') {
-      close()
-      document.removeEventListener('keydown', onKey)
-    }
-  })
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') close()
+  }
+  document.addEventListener('keydown', onKeyDown)
 
   clone.style.cursor = 'grab'
   document.body.appendChild(overlay)
 }
 
+let mermaidFixTimer: ReturnType<typeof setInterval> | null = null
 function fixMermaidDarkMode() {
+  if (mermaidFixTimer) clearInterval(mermaidFixTimer)
   let attempts = 0
-  const fix = setInterval(() => {
+  mermaidFixTimer = setInterval(() => {
     document.querySelectorAll('.mermaid svg [style]').forEach(el => {
       const s = (el as HTMLElement).style
       if (s.fill && !s.fill.includes('#2d333b') && !s.fill.includes('#1c2333') && !s.fill.includes('#161b22')) {
@@ -103,7 +104,7 @@ function fixMermaidDarkMode() {
       }
       if (s.color) s.color = '#e6edf3'
     })
-    if (++attempts >= 30) clearInterval(fix)
+    if (++attempts >= 30) { clearInterval(mermaidFixTimer!); mermaidFixTimer = null }
   }, 500)
 }
 

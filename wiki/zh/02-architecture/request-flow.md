@@ -11,6 +11,7 @@ description: "/v1/responses 请求在 Godex 中的端到端生命周期。"
 
 ```mermaid
 sequenceDiagram
+    autonumber
   actor C as 客户端
   participant R as 路由器
   participant AC as ApplicationContext

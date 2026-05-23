@@ -2,13 +2,6 @@
 
 > OpenAI Responses API gateway — translates /v1/responses into upstream Chat Completions API calls so any LLM provider can drive Codex. Built with Bun and TypeScript using the @ahoo-wang/fetcher ecosystem.
 
-## Onboarding
-
-- [Contributor Guide](onboarding/contributor-guide.md): Codebase walkthrough, setup, testing, contributing for new developers
-- [Staff Engineer Guide](onboarding/staff-engineer-guide.md): Architecture, design tradeoffs, decision log
-- [Executive Guide](onboarding/executive-guide.md): Capability map, risk assessment, technology thesis
-- [Product Manager Guide](onboarding/product-manager-guide.md): User journeys, feature map, FAQ
-
 ## Architecture
 
 - [System Overview](02-architecture/overview.md): Component model, C4 context, architectural decisions

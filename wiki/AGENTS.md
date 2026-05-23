@@ -6,10 +6,10 @@ AI agent instructions for the Godex VitePress wiki.
 
 ```bash
 cd wiki
-npm install          # Install VitePress + dependencies
-npm run dev          # Dev server (hot reload)
-npm run build        # Build static site to .vitepress/dist/
-npm run preview      # Preview built site
+pnpm install          # Install VitePress + dependencies
+pnpm run dev          # Dev server (hot reload)
+pnpm run build        # Build static site to .vitepress/dist/
+pnpm run preview      # Preview built site
 ```
 
 ## Structure
@@ -18,21 +18,20 @@ npm run preview      # Preview built site
 wiki/
 ├── .vitepress/
 │   ├── config.mts      # VitePress config with Mermaid plugin
-│   ├── public/         # Static assets (logo.svg, llms.txt)
 │   └── theme/          # Custom dark theme + zoom handlers
-├── onboarding/         # Audience-tailored guides
+├── public/             # Static assets (CNAME)
 ├── 01-getting-started/ # Setup, installation, quick reference
 ├── 02-architecture/    # System design, request flow, adapter, stream
-├── 03-provider-dev/    # Provider interface, Zhipu reference, mapping
-├── 04-session/         # Session store, chain resolution
-├── 05-streaming/       # Transformers, stream state
-├── 06-errors/          # Error hierarchy, error codes
-├── 07-config/          # Config schema, CLI commands
-├── 08-testing/         # Testing guide
-├── 09-deployment/      # CI/CD, publishing
-├── index.md            # Landing page
-├── llms.txt            # LLM-friendly index
-└── llms-full.txt       # Full inlined content
+├── 03-provider-development/  # Provider interface, Zhipu reference, mapping
+├── 04-session-management/    # Session store, chain resolution
+├── 05-streaming-pipeline/    # Transformers, stream state
+├── 06-error-handling/        # Error hierarchy, error codes
+├── 07-configuration/         # Config schema, CLI commands
+├── 08-testing/               # Testing guide
+├── 09-deployment/            # CI/CD, publishing
+├── index.md                  # Landing page
+├── llms.txt                  # LLM-friendly index
+└── llms-full.txt             # Full inlined content
 ```
 
 ## Content Conventions

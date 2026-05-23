@@ -11,6 +11,7 @@ This page traces the complete lifecycle of a request, from HTTP entry to SSE-enc
 
 ```mermaid
 sequenceDiagram
+    autonumber
   actor C as Client
   participant R as Router
   participant AC as ApplicationContext
