@@ -16,19 +16,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Verify repository is public for npm provenance
+      - name: Verify repository is public for OIDC publishing
         if: ${{ github.event.repository.private }}
         run: |
-          echo "::error::Set the GitHub repository to public before publishing with npm provenance."
+          echo "::error::Set the GitHub repository to public before publishing via OIDC Trusted Publisher."
           exit 1
-      - name: Verify npm token is configured
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::error::Configure the NPM_TOKEN repository secret before publishing."
-            exit 1
-          fi
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -165,8 +157,8 @@ jobs:
         run: |
           for pkg in platforms/*/; do
             echo "Publishing $(basename $pkg)..."
-            (cd "$pkg" && npm publish --access public --provenance)
+            (cd "$pkg" && npm publish --access public)
           done
 
       - name: Publish main package
-        run: npm publish --access public --provenance
+        run: npm publish --access public
