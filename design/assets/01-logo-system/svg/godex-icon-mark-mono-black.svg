@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="GodeX icon">
+
+<g fill="none" stroke="#050B1D" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M96 38 L55 62 Q48 66 48 76 L48 180 Q48 190 55 194 L96 218" stroke-width="14"/>
+  <path d="M160 38 L201 62 Q208 66 208 76 L208 180 Q208 190 201 194 L160 218" stroke-width="14"/>
+  <path d="M91 88 L165 168" stroke-width="17"/>
+  <path d="M165 88 L91 168" stroke-width="17"/>
+</g>
+
+</svg>

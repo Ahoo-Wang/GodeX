@@ -1,0 +1,64 @@
+:root {
+  --gx-bg-deep: #0B1220;
+  --gx-bg-panel: #112240;
+  --gx-bg-light: #F8FAFC;
+
+  --gx-text: #0F172A;
+  --gx-text-muted: #64748B;
+  --gx-text-subtle: #94A3B8;
+  --gx-text-invert: #F8FAFC;
+
+  --gx-blue: #2563FF;
+  --gx-cyan: #00D4FF;
+  --gx-purple: #7C3AED;
+  --gx-violet: #A855F7;
+
+  --gx-success: #22C55E;
+  --gx-warning: #F59E0B;
+  --gx-danger: #EF4444;
+
+  --gx-border: #E6ECF5;
+  --gx-border-dark: rgba(148, 163, 184, 0.18);
+
+  --gx-radius-sm: 8px;
+  --gx-radius-md: 12px;
+  --gx-radius-lg: 20px;
+  --gx-radius-xl: 28px;
+
+  --gx-shadow-sm: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --gx-shadow-md: 0 16px 48px rgba(15, 23, 42, 0.12);
+  --gx-shadow-glow: 0 16px 48px rgba(37, 99, 255, 0.28);
+
+  --gx-gradient-brand: linear-gradient(135deg, #00D4FF 0%, #2563FF 45%, #7C3AED 100%);
+  --gx-gradient-hero:
+    radial-gradient(circle at 20% 20%, rgba(37, 99, 255, 0.22), transparent 32%),
+    radial-gradient(circle at 80% 30%, rgba(124, 58, 237, 0.18), transparent 28%),
+    linear-gradient(180deg, #0B1220 0%, #08101D 100%);
+}
+
+.gx-button-primary {
+  background: var(--gx-blue);
+  color: white;
+  border-radius: var(--gx-radius-md);
+  font-weight: 600;
+  box-shadow: var(--gx-shadow-glow);
+}
+
+.gx-button-primary:hover {
+  background: var(--gx-gradient-brand);
+}
+
+.gx-card-light {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-lg);
+  box-shadow: var(--gx-shadow-md);
+}
+
+.gx-card-dark {
+  background: rgba(17, 34, 64, 0.72);
+  border: 1px solid var(--gx-border-dark);
+  border-radius: var(--gx-radius-lg);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(18px);
+}

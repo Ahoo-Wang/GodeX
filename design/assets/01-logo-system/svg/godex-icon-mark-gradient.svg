@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="GodeX icon">
+
+<defs>
+  <linearGradient id="godexGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#00D4FF"/>
+    <stop offset="48%" stop-color="#2563FF"/>
+    <stop offset="100%" stop-color="#7C3AED"/>
+  </linearGradient>
+  <linearGradient id="godexGrad2" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#00D4FF"/>
+    <stop offset="55%" stop-color="#2563FF"/>
+    <stop offset="100%" stop-color="#B36BFF"/>
+  </linearGradient>
+  <filter id="softGlow" x="-25%" y="-25%" width="150%" height="150%">
+    <feGaussianBlur stdDeviation="2.2" result="coloredBlur"/>
+    <feMerge>
+      <feMergeNode in="coloredBlur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+</defs>
+
+<g fill="none" stroke="url(#godexGrad)" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M96 38 L55 62 Q48 66 48 76 L48 180 Q48 190 55 194 L96 218" stroke-width="14"/>
+  <path d="M160 38 L201 62 Q208 66 208 76 L208 180 Q208 190 201 194 L160 218" stroke-width="14"/>
+  <path d="M91 88 L165 168" stroke-width="17"/>
+  <path d="M165 88 L91 168" stroke-width="17"/>
+</g>
+
+</svg>

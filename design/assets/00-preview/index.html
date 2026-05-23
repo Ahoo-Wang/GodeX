@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GodeX Design Assets</title>
+<style>
+:root{--deep:#0B1220;--panel:#112240;--blue:#2563FF;--cyan:#00D4FF;--purple:#7C3AED;--border:#E6ECF5;--text:#0F172A;--muted:#64748B;}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:#f8fafc;}
+.hero{padding:56px 40px;background:radial-gradient(circle at 20% 20%,rgba(37,99,255,.22),transparent 32%),radial-gradient(circle at 80% 30%,rgba(124,58,237,.18),transparent 28%),linear-gradient(180deg,#0B1220 0%,#08101D 100%);color:white;}
+.hero h1{font-size:48px;line-height:1.05;margin:0 0 12px}.hero p{margin:0;color:#cbd5e1;font-size:18px}.wrap{padding:32px 40px;max-width:1280px;margin:auto}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}.card{background:white;border:1px solid var(--border);border-radius:20px;padding:18px;box-shadow:0 16px 48px rgba(15,23,42,.08)}.card h2{font-size:18px;margin:0 0 12px}.card p{color:var(--muted);margin:6px 0 0}.card img{width:100%;height:auto;border-radius:14px;background:#fff}.dark{background:#0B1220}.swatches{display:flex;gap:10px;flex-wrap:wrap}.sw{width:72px}.box{width:72px;height:44px;border-radius:10px;border:1px solid rgba(15,23,42,.1)}code{background:#eef2ff;border-radius:6px;padding:2px 6px}.list{line-height:1.8;color:#334155}</style>
+</head>
+<body>
+<section class="hero">
+  <h1>GodeX Design Assets</h1>
+  <p>Make every model a Codex engine. · OpenAI-compatible Responses API gateway.</p>
+</section>
+<main class="wrap">
+  <section class="grid">
+    <div class="card"><h2>Primary Logo</h2><img src="../03-standalone-renders/godex-primary-horizontal-light-16x9.png"><p>横版主 Logo，适用于官网、README、品牌展示。</p></div>
+    <div class="card dark"><h2 style="color:white">Dark Logo</h2><img src="../03-standalone-renders/godex-primary-horizontal-dark-16x9.png"><p style="color:#cbd5e1">深色背景版本，适用于 Hero / CLI / 暗色界面。</p></div>
+    <div class="card"><h2>Stacked Logo</h2><img src="../03-standalone-renders/godex-stacked-light-4x5.png"><p>竖版 Logo，适用于封面、社交头像扩展图。</p></div>
+    <div class="card"><h2>Icon Mark</h2><img src="../03-standalone-renders/godex-icon-mark-light-1x1.png"><p>图标标识，适用于 favicon、docs sidebar、工具栏。</p></div>
+    <div class="card"><h2>App Icon</h2><img src="../03-standalone-renders/godex-app-icon-dark-1x1.png"><p>深色圆角 App Icon。</p></div>
+  </section>
+  <section class="card" style="margin-top:24px">
+    <h2>Color Palette</h2>
+    <div class="swatches">
+      <div class="sw"><div class="box" style="background:#0B1220"></div><code>#0B1220</code></div>
+      <div class="sw"><div class="box" style="background:#112240"></div><code>#112240</code></div>
+      <div class="sw"><div class="box" style="background:#2563FF"></div><code>#2563FF</code></div>
+      <div class="sw"><div class="box" style="background:#00D4FF"></div><code>#00D4FF</code></div>
+      <div class="sw"><div class="box" style="background:#7C3AED"></div><code>#7C3AED</code></div>
+      <div class="sw"><div class="box" style="background:#A855F7"></div><code>#A855F7</code></div>
+    </div>
+  </section>
+  <section class="card" style="margin-top:24px">
+    <h2>Package Structure</h2>
+    <div class="list">
+      <div><code>01-logo-system/</code> PNG、SVG、App Icon、CLI Badge、原始裁切资源。</div>
+      <div><code>02-favicon/</code> favicon.ico、favicon.svg、各尺寸 PNG、webmanifest。</div>
+      <div><code>03-standalone-renders/</code> 最新生成的单独 Logo 渲染图。</div>
+      <div><code>04-brand-boards/</code> 品牌板与多场景展示图。</div>
+      <div><code>05-ui-theme-guide/</code> UI 主题规范、CSS Tokens、Tailwind Theme、HTML 片段。</div>
+    </div>
+  </section>
+</main>
+</body>
+</html>
