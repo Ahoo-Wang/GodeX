@@ -68,7 +68,9 @@ export class OpenAIStreamMapper implements StreamMapper<ChatCompletionChunk> {
 			for (const tc of delta.tool_calls) {
 				if (tc.type !== "function") continue;
 				const fn = tc.function;
-				const index = state.toolCalls.length;
+				const rawIndex = (tc as unknown as Record<string, unknown>).index;
+				const index =
+					typeof rawIndex === "number" ? rawIndex : state.toolCalls.length;
 				let toolCall = state.toolCalls.find((item) => item.index === index);
 				if (!toolCall) {
 					toolCall = {

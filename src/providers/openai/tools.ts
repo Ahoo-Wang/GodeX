@@ -11,20 +11,18 @@ import type {
 import type {
 	ResponseTool,
 	ResponseToolChoice,
-	WebSearchPreviewTool,
-	WebSearchTool,
 } from "../../protocol/openai/responses";
+import type { SearchContextSize } from "../../protocol/openai/shared";
 import { getBuiltinFunctionToolDefinition } from "../../tools";
 
 export interface MappedTools {
 	tools: ChatCompletionTool[];
-	toolChoice: ChatCompletionToolChoiceOption | undefined;
 	webSearchOptions: ChatCompletionWebSearchOptions | undefined;
 }
 
 export function mapTools(tools: ResponseTool[] | undefined): MappedTools {
 	if (!tools || tools.length === 0) {
-		return { tools: [], toolChoice: undefined, webSearchOptions: undefined };
+		return { tools: [], webSearchOptions: undefined };
 	}
 
 	const mappedTools: ChatCompletionTool[] = [];
@@ -70,12 +68,12 @@ export function mapTools(tools: ResponseTool[] | undefined): MappedTools {
 			}
 			case "web_search":
 			case "web_search_2025_08_26": {
-				webSearchOptions = mapWebSearchOptions(tool);
+				webSearchOptions = mapWebSearchOptionsFromTool(tool);
 				break;
 			}
 			case "web_search_preview":
 			case "web_search_preview_2025_03_11": {
-				webSearchOptions = mapWebSearchPreviewOptions(tool);
+				webSearchOptions = mapWebSearchOptionsFromTool(tool);
 				break;
 			}
 			case "local_shell":
@@ -128,7 +126,7 @@ export function mapTools(tools: ResponseTool[] | undefined): MappedTools {
 		}
 	}
 
-	return { tools: mappedTools, toolChoice: undefined, webSearchOptions };
+	return { tools: mappedTools, webSearchOptions };
 }
 
 function toolSearchToFunctionTool(
@@ -160,35 +158,15 @@ function toolSearchToFunctionTool(
 	};
 }
 
-function mapWebSearchOptions(
-	tool: WebSearchTool,
-): ChatCompletionWebSearchOptions {
-	const opts: ChatCompletionWebSearchOptions = {};
-	if (tool.search_context_size)
-		opts.search_context_size = tool.search_context_size;
-	if (tool.user_location) {
-		opts.user_location = {
-			type: "approximate",
-			approximate: {
-				...(tool.user_location.city ? { city: tool.user_location.city } : {}),
-				...(tool.user_location.country
-					? { country: tool.user_location.country }
-					: {}),
-				...(tool.user_location.region
-					? { region: tool.user_location.region }
-					: {}),
-				...(tool.user_location.timezone
-					? { timezone: tool.user_location.timezone }
-					: {}),
-			},
-		};
-	}
-	return opts;
-}
-
-function mapWebSearchPreviewOptions(
-	tool: WebSearchPreviewTool,
-): ChatCompletionWebSearchOptions {
+function mapWebSearchOptionsFromTool(tool: {
+	search_context_size?: SearchContextSize;
+	user_location?: {
+		city?: string;
+		country?: string;
+		region?: string;
+		timezone?: string;
+	};
+}): ChatCompletionWebSearchOptions {
 	const opts: ChatCompletionWebSearchOptions = {};
 	if (tool.search_context_size)
 		opts.search_context_size = tool.search_context_size;

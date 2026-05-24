@@ -167,10 +167,11 @@ function extractUserContent(
 					file_id?: string;
 					detail?: string;
 				};
+				if (!img.image_url) continue;
 				parts.push({
 					type: "image_url",
 					image_url: {
-						url: img.image_url ?? `https://placeholder/${img.file_id ?? ""}`,
+						url: img.image_url,
 						...(img.detail
 							? { detail: img.detail as "low" | "high" | "auto" }
 							: {}),
