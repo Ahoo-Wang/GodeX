@@ -215,6 +215,23 @@ describe("buildConfig", () => {
 		).toThrow('models.aliases.gpt-5: value must be "provider/model" format');
 	});
 
+	test("throws for model aliases referencing unconfigured provider", () => {
+		expect(() =>
+			buildConfig(
+				{
+					models: { aliases: { "gpt-5": "unknown/glm-5.1" } },
+					providers: {
+						zhipu: {
+							api_key: "test-key",
+							base_url: "https://example.test/api",
+						},
+					},
+				},
+				{},
+			),
+		).toThrow('models.aliases.gpt-5: provider "unknown" is not configured');
+	});
+
 	test("parses logging config with console and file", () => {
 		const config = buildConfig(
 			{

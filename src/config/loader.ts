@@ -93,6 +93,7 @@ function validateProviders(
 
 function validateModelAliases(
 	rawAliases: Record<string, unknown>,
+	providerNames: Set<string>,
 ): Record<string, string> {
 	const aliases: Record<string, string> = {};
 	for (const [alias, target] of Object.entries(rawAliases)) {
@@ -103,6 +104,12 @@ function validateModelAliases(
 		if (slashIndex <= 0 || slashIndex === target.length - 1) {
 			throw new Error(
 				`models.aliases.${alias}: value must be "provider/model" format, got "${target}"`,
+			);
+		}
+		const provider = target.slice(0, slashIndex);
+		if (!providerNames.has(provider)) {
+			throw new Error(
+				`models.aliases.${alias}: provider "${provider}" is not configured`,
 			);
 		}
 		aliases[alias] = target;
@@ -150,6 +157,7 @@ export function buildConfig(
 			models = {
 				aliases: validateModelAliases(
 					rawModels.aliases as Record<string, unknown>,
+					new Set(Object.keys(providers)),
 				),
 			};
 		}
