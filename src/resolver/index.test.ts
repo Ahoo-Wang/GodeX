@@ -4,54 +4,53 @@ import { ServerError } from "../error";
 import { ModelResolver } from ".";
 
 describe("ModelResolver", () => {
-	const router = new ModelResolver("zhipu", {
-		zhipu: {
-			api_key: "test",
-			base_url: "https://example.com",
-			models: { "gpt-5": "glm-5.1", "gpt-4o": "glm-4.7", "*": "glm-5.1" },
-		},
-	});
+	const aliases = {
+		"gpt-5": "zhipu/glm-5.1",
+		"gpt-4o": "zhipu/glm-4.7",
+		"*": "zhipu/glm-5.1",
+	};
+	const resolver = new ModelResolver("zhipu", aliases);
 
-	test("parses provider/model format", () => {
-		const result = router.resolve("zhipu/glm-5.1");
+	// Bare names: alias matching
+	test("bare name hits exact alias", () => {
+		const result = resolver.resolve("gpt-5");
 		expect(result).toEqual({ provider: "zhipu", model: "glm-5.1" });
 	});
 
-	test("uses default provider when no prefix", () => {
-		const result = router.resolve("gpt-5");
-		expect(result.provider).toBe("zhipu");
-		expect(result.model).toBe("glm-5.1");
-	});
-
-	test("uses wildcard fallback for unmapped models", () => {
-		const result = router.resolve("unknown-model");
+	test("bare name hits wildcard alias", () => {
+		const result = resolver.resolve("gpt-5.5");
 		expect(result).toEqual({ provider: "zhipu", model: "glm-5.1" });
 	});
 
-	test("handles multi-segment provider path", () => {
-		const result = router.resolve("deepseek/deepseek-chat");
+	test("bare name falls back to default_provider when no alias matches", () => {
+		const r = new ModelResolver("zhipu", {});
+		const result = r.resolve("unknown-model");
+		expect(result).toEqual({ provider: "zhipu", model: "unknown-model" });
+	});
+
+	// Explicit provider/model: passthrough, no alias lookup
+	test("explicit provider/model passthrough", () => {
+		const result = resolver.resolve("zhipu/glm-5.1");
+		expect(result).toEqual({ provider: "zhipu", model: "glm-5.1" });
+	});
+
+	test("explicit provider/model with different provider", () => {
+		const result = resolver.resolve("deepseek/deepseek-chat");
 		expect(result).toEqual({ provider: "deepseek", model: "deepseek-chat" });
 	});
 
-	test("uses model mapping from provider config", () => {
-		const result = router.resolve("gpt-4o");
-		expect(result.model).toBe("glm-4.7");
+	// Bare name with no default_provider fallback
+	test("bare name falls back to default_provider", () => {
+		const r = new ModelResolver("openai", {});
+		const result = r.resolve("gpt-4o");
+		expect(result).toEqual({ provider: "openai", model: "gpt-4o" });
 	});
 
-	test("provider prefix overrides default", () => {
-		const result = router.resolve("deepseek/deepseek-chat");
-		expect(result.provider).toBe("deepseek");
-	});
-
-	test("applies model mapping when provider prefix is used", () => {
-		const result = router.resolve("zhipu/gpt-5");
-		expect(result).toEqual({ provider: "zhipu", model: "glm-5.1" });
-	});
-
+	// Reject invalid selectors
 	test("rejects missing model selectors", () => {
 		for (const model of [undefined, null, " "]) {
 			try {
-				router.resolve(model as never);
+				resolver.resolve(model as never);
 				throw new Error(`Expected ${String(model)} to be rejected`);
 			} catch (err) {
 				expect(err).toBeInstanceOf(ServerError);
@@ -63,7 +62,7 @@ describe("ModelResolver", () => {
 	test("rejects invalid model selectors", () => {
 		for (const model of ["/glm-5.1", "zhipu/", 42]) {
 			try {
-				router.resolve(model as never);
+				resolver.resolve(model as never);
 				throw new Error(`Expected ${String(model)} to be rejected`);
 			} catch (err) {
 				expect(err).toBeInstanceOf(ServerError);

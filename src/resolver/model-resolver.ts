@@ -1,4 +1,3 @@
-import type { ProviderConfig } from "../config";
 import {
 	SERVER_REQUEST_INVALID_PARAMETER,
 	SERVER_REQUEST_MISSING_MODEL,
@@ -12,28 +11,37 @@ export interface ResolvedModel {
 
 export class ModelResolver {
 	private readonly defaultProvider: string;
-	private readonly providerConfigs: Record<string, ProviderConfig>;
+	private readonly aliases: Record<string, string>;
 
-	constructor(
-		defaultProvider: string,
-		providers: Record<string, ProviderConfig>,
-	) {
+	constructor(defaultProvider: string, aliases?: Record<string, string>) {
 		this.defaultProvider = defaultProvider;
-		this.providerConfigs = providers;
+		this.aliases = aliases ?? {};
 	}
 
 	resolve(model: unknown): ResolvedModel {
 		const selector = normalizeModelSelector(model);
-		const slashIndex = selector.indexOf("/");
-		const provider =
-			slashIndex !== -1 ? selector.slice(0, slashIndex) : this.defaultProvider;
-		const modelName =
-			slashIndex !== -1 ? selector.slice(slashIndex + 1) : selector;
 
-		const config = this.providerConfigs[provider];
-		const models = config?.models;
-		const mapped = models?.[modelName] ?? models?.["*"];
-		return { provider, model: mapped ?? modelName };
+		if (selector.includes("/")) {
+			const slashIndex = selector.indexOf("/");
+			return {
+				provider: selector.slice(0, slashIndex),
+				model: selector.slice(slashIndex + 1),
+			};
+		}
+
+		const aliasTarget = this.aliases[selector] ?? this.aliases["*"];
+
+		if (aliasTarget) {
+			const slashIndex = aliasTarget.indexOf("/");
+			if (slashIndex > 0 && slashIndex < aliasTarget.length - 1) {
+				return {
+					provider: aliasTarget.slice(0, slashIndex),
+					model: aliasTarget.slice(slashIndex + 1),
+				};
+			}
+		}
+
+		return { provider: this.defaultProvider, model: selector };
 	}
 }
 

@@ -30,15 +30,17 @@ function createLiveConfig(port: number): GodeXConfig {
 	return {
 		server: { port, host: "127.0.0.1" },
 		default_provider: "zhipu",
+		models: {
+			aliases: {
+				"gpt-5": "zhipu/glm-5.1",
+				"gpt-5-mini": "zhipu/glm-5-turbo",
+				"gpt-4o-mini": "zhipu/glm-4.7-flash",
+			},
+		},
 		providers: {
 			zhipu: {
 				api_key: apiKey ?? "",
 				base_url: zhipuBaseUrl,
-				models: {
-					"gpt-5": "glm-5.1",
-					"gpt-5-mini": "glm-5-turbo",
-					"gpt-4o-mini": "glm-4.7-flash",
-				},
 			},
 		},
 		session: { backend: "memory" },

@@ -8,6 +8,7 @@ import type {
 	FileLoggingConfig,
 	GodeXConfig,
 	LogLevel,
+	ModelsConfig,
 	ProviderConfig,
 } from "./schema";
 
@@ -84,37 +85,41 @@ function validateProviders(
 			throw new Error(`Provider ${name} is missing required field: base_url`);
 		}
 
-		const config: ProviderConfig = { api_key, base_url };
-		if (
-			provider.models &&
-			typeof provider.models === "object" &&
-			provider.models !== null
-		) {
-			config.models = validateModelMappings(
-				name,
-				provider.models as Record<string, unknown>,
-			);
-		}
-		result[name] = config;
+		result[name] = { api_key, base_url };
 	}
 
 	return result;
 }
 
-function validateModelMappings(
-	providerName: string,
-	rawModels: Record<string, unknown>,
+function validateModelAliases(
+	rawAliases: Record<string, unknown>,
+	providerNames: Set<string>,
 ): Record<string, string> {
-	const models: Record<string, string> = {};
-	for (const [alias, target] of Object.entries(rawModels)) {
-		if (typeof target !== "string") {
+	const aliases: Record<string, string> = {};
+	for (const [alias, target] of Object.entries(rawAliases)) {
+		if (alias !== "*" && alias.includes("/")) {
 			throw new Error(
-				`Provider ${providerName} models.${alias} must be a string`,
+				`models.aliases.${alias}: alias key must not contain "/"`,
 			);
 		}
-		models[alias] = target;
+		if (typeof target !== "string") {
+			throw new Error(`models.aliases.${alias} must be a string`);
+		}
+		const slashIndex = target.indexOf("/");
+		if (slashIndex <= 0 || slashIndex === target.length - 1) {
+			throw new Error(
+				`models.aliases.${alias}: value must be "provider/model" format, got "${target}"`,
+			);
+		}
+		const provider = target.slice(0, slashIndex);
+		if (!providerNames.has(provider)) {
+			throw new Error(
+				`models.aliases.${alias}: provider "${provider}" is not configured`,
+			);
+		}
+		aliases[alias] = target;
 	}
-	return models;
+	return aliases;
 }
 
 export function buildConfig(
@@ -145,6 +150,23 @@ export function buildConfig(
 		typeof rawProviders === "object" && rawProviders !== null
 			? validateProviders(rawProviders as Record<string, unknown>)
 			: {};
+
+	let models: ModelsConfig | undefined;
+	if (file.models && typeof file.models === "object" && file.models !== null) {
+		const rawModels = file.models as Record<string, unknown>;
+		if (
+			rawModels.aliases &&
+			typeof rawModels.aliases === "object" &&
+			rawModels.aliases !== null
+		) {
+			models = {
+				aliases: validateModelAliases(
+					rawModels.aliases as Record<string, unknown>,
+					new Set(Object.keys(providers)),
+				),
+			};
+		}
+	}
 
 	const port =
 		overrides.port !== undefined
@@ -199,6 +221,7 @@ export function buildConfig(
 
 	return {
 		server: { port, host, idle_timeout: idleTimeout },
+		models,
 		default_provider: defaultProvider,
 		providers,
 		session: {

@@ -33,7 +33,7 @@ export class ApplicationContext {
 		this.logger = createLogger(config.logging);
 		this.resolver = new ModelResolver(
 			config.default_provider,
-			config.providers,
+			config.models?.aliases,
 		);
 		this.registrar = registrar ?? createBuiltinRegistrar();
 		this.registrar.registerProviders(config.providers, this.logger);

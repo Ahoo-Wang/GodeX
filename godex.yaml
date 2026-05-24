@@ -1,38 +1,92 @@
-# godex.yaml — Default GodeX configuration
+# =============================================================================
+# GodeX Configuration — OpenAI Responses API Gateway
+# =============================================================================
+# 配置文件查找顺序:
+#   1. 当前目录 ./godex.yaml
+#   2. ~/.godex/config.yaml
+#
+# 环境变量: 使用 ${VAR_NAME} 语法引用，对 providers 配置生效。
+# 命令行覆盖: --port, --host, --log-level 可覆盖对应字段。
 
+# ---------------------------------------------------------------------------
+# 服务器
+# ---------------------------------------------------------------------------
 server:
-  port: 5678
+  port: 5678          # 监听端口 (默认 5678, 环境变量 GODEX_PORT)
+  host: 0.0.0.0       # 监听地址 (默认 0.0.0.0, 环境变量 GODEX_HOST)
+  # idle_timeout: 0   # 空闲连接超时秒数 (0 = 不超时)
 
+# ---------------------------------------------------------------------------
+# 默认 Provider — 当请求的 model 不含 "/" 且别名未命中时使用
+# ---------------------------------------------------------------------------
 default_provider: zhipu
 
+# ---------------------------------------------------------------------------
+# 模型别名 — 将 OpenAI 模型名映射到实际的 provider/model
+# ---------------------------------------------------------------------------
+# 解析规则 (按优先级):
+#   1. model 含 "/"   → 直接解析为 provider/model，不查别名，透传
+#   2. model 不含 "/" → 查 aliases 精确匹配
+#   3. 未命中         → 查 "*" 通配符
+#   4. 无 "*"         → 兜底: default_provider/原始model名
+#
+# 别名值格式: <provider>/<upstream-model>
+#   - provider 必须在 providers 中已注册
+#   - upstream-model 为上游 API 实际使用的模型名
+# ---------------------------------------------------------------------------
+models:
+  aliases:
+    # GPT-5.5 → 智谱 GLM-5.1
+    gpt-5.5:      zhipu/glm-5.1
+    gpt-5.4:      zhipu/glm-5.1
+    gpt-5:        zhipu/glm-5.1
+    gpt-5-mini:   zhipu/glm-5-turbo
+    # GPT-4o → 智谱 GLM-4.7
+    gpt-4o:       zhipu/glm-4.7
+    gpt-4o-mini:  zhipu/glm-4.7-flash
+    # "*" 兜底 — 任何未匹配的 model 名都映射到此
+    "*":          zhipu/glm-5.1
+
+# ---------------------------------------------------------------------------
+# Provider 列表 — 上游 LLM 服务商配置
+# ---------------------------------------------------------------------------
 providers:
   zhipu:
-    api_key: ${ZHIPU_API_KEY}
-    base_url: https://open.bigmodel.cn/api/coding/paas/v4
-    models:
-      gpt-5.5: glm-5.1
-      gpt-5.4: glm-5.1
-      gpt-5: glm-5.1
-      gpt-5-mini: glm-5-turbo
-      gpt-4o: glm-4.7
-      gpt-4o-mini: glm-4.7-flash
-      "*": glm-5.1
+    api_key: ${ZHIPU_API_KEY}                                        # API 密钥 (必填)
+    base_url: https://open.bigmodel.cn/api/coding/paas/v4            # 上游地址 (必填)
 
+  # 添加其他 provider 示例:
+  # openai:
+  #   api_key: ${OPENAI_API_KEY}
+  #   base_url: https://api.openai.com/v1
+  #
+  # deepseek:
+  #   api_key: ${DEEPSEEK_API_KEY}
+  #   base_url: https://api.deepseek.com/v1
+
+# ---------------------------------------------------------------------------
+# 会话存储 — 多轮对话的 previous_response_id 链
+# ---------------------------------------------------------------------------
 session:
-  backend: sqlite
+  backend: sqlite                    # memory | sqlite
   sqlite:
-    path: ./data/sessions.db
+    path: ./data/sessions.db         # SQLite 数据库路径 (仅 sqlite 模式)
 
+# ---------------------------------------------------------------------------
+# 日志
+# ---------------------------------------------------------------------------
 logging:
-  level: info
+  level: info                        # trace | debug | info | warn | error
 
   console:
-    enabled: true
-    level: debug
-    pretty: true
+    enabled: true                    # 启用控制台日志
+    level: debug                     # 控制台日志级别 (默认继承 logging.level)
+    pretty: true                     # 结构化日志的人类可读输出
 
   file:
-    enabled: true
-    level: debug
-    dir: ~/.godex/logs
-    filename: godex.log
+    enabled: true                    # 启用文件日志
+    level: debug                     # 文件日志级别 (默认继承 logging.level)
+    dir: ~/.godex/logs               # 日志目录
+    filename: godex.log              # 日志文件名
+    # max_size: 10485760             # 单文件最大字节数 (默认无限制)
+    # max_files: 5                   # 保留的历史文件数 (默认无限制)

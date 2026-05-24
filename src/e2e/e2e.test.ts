@@ -189,11 +189,11 @@ beforeAll(async () => {
 	const config: GodeXConfig = {
 		server: { port: await getLoopbackPort(), host: "127.0.0.1" },
 		default_provider: "zhipu",
+		models: { aliases: { "gpt-5": "zhipu/glm-5.1" } },
 		providers: {
 			zhipu: {
 				api_key: "test-key",
 				base_url: mockUpstreamBase,
-				models: { "gpt-5": "glm-5.1" },
 			},
 			unregistered: {
 				api_key: "test-key",

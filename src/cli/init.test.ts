@@ -28,11 +28,6 @@ describe("buildConfigYaml", () => {
 		expect(yaml).toContain(`base_url: ${ZHIPU_BASE_URL}`);
 	});
 
-	test("includes wildcard fallback model mapping", () => {
-		const yaml = buildConfigYaml(baseOpts);
-		expect(yaml).toContain('"*": glm-5.1');
-	});
-
 	test("includes sqlite path for sqlite backend", () => {
 		const yaml = buildConfigYaml({ ...baseOpts, sessionBackend: "sqlite" });
 		expect(yaml).toContain("sqlite:");

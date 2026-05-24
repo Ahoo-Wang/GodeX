@@ -1,18 +1,16 @@
 import type { ApplicationContext } from "../../context/application-context";
 
 export function handleModels(app: ApplicationContext): Response {
+	const aliases = app.config.models?.aliases ?? {};
 	const registeredProviders = new Set(app.registrar.list());
-	const models = Object.entries(app.config.providers).flatMap(
-		([provider, providerConfig]) => {
-			if (!registeredProviders.has(provider)) return [];
-			const mapping = providerConfig.models ?? {};
-			const entries = Object.entries(mapping).map(([alias]) => ({
-				id: alias,
-				object: "model" as const,
-				owned_by: provider,
-			}));
-			return entries;
-		},
-	);
-	return Response.json({ object: "list", data: models });
+	const data: { id: string; object: "model"; owned_by: string }[] = [];
+	for (const [alias, target] of Object.entries(aliases)) {
+		if (alias === "*") continue;
+		const slashIndex = target.indexOf("/");
+		if (slashIndex <= 0) continue;
+		const provider = target.slice(0, slashIndex);
+		if (!registeredProviders.has(provider)) continue;
+		data.push({ id: alias, object: "model", owned_by: provider });
+	}
+	return Response.json({ object: "list", data });
 }

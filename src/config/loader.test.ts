@@ -162,21 +162,74 @@ describe("buildConfig", () => {
 		).toThrow("Invalid server host");
 	});
 
-	test("throws for provider model mappings with non-string targets", () => {
+	test("throws for model aliases with non-string targets", () => {
 		expect(() =>
 			buildConfig(
 				{
+					models: { aliases: { "gpt-5": 51 } },
 					providers: {
 						zhipu: {
 							api_key: "test-key",
 							base_url: "https://example.test/api",
-							models: { "gpt-5": 51 },
 						},
 					},
 				},
 				{},
 			),
-		).toThrow("Provider zhipu models.gpt-5 must be a string");
+		).toThrow("models.aliases.gpt-5 must be a string");
+	});
+
+	test("throws for model aliases without provider/model format", () => {
+		expect(() =>
+			buildConfig(
+				{
+					models: { aliases: { "gpt-5": "glm-5.1" } },
+					providers: {
+						zhipu: {
+							api_key: "test-key",
+							base_url: "https://example.test/api",
+						},
+					},
+				},
+				{},
+			),
+		).toThrow(
+			'models.aliases.gpt-5: value must be "provider/model" format, got "glm-5.1"',
+		);
+	});
+
+	test("throws for model aliases with empty provider segment", () => {
+		expect(() =>
+			buildConfig(
+				{
+					models: { aliases: { "gpt-5": "/glm-5.1" } },
+					providers: {
+						zhipu: {
+							api_key: "test-key",
+							base_url: "https://example.test/api",
+						},
+					},
+				},
+				{},
+			),
+		).toThrow('models.aliases.gpt-5: value must be "provider/model" format');
+	});
+
+	test("throws for model aliases referencing unconfigured provider", () => {
+		expect(() =>
+			buildConfig(
+				{
+					models: { aliases: { "gpt-5": "unknown/glm-5.1" } },
+					providers: {
+						zhipu: {
+							api_key: "test-key",
+							base_url: "https://example.test/api",
+						},
+					},
+				},
+				{},
+			),
+		).toThrow('models.aliases.gpt-5: provider "unknown" is not configured');
 	});
 
 	test("parses logging config with console and file", () => {
