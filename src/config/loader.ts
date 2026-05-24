@@ -97,9 +97,7 @@ function validateModelAliases(
 	const aliases: Record<string, string> = {};
 	for (const [alias, target] of Object.entries(rawAliases)) {
 		if (typeof target !== "string") {
-			throw new Error(
-				`models.aliases.${alias} must be a string`,
-			);
+			throw new Error(`models.aliases.${alias} must be a string`);
 		}
 		const slashIndex = target.indexOf("/");
 		if (slashIndex <= 0 || slashIndex === target.length - 1) {

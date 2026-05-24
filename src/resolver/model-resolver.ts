@@ -13,10 +13,7 @@ export class ModelResolver {
 	private readonly defaultProvider: string;
 	private readonly aliases: Record<string, string>;
 
-	constructor(
-		defaultProvider: string,
-		aliases?: Record<string, string>,
-	) {
+	constructor(defaultProvider: string, aliases?: Record<string, string>) {
 		this.defaultProvider = defaultProvider;
 		this.aliases = aliases ?? {};
 	}
@@ -32,8 +29,7 @@ export class ModelResolver {
 			};
 		}
 
-		const aliasTarget =
-			this.aliases[selector] ?? this.aliases["*"];
+		const aliasTarget = this.aliases[selector] ?? this.aliases["*"];
 
 		if (aliasTarget) {
 			const slashIndex = aliasTarget.indexOf("/");

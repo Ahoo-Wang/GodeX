@@ -193,7 +193,9 @@ describe("buildConfig", () => {
 				},
 				{},
 			),
-		).toThrow('models.aliases.gpt-5: value must be "provider/model" format, got "glm-5.1"');
+		).toThrow(
+			'models.aliases.gpt-5: value must be "provider/model" format, got "glm-5.1"',
+		);
 	});
 
 	test("throws for model aliases with empty provider segment", () => {
