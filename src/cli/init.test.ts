@@ -30,7 +30,7 @@ describe("buildConfigYaml", () => {
 
 	test("includes wildcard fallback model mapping", () => {
 		const yaml = buildConfigYaml(baseOpts);
-		expect(yaml).toContain('"*": glm-5.1');
+		expect(yaml).toContain('"*": zhipu/glm-5.1');
 	});
 
 	test("includes sqlite path for sqlite backend", () => {

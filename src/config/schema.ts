@@ -11,7 +11,10 @@ export interface ServerConfig {
 export interface ProviderConfig {
 	api_key: string;
 	base_url: string;
-	models?: Record<string, string>;
+}
+
+export interface ModelsConfig {
+	aliases?: Record<string, string>;
 }
 
 export interface SessionConfig {
@@ -42,6 +45,7 @@ export interface LoggingConfig {
 export interface GodeXConfig {
 	server: ServerConfig;
 	default_provider: string;
+	models?: ModelsConfig;
 	providers: Record<string, ProviderConfig>;
 	session: SessionConfig;
 	logging: LoggingConfig;

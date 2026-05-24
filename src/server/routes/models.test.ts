@@ -8,16 +8,15 @@ import { handleModels } from "./models";
 const config: GodeXConfig = {
 	server: { port: 0, host: "127.0.0.1" },
 	default_provider: "zhipu",
+	models: { aliases: { "gpt-5": "zhipu/glm-5.1" } },
 	providers: {
 		zhipu: {
 			api_key: "test-key",
 			base_url: "http://127.0.0.1:1",
-			models: { "gpt-5": "glm-5.1" },
 		},
 		unsupported: {
 			api_key: "test-key",
 			base_url: "http://127.0.0.1:2",
-			models: { ghost: "ghost-model" },
 		},
 	},
 	session: { backend: "memory" },
@@ -46,7 +45,7 @@ function createTestApp(): ApplicationContext {
 }
 
 describe("GET /v1/models", () => {
-	test("lists only models owned by registered providers", async () => {
+	test("lists models from root aliases", async () => {
 		const app = createTestApp();
 		const res = handleModels(app);
 
@@ -60,6 +59,5 @@ describe("GET /v1/models", () => {
 		expect(body.data).toEqual([
 			{ id: "gpt-5", object: "model", owned_by: "zhipu" },
 		]);
-		expect(body.data.some((model) => model.id === "ghost")).toBe(false);
 	});
 });
