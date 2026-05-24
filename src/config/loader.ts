@@ -97,6 +97,11 @@ function validateModelAliases(
 ): Record<string, string> {
 	const aliases: Record<string, string> = {};
 	for (const [alias, target] of Object.entries(rawAliases)) {
+		if (alias !== "*" && alias.includes("/")) {
+			throw new Error(
+				`models.aliases.${alias}: alias key must not contain "/"`,
+			);
+		}
 		if (typeof target !== "string") {
 			throw new Error(`models.aliases.${alias} must be a string`);
 		}

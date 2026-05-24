@@ -33,10 +33,12 @@ export class ModelResolver {
 
 		if (aliasTarget) {
 			const slashIndex = aliasTarget.indexOf("/");
-			return {
-				provider: aliasTarget.slice(0, slashIndex),
-				model: aliasTarget.slice(slashIndex + 1),
-			};
+			if (slashIndex > 0 && slashIndex < aliasTarget.length - 1) {
+				return {
+					provider: aliasTarget.slice(0, slashIndex),
+					model: aliasTarget.slice(slashIndex + 1),
+				};
+			}
 		}
 
 		return { provider: this.defaultProvider, model: selector };
