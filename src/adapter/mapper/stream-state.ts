@@ -26,6 +26,7 @@ export class StreamState {
 	phase = StreamPhase.HEADERS;
 	outputText = "";
 	reasoningContent = "";
+	refusal = "";
 	toolCalls: ToolCallAccumulator[] = [];
 	completedAt: number | null = null;
 	finalStatus: StatusFields = { status: "in_progress" };

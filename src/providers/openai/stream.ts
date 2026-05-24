@@ -48,6 +48,22 @@ export class OpenAIStreamMapper implements StreamMapper<ChatCompletionChunk> {
 			}
 		}
 
+		const reasoningContent = (delta as Record<string, unknown>)
+			.reasoning_content;
+		if (reasoningContent != null) {
+			const text = String(reasoningContent);
+			if (text) {
+				state.reasoningContent += text;
+				events.push({ type: "response.reasoning_text.delta", delta: text });
+			}
+		}
+
+		if (delta.refusal !== null && delta.refusal !== undefined) {
+			const text = String(delta.refusal);
+			state.refusal += text;
+			events.push({ type: "response.refusal.delta", delta: text });
+		}
+
 		if (delta.tool_calls) {
 			for (const tc of delta.tool_calls) {
 				if (tc.type !== "function") continue;

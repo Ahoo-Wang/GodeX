@@ -176,6 +176,14 @@ function extractUserContent(
 							: {}),
 					},
 				});
+			} else if (type === "input_audio") {
+				parts.push({
+					type: "input_audio",
+					input_audio: {
+						data: String((part as { data: unknown }).data),
+						format: (part as { format: unknown }).format as "wav" | "mp3",
+					},
+				});
 			} else if (type === "input_file") {
 				const file = part as {
 					file_data?: string;
