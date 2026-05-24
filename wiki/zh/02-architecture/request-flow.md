@@ -77,7 +77,7 @@ sequenceDiagram
 
 ## 关键步骤
 
-1. **模型解析**：`ModelResolver.resolve()` 解析模型字符串。包含 `/` 时，左侧为提供商名称；否则使用默认提供商。模型名称通过提供商的 `models` 表映射。
+1. **模型解析**：`ModelResolver.resolve()` 解析模型字符串。包含 `/` 时，视为显式 `provider/model` 选择器，直接透传。否则，在根级 `models.aliases` 映射中查找（精确匹配 → `*` 通配符 → `default_provider` 兜底）。
 
 2. **会话链解析**：当存在 `previous_response_id` 时，`SessionStore.resolveChain()` 沿父指针链遍历，按时间顺序收集对话轮次。
 

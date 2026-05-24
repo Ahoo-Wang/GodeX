@@ -77,7 +77,7 @@ sequenceDiagram
 
 ## Key Steps
 
-1. **Model resolution**: `ModelResolver.resolve()` parses the model string. If it contains a `/`, the left side is the provider name; otherwise the default provider is used. The model name is then mapped through the provider's `models` table.
+1. **Model resolution**: `ModelResolver.resolve()` parses the model string. If it contains a `/`, it is treated as an explicit `provider/model` selector and passed through directly. Otherwise, the bare name is looked up in the root-level `models.aliases` map (exact match, then `*` wildcard, then `default_provider` fallback).
 
 2. **Session chain resolution**: When `previous_response_id` is present, `SessionStore.resolveChain()` walks the parent pointer chain, collecting turns in chronological order.
 

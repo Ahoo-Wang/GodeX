@@ -60,7 +60,7 @@ const client = new OpenAI({
 });
 
 const response = await client.responses.create({
-  model: "gpt-4o",          // 通过 godex.yaml 的 models 表映射为 glm-4.7
+  model: "gpt-4o",          // 通过 models.aliases 解析为 zhipu/glm-4.7
   input: "Hello!",
 });
 ```
@@ -335,13 +335,15 @@ server:
 
 default_provider: zhipu
 
+models:
+  aliases:
+    "gpt-4o": zhipu/glm-4.7   # 模型名称映射
+    "*": zhipu/glm-5.1         # 兜底映射
+
 providers:
   zhipu:
     api_key: ${ZHIPU_API_KEY}
     base_url: https://open.bigmodel.cn/api/coding/paas/v4
-    models:
-      "gpt-4o": glm-4.7         # 模型名称映射
-      "*": glm-5.1              # 兜底映射
 
 session:
   backend: sqlite               # 或 "memory"

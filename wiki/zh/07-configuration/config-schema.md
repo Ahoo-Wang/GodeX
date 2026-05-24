@@ -18,13 +18,15 @@ server:
 
 default_provider: zhipu   # 模型无斜杠前缀时使用的提供商
 
+models:
+  aliases:
+    "gpt-4o": zhipu/glm-4.7   # 将 gpt-4o 映射为 zhipu 原生的 glm-4.7
+    "*": zhipu/glm-5.1         # 兜底映射
+
 providers:
   zhipu:
     api_key: ${ZHIPU_API_KEY}
     base_url: https://open.bigmodel.cn/api/coding/paas/v4
-    models:               # 模型名称映射表
-      "gpt-4o": glm-4.7   # 将 gpt-4o 映射为提供商原生的 glm-4.7
-      "*": glm-5.1        # 兜底映射
 
 session:
   backend: sqlite         # "sqlite" 或 "memory"
@@ -54,6 +56,7 @@ classDiagram
   class GodeXConfig {
     +server: ServerConfig
     +default_provider: string
+    +models: ModelsConfig
     +providers: Record
     +session: SessionConfig
     +logging: LoggingConfig
@@ -68,7 +71,10 @@ classDiagram
   class ProviderConfig {
     +api_key: string
     +base_url: string
-    +models: Record
+  }
+
+  class ModelsConfig {
+    +aliases: Record
   }
 
   class SessionConfig {
@@ -83,6 +89,7 @@ classDiagram
   }
 
   GodeXConfig --> ServerConfig
+  GodeXConfig --> ModelsConfig
   GodeXConfig --> ProviderConfig
   GodeXConfig --> SessionConfig
   GodeXConfig --> LoggingConfig

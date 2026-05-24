@@ -48,7 +48,7 @@ graph LR
 | `server.port` | Which port the gateway listens on | `13145` | Operator (config file) |
 | `default_provider` | Which AI provider to use when model name has no prefix | — | Operator (config file) |
 | `providers.*.api_key` | Authentication key for each AI provider | — | Operator (env var or config) |
-| `providers.*.models` | Model name aliases and mappings | — | Operator (config file) |
+| `models.aliases` | Model name aliases and mappings | — | Operator (config file) |
 | `session.backend` | Where conversation history is stored | `memory` | Operator (config file) |
 
 ## API Capabilities

@@ -59,7 +59,7 @@ const client = new OpenAI({
 });
 
 const response = await client.responses.create({
-  model: "gpt-4o",          // mapped to glm-4.7 via godex.yaml models table
+  model: "gpt-4o",          // resolved via models.aliases → zhipu/glm-4.7
   input: "Hello!",
 });
 ```
@@ -334,13 +334,15 @@ server:
 
 default_provider: zhipu
 
+models:
+  aliases:
+    "gpt-4o": zhipu/glm-4.7   # model name mapping
+    "*": zhipu/glm-5.1         # catch-all fallback
+
 providers:
   zhipu:
     api_key: ${ZHIPU_API_KEY}
     base_url: https://open.bigmodel.cn/api/coding/paas/v4
-    models:
-      "gpt-4o": glm-4.7         # model name mapping
-      "*": glm-5.1              # catch-all fallback
 
 session:
   backend: sqlite               # or "memory"

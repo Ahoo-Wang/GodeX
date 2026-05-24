@@ -18,13 +18,15 @@ server:
 
 default_provider: zhipu   # Provider used when model has no slash prefix
 
+models:
+  aliases:
+    "gpt-4o": zhipu/glm-4.7   # Maps gpt-4o to provider-native glm-4.7
+    "*": zhipu/glm-5.1         # Catch-all fallback
+
 providers:
   zhipu:
     api_key: ${ZHIPU_API_KEY}
     base_url: https://open.bigmodel.cn/api/coding/paas/v4
-    models:               # Model name mapping table
-      "gpt-4o": glm-4.7   # Maps gpt-4o to provider-native glm-4.7
-      "*": glm-5.1        # Catch-all fallback
 
 session:
   backend: sqlite         # "sqlite" or "memory"
@@ -54,6 +56,7 @@ classDiagram
   class GodeXConfig {
     +server: ServerConfig
     +default_provider: string
+    +models: ModelsConfig
     +providers: Record~string, ProviderConfig~
     +session: SessionConfig
     +logging: LoggingConfig
@@ -68,7 +71,10 @@ classDiagram
   class ProviderConfig {
     +api_key: string
     +base_url: string
-    +models: Record~string, string~
+  }
+
+  class ModelsConfig {
+    +aliases: Record~string, string~
   }
 
   class SessionConfig {
@@ -83,6 +89,7 @@ classDiagram
   }
 
   GodeXConfig --> ServerConfig
+  GodeXConfig --> ModelsConfig
   GodeXConfig --> ProviderConfig
   GodeXConfig --> SessionConfig
   GodeXConfig --> LoggingConfig

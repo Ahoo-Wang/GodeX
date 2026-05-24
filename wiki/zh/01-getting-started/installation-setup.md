@@ -48,13 +48,15 @@ server:
 
 default_provider: zhipu
 
+models:
+  aliases:
+    "gpt-4o": zhipu/glm-4.7
+    "*": zhipu/glm-5.1
+
 providers:
   zhipu:
     api_key: ${ZHIPU_API_KEY}
     base_url: https://open.bigmodel.cn/api/coding/paas/v4
-    models:
-      "gpt-4o": glm-4.7
-      "*": glm-5.1
 
 session:
   backend: sqlite
