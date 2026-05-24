@@ -2,7 +2,10 @@ import type { ToolCallAccumulator } from "../../adapter/mapper/stream-state";
 import type { ResponsesContext } from "../../context/responses-context";
 import type { FunctionCall } from "../../protocol/openai/responses";
 
-export function mapToolCall(_ctx: ResponsesContext, toolCall: ToolCallAccumulator): FunctionCall {
+export function mapToolCall(
+	_ctx: ResponsesContext,
+	toolCall: ToolCallAccumulator,
+): FunctionCall {
 	return {
 		type: "function_call",
 		call_id: toolCall.id,
@@ -11,9 +14,10 @@ export function mapToolCall(_ctx: ResponsesContext, toolCall: ToolCallAccumulato
 	};
 }
 
-export function mapResponseToolCall(
-	toolCall: { id: string; function?: { name: string; arguments: string } },
-): FunctionCall {
+export function mapResponseToolCall(toolCall: {
+	id: string;
+	function?: { name: string; arguments: string };
+}): FunctionCall {
 	return {
 		type: "function_call",
 		call_id: toolCall.id,

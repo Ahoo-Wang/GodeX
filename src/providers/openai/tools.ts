@@ -11,8 +11,8 @@ import type {
 import type {
 	ResponseTool,
 	ResponseToolChoice,
-	WebSearchTool,
 	WebSearchPreviewTool,
+	WebSearchTool,
 } from "../../protocol/openai/responses";
 import { getBuiltinFunctionToolDefinition } from "../../tools";
 
@@ -52,9 +52,16 @@ export function mapTools(tools: ResponseTool[] | undefined): MappedTools {
 						...(tool.description ? { description: tool.description } : {}),
 						...(tool.format
 							? {
-									format: tool.format.type === "text"
-										? { type: "text" as const }
-										: { type: "grammar" as const, grammar: { definition: tool.format.definition, syntax: tool.format.syntax } },
+									format:
+										tool.format.type === "text"
+											? { type: "text" as const }
+											: {
+													type: "grammar" as const,
+													grammar: {
+														definition: tool.format.definition,
+														syntax: tool.format.syntax,
+													},
+												},
 								}
 							: {}),
 					},
@@ -78,13 +85,19 @@ export function mapTools(tools: ResponseTool[] | undefined): MappedTools {
 				if (def) {
 					mappedTools.push({
 						type: "function",
-						function: { name: def.name, description: def.description, parameters: def.parameters },
+						function: {
+							name: def.name,
+							description: def.description,
+							parameters: def.parameters,
+						},
 					});
 				}
 				break;
 			}
 			case "tool_search": {
-				mappedTools.push(toolSearchToFunctionTool(tool.description, tool.parameters));
+				mappedTools.push(
+					toolSearchToFunctionTool(tool.description, tool.parameters),
+				);
 				break;
 			}
 			case "namespace": {
@@ -94,10 +107,16 @@ export function mapTools(tools: ResponseTool[] | undefined): MappedTools {
 							type: "function",
 							function: {
 								name: `${tool.name}__${nestedTool.name}`,
-								description: nestedTool.description ?? `${tool.description} (${nestedTool.name})`,
-								parameters: (isRecord(nestedTool.parameters) && nestedTool.parameters.type === "object"
+								description:
+									nestedTool.description ??
+									`${tool.description} (${nestedTool.name})`,
+								parameters: (isRecord(nestedTool.parameters) &&
+								nestedTool.parameters.type === "object"
 									? nestedTool.parameters
-									: { type: "object", properties: { input: { type: "string" } } }) as Record<string, unknown>,
+									: {
+											type: "object",
+											properties: { input: { type: "string" } },
+										}) as Record<string, unknown>,
 							},
 						});
 					}
@@ -112,66 +131,108 @@ export function mapTools(tools: ResponseTool[] | undefined): MappedTools {
 	return { tools: mappedTools, toolChoice: undefined, webSearchOptions };
 }
 
-function toolSearchToFunctionTool(description?: string, parameters?: unknown): ChatCompletionFunctionTool {
-	const params = isRecord(parameters) && parameters.type === "object"
-		? parameters
-		: { type: "object", properties: { query: { type: "string", description: "Search query for matching tools." } }, required: ["query"] };
+function toolSearchToFunctionTool(
+	description?: string,
+	parameters?: unknown,
+): ChatCompletionFunctionTool {
+	const params =
+		isRecord(parameters) && parameters.type === "object"
+			? parameters
+			: {
+					type: "object",
+					properties: {
+						query: {
+							type: "string",
+							description: "Search query for matching tools.",
+						},
+					},
+					required: ["query"],
+				};
 	return {
 		type: "function",
 		function: {
 			name: "tool_search",
-			description: description ?? "Search available tools by query before choosing which tool to call.",
+			description:
+				description ??
+				"Search available tools by query before choosing which tool to call.",
 			parameters: params as Record<string, unknown>,
 		},
 	};
 }
 
-function mapWebSearchOptions(tool: WebSearchTool): ChatCompletionWebSearchOptions {
+function mapWebSearchOptions(
+	tool: WebSearchTool,
+): ChatCompletionWebSearchOptions {
 	const opts: ChatCompletionWebSearchOptions = {};
-	if (tool.search_context_size) opts.search_context_size = tool.search_context_size;
+	if (tool.search_context_size)
+		opts.search_context_size = tool.search_context_size;
 	if (tool.user_location) {
 		opts.user_location = {
 			type: "approximate",
 			approximate: {
 				...(tool.user_location.city ? { city: tool.user_location.city } : {}),
-				...(tool.user_location.country ? { country: tool.user_location.country } : {}),
-				...(tool.user_location.region ? { region: tool.user_location.region } : {}),
-				...(tool.user_location.timezone ? { timezone: tool.user_location.timezone } : {}),
+				...(tool.user_location.country
+					? { country: tool.user_location.country }
+					: {}),
+				...(tool.user_location.region
+					? { region: tool.user_location.region }
+					: {}),
+				...(tool.user_location.timezone
+					? { timezone: tool.user_location.timezone }
+					: {}),
 			},
 		};
 	}
 	return opts;
 }
 
-function mapWebSearchPreviewOptions(tool: WebSearchPreviewTool): ChatCompletionWebSearchOptions {
+function mapWebSearchPreviewOptions(
+	tool: WebSearchPreviewTool,
+): ChatCompletionWebSearchOptions {
 	const opts: ChatCompletionWebSearchOptions = {};
-	if (tool.search_context_size) opts.search_context_size = tool.search_context_size;
+	if (tool.search_context_size)
+		opts.search_context_size = tool.search_context_size;
 	if (tool.user_location) {
 		opts.user_location = {
 			type: "approximate",
 			approximate: {
 				...(tool.user_location.city ? { city: tool.user_location.city } : {}),
-				...(tool.user_location.country ? { country: tool.user_location.country } : {}),
-				...(tool.user_location.region ? { region: tool.user_location.region } : {}),
-				...(tool.user_location.timezone ? { timezone: tool.user_location.timezone } : {}),
+				...(tool.user_location.country
+					? { country: tool.user_location.country }
+					: {}),
+				...(tool.user_location.region
+					? { region: tool.user_location.region }
+					: {}),
+				...(tool.user_location.timezone
+					? { timezone: tool.user_location.timezone }
+					: {}),
 			},
 		};
 	}
 	return opts;
 }
 
-export function mapToolChoice(choice: ResponseToolChoice | undefined): ChatCompletionToolChoiceOption | undefined {
+export function mapToolChoice(
+	choice: ResponseToolChoice | undefined,
+): ChatCompletionToolChoiceOption | undefined {
 	if (choice === undefined) return undefined;
 	if (typeof choice === "string") {
-		if (choice === "auto" || choice === "none" || choice === "required") return choice;
+		if (choice === "auto" || choice === "none" || choice === "required")
+			return choice;
 		return "auto";
 	}
 	if (typeof choice === "object") {
 		if (choice.type === "function" && "name" in choice) {
-			return { type: "function", function: { name: choice.name } } satisfies ChatCompletionNamedToolChoice;
+			return {
+				type: "function",
+				function: { name: choice.name },
+			} satisfies ChatCompletionNamedToolChoice;
 		}
 		if (choice.type === "custom" && "name" in choice) {
-			return { type: "custom", custom: { name: choice.name } } satisfies ChatCompletionNamedToolChoiceCustom;
+			return {
+				type: "custom",
+				custom: { name: choice.name },
+			} satisfies ChatCompletionNamedToolChoiceCustom;
 		}
 	}
 	return "auto";

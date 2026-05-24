@@ -1,8 +1,8 @@
 import type { Provider } from "../adapter/provider";
 import type { ProviderConfig } from "../config";
 import { createOpenAIProvider } from "./openai";
-import { createZhipuProvider } from "./zhipu";
 import { Registrar } from "./registrar";
+import { createZhipuProvider } from "./zhipu";
 
 export function createBuiltinRegistrar(): Registrar {
 	const registrar = new Registrar();

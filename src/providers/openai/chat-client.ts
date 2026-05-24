@@ -5,20 +5,16 @@ import {
 	PROVIDER_UPSTREAM_TIMEOUT,
 	ProviderError,
 } from "../../error";
-import { openAIChatApi } from "./api/api";
 import type {
 	ChatCompletion,
 	ChatCompletionChunk,
 	ChatCompletionCreateRequest,
 } from "../../protocol/openai/completions";
+import { openAIChatApi } from "./api/api";
 
 export class OpenAIChatClient
 	implements
-		ChatClient<
-			ChatCompletionCreateRequest,
-			ChatCompletion,
-			ChatCompletionChunk
-		>
+		ChatClient<ChatCompletionCreateRequest, ChatCompletion, ChatCompletionChunk>
 {
 	private readonly api;
 
@@ -82,7 +78,9 @@ function extractErrorMessage(error: unknown): string {
 	return String(error);
 }
 
-async function safeResponseJson(response: Response | undefined): Promise<unknown> {
+async function safeResponseJson(
+	response: Response | undefined,
+): Promise<unknown> {
 	if (!response) return null;
 	try {
 		return await response.json();

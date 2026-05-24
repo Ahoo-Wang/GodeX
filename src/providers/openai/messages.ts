@@ -62,7 +62,10 @@ function responseItemToMessage(
 		return messageItemToMessage(item, onUnsupported);
 	}
 	if (item.type === "function_call_output") {
-		return toolOutputMessage(item.call_id, functionOutputText(item, onUnsupported));
+		return toolOutputMessage(
+			item.call_id,
+			functionOutputText(item, onUnsupported),
+		);
 	}
 	if (item.type === "function_call") {
 		return toolCallMessage(item.call_id, item.name, item.arguments);
@@ -71,7 +74,10 @@ function responseItemToMessage(
 	const downgradedToolCall = downgradedToolCallToMessage(item);
 	if (downgradedToolCall) return downgradedToolCall;
 
-	const downgradedToolOutput = downgradedToolOutputToMessage(item, onUnsupported);
+	const downgradedToolOutput = downgradedToolOutputToMessage(
+		item,
+		onUnsupported,
+	);
 	if (downgradedToolOutput) return downgradedToolOutput;
 
 	if (onUnsupported === "throw") {
@@ -91,10 +97,17 @@ interface MessageItemLike {
 	content: unknown;
 }
 
-function isMessageItem(item: ResponseItem): item is ResponseItem & MessageItemLike {
+function isMessageItem(
+	item: ResponseItem,
+): item is ResponseItem & MessageItemLike {
 	if (!("role" in item) || !("content" in item)) return false;
 	const role = (item as { role: unknown }).role;
-	return role === "developer" || role === "system" || role === "assistant" || role === "user";
+	return (
+		role === "developer" ||
+		role === "system" ||
+		role === "assistant" ||
+		role === "user"
+	);
 }
 
 function messageItemToMessage(
@@ -103,11 +116,20 @@ function messageItemToMessage(
 ): ChatCompletionMessageParam {
 	switch (item.role) {
 		case "developer":
-			return { role: "developer", content: extractText(item.content, onUnsupported) } satisfies ChatCompletionDeveloperMessageParam;
+			return {
+				role: "developer",
+				content: extractText(item.content, onUnsupported),
+			} satisfies ChatCompletionDeveloperMessageParam;
 		case "system":
-			return { role: "system", content: extractText(item.content, onUnsupported) } satisfies ChatCompletionSystemMessageParam;
+			return {
+				role: "system",
+				content: extractText(item.content, onUnsupported),
+			} satisfies ChatCompletionSystemMessageParam;
 		case "user":
-			return { role: "user", content: extractUserContent(item.content, onUnsupported) } satisfies ChatCompletionUserMessageParam;
+			return {
+				role: "user",
+				content: extractUserContent(item.content, onUnsupported),
+			} satisfies ChatCompletionUserMessageParam;
 		case "assistant":
 			return buildAssistantMessage(item.content, onUnsupported);
 	}
@@ -118,7 +140,8 @@ function buildAssistantMessage(
 	onUnsupported: UnsupportedMode,
 ): ChatCompletionAssistantMessageParam {
 	if (typeof content === "string") return { role: "assistant", content };
-	if (Array.isArray(content)) return { role: "assistant", content: extractText(content, onUnsupported) };
+	if (Array.isArray(content))
+		return { role: "assistant", content: extractText(content, onUnsupported) };
 	if (content === null || content === undefined) return { role: "assistant" };
 	return { role: "assistant", content: extractText(content, onUnsupported) };
 }
@@ -134,18 +157,31 @@ function extractUserContent(
 			if (!isRecord(part)) continue;
 			const type = (part as { type?: unknown }).type;
 			if (type === "input_text") {
-				parts.push({ type: "text", text: String((part as { text: unknown }).text) });
+				parts.push({
+					type: "text",
+					text: String((part as { text: unknown }).text),
+				});
 			} else if (type === "input_image") {
-				const img = part as { image_url?: string; file_id?: string; detail?: string };
+				const img = part as {
+					image_url?: string;
+					file_id?: string;
+					detail?: string;
+				};
 				parts.push({
 					type: "image_url",
 					image_url: {
 						url: img.image_url ?? `https://placeholder/${img.file_id ?? ""}`,
-						...(img.detail ? { detail: img.detail as "low" | "high" | "auto" } : {}),
+						...(img.detail
+							? { detail: img.detail as "low" | "high" | "auto" }
+							: {}),
 					},
 				});
 			} else if (type === "input_file") {
-				const file = part as { file_data?: string; file_id?: string; filename?: string };
+				const file = part as {
+					file_data?: string;
+					file_id?: string;
+					filename?: string;
+				};
 				parts.push({
 					type: "file",
 					file: {
@@ -155,7 +191,10 @@ function extractUserContent(
 					},
 				});
 			} else if (type === "output_text") {
-				parts.push({ type: "text", text: String((part as { text: unknown }).text) });
+				parts.push({
+					type: "text",
+					text: String((part as { text: unknown }).text),
+				});
 			} else if (onUnsupported === "throw") {
 				throw new AdapterError(
 					ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
@@ -176,97 +215,161 @@ function extractUserContent(
 	return "";
 }
 
-function downgradedToolCallToMessage(item: ResponseItem): ChatCompletionAssistantMessageParam | null {
+function downgradedToolCallToMessage(
+	item: ResponseItem,
+): ChatCompletionAssistantMessageParam | null {
 	switch (item.type) {
 		case "local_shell_call":
 			return toolCallMessage(item.call_id, "local_shell", {
-				command: item.action.command, env: item.action.env,
-				...(item.action.timeout_ms ? { timeout_ms: item.action.timeout_ms } : {}),
+				command: item.action.command,
+				env: item.action.env,
+				...(item.action.timeout_ms
+					? { timeout_ms: item.action.timeout_ms }
+					: {}),
 				...(item.action.user !== undefined ? { user: item.action.user } : {}),
-				...(item.action.working_directory ? { working_directory: item.action.working_directory } : {}),
+				...(item.action.working_directory
+					? { working_directory: item.action.working_directory }
+					: {}),
 			});
 		case "shell_call":
 			return toolCallMessage(item.call_id, "shell", {
 				commands: item.action.commands,
-				...(item.action.timeout_ms ? { timeout_ms: item.action.timeout_ms } : {}),
-				...(item.action.max_output_length ? { max_output_length: item.action.max_output_length } : {}),
+				...(item.action.timeout_ms
+					? { timeout_ms: item.action.timeout_ms }
+					: {}),
+				...(item.action.max_output_length
+					? { max_output_length: item.action.max_output_length }
+					: {}),
 			});
 		case "apply_patch_call":
-			return toolCallMessage(item.call_id, "apply_patch", { operation: item.operation });
+			return toolCallMessage(item.call_id, "apply_patch", {
+				operation: item.operation,
+			});
 		case "custom_tool_call":
 			return toolCallMessage(item.call_id, item.name, { input: item.input });
 		case "tool_search_call":
-			return toolCallMessage(item.call_id ?? item.id ?? "tool_search", "tool_search", toolSearchArguments(item.arguments));
+			return toolCallMessage(
+				item.call_id ?? item.id ?? "tool_search",
+				"tool_search",
+				toolSearchArguments(item.arguments),
+			);
 		case "mcp_call":
 			return toolCallMessage(item.id, item.name, {
-				arguments: item.arguments, server_label: item.server_label,
-				...(item.approval_request_id ? { approval_request_id: item.approval_request_id } : {}),
+				arguments: item.arguments,
+				server_label: item.server_label,
+				...(item.approval_request_id
+					? { approval_request_id: item.approval_request_id }
+					: {}),
 			});
 		default:
 			return null;
 	}
 }
 
-function downgradedToolOutputToMessage(item: ResponseItem, onUnsupported: UnsupportedMode): ChatCompletionToolMessageParam | null {
+function downgradedToolOutputToMessage(
+	item: ResponseItem,
+	onUnsupported: UnsupportedMode,
+): ChatCompletionToolMessageParam | null {
 	switch (item.type) {
 		case "local_shell_call_output":
 			return toolOutputMessage(item.id, item.output);
 		case "shell_call_output":
 			return toolOutputMessage(item.call_id, shellOutputText(item.output));
 		case "apply_patch_call_output":
-			return toolOutputMessage(item.call_id, `${item.status}: ${item.output ?? ""}`.trim());
+			return toolOutputMessage(
+				item.call_id,
+				`${item.status}: ${item.output ?? ""}`.trim(),
+			);
 		case "custom_tool_call_output":
-			return toolOutputMessage(item.call_id, toolOutputText(item.output, onUnsupported));
+			return toolOutputMessage(
+				item.call_id,
+				toolOutputText(item.output, onUnsupported),
+			);
 		case "tool_search_output":
-			return toolOutputMessage(item.call_id ?? item.id ?? "tool_search", JSON.stringify(item.tools));
+			return toolOutputMessage(
+				item.call_id ?? item.id ?? "tool_search",
+				JSON.stringify(item.tools),
+			);
 		case "mcp_list_tools":
 			return toolOutputMessage(item.id, JSON.stringify(item.tools));
 		case "mcp_approval_response":
-			return toolOutputMessage(item.approval_request_id, JSON.stringify({ approve: item.approve, reason: item.reason ?? null }));
+			return toolOutputMessage(
+				item.approval_request_id,
+				JSON.stringify({ approve: item.approve, reason: item.reason ?? null }),
+			);
 		default:
 			return null;
 	}
 }
 
 function toolCallMessage(
-	callId: string, name: string, argumentsValue: string | Record<string, unknown>,
+	callId: string,
+	name: string,
+	argumentsValue: string | Record<string, unknown>,
 ): ChatCompletionAssistantMessageParam {
 	return {
-		role: "assistant", content: "",
-		tool_calls: [{
-			type: "function", id: callId,
-			function: { name, arguments: typeof argumentsValue === "string" ? argumentsValue : JSON.stringify(argumentsValue) },
-		}],
+		role: "assistant",
+		content: "",
+		tool_calls: [
+			{
+				type: "function",
+				id: callId,
+				function: {
+					name,
+					arguments:
+						typeof argumentsValue === "string"
+							? argumentsValue
+							: JSON.stringify(argumentsValue),
+				},
+			},
+		],
 	};
 }
 
-function toolOutputMessage(callId: string, content: string): ChatCompletionToolMessageParam {
+function toolOutputMessage(
+	callId: string,
+	content: string,
+): ChatCompletionToolMessageParam {
 	return { role: "tool", content, tool_call_id: callId };
 }
 
-function toolSearchArguments(argumentsValue: unknown): string | Record<string, unknown> {
+function toolSearchArguments(
+	argumentsValue: unknown,
+): string | Record<string, unknown> {
 	if (typeof argumentsValue === "string") return argumentsValue;
 	if (isRecord(argumentsValue)) return argumentsValue;
 	return { input: argumentsValue };
 }
 
-function toolOutputText(output: string | ResponseInputContent[], onUnsupported: UnsupportedMode): string {
+function toolOutputText(
+	output: string | ResponseInputContent[],
+	onUnsupported: UnsupportedMode,
+): string {
 	if (typeof output === "string") return output;
 	return extractText(output, onUnsupported);
 }
 
-function shellOutputText(output: Extract<ResponseItem, { type: "shell_call_output" }>["output"]): string {
-	return output.map((chunk) => {
-		const outcome = chunk.outcome.type === "exit" ? `exit ${chunk.outcome.exit_code}` : chunk.outcome.type;
-		return `[${outcome}]\nstdout:\n${chunk.stdout}\nstderr:\n${chunk.stderr}`;
-	}).join("\n");
+function shellOutputText(
+	output: Extract<ResponseItem, { type: "shell_call_output" }>["output"],
+): string {
+	return output
+		.map((chunk) => {
+			const outcome =
+				chunk.outcome.type === "exit"
+					? `exit ${chunk.outcome.exit_code}`
+					: chunk.outcome.type;
+			return `[${outcome}]\nstdout:\n${chunk.stdout}\nstderr:\n${chunk.stderr}`;
+		})
+		.join("\n");
 }
 
 function functionOutputText(
-	item: Extract<ResponseItem, { type: "function_call_output" }>, onUnsupported: UnsupportedMode,
+	item: Extract<ResponseItem, { type: "function_call_output" }>,
+	onUnsupported: UnsupportedMode,
 ): string {
 	if (typeof item.output === "string") return item.output;
-	if (Array.isArray(item.output)) return extractText(item.output, onUnsupported);
+	if (Array.isArray(item.output))
+		return extractText(item.output, onUnsupported);
 	if (onUnsupported === "throw") {
 		throw new AdapterError(
 			ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
@@ -277,12 +380,18 @@ function functionOutputText(
 	return "";
 }
 
-function extractText(content: unknown, onUnsupported: UnsupportedMode = "skip"): string {
+function extractText(
+	content: unknown,
+	onUnsupported: UnsupportedMode = "skip",
+): string {
 	if (typeof content === "string") return content;
 	if (Array.isArray(content)) {
 		const textParts: string[] = [];
 		for (const part of content) {
-			if (hasText(part)) { textParts.push(part.text); continue; }
+			if (hasText(part)) {
+				textParts.push(part.text);
+				continue;
+			}
 			if (onUnsupported === "throw") {
 				throw new AdapterError(
 					ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
@@ -312,7 +421,9 @@ function contentPartType(part: unknown): string {
 	return typeof part;
 }
 
-function instructionsToDeveloperMessage(instructions: string | undefined): ChatCompletionDeveloperMessageParam | null {
+function instructionsToDeveloperMessage(
+	instructions: string | undefined,
+): ChatCompletionDeveloperMessageParam | null {
 	if (!instructions) return null;
 	return { role: "developer", content: instructions };
 }
