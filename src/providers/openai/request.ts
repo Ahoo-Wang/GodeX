@@ -15,8 +15,6 @@ export function buildOpenAIRequest(ctx: ResponsesContext): ChatCompletionCreateR
 	if (req.max_output_tokens !== undefined) result.max_completion_tokens = req.max_output_tokens;
 	if (req.user) result.user = req.user;
 	if (req.metadata) result.metadata = req.metadata;
-	if (req.seed !== undefined) result.seed = req.seed;
-	if (req.stop) result.stop = req.stop;
 	if (req.store !== undefined) result.store = req.store;
 	if (req.service_tier) result.service_tier = req.service_tier;
 
@@ -24,8 +22,19 @@ export function buildOpenAIRequest(ctx: ResponsesContext): ChatCompletionCreateR
 		result.reasoning_effort = req.reasoning.effort;
 	}
 
-	if (req.text?.format?.type === "json_schema" || req.text?.format?.type === "json_object") {
+	if (req.text?.format?.type === "json_object") {
 		result.response_format = req.text.format;
+	} else if (req.text?.format?.type === "json_schema") {
+		const fmt = req.text.format;
+		result.response_format = {
+			type: "json_schema",
+			json_schema: {
+				name: fmt.name,
+				schema: fmt.schema,
+				...(fmt.description ? { description: fmt.description } : {}),
+				...(fmt.strict !== undefined ? { strict: fmt.strict } : {}),
+			},
+		};
 	}
 
 	if (req.tools && req.tools.length > 0) {
