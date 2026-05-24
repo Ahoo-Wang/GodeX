@@ -6,9 +6,12 @@ import type { ResponsesContext } from "../../context/responses-context";
 import { createLogger } from "../../logger";
 import { buildOpenAIRequest } from "./request";
 
-function ctx(partial = {}): ResponsesContext {
+function ctx(partial: Record<string, unknown> = {}): ResponsesContext {
 	return {
-		request: { model: "gpt-4o", ...partial } as any,
+		request: {
+			model: "gpt-4o",
+			...partial,
+		} as unknown as ResponsesContext["request"],
 		resolved: { provider: "openai", model: "gpt-4o" },
 		session: null,
 		responseId: "resp_1",
@@ -58,7 +61,9 @@ describe("buildOpenAIRequest", () => {
 		);
 
 		expect(result.max_completion_tokens).toBe(4096);
-		expect((result as any).max_tokens).toBeUndefined();
+		expect("max_tokens" in (result as unknown as Record<string, unknown>)).toBe(
+			false,
+		);
 	});
 
 	test("maps reasoning effort", () => {

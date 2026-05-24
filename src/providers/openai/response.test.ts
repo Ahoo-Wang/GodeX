@@ -4,7 +4,10 @@ import { mergeCapabilities } from "../../adapter/capabilities";
 import type { ApplicationContext } from "../../context/application-context";
 import type { ResponsesContext } from "../../context/responses-context";
 import { createLogger } from "../../logger";
-import type { ChatCompletion } from "../../protocol/openai/completions";
+import type {
+	ChatCompletion,
+	ChatCompletionChoice,
+} from "../../protocol/openai/completions";
 import { buildResponseObject } from "./response";
 
 function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
@@ -29,22 +32,28 @@ function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 	} as unknown as ResponsesContext;
 }
 
+function choice(
+	overrides: Partial<ChatCompletionChoice> = {},
+): ChatCompletionChoice {
+	return {
+		index: 0,
+		finish_reason: "stop",
+		logprobs: null,
+		message: {
+			role: "assistant",
+			content: "Hello! How can I help?",
+			refusal: null,
+		},
+		...overrides,
+	} as ChatCompletionChoice;
+}
+
 const openAICompletion: ChatCompletion = {
 	id: "chatcmpl_1",
 	object: "chat.completion",
 	created: 1_764_000_001,
 	model: "gpt-4o",
-	choices: [
-		{
-			index: 0,
-			message: {
-				role: "assistant",
-				content: "Hello! How can I help?",
-			},
-			finish_reason: "stop",
-			logprobs: null,
-		},
-	],
+	choices: [choice()],
 	usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
 };
 
@@ -68,11 +77,11 @@ describe("buildResponseObject", () => {
 		const withToolCalls: ChatCompletion = {
 			...openAICompletion,
 			choices: [
-				{
-					index: 0,
+				choice({
 					message: {
 						role: "assistant",
 						content: null,
+						refusal: null,
 						tool_calls: [
 							{
 								type: "function",
@@ -85,16 +94,13 @@ describe("buildResponseObject", () => {
 						],
 					},
 					finish_reason: "tool_calls",
-					logprobs: null,
-				},
+				}),
 			],
 		};
 
 		const result = buildResponseObject(ctx(), withToolCalls);
 
-		// First output: message (empty content because content is null)
 		expect(result.output[0]?.type).toBe("message");
-		// Second output: function_call
 		expect(result.output[1]?.type).toBe("function_call");
 		if (result.output[1]?.type === "function_call") {
 			expect(result.output[1]?.call_id).toBe("tc_1");
@@ -107,15 +113,14 @@ describe("buildResponseObject", () => {
 		const truncated: ChatCompletion = {
 			...openAICompletion,
 			choices: [
-				{
-					index: 0,
+				choice({
 					message: {
 						role: "assistant",
 						content: "Partial answer",
+						refusal: null,
 					},
 					finish_reason: "length",
-					logprobs: null,
-				},
+				}),
 			],
 		};
 
@@ -131,15 +136,14 @@ describe("buildResponseObject", () => {
 		const filtered: ChatCompletion = {
 			...openAICompletion,
 			choices: [
-				{
-					index: 0,
+				choice({
 					message: {
 						role: "assistant",
 						content: null,
+						refusal: null,
 					},
 					finish_reason: "content_filter",
-					logprobs: null,
-				},
+				}),
 			],
 		};
 
@@ -162,21 +166,23 @@ describe("buildResponseObject", () => {
 	});
 
 	test("maps reasoning_content to reasoning item", () => {
-		const withReasoning: ChatCompletion = {
+		const withReasoning = {
 			...openAICompletion,
 			choices: [
 				{
-					index: 0,
+					...(openAICompletion.choices[0] as unknown as Record<
+						string,
+						unknown
+					>),
 					message: {
-						role: "assistant",
-						content: "The answer is 42.",
+						...((
+							openAICompletion.choices[0] as unknown as Record<string, unknown>
+						).message as Record<string, unknown>),
 						reasoning_content: "Let me think step by step...",
 					},
-					finish_reason: "stop",
-					logprobs: null,
 				},
 			],
-		};
+		} as unknown as ChatCompletion;
 
 		const result = buildResponseObject(ctx(), withReasoning);
 
@@ -194,16 +200,13 @@ describe("buildResponseObject", () => {
 		const withRefusal: ChatCompletion = {
 			...openAICompletion,
 			choices: [
-				{
-					index: 0,
+				choice({
 					message: {
 						role: "assistant",
 						content: "I cannot do that.",
 						refusal: "Content policy violation.",
 					},
-					finish_reason: "stop",
-					logprobs: null,
-				},
+				}),
 			],
 		};
 
@@ -212,7 +215,9 @@ describe("buildResponseObject", () => {
 		expect(result.output).toHaveLength(1);
 		expect(result.output[0]?.type).toBe("message");
 		if (result.output[0]?.type === "message") {
-			const content = result.output[0]?.content;
+			const content = result.output[0].content as unknown as Array<
+				Record<string, unknown>
+			>;
 			expect(content).toHaveLength(2);
 			expect(content).toContainEqual({
 				type: "output_text",
@@ -229,11 +234,11 @@ describe("buildResponseObject", () => {
 		const withAnnotations: ChatCompletion = {
 			...openAICompletion,
 			choices: [
-				{
-					index: 0,
+				choice({
 					message: {
 						role: "assistant",
 						content: "See this link for details.",
+						refusal: null,
 						annotations: [
 							{
 								type: "url_citation",
@@ -246,9 +251,7 @@ describe("buildResponseObject", () => {
 							},
 						],
 					},
-					finish_reason: "stop",
-					logprobs: null,
-				},
+				}),
 			],
 		};
 
@@ -257,21 +260,21 @@ describe("buildResponseObject", () => {
 		expect(result.output).toHaveLength(1);
 		expect(result.output[0]?.type).toBe("message");
 		if (result.output[0]?.type === "message") {
-			const content = result.output[0]?.content;
+			const content = result.output[0].content as unknown as Array<
+				Record<string, unknown>
+			>;
 			expect(content).toHaveLength(1);
-			const textPart = content?.[0];
-			expect(textPart?.type).toBe("output_text");
-			if (textPart?.type === "output_text") {
-				expect(textPart.annotations).toEqual([
-					{
-						type: "url_citation",
-						start_index: 4,
-						end_index: 8,
-						title: "Example",
-						url: "https://example.com",
-					},
-				]);
-			}
+			const textPart = content[0] as Record<string, unknown>;
+			expect(textPart.type).toBe("output_text");
+			expect(textPart.annotations).toEqual([
+				{
+					type: "url_citation",
+					start_index: 4,
+					end_index: 8,
+					title: "Example",
+					url: "https://example.com",
+				},
+			]);
 		}
 	});
 });

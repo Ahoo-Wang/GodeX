@@ -1,17 +1,22 @@
 // src/providers/openai/messages.test.ts
 import { describe, expect, test } from "bun:test";
-import { buildOpenAIMessages } from "./messages";
 import type { ResponseCreateRequest } from "../../protocol/openai/responses";
 import type { ResponseSessionSnapshot } from "../../session";
+import { buildOpenAIMessages } from "./messages";
 
 function req(partial: Partial<ResponseCreateRequest> = {}) {
 	return { model: "gpt-4o", ...partial } as ResponseCreateRequest;
 }
 
+function asUserContent(msg: unknown): Array<Record<string, unknown>> {
+	return (msg as { content: unknown }).content as Array<
+		Record<string, unknown>
+	>;
+}
+
 describe("buildOpenAIMessages", () => {
 	test("converts string input to user message", () => {
 		const messages = buildOpenAIMessages(req({ input: "Hello" }), null);
-
 		expect(messages).toEqual([{ role: "user", content: "Hello" }]);
 	});
 
@@ -20,7 +25,6 @@ describe("buildOpenAIMessages", () => {
 			req({ input: "Hi", instructions: "Be helpful." }),
 			null,
 		);
-
 		expect(messages[0]).toEqual({ role: "developer", content: "Be helpful." });
 		expect(messages[1]).toEqual({ role: "user", content: "Hi" });
 	});
@@ -36,7 +40,6 @@ describe("buildOpenAIMessages", () => {
 			}),
 			null,
 		);
-
 		expect(messages).toEqual([
 			{ role: "user", content: "Hi" },
 			{ role: "assistant", content: "Hello!" },
@@ -54,8 +57,10 @@ describe("buildOpenAIMessages", () => {
 			}),
 			null,
 		);
-
-		expect(messages[0]).toEqual({ role: "developer", content: "Act as a poet." });
+		expect(messages[0]).toEqual({
+			role: "developer",
+			content: "Act as a poet.",
+		});
 		expect(messages[1]).toEqual({ role: "user", content: "Write a haiku." });
 	});
 
@@ -72,7 +77,6 @@ describe("buildOpenAIMessages", () => {
 			}),
 			null,
 		);
-
 		expect(messages[0]).toEqual({
 			role: "tool",
 			content: '{"temperature":21}',
@@ -94,7 +98,6 @@ describe("buildOpenAIMessages", () => {
 			}),
 			null,
 		);
-
 		expect(messages[0]).toEqual({
 			role: "assistant",
 			content: "",
@@ -131,20 +134,16 @@ describe("buildOpenAIMessages", () => {
 		);
 
 		expect(messages).toHaveLength(1);
-		const msg = messages[0];
-		expect(msg.role).toBe("user");
-		if (msg.role === "user") {
-			const content = msg.content as Array<{ type: string }>;
-			expect(content).toHaveLength(2);
-			expect(content[0]).toEqual({
-				type: "text",
-				text: "What is in this image?",
-			});
-			expect(content[1]).toEqual({
-				type: "image_url",
-				image_url: { url: "https://example.com/cat.png" },
-			});
-		}
+		const content = asUserContent(messages[0]);
+		expect(content).toHaveLength(2);
+		expect(content[0]).toEqual({
+			type: "text",
+			text: "What is in this image?",
+		});
+		expect(content[1]).toEqual({
+			type: "image_url",
+			image_url: { url: "https://example.com/cat.png" },
+		});
 	});
 
 	test("maps input_file to file content part", () => {
@@ -167,19 +166,15 @@ describe("buildOpenAIMessages", () => {
 		);
 
 		expect(messages).toHaveLength(1);
-		const msg = messages[0];
-		expect(msg.role).toBe("user");
-		if (msg.role === "user") {
-			const content = msg.content as Array<{ type: string }>;
-			expect(content).toHaveLength(1);
-			expect(content[0]).toEqual({
-				type: "file",
-				file: {
-					file_data: "data:text/plain;base64,aGVsbG8=",
-					filename: "hello.txt",
-				},
-			});
-		}
+		const content = asUserContent(messages[0]);
+		expect(content).toHaveLength(1);
+		expect(content[0]).toEqual({
+			type: "file",
+			file: {
+				file_data: "data:text/plain;base64,aGVsbG8=",
+				filename: "hello.txt",
+			},
+		});
 	});
 
 	test("maps input_audio to input_audio content part", () => {
@@ -197,24 +192,20 @@ describe("buildOpenAIMessages", () => {
 						],
 					},
 				],
-			}),
+			} as Record<string, unknown> as ResponseCreateRequest),
 			null,
 		);
 
 		expect(messages).toHaveLength(1);
-		const msg = messages[0];
-		expect(msg.role).toBe("user");
-		if (msg.role === "user") {
-			const content = msg.content as Array<{ type: string }>;
-			expect(content).toHaveLength(1);
-			expect(content[0]).toEqual({
-				type: "input_audio",
-				input_audio: {
-					data: "d2F2ZSBkYXRh",
-					format: "wav",
-				},
-			});
-		}
+		const content = asUserContent(messages[0]);
+		expect(content).toHaveLength(1);
+		expect(content[0]).toEqual({
+			type: "input_audio",
+			input_audio: {
+				data: "d2F2ZSBkYXRh",
+				format: "wav",
+			},
+		});
 	});
 
 	test("prepends session history before current input", () => {
@@ -242,12 +233,10 @@ describe("buildOpenAIMessages", () => {
 			session,
 		);
 
-		// Session user content with input_text array is mapped to text content parts
 		expect(messages[0]).toEqual({
 			role: "user",
 			content: [{ type: "text", text: "First" }],
 		});
-		// Session assistant content with output_text is extracted as text
 		expect(messages[1]).toEqual({ role: "assistant", content: "Reply" });
 		expect(messages[2]).toEqual({ role: "user", content: "Follow-up" });
 	});
