@@ -6,7 +6,6 @@ import type {
 	ResponseStreamEvent,
 } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
-import { DEFAULT_CAPABILITIES } from "./capabilities";
 import { DefaultAdapter } from "./default-adapter";
 import { StreamState } from "./mapper/stream-state";
 import type { Provider } from "./provider";
@@ -18,7 +17,6 @@ function createMockProvider(
 ): Provider<unknown, unknown, unknown> {
 	return {
 		name: "mock",
-		capabilities: DEFAULT_CAPABILITIES,
 		mapper: {
 			request: { map: () => ({ model: "test" }) },
 			response: {

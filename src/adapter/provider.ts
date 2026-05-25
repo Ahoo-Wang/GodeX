@@ -2,7 +2,6 @@
 // Provider interface — the contract that every LLM backend must satisfy.
 
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
-import type { ProviderCapabilities } from "./capabilities";
 import type {
 	RequestMapper,
 	ResponseMapper,
@@ -24,5 +23,4 @@ export interface Provider<TReq, TRes, TChunk> {
 	readonly name: string;
 	readonly mapper: ProviderMapper<TReq, TRes, TChunk>;
 	readonly client: ProviderClient<TReq, TRes, TChunk>;
-	readonly capabilities: ProviderCapabilities;
 }

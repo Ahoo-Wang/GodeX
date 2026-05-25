@@ -56,10 +56,4 @@ export class Registrar {
 	unsupported(): string[] {
 		return [...this.unsupportedProviders];
 	}
-
-	capabilities(
-		name: string,
-	): Provider<unknown, unknown, unknown>["capabilities"] | undefined {
-		return this.providers.get(name)?.capabilities;
-	}
 }

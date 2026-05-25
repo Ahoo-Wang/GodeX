@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
-import { DEFAULT_CAPABILITIES } from "../../../adapter/capabilities";
 import type { ProviderMapper } from "../../../adapter/provider";
 import type { GodeXConfig } from "../../../config";
 import { ApplicationContext } from "../../../context/application-context";
@@ -69,7 +68,6 @@ function createTestApp(
 	const registrar = new Registrar();
 	registrar.registerFactory("zhipu", () => ({
 		name: "mock",
-		capabilities: DEFAULT_CAPABILITIES,
 		mapper,
 		client: client as never,
 	}));
@@ -322,7 +320,6 @@ describe("handleResponses stream errors", () => {
 		const registrar = new Registrar();
 		registrar.registerFactory("zhipu", () => ({
 			name: "mock",
-			capabilities: DEFAULT_CAPABILITIES,
 			mapper,
 			client: {
 				async request(): Promise<Record<string, unknown>> {

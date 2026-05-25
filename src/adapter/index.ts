@@ -1,5 +1,4 @@
 export * from "./adapter";
-export * from "./capabilities";
 export * from "./default-adapter";
 export * from "./mapper";
 export * from "./provider";

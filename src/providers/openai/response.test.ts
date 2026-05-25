@@ -1,6 +1,5 @@
 // src/providers/openai/response.test.ts
 import { describe, expect, test } from "bun:test";
-import { mergeCapabilities } from "../../adapter/capabilities";
 import type { ApplicationContext } from "../../context/application-context";
 import type { ResponsesContext } from "../../context/responses-context";
 import { createLogger } from "../../logger";
@@ -27,7 +26,6 @@ function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 			name: "openai",
 			mapper: {} as never,
 			client: {} as never,
-			capabilities: mergeCapabilities(),
 		},
 	} as unknown as ResponsesContext;
 }

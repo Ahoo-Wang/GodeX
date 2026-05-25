@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { DEFAULT_CAPABILITIES } from "./capabilities";
 import type {
 	RequestMapper,
 	ResponseMapper,
@@ -24,7 +23,6 @@ describe("Provider", () => {
 
 		const provider: Provider<unknown, unknown, unknown> = {
 			name: "mock",
-			capabilities: DEFAULT_CAPABILITIES,
 			mapper: {
 				request: requestMapper,
 				response: responseMapper,

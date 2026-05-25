@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { DEFAULT_CAPABILITIES } from "../../adapter/capabilities";
 import type { GodeXConfig } from "../../config";
 import { ApplicationContext } from "../../context/application-context";
 import { Registrar } from "../../providers/registrar";
@@ -26,7 +25,6 @@ function createTestApp(): ApplicationContext {
 	const registrar = new Registrar();
 	registrar.registerFactory("zhipu", () => ({
 		name: "mock",
-		capabilities: DEFAULT_CAPABILITIES,
 		mapper: {
 			request: { map: () => ({}) },
 			response: { map: () => ({}) as never },
