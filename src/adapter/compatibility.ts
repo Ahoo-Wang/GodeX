@@ -21,7 +21,7 @@ export function logDiagnostics(
 	ctx: ResponsesContext,
 	timing?: { durationMillis: number },
 ): void {
-	const diagnostics = ctx.diagnostics;
+	const diagnostics = [...ctx.diagnostics];
 	if (diagnostics.length === 0) return;
 
 	const severity = diagnostics.reduce((max, d) => {
