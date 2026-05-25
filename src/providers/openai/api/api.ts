@@ -17,7 +17,10 @@ import type {
 	ChatCompletionChunk,
 	ChatCompletionCreateRequest,
 } from "../../../protocol/openai/completions";
-import { StreamResultExtractor } from "./stream-result-extractor";
+import { createStreamResultExtractor } from "../../shared/stream-result-extractor";
+
+const StreamResultExtractor =
+	createStreamResultExtractor<ChatCompletionChunk>();
 
 @api()
 export class OpenAIChatApi implements ApiMetadataCapable {

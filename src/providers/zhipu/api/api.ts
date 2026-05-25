@@ -14,12 +14,15 @@ import {
 	post,
 } from "@ahoo-wang/fetcher-decorator";
 import type { JsonServerSentEventStream } from "@ahoo-wang/fetcher-eventstream";
+import { createStreamResultExtractor } from "../../shared/stream-result-extractor";
 import type {
 	ChatCompletionChunk,
 	ChatCompletionCreateRequest,
 	ChatCompletionResponse,
 } from "../protocol/completions";
-import { StreamResultExtractor } from "./stream-result-extractor.ts";
+
+const StreamResultExtractor =
+	createStreamResultExtractor<ChatCompletionChunk>();
 
 @api()
 export class ZhipuApi implements ApiMetadataCapable {
