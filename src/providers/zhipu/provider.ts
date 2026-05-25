@@ -46,6 +46,8 @@ const ZHIPU_CAPABILITIES: ProviderCapabilities = mergeCapabilities({
 	maxTools: 128,
 });
 
+export const ZHIPU_PROVIDER_NAME = "zhipu";
+
 export class ZhipuProvider
 	implements
 		Provider<
@@ -54,7 +56,7 @@ export class ZhipuProvider
 			ChatCompletionChunk
 		>
 {
-	readonly name = "zhipu";
+	readonly name = ZHIPU_PROVIDER_NAME;
 	readonly capabilities = ZHIPU_CAPABILITIES;
 	readonly mapper = {
 		request: { map: buildZhipuRequest },

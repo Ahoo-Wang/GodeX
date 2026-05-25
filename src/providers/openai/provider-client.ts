@@ -4,6 +4,7 @@ import type {
 	ChatCompletionCreateRequest,
 } from "../../protocol/openai/completions";
 import { ChatProviderClient } from "../shared/chat-provider-client";
+import { OPENAI_PROVIDER_NAME } from "./provider";
 
 export class OpenAIClient extends ChatProviderClient<
 	ChatCompletionCreateRequest,
@@ -11,6 +12,6 @@ export class OpenAIClient extends ChatProviderClient<
 	ChatCompletionChunk
 > {
 	constructor(baseURL: string, apiKey: string, timeout?: number) {
-		super({ provider: "openai", baseURL, apiKey, timeout });
+		super({ provider: OPENAI_PROVIDER_NAME, baseURL, apiKey, timeout });
 	}
 }

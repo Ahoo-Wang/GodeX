@@ -14,6 +14,7 @@ import type {
 import type { ResponseSessionSnapshot } from "../../session";
 import { toZhipuFunctionName } from "./function-names";
 import type { TextMessage, ToolCall } from "./protocol/completions";
+import { ZHIPU_PROVIDER_NAME } from "./provider";
 
 type UnsupportedMode = "skip" | "throw";
 
@@ -84,7 +85,7 @@ function responseItemToMessage(
 		throw new AdapterError(
 			ADAPTER_REQUEST_UNSUPPORTED_INPUT_ITEM,
 			`Unsupported Responses input item type for Zhipu: ${"type" in item ? String(item.type) : "message"}`,
-			{ provider: "zhipu", model: "unknown" },
+			{ provider: ZHIPU_PROVIDER_NAME, model: "unknown" },
 		);
 	}
 	return null;
@@ -277,7 +278,7 @@ function functionOutputText(
 		throw new AdapterError(
 			ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 			"Unsupported Responses function call output content for Zhipu.",
-			{ provider: "zhipu", model: "unknown" },
+			{ provider: ZHIPU_PROVIDER_NAME, model: "unknown" },
 		);
 	}
 	return "";
@@ -299,7 +300,7 @@ function extractText(
 				throw new AdapterError(
 					ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 					`Unsupported Responses input content type for Zhipu: ${contentPartType(part)}`,
-					{ provider: "zhipu", model: "unknown" },
+					{ provider: ZHIPU_PROVIDER_NAME, model: "unknown" },
 				);
 			}
 		}
@@ -309,7 +310,7 @@ function extractText(
 		throw new AdapterError(
 			ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 			`Unsupported Responses input content type for Zhipu: ${typeof content}`,
-			{ provider: "zhipu", model: "unknown" },
+			{ provider: ZHIPU_PROVIDER_NAME, model: "unknown" },
 		);
 	}
 	return "";

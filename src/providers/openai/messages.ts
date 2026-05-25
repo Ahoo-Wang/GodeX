@@ -19,6 +19,7 @@ import type {
 	ResponseItem,
 } from "../../protocol/openai/responses";
 import type { ResponseSessionSnapshot } from "../../session";
+import { OPENAI_PROVIDER_NAME } from "./provider";
 
 type UnsupportedMode = "skip" | "throw";
 
@@ -84,7 +85,7 @@ function responseItemToMessage(
 		throw new AdapterError(
 			ADAPTER_REQUEST_UNSUPPORTED_INPUT_ITEM,
 			`Unsupported Responses input item type for OpenAI: ${"type" in item ? String(item.type) : "message"}`,
-			{ provider: "openai", model: "unknown" },
+			{ provider: OPENAI_PROVIDER_NAME, model: "unknown" },
 		);
 	}
 	return null;
@@ -208,7 +209,7 @@ function extractUserContent(
 				throw new AdapterError(
 					ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 					`Unsupported Responses input content type for OpenAI: ${String(type)}`,
-					{ provider: "openai", model: "unknown" },
+					{ provider: OPENAI_PROVIDER_NAME, model: "unknown" },
 				);
 			}
 		}
@@ -218,7 +219,7 @@ function extractUserContent(
 		throw new AdapterError(
 			ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 			`Unsupported Responses input content type for OpenAI: ${typeof content}`,
-			{ provider: "openai", model: "unknown" },
+			{ provider: OPENAI_PROVIDER_NAME, model: "unknown" },
 		);
 	}
 	return "";
@@ -383,7 +384,7 @@ function functionOutputText(
 		throw new AdapterError(
 			ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 			"Unsupported Responses function call output content for OpenAI.",
-			{ provider: "openai", model: "unknown" },
+			{ provider: OPENAI_PROVIDER_NAME, model: "unknown" },
 		);
 	}
 	return "";
@@ -405,7 +406,7 @@ function extractText(
 				throw new AdapterError(
 					ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 					`Unsupported Responses input content type for OpenAI: ${contentPartType(part)}`,
-					{ provider: "openai", model: "unknown" },
+					{ provider: OPENAI_PROVIDER_NAME, model: "unknown" },
 				);
 			}
 		}
@@ -415,7 +416,7 @@ function extractText(
 		throw new AdapterError(
 			ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 			`Unsupported Responses input content type for OpenAI: ${typeof content}`,
-			{ provider: "openai", model: "unknown" },
+			{ provider: OPENAI_PROVIDER_NAME, model: "unknown" },
 		);
 	}
 	return "";

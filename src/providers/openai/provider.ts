@@ -36,11 +36,13 @@ const OPENAI_CAPABILITIES: ProviderCapabilities = mergeCapabilities({
 	maxTools: -1,
 });
 
+export const OPENAI_PROVIDER_NAME = "openai";
+
 export class OpenAIProvider
 	implements
 		Provider<ChatCompletionCreateRequest, ChatCompletion, ChatCompletionChunk>
 {
-	readonly name = "openai";
+	readonly name = OPENAI_PROVIDER_NAME;
 	readonly capabilities = OPENAI_CAPABILITIES;
 	readonly mapper = {
 		request: { map: buildOpenAIRequest },
