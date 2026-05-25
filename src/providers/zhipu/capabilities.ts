@@ -35,22 +35,29 @@ export function assertZhipuRequestSupported(
 
 export function warnZhipuRequestDowngrades(ctx: ResponsesContext): void {
 	if (ctx.request.truncation === "auto") {
-		ctx.logger.warn("provider.parameter.downgraded", () => ({
-			request_id: ctx.requestId,
-			field: "truncation",
-			strategy: "ignored",
-			reason:
-				"automatic context truncation is not implemented locally; forwarding the request without provider truncation.",
-		}));
+		ctx.addDiagnostic({
+			code: "adapter.param.unsupported",
+			severity: "warn",
+			path: "truncation",
+			action: "ignored",
+			message:
+				"Automatic context truncation is not implemented; forwarding without truncation.",
+			metadata: { parameter: "truncation", value: ctx.request.truncation },
+		});
 	}
 	if (ctx.request.parallel_tool_calls !== undefined) {
-		ctx.logger.warn("provider.parameter.downgraded", () => ({
-			request_id: ctx.requestId,
-			field: "parallel_tool_calls",
-			strategy: "ignored",
-			reason:
-				"Zhipu Chat Completions does not expose an OpenAI-compatible parallel tool-call control.",
-		}));
+		ctx.addDiagnostic({
+			code: "adapter.param.unsupported",
+			severity: "warn",
+			path: "parallel_tool_calls",
+			action: "ignored",
+			message:
+				"Zhipu Chat Completions does not expose parallel tool-call control.",
+			metadata: {
+				parameter: "parallel_tool_calls",
+				value: ctx.request.parallel_tool_calls,
+			},
+		});
 	}
 }
 

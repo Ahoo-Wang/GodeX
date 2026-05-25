@@ -63,10 +63,14 @@ export function buildZhipuRequest(
 				supportedToolTypes: ZHIPU_SUPPORTED_TOOL_TYPES,
 				unsupported: "skip",
 				onUnsupported: (type) => {
-					ctx.logger.warn("provider.tool.skipped", () => ({
-						request_id: ctx.requestId,
-						toolType: type,
-					}));
+					ctx.addDiagnostic({
+						code: "adapter.tool.unsupported",
+						severity: "warn",
+						path: `tools[type=${type}]`,
+						action: "ignored",
+						message: `Tool type '${type}' is not supported, skipping.`,
+						metadata: { toolType: type },
+					});
 				},
 			});
 	if (tools.length > 0) {
@@ -74,12 +78,15 @@ export function buildZhipuRequest(
 		result.tools = tools;
 	}
 	if (shouldWarnToolChoiceDowngrade(requestedToolChoice)) {
-		ctx.logger.warn("provider.parameter.downgraded", () => ({
-			request_id: ctx.requestId,
-			field: "tool_choice",
-			strategy: "auto",
-			reason: "Zhipu Chat Completions only supports auto tool choice.",
-		}));
+		ctx.addDiagnostic({
+			code: "adapter.param.unsupported",
+			severity: "warn",
+			path: "tool_choice",
+			action: "degraded",
+			message:
+				"Zhipu Chat Completions only supports auto tool choice; downgraded to auto.",
+			metadata: { parameter: "tool_choice", value: requestedToolChoice },
+		});
 	}
 	const choice = mapToolChoice(requestedToolChoice);
 	if (choice && tools.length > 0) result.tool_choice = choice;

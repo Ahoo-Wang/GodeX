@@ -1,9 +1,10 @@
 // src/providers/zhipu/request.test.ts
 import { describe, expect, test } from "bun:test";
+import type { CompatibilityDiagnostic } from "../../adapter/compatibility";
 import type { ApplicationContext } from "../../context/application-context";
 import type { ResponsesContext } from "../../context/responses-context";
 import { AdapterError } from "../../error";
-import { createLogger, type LogAttr, type Logger } from "../../logger";
+import { createLogger, type Logger } from "../../logger";
 import type { ResponseCreateRequest } from "../../protocol/openai/responses";
 import { buildZhipuRequest } from "./request";
 
@@ -12,6 +13,7 @@ function ctx(
 	session?: ResponsesContext["session"],
 	logger: Logger = createLogger({ level: "error" }),
 ): ResponsesContext {
+	const diagnostics: CompatibilityDiagnostic[] = [];
 	return {
 		request: { model: "glm-5.1", ...partial } as ResponseCreateRequest,
 		resolved: { provider: "zhipu", model: "glm-5.1" },
@@ -25,6 +27,10 @@ function ctx(
 			name: "zhipu",
 			mapper: {} as never,
 			client: {} as never,
+		},
+		diagnostics,
+		addDiagnostic(d: CompatibilityDiagnostic) {
+			diagnostics.push(d);
 		},
 	} as unknown as ResponsesContext;
 }
@@ -234,48 +240,34 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("downgrades truncation auto instead of rejecting the request", () => {
-		const warnings: Array<Record<string, unknown> | undefined> = [];
-		const logger: Logger = {
-			...createLogger({ level: "warn" }),
-			warn: (_event, attr) => {
-				warnings.push(typeof attr === "function" ? attr() : attr);
-			},
-		};
+		const testCtx = ctx({ input: "Hi", truncation: "auto" });
 
-		const result = buildZhipuRequest(
-			ctx({ input: "Hi", truncation: "auto" }, null, logger),
-		);
+		const result = buildZhipuRequest(testCtx);
 
 		expect(result.messages).toEqual([{ role: "user", content: "Hi" }]);
 		expect("truncation" in result).toBe(false);
-		expect(warnings).toContainEqual(
+		expect(testCtx.diagnostics).toContainEqual(
 			expect.objectContaining({
-				request_id: "req_1",
-				field: "truncation",
-				strategy: "ignored",
+				code: "adapter.param.unsupported",
+				severity: "warn",
+				path: "truncation",
+				action: "ignored",
 			}),
 		);
 	});
 
 	test("does not map parallel_tool_calls to Zhipu tool_stream", () => {
-		const warnings: Array<Record<string, unknown> | undefined> = [];
-		const logger: Logger = {
-			...createLogger({ level: "warn" }),
-			warn: (_event, attr) => {
-				warnings.push(typeof attr === "function" ? attr() : attr);
-			},
-		};
+		const testCtx = ctx({ input: "Hi", parallel_tool_calls: true });
 
-		const result = buildZhipuRequest(
-			ctx({ input: "Hi", parallel_tool_calls: true }, null, logger),
-		);
+		const result = buildZhipuRequest(testCtx);
 
 		expect("tool_stream" in result).toBe(false);
-		expect(warnings).toContainEqual(
+		expect(testCtx.diagnostics).toContainEqual(
 			expect.objectContaining({
-				request_id: "req_1",
-				field: "parallel_tool_calls",
-				strategy: "ignored",
+				code: "adapter.param.unsupported",
+				severity: "warn",
+				path: "parallel_tool_calls",
+				action: "ignored",
 			}),
 		);
 	});
@@ -338,38 +330,27 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("warns when downgrading unsupported tool_choice to auto", () => {
-		const warnings: Array<Record<string, unknown> | undefined> = [];
-		const logger: Logger = {
-			...createLogger({ level: "warn" }),
-			warn: (_event, attr) => {
-				warnings.push(typeof attr === "function" ? attr() : attr);
-			},
-		};
-
-		const result = buildZhipuRequest(
-			ctx(
+		const testCtx = ctx({
+			tools: [
 				{
-					tools: [
-						{
-							type: "function",
-							name: "get_weather",
-							parameters: { type: "object" },
-							strict: true,
-						},
-					],
-					tool_choice: "required",
+					type: "function",
+					name: "get_weather",
+					parameters: { type: "object" },
+					strict: true,
 				},
-				null,
-				logger,
-			),
-		);
+			],
+			tool_choice: "required",
+		});
+
+		const result = buildZhipuRequest(testCtx);
 
 		expect(result.tool_choice).toBe("auto");
-		expect(warnings).toContainEqual(
+		expect(testCtx.diagnostics).toContainEqual(
 			expect.objectContaining({
-				request_id: "req_1",
-				field: "tool_choice",
-				strategy: "auto",
+				code: "adapter.param.unsupported",
+				severity: "warn",
+				path: "tool_choice",
+				action: "degraded",
 			}),
 		);
 	});
@@ -409,32 +390,20 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("skips tools that are not in the supported tool type set", () => {
-		const warnings: string[] = [];
-		const logger: Logger = {
-			...createLogger({ level: "error" }),
-			warn: (_event: string, attr?: LogAttr) => {
-				const data = typeof attr === "function" ? attr() : attr;
-				warnings.push(data?.toolType as string);
-			},
-		};
-		const requestCtx = ctx(
-			{
-				input: "Hi",
-				tools: [
-					{
-						type: "function",
-						name: "get_weather",
-						parameters: { type: "object" },
-						strict: true,
-					},
-					{ type: "code_interpreter", container: { type: "auto" } },
-				],
-			},
-			null,
-			logger,
-		);
+		const testCtx = ctx({
+			input: "Hi",
+			tools: [
+				{
+					type: "function",
+					name: "get_weather",
+					parameters: { type: "object" },
+					strict: true,
+				},
+				{ type: "code_interpreter", container: { type: "auto" } },
+			],
+		});
 
-		const result = buildZhipuRequest(requestCtx);
+		const result = buildZhipuRequest(testCtx);
 
 		expect(result.tools).toEqual([
 			{
@@ -446,7 +415,15 @@ describe("buildZhipuRequest", () => {
 				},
 			},
 		]);
-		expect(warnings).toEqual(["code_interpreter"]);
+		expect(testCtx.diagnostics).toContainEqual(
+			expect.objectContaining({
+				code: "adapter.tool.unsupported",
+				severity: "warn",
+				path: "tools[type=code_interpreter]",
+				action: "ignored",
+				metadata: { toolType: "code_interpreter" },
+			}),
+		);
 	});
 
 	test("maps Codex tool call history to chat tool messages", () => {
@@ -708,39 +685,29 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("gracefully skips unsupported provider-side tools", () => {
-		const warnings: string[] = [];
-		const ctxWithWarn = {
-			...ctx({
-				input: "Hello",
-				tools: [
-					{
-						type: "code_interpreter",
-						container: { type: "auto" },
-					},
-					{
-						type: "image_generation",
-					},
-					{
-						type: "computer_use_preview",
-						display_height: 768,
-						display_width: 1024,
-						environment: "browser",
-					},
-				],
-			}),
-			logger: {
-				...createLogger({ level: "error" }),
-				warn: (_event: string, attr?: LogAttr) => {
-					const data = typeof attr === "function" ? attr() : attr;
-					warnings.push(data?.toolType as string);
+		const testCtx = ctx({
+			input: "Hello",
+			tools: [
+				{
+					type: "code_interpreter",
+					container: { type: "auto" },
 				},
-			},
-		} as ResponsesContext;
+				{
+					type: "image_generation",
+				},
+				{
+					type: "computer_use_preview",
+					display_height: 768,
+					display_width: 1024,
+					environment: "browser",
+				},
+			],
+		});
 
-		const result = buildZhipuRequest(ctxWithWarn);
+		const result = buildZhipuRequest(testCtx);
 
 		expect(result.tools).toBeUndefined();
-		expect(warnings).toEqual([
+		expect(testCtx.diagnostics.map((d) => d.metadata?.toolType)).toEqual([
 			"code_interpreter",
 			"image_generation",
 			"computer_use_preview",

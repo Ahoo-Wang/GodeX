@@ -5,7 +5,9 @@ import type {
 } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import type { Adapter } from "./adapter";
+import { logDiagnostics } from "./compatibility";
 import type { StreamState } from "./mapper/stream-state";
+import { CompatibilityLogTransformer } from "./transformers/compatibility-log-transformer";
 import { ProviderEventToResponseTransformer } from "./transformers/provider-event-to-response-transformer";
 import { ResponseLogTransformer } from "./transformers/response-log-transformer";
 import { ResponseSessionPersistenceTransformer } from "./transformers/response-session-persistence-transformer";
@@ -42,6 +44,9 @@ export class DefaultAdapter implements Adapter {
 			durationMillis: Date.now() - ctx.createdAt * 1000,
 			usage: response.usage,
 		}));
+		logDiagnostics(ctx, {
+			durationMillis: Date.now() - ctx.createdAt * 1000,
+		});
 		try {
 			await saveSession(ctx.app.sessionStore, response, ctx);
 		} catch (err) {
@@ -96,21 +101,22 @@ export class DefaultAdapter implements Adapter {
 			new ResponseLogTransformer(ctx),
 		);
 
-		if (ctx.request.store === false) {
-			return logStream;
-		}
+		const sessionStream =
+			ctx.request.store === false
+				? logStream
+				: pipeTransform(
+						logStream,
+						new ResponseSessionPersistenceTransformer({
+							ctx,
+							saveSession,
+							buildResponseObject: async (
+								ctx: ResponsesContext,
+								state: StreamState,
+							) => mapper.stream.buildResponseObject(ctx, state),
+						}),
+					);
 
-		return pipeTransform(
-			logStream,
-			new ResponseSessionPersistenceTransformer({
-				ctx,
-				saveSession,
-				buildResponseObject: async (
-					ctx: ResponsesContext,
-					state: StreamState,
-				) => mapper.stream.buildResponseObject(ctx, state),
-			}),
-		);
+		return pipeTransform(sessionStream, new CompatibilityLogTransformer(ctx));
 	}
 }
 

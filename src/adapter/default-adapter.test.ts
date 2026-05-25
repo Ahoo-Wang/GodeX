@@ -6,6 +6,7 @@ import type {
 	ResponseStreamEvent,
 } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
+import type { CompatibilityDiagnostic } from "./compatibility";
 import { DefaultAdapter } from "./default-adapter";
 import { StreamState } from "./mapper/stream-state";
 import type { Provider } from "./provider";
@@ -86,6 +87,12 @@ function createMockCtx(
 		responseId: "resp_123",
 		createdAt: Math.floor(Date.now() / 1000),
 		resolved: { provider: "test", model: "test" },
+		diagnostics: [],
+		addDiagnostic(d: CompatibilityDiagnostic) {
+			(
+				this as unknown as { diagnostics: CompatibilityDiagnostic[] }
+			).diagnostics.push(d);
+		},
 		attributes: new Map(),
 		session: null,
 	} as unknown as ResponsesContext;
@@ -412,5 +419,58 @@ describe("DefaultAdapter", () => {
 		);
 		expect(sessionStore.saved.length).toBe(1);
 		expect(sessionStore.saved[0]?.id).toBe("resp_terminal_before_error");
+	});
+
+	test("request logs diagnostics when present", async () => {
+		const responseObject = {
+			id: "resp_diag",
+			object: "response" as const,
+			status: "completed" as const,
+			model: "test",
+			created_at: 1,
+			completed_at: 1,
+			output: [],
+			output_text: "",
+			usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 },
+		};
+		const provider = createMockProvider(responseObject);
+		const sessionStore = createMockSessionStore();
+
+		const warns: Array<{ event: string; attr: Record<string, unknown> }> = [];
+		const ctx = createMockCtx(provider, sessionStore, true, {
+			warn: (event, attr) => {
+				warns.push({
+					event,
+					attr:
+						typeof attr === "function"
+							? (attr as () => Record<string, unknown>)()
+							: (attr ?? {}),
+				});
+			},
+		});
+
+		ctx.addDiagnostic({
+			code: "adapter.tool.unsupported",
+			severity: "warn",
+			action: "ignored",
+			message: "Tool 'code_interpreter' is not supported",
+		});
+
+		const adapter = new DefaultAdapter();
+		await adapter.request(ctx);
+
+		const diagInfos = warns.filter((i) => i.event === "responses.diagnostics");
+		expect(diagInfos.length).toBe(1);
+		expect(diagInfos[0]?.attr).toMatchObject({
+			count: 1,
+			diagnostics: [
+				{
+					code: "adapter.tool.unsupported",
+					severity: "warn",
+					action: "ignored",
+					message: "Tool 'code_interpreter' is not supported",
+				},
+			],
+		});
 	});
 });

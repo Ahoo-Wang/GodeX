@@ -1,4 +1,5 @@
 import { nanoid } from "nanoid";
+import type { CompatibilityDiagnostic } from "../adapter/compatibility";
 import type { Provider } from "../adapter/provider";
 import {
 	SERVER_PROVIDER_NOT_REGISTERED,
@@ -17,6 +18,7 @@ export class ResponsesContext {
 	readonly responseId: string;
 	readonly createdAt: number;
 	readonly logger: Logger;
+	readonly diagnostics: CompatibilityDiagnostic[];
 	readonly attributes: Map<string, unknown>;
 
 	private constructor(
@@ -34,7 +36,12 @@ export class ResponsesContext {
 		this.responseId = responseId;
 		this.createdAt = createdAt;
 		this.logger = logger;
+		this.diagnostics = [];
 		this.attributes = new Map();
+	}
+
+	addDiagnostic(d: CompatibilityDiagnostic): void {
+		this.diagnostics.push(d);
 	}
 
 	static async create(
