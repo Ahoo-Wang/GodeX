@@ -40,6 +40,10 @@ export class ResponsesContext {
 		this.attributes = new Map();
 	}
 
+	addDiagnostic(d: CompatibilityDiagnostic): void {
+		this.diagnostics.push(d);
+	}
+
 	static async create(
 		app: ApplicationContext,
 		body: ResponseCreateRequest,
