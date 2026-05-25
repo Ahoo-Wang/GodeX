@@ -21,7 +21,10 @@ hero:
     - theme: alt
       text: GitHub
       link: https://github.com/Ahoo-Wang/GodeX
-
+    - theme: alt
+      text: Gitee
+      link: https://gitee.com/AhooWang/GodeX
+  
 features:
   - icon: 🔄
     title: 协议转换

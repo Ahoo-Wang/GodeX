@@ -282,6 +282,7 @@ export default withMermaid(
       siteTitle: 'GodeX',
       socialLinks: [
         { icon: 'github', link: 'https://github.com/Ahoo-Wang/GodeX' },
+        { icon: 'gitee', link: 'https://gitee.com/AhooWang/GodeX' },
       ],
       search: { provider: 'local' },
     },

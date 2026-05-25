@@ -19,9 +19,11 @@ hero:
       text: Getting Started
       link: /01-getting-started/overview
     - theme: alt
-      text: View on GitHub
+      text: GitHub
       link: https://github.com/Ahoo-Wang/GodeX
-
+    - theme: alt
+      text: Gitee
+      link: https://gitee.com/AhooWang/GodeX
 features:
   - icon: 🔄
     title: Protocol Translation
