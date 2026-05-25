@@ -106,7 +106,7 @@ export class StreamResponseState {
 		ctx: ResponsesContext,
 		options: StreamResponseStateOptions,
 	): StreamResponseState {
-		if (!options.toolCallOutputItemMapper) {
+		if (!options?.toolCallOutputItemMapper) {
 			throw streamStateError(
 				ctx,
 				ADAPTER_STREAM_MISSING_OPTIONS,
