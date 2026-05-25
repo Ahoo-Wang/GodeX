@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-	checkCapability,
-	DEFAULT_CAPABILITIES,
-	mergeCapabilities,
-} from "./capabilities";
+import { DEFAULT_CAPABILITIES, mergeCapabilities } from "./capabilities";
 
 function addAtRuntime(set: ReadonlySet<string>, value: string): void {
 	try {
@@ -83,21 +79,5 @@ describe("mergeCapabilities", () => {
 		expect(DEFAULT_CAPABILITIES.maxTools).toBe(-1);
 		expect(capabilities.streaming).toBe(true);
 		expect(capabilities.maxTools).toBe(3);
-	});
-});
-
-describe("checkCapability", () => {
-	test("recognizes readonly set capabilities", () => {
-		const capabilities = mergeCapabilities({
-			supportedToolTypes: new Set(["function"]),
-			features: new Set(["vision"]),
-		});
-
-		expect(checkCapability(capabilities, "supportedToolTypes")).toEqual({
-			supported: true,
-		});
-		expect(checkCapability(capabilities, "features")).toEqual({
-			supported: true,
-		});
 	});
 });

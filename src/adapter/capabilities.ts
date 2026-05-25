@@ -1,5 +1,5 @@
 // src/adapter/capabilities.ts
-// Provider capability flags, immutable set helpers, and merge/check utilities.
+// Provider capability flags, immutable set helpers, and merge utilities.
 
 export interface ProviderCapabilities {
 	/** Whether this provider supports streaming (SSE) responses. */
@@ -90,10 +90,6 @@ function freezeCapabilities(
 	return Object.freeze(capabilities);
 }
 
-function isReadonlySet(value: unknown): value is ReadonlySet<unknown> {
-	return value instanceof Set || value instanceof ImmutableReadonlySet;
-}
-
 export function mergeCapabilities(
 	...overrides: Partial<ProviderCapabilities>[]
 ): ProviderCapabilities {
@@ -113,43 +109,4 @@ export function mergeCapabilities(
 		}
 	}
 	return freezeCapabilities(merged);
-}
-
-export interface CapabilityCheckResult {
-	supported: boolean;
-	reason?: string;
-}
-
-export function checkCapability(
-	capabilities: ProviderCapabilities,
-	feature: keyof ProviderCapabilities,
-): CapabilityCheckResult {
-	const value = capabilities[feature];
-	if (typeof value === "boolean") {
-		return value
-			? { supported: true }
-			: {
-					supported: false,
-					reason: `${feature} is not supported by this provider`,
-				};
-	}
-	if (isReadonlySet(value)) {
-		return { supported: true };
-	}
-	if (typeof value === "number") {
-		return { supported: true };
-	}
-	return { supported: false, reason: `unknown capability: ${feature}` };
-}
-
-export function checkToolSupport(
-	capabilities: ProviderCapabilities,
-	toolType: string,
-): CapabilityCheckResult {
-	return capabilities.supportedToolTypes.has(toolType)
-		? { supported: true }
-		: {
-				supported: false,
-				reason: `tool type "${toolType}" is not supported by this provider`,
-			};
 }
