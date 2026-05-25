@@ -1,7 +1,6 @@
 import type {
     Reasoning,
     ResponseOutputMessage,
-    ResponseStreamEvent,
 } from "../../protocol/openai/responses";
 
 export type MessageBlockKind = "text" | "refusal";
@@ -53,4 +52,3 @@ export function contentPart(block: MessageBlock) {
         : { type: "refusal" as const, refusal: block.done ? block.text : "" };
 }
 
-export type MessageEvents = ResponseStreamEvent[];
