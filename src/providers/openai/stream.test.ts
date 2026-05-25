@@ -104,7 +104,7 @@ describe("OpenAIStreamMapper", () => {
 		]);
 	});
 
-	test("restores namespace tool calls in final stream output", () => {
+	test("restores namespace tool call identity consistently from added through done", () => {
 		const testCtx = ctx({
 			tools: [
 				{
@@ -122,7 +122,7 @@ describe("OpenAIStreamMapper", () => {
 			],
 		});
 
-		mapper.map(
+		const addedEvents = mapper.map(
 			testCtx,
 			sse({
 				choices: [
@@ -147,6 +147,21 @@ describe("OpenAIStreamMapper", () => {
 				],
 			}),
 		);
+
+		const added = addedEvents.find(
+			(e): e is typeof e & { item: { call_id: string } } =>
+				e.type === "response.output_item.added" && "call_id" in (e.item ?? {}),
+		);
+		expect(added).toMatchObject({
+			type: "response.output_item.added",
+			item: {
+				type: "function_call",
+				call_id: "call_namespace",
+				namespace: "mcp__node_repl__",
+				name: "js",
+				arguments: "",
+			},
+		});
 		mapper.map(
 			testCtx,
 			sse({

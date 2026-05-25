@@ -14,6 +14,7 @@ import type {
 	ResponseStreamEvent,
 } from "../../protocol/openai/responses";
 import { buildChatResponseObject } from "./response-object";
+import { findFlattenedNamespaceTool } from "./tool-name-mapping";
 
 export interface ChatStreamToolCallDelta {
 	index?: number;
@@ -72,7 +73,7 @@ export abstract class ChatCompletionStreamMapper<
 		}
 
 		for (const toolCallDelta of this.extractToolCalls(choice.delta)) {
-			events.push(...this.accumulateToolCall(state, toolCallDelta));
+			events.push(...this.accumulateToolCall(ctx, state, toolCallDelta));
 		}
 
 		if (choice.finishReason) {
@@ -107,6 +108,14 @@ export abstract class ChatCompletionStreamMapper<
 		ctx: ResponsesContext,
 		toolCall: ToolCallAccumulator,
 	): ResponseItem;
+
+	protected resolveToolCallIdentity(
+		_ctx: ResponsesContext,
+		upstreamName: string,
+	): { name: string; namespace?: string } {
+		const match = findFlattenedNamespaceTool(_ctx.request.tools, upstreamName);
+		return match ?? { name: upstreamName };
+	}
 
 	abstract buildResponseObject(
 		ctx: ResponsesContext,
@@ -225,6 +234,7 @@ export abstract class ChatCompletionStreamMapper<
 	}
 
 	private accumulateToolCall(
+		ctx: ResponsesContext,
 		state: StreamState,
 		tc: ChatStreamToolCallDelta,
 	): ResponseStreamEvent[] {
@@ -250,13 +260,14 @@ export abstract class ChatCompletionStreamMapper<
 			const hadName = toolCall.name !== "";
 			toolCall.name = fn.name;
 			if (!hadName) {
+				const identity = this.resolveToolCallIdentity(ctx, fn.name);
 				events.push({
 					type: "response.output_item.added",
 					item_id: toolCall.id,
 					item: {
 						type: "function_call",
 						call_id: toolCall.id,
-						name: fn.name,
+						...identity,
 						arguments: "",
 					},
 				});

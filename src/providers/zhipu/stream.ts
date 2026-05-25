@@ -13,6 +13,8 @@ import {
 	type ChatStreamChoice,
 	type ChatStreamToolCallDelta,
 } from "../shared/chat-stream-mapper";
+import { findFlattenedNamespaceTool } from "../shared/tool-name-mapping";
+import { toZhipuFunctionName } from "./function-names";
 import type {
 	ChatCompletionChunk,
 	ChatCompletionStreamDelta,
@@ -64,6 +66,18 @@ export class ZhipuStreamMapper extends ChatCompletionStreamMapper<
 		toolCall: ToolCallAccumulator,
 	): ResponseItem {
 		return mapZhipuToolCall(ctx, toolCall);
+	}
+
+	protected override resolveToolCallIdentity(
+		ctx: ResponsesContext,
+		upstreamName: string,
+	): { name: string; namespace?: string } {
+		const match = findFlattenedNamespaceTool(
+			ctx.request.tools,
+			upstreamName,
+			toZhipuFunctionName,
+		);
+		return match ?? { name: upstreamName };
 	}
 
 	protected override doneMessageContent(
