@@ -239,7 +239,7 @@ The state machine must generate complete OpenAI Responses SSE event payloads. `R
 `response.created`:
 
 - `type: "response.created"`
-- `response`: queued snapshot captured before `start()` moves the lifecycle to `in_progress`
+- `response`: in-progress snapshot (same as `response.in_progress`, matching OpenAI reference)
 
 `response.in_progress`:
 
@@ -256,14 +256,12 @@ Terminal event:
 When a text block opens, emit `response.output_item.added`:
 
 - `type: "response.output_item.added"`
-- `response`: current `snapshot`
 - `output_index`: allocated output index
 - `item`: assistant message item with `id`, `type: "message"`, `role: "assistant"`, `status: "in_progress"`, and empty `content`
 
 Then emit `response.content_part.added`:
 
 - `type: "response.content_part.added"`
-- `response`: current `snapshot`
 - `item_id`: message item id
 - `output_index`: message output index
 - `content_index`: allocated content index
@@ -288,7 +286,6 @@ Then emit `response.content_part.added`:
 `response.content_part.done`:
 
 - `type: "response.content_part.done"`
-- `response`: current `snapshot`
 - `item_id`: message item id
 - `output_index`: message output index
 - `content_index`: text content index
@@ -297,7 +294,6 @@ Then emit `response.content_part.added`:
 `response.output_item.done`:
 
 - `type: "response.output_item.done"`
-- `response`: current `snapshot`
 - `output_index`: message output index
 - `item`: final assistant message item with `status: "completed"` and final content
 
@@ -326,14 +322,12 @@ Refusal uses the same message item lifecycle as text, but the content part is `{
 When a reasoning block opens, emit `response.output_item.added`:
 
 - `type: "response.output_item.added"`
-- `response`: current `snapshot`
 - `output_index`: reasoning output index
 - `item`: reasoning item with `id`, `type: "reasoning"`, `summary: []`, `content: []`, and `status: "in_progress"`
 
 Then emit `response.reasoning_text_part.added`:
 
 - `type: "response.reasoning_text_part.added"`
-- `response`: current `snapshot`
 - `item_id`: reasoning item id
 - `output_index`: reasoning output index
 - `content_index`: reasoning content index
@@ -358,7 +352,6 @@ Then emit `response.reasoning_text_part.added`:
 `response.reasoning_text_part.done`:
 
 - `type: "response.reasoning_text_part.done"`
-- `response`: current `snapshot`
 - `item_id`: reasoning item id
 - `output_index`: reasoning output index
 - `content_index`: reasoning content index
@@ -367,7 +360,6 @@ Then emit `response.reasoning_text_part.added`:
 `response.output_item.done`:
 
 - `type: "response.output_item.done"`
-- `response`: current `snapshot`
 - `output_index`: reasoning output index
 - `item`: final reasoning item with `status: "completed"` and final content
 
@@ -376,7 +368,6 @@ Then emit `response.reasoning_text_part.added`:
 When a function call has a name and opens, emit `response.output_item.added`:
 
 - `type: "response.output_item.added"`
-- `response`: current `snapshot`
 - `output_index`: function call output index
 - `item_id`: call id
 - `item`: mapped output item from `options.toolCallOutputItemMapper` with empty arguments
@@ -398,7 +389,6 @@ When a function call has a name and opens, emit `response.output_item.added`:
 `response.output_item.done`:
 
 - `type: "response.output_item.done"`
-- `response`: current `snapshot`
 - `output_index`: function call output index
 - `item`: final mapped output item
 
@@ -695,7 +685,7 @@ bun run check
 - `StreamMapper` no longer has `buildResponseObject()`.
 - Streaming persistence uses `StreamResponseState.snapshot`.
 - Output event generation is centralized in the state machine.
-- Generated Responses SSE events include explicit `response`, `item`, `item_id`, `output_index`, and `content_index` fields according to the event payload contract.
+- Generated Responses SSE events include `response` (lifecycle events only), `item`, `item_id`, `output_index`, and `content_index` fields according to the event payload contract.
 - Provider mappers translate provider deltas into state-machine actions.
 - Illegal state transitions produce GodeX domain errors.
 - Stream-specific adapter error codes are added to `src/error/codes.ts`.

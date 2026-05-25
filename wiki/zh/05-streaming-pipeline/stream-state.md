@@ -90,7 +90,7 @@ start() -> response.created, response.in_progress
   ├── onFunctionCallDelta() -> output_item.added, function_call_arguments.delta
   └── onFunctionCallDone() -> function_call_arguments.done, output_item.done
 
-onFinish() -> 关闭打开的块，发出终止事件 (response.completed/incomplete)
+onFinish() -> 关闭打开的块，发出终止事件 (response.completed/incomplete/failed)
 onError() -> response.failed
 ```
 

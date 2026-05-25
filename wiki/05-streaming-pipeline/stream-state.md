@@ -90,7 +90,7 @@ start() -> response.created, response.in_progress
   ├── onFunctionCallDelta() -> output_item.added, function_call_arguments.delta
   └── onFunctionCallDone() -> function_call_arguments.done, output_item.done
 
-onFinish() -> closes open blocks, emits terminal event (response.completed/incomplete)
+onFinish() -> closes open blocks, emits terminal event (response.completed/incomplete/failed)
 onError() -> response.failed
 ```
 
