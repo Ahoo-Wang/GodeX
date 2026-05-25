@@ -23,7 +23,10 @@ import {
 	reasoningItem,
 } from "./stream-response-message";
 import { OutputCollectionState } from "./stream-response-output";
-import { ToolCallOutputState } from "./stream-response-tool-call";
+import {
+	ToolCallOutputState,
+	type ToolCallRecord,
+} from "./stream-response-tool-call";
 
 export enum StreamResponsePhase {
 	IDLE = "idle",
@@ -144,6 +147,7 @@ export class StreamResponseState {
 
 	onTextDelta(delta: string): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onTextDelta");
+		if (!delta) return [];
 		const events: ResponseStreamEvent[] = [];
 
 		if (!this.activeText) {
@@ -237,6 +241,7 @@ export class StreamResponseState {
 
 	onReasoningTextDelta(delta: string): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onReasoningTextDelta");
+		if (!delta) return [];
 		const events: ResponseStreamEvent[] = [];
 
 		if (!this.activeReasoning) {
@@ -328,6 +333,7 @@ export class StreamResponseState {
 
 	onRefusalDelta(delta: string): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onRefusalDelta");
+		if (!delta) return [];
 		const events: ResponseStreamEvent[] = [];
 
 		if (!this.activeRefusal) {
@@ -425,11 +431,18 @@ export class StreamResponseState {
 		// Apply delta to accumulator
 		const call = this.toolCalls.apply(delta);
 
-		// Silently ignore deltas after call is done
-		if (call.done) return [];
+		if (call.done) {
+			throw streamStateError(
+				this.ctx,
+				ADAPTER_STREAM_INVALID_TRANSITION,
+				`Cannot apply function call delta at index ${call.index}: call is already done.`,
+			);
+		}
 
-		// If no name yet, accumulate silently
+		// If no name yet, accumulate silently (arguments may arrive before name)
 		if (!call.name) return [];
+		// No-op on empty args when call is already opened
+		if (call.opened && !delta.arguments) return [];
 
 		// Open output item if not yet opened
 		if (!call.opened) {
@@ -481,7 +494,13 @@ export class StreamResponseState {
 	onFunctionCallDone(index: number): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFunctionCallDone");
 		const call = this.toolCalls.get(index);
-		if (call?.done) return [];
+		if (call?.done) {
+			throw streamStateError(
+				this.ctx,
+				ADAPTER_STREAM_INVALID_TRANSITION,
+				`Cannot complete tool call at index ${index}: call is already done.`,
+			);
+		}
 		if (!call?.name) {
 			throw streamStateError(
 				this.ctx,
@@ -521,12 +540,7 @@ export class StreamResponseState {
 
 	onFinish(status: StreamResponseTerminalStatus): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFinish");
-		const closeEvents: ResponseStreamEvent[] = [
-			...this.closeActiveReasoning(),
-			...this.closeActiveText(),
-			...this.closeActiveRefusal(),
-			...this.closeOpenToolCalls(),
-		];
+		const closeEvents = this.closeAllActiveBlocks();
 		this.currentPhase = terminalPhase(status.status);
 		this.refreshSnapshot();
 		this.currentSnapshot = {
@@ -548,14 +562,79 @@ export class StreamResponseState {
 				"Cannot emit error event on a terminated stream response.",
 			);
 		}
+		const closeEvents =
+			this.currentPhase === StreamResponsePhase.IN_PROGRESS
+				? this.closeAllActiveBlocks()
+				: [];
 		this.currentPhase = StreamResponsePhase.FAILED;
+		this.refreshSnapshot();
 		this.currentSnapshot = {
 			...this.currentSnapshot,
 			status: "failed" as const,
 			error,
 			completed_at: this.options.nowSeconds(),
 		};
-		return [{ type: "response.failed", response: this.snapshot }];
+		return [
+			...closeEvents,
+			{ type: "response.failed", response: this.snapshot },
+		];
+	}
+
+	private closeAllActiveBlocks(): ResponseStreamEvent[] {
+		type Closable = { outputIndex: number; close(): ResponseStreamEvent[] };
+		const items: Closable[] = [];
+
+		if (this.activeReasoning) {
+			items.push({
+				outputIndex: this.activeReasoning.outputIndex,
+				close: () => this.closeActiveReasoning(),
+			});
+		}
+		if (this.activeText) {
+			items.push({
+				outputIndex: this.activeText.outputIndex,
+				close: () => this.closeActiveText(),
+			});
+		}
+		if (this.activeRefusal) {
+			items.push({
+				outputIndex: this.activeRefusal.outputIndex,
+				close: () => this.closeActiveRefusal(),
+			});
+		}
+		for (const call of this.toolCalls.openCalls()) {
+			const idx = call.outputIndex;
+			if (idx !== undefined) {
+				items.push({
+					outputIndex: idx,
+					close: () => this.closeSingleToolCall(call),
+				});
+			}
+		}
+
+		items.sort((a, b) => a.outputIndex - b.outputIndex);
+		return items.flatMap((item) => item.close());
+	}
+
+	private closeSingleToolCall(call: ToolCallRecord): ResponseStreamEvent[] {
+		if (call.outputIndex === undefined) return [];
+		call.done = true;
+		const outputIdx = call.outputIndex;
+		const finalItem = this.toolCalls.item(call);
+		this.output.markDone(outputIdx, finalItem);
+		return [
+			{
+				type: "response.function_call_arguments.done",
+				item_id: call.id,
+				output_index: outputIdx,
+				text: call.arguments,
+			},
+			{
+				type: "response.output_item.done",
+				output_index: outputIdx,
+				item: finalItem,
+			},
+		];
 	}
 
 	private closeActiveReasoning(): ResponseStreamEvent[] {
@@ -645,29 +724,6 @@ export class StreamResponseState {
 			item: completedItem,
 		});
 		this.activeRefusal = undefined;
-		return events;
-	}
-
-	private closeOpenToolCalls(): ResponseStreamEvent[] {
-		const events: ResponseStreamEvent[] = [];
-		for (const call of this.toolCalls.openCalls()) {
-			const outputIdx = call.outputIndex;
-			if (outputIdx === undefined) continue;
-			call.done = true;
-			const finalItem = this.toolCalls.item(call);
-			this.output.markDone(outputIdx, finalItem);
-			events.push({
-				type: "response.function_call_arguments.done",
-				item_id: call.id,
-				output_index: outputIdx,
-				text: call.arguments,
-			});
-			events.push({
-				type: "response.output_item.done",
-				output_index: outputIdx,
-				item: finalItem,
-			});
-		}
 		return events;
 	}
 

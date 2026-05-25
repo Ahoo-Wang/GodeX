@@ -471,12 +471,13 @@ describe("StreamResponseState terminal behavior", () => {
 		]);
 	});
 
-	test("onError from IN_PROGRESS emits failed terminal response", () => {
+	test("onError from IN_PROGRESS closes active blocks before failed event", () => {
 		const state = StreamResponseState.create(ctx(), {
 			toolCallOutputItemMapper: toolMapper,
 			nowSeconds: () => 1_764_000_010,
 		});
 		state.start();
+		state.onTextDelta("partial answer");
 
 		const events = state.onError({
 			code: "server_error",
@@ -484,18 +485,28 @@ describe("StreamResponseState terminal behavior", () => {
 		});
 
 		expect(state.phase).toBe(StreamResponsePhase.FAILED);
-		expect(events).toEqual([
+		// Must close text block before failed
+		expect(events.map((e) => e.type)).toEqual([
+			"response.output_text.done",
+			"response.content_part.done",
+			"response.output_item.done",
+			"response.failed",
+		]);
+		expect(events[events.length - 1]).toEqual(
 			expect.objectContaining({
 				type: "response.failed",
 				response: expect.objectContaining({
 					status: "failed",
+					output: [
+						expect.objectContaining({ type: "message", status: "completed" }),
+					],
 					error: {
 						code: "server_error",
 						message: "upstream stream failed",
 					},
 				}),
 			}),
-		]);
+		);
 	});
 
 	test("delta after terminal throws", () => {
@@ -526,5 +537,75 @@ describe("StreamResponseState terminal behavior", () => {
 		state.onFinish({ status: "completed" });
 
 		expect(() => state.onFinish({ status: "completed" })).toThrow(GodeXError);
+	});
+
+	test("empty deltas no-op without opening blocks", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+
+		expect(state.onTextDelta("")).toEqual([]);
+		expect(state.onRefusalDelta("")).toEqual([]);
+		expect(state.onReasoningTextDelta("")).toEqual([]);
+		// Verify no blocks were opened
+		expect(state.snapshot.output).toEqual([]);
+	});
+
+	test("tool call delta after done throws", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+		state.onFunctionCallDelta({
+			index: 0,
+			id: "c1",
+			name: "t1",
+			arguments: "{}",
+		});
+		state.onFunctionCallDone(0);
+
+		expect(() =>
+			state.onFunctionCallDelta({ index: 0, arguments: "x" }),
+		).toThrow(GodeXError);
+	});
+
+	test("duplicate tool call done throws", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+		state.onFunctionCallDelta({
+			index: 0,
+			id: "c1",
+			name: "t1",
+			arguments: "{}",
+		});
+		state.onFunctionCallDone(0);
+
+		expect(() => state.onFunctionCallDone(0)).toThrow(GodeXError);
+	});
+
+	test("finish closes blocks sorted by output_index not type", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+		// Open text first (output_index=0), then reasoning (output_index=1)
+		state.onTextDelta("answer");
+		state.onReasoningTextDelta("think");
+
+		const events = state.onFinish({ status: "completed" });
+
+		// text (output 0) must close before reasoning (output 1)
+		expect(events.map((e) => e.type)).toEqual([
+			"response.output_text.done",
+			"response.content_part.done",
+			"response.output_item.done",
+			"response.reasoning_text.done",
+			"response.reasoning_text_part.done",
+			"response.output_item.done",
+			"response.completed",
+		]);
 	});
 });
