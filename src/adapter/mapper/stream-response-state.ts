@@ -428,6 +428,9 @@ private toolCalls!: ToolCallOutputState;
 		// Apply delta to accumulator
 		const call = this.toolCalls.apply(delta);
 
+		// Silently ignore deltas after call is done
+		if (call.done) return [];
+
 		// If no name yet, accumulate silently
 		if (!call.name) return [];
 
@@ -479,6 +482,7 @@ private toolCalls!: ToolCallOutputState;
 	onFunctionCallDone(index: number): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFunctionCallDone");
 		const call = this.toolCalls.get(index);
+		if (call?.done) return [];
 		if (!call || !call.name) {
 			throw streamStateError(
 				this.ctx,
