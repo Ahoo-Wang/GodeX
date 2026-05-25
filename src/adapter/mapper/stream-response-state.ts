@@ -225,6 +225,8 @@ function terminalPhase(
 			return StreamResponsePhase.INCOMPLETE;
 		case "failed":
 			return StreamResponsePhase.FAILED;
+		default:
+			throw new Error(`Unknown terminal status: ${status}`);
 	}
 }
 
@@ -238,5 +240,7 @@ function terminalEventType(
 			return "response.incomplete";
 		case "failed":
 			return "response.failed";
+		default:
+			throw new Error(`Unknown terminal status: ${status}`);
 	}
 }
