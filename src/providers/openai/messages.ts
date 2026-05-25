@@ -1,5 +1,3 @@
-// src/providers/zhipu/messages.ts
-
 import { isRecord } from "../../adapter/utils";
 import {
 	ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
@@ -7,30 +5,32 @@ import {
 	AdapterError,
 } from "../../error";
 import type {
+	ChatCompletionAssistantMessageParam,
+	ChatCompletionContentPart,
+	ChatCompletionDeveloperMessageParam,
+	ChatCompletionMessageParam,
+	ChatCompletionSystemMessageParam,
+	ChatCompletionToolMessageParam,
+	ChatCompletionUserMessageParam,
+} from "../../protocol/openai/completions";
+import type {
 	ResponseCreateRequest,
 	ResponseInputContent,
 	ResponseItem,
 } from "../../protocol/openai/responses";
 import type { ResponseSessionSnapshot } from "../../session";
-import { toZhipuFunctionName } from "./function-names";
-import type { TextMessage, ToolCall } from "./protocol/completions";
-import { ZHIPU_PROVIDER_NAME } from "./provider";
+import { OPENAI_PROVIDER_NAME } from "./provider";
 
 type UnsupportedMode = "skip" | "throw";
 
-type ResponseMessageItem = {
-	role: "user" | "system" | "assistant" | "developer";
-	content: unknown;
-};
-
-export function buildZhipuMessages(
+export function buildOpenAIMessages(
 	req: ResponseCreateRequest,
 	session: ResponseSessionSnapshot | null,
-): TextMessage[] {
-	const messages: TextMessage[] = [];
+): ChatCompletionMessageParam[] {
+	const messages: ChatCompletionMessageParam[] = [];
 
-	const sysMsg = instructionsToSystemMessage(req.instructions);
-	if (sysMsg) messages.push(sysMsg);
+	const devMsg = instructionsToDeveloperMessage(req.instructions);
+	if (devMsg) messages.push(devMsg);
 
 	if (session) {
 		for (const item of session.input_items) {
@@ -58,8 +58,8 @@ export function buildZhipuMessages(
 function responseItemToMessage(
 	item: ResponseItem,
 	onUnsupported: UnsupportedMode = "skip",
-): TextMessage | null {
-	if (isResponseMessageItem(item)) {
+): ChatCompletionMessageParam | null {
+	if (isMessageItem(item)) {
 		return messageItemToMessage(item, onUnsupported);
 	}
 	if (item.type === "function_call_output") {
@@ -84,62 +84,170 @@ function responseItemToMessage(
 	if (onUnsupported === "throw") {
 		throw new AdapterError(
 			ADAPTER_REQUEST_UNSUPPORTED_INPUT_ITEM,
-			`Unsupported Responses input item type for Zhipu: ${"type" in item ? String(item.type) : "message"}`,
-			{ provider: ZHIPU_PROVIDER_NAME, model: "unknown" },
+			`Unsupported Responses input item type for OpenAI: ${"type" in item ? String(item.type) : "message"}`,
+			{ provider: OPENAI_PROVIDER_NAME, model: "unknown" },
 		);
 	}
 	return null;
 }
 
-function messageItemToMessage(
-	item: ResponseItem & ResponseMessageItem,
-	onUnsupported: UnsupportedMode,
-): TextMessage {
-	const content = extractText(item.content, onUnsupported);
-	if (item.role === "developer") {
-		return { role: "system", content };
-	}
-	return { role: item.role, content };
+type MessageRole = "user" | "system" | "assistant" | "developer";
+
+interface MessageItemLike {
+	role: MessageRole;
+	content: unknown;
 }
 
-function isResponseMessageItem(
+function isMessageItem(
 	item: ResponseItem,
-): item is ResponseItem & ResponseMessageItem {
-	if (!("role" in item) || !("content" in item)) {
-		return false;
-	}
+): item is ResponseItem & MessageItemLike {
+	if (!("role" in item) || !("content" in item)) return false;
+	const role = (item as { role: unknown }).role;
+	return (
+		role === "developer" ||
+		role === "system" ||
+		role === "assistant" ||
+		role === "user"
+	);
+}
+
+function messageItemToMessage(
+	item: ResponseItem & MessageItemLike,
+	onUnsupported: UnsupportedMode,
+): ChatCompletionMessageParam {
 	switch (item.role) {
 		case "developer":
-		case "assistant":
+			return {
+				role: "developer",
+				content: extractText(item.content, onUnsupported),
+			} satisfies ChatCompletionDeveloperMessageParam;
 		case "system":
+			return {
+				role: "system",
+				content: extractText(item.content, onUnsupported),
+			} satisfies ChatCompletionSystemMessageParam;
 		case "user":
-			return true;
-		default:
-			return false;
+			return {
+				role: "user",
+				content: extractUserContent(item.content, onUnsupported),
+			} satisfies ChatCompletionUserMessageParam;
+		case "assistant":
+			return buildAssistantMessage(item.content, onUnsupported);
 	}
 }
 
-function downgradedToolCallToMessage(item: ResponseItem): TextMessage | null {
+function buildAssistantMessage(
+	content: unknown,
+	onUnsupported: UnsupportedMode,
+): ChatCompletionAssistantMessageParam {
+	if (typeof content === "string") return { role: "assistant", content };
+	if (Array.isArray(content))
+		return { role: "assistant", content: extractText(content, onUnsupported) };
+	if (content === null || content === undefined) return { role: "assistant" };
+	return { role: "assistant", content: extractText(content, onUnsupported) };
+}
+
+function extractUserContent(
+	content: unknown,
+	onUnsupported: UnsupportedMode,
+): string | ChatCompletionContentPart[] {
+	if (typeof content === "string") return content;
+	if (Array.isArray(content)) {
+		const parts: ChatCompletionContentPart[] = [];
+		for (const part of content) {
+			if (!isRecord(part)) continue;
+			const type = (part as { type?: unknown }).type;
+			if (type === "input_text") {
+				parts.push({
+					type: "text",
+					text: String((part as { text: unknown }).text),
+				});
+			} else if (type === "input_image") {
+				const img = part as {
+					image_url?: string;
+					file_id?: string;
+					detail?: string;
+				};
+				if (!img.image_url) continue;
+				parts.push({
+					type: "image_url",
+					image_url: {
+						url: img.image_url,
+						...(img.detail
+							? { detail: img.detail as "low" | "high" | "auto" }
+							: {}),
+					},
+				});
+			} else if (type === "input_audio") {
+				parts.push({
+					type: "input_audio",
+					input_audio: {
+						data: String((part as { data: unknown }).data),
+						format: (part as { format: unknown }).format as "wav" | "mp3",
+					},
+				});
+			} else if (type === "input_file") {
+				const file = part as {
+					file_data?: string;
+					file_id?: string;
+					filename?: string;
+				};
+				parts.push({
+					type: "file",
+					file: {
+						...(file.file_data ? { file_data: file.file_data } : {}),
+						...(file.file_id ? { file_id: file.file_id } : {}),
+						...(file.filename ? { filename: file.filename } : {}),
+					},
+				});
+			} else if (type === "output_text") {
+				parts.push({
+					type: "text",
+					text: String((part as { text: unknown }).text),
+				});
+			} else if (onUnsupported === "throw") {
+				throw new AdapterError(
+					ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
+					`Unsupported Responses input content type for OpenAI: ${String(type)}`,
+					{ provider: OPENAI_PROVIDER_NAME, model: "unknown" },
+				);
+			}
+		}
+		return parts;
+	}
+	if (onUnsupported === "throw") {
+		throw new AdapterError(
+			ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
+			`Unsupported Responses input content type for OpenAI: ${typeof content}`,
+			{ provider: OPENAI_PROVIDER_NAME, model: "unknown" },
+		);
+	}
+	return "";
+}
+
+function downgradedToolCallToMessage(
+	item: ResponseItem,
+): ChatCompletionAssistantMessageParam | null {
 	switch (item.type) {
 		case "local_shell_call":
 			return toolCallMessage(item.call_id, "local_shell", {
 				command: item.action.command,
 				env: item.action.env,
-				...(item.action.timeout_ms
+				...(item.action.timeout_ms != null
 					? { timeout_ms: item.action.timeout_ms }
 					: {}),
 				...(item.action.user !== undefined ? { user: item.action.user } : {}),
-				...(item.action.working_directory
+				...(item.action.working_directory != null
 					? { working_directory: item.action.working_directory }
 					: {}),
 			});
 		case "shell_call":
 			return toolCallMessage(item.call_id, "shell", {
 				commands: item.action.commands,
-				...(item.action.timeout_ms
+				...(item.action.timeout_ms != null
 					? { timeout_ms: item.action.timeout_ms }
 					: {}),
-				...(item.action.max_output_length
+				...(item.action.max_output_length != null
 					? { max_output_length: item.action.max_output_length }
 					: {}),
 			});
@@ -171,7 +279,7 @@ function downgradedToolCallToMessage(item: ResponseItem): TextMessage | null {
 function downgradedToolOutputToMessage(
 	item: ResponseItem,
 	onUnsupported: UnsupportedMode,
-): TextMessage | null {
+): ChatCompletionToolMessageParam | null {
 	switch (item.type) {
 		case "local_shell_call_output":
 			return toolOutputMessage(item.id, item.output);
@@ -208,32 +316,31 @@ function toolCallMessage(
 	callId: string,
 	name: string,
 	argumentsValue: string | Record<string, unknown>,
-): TextMessage {
+): ChatCompletionAssistantMessageParam {
 	return {
 		role: "assistant",
 		content: "",
 		tool_calls: [
 			{
-				id: callId,
 				type: "function",
+				id: callId,
 				function: {
-					name: toZhipuFunctionName(name),
+					name,
 					arguments:
 						typeof argumentsValue === "string"
 							? argumentsValue
 							: JSON.stringify(argumentsValue),
 				},
-			} satisfies ToolCall,
+			},
 		],
 	};
 }
 
-function toolOutputMessage(callId: string, content: string): TextMessage {
-	return {
-		role: "tool",
-		content,
-		tool_call_id: callId,
-	};
+function toolOutputMessage(
+	callId: string,
+	content: string,
+): ChatCompletionToolMessageParam {
+	return { role: "tool", content, tool_call_id: callId };
 }
 
 function toolSearchArguments(
@@ -271,14 +378,13 @@ function functionOutputText(
 	onUnsupported: UnsupportedMode,
 ): string {
 	if (typeof item.output === "string") return item.output;
-	if (Array.isArray(item.output)) {
+	if (Array.isArray(item.output))
 		return extractText(item.output, onUnsupported);
-	}
 	if (onUnsupported === "throw") {
 		throw new AdapterError(
 			ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
-			"Unsupported Responses function call output content for Zhipu.",
-			{ provider: ZHIPU_PROVIDER_NAME, model: "unknown" },
+			"Unsupported Responses function call output content for OpenAI.",
+			{ provider: OPENAI_PROVIDER_NAME, model: "unknown" },
 		);
 	}
 	return "";
@@ -299,8 +405,8 @@ function extractText(
 			if (onUnsupported === "throw") {
 				throw new AdapterError(
 					ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
-					`Unsupported Responses input content type for Zhipu: ${contentPartType(part)}`,
-					{ provider: ZHIPU_PROVIDER_NAME, model: "unknown" },
+					`Unsupported Responses input content type for OpenAI: ${contentPartType(part)}`,
+					{ provider: OPENAI_PROVIDER_NAME, model: "unknown" },
 				);
 			}
 		}
@@ -309,8 +415,8 @@ function extractText(
 	if (onUnsupported === "throw") {
 		throw new AdapterError(
 			ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
-			`Unsupported Responses input content type for Zhipu: ${typeof content}`,
-			{ provider: ZHIPU_PROVIDER_NAME, model: "unknown" },
+			`Unsupported Responses input content type for OpenAI: ${typeof content}`,
+			{ provider: OPENAI_PROVIDER_NAME, model: "unknown" },
 		);
 	}
 	return "";
@@ -321,15 +427,13 @@ function hasText(part: unknown): part is { text: string } {
 }
 
 function contentPartType(part: unknown): string {
-	if (isRecord(part) && "type" in part) {
-		return String(part.type);
-	}
+	if (isRecord(part) && "type" in part) return String(part.type);
 	return typeof part;
 }
 
-function instructionsToSystemMessage(
+function instructionsToDeveloperMessage(
 	instructions: string | undefined,
-): { role: "system"; content: string } | null {
+): ChatCompletionDeveloperMessageParam | null {
 	if (!instructions) return null;
-	return { role: "system", content: instructions };
+	return { role: "developer", content: instructions };
 }

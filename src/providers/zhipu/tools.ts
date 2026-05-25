@@ -13,6 +13,7 @@ import type {
 	FunctionParameters,
 	ToolChoice,
 } from "./protocol/completions";
+import { ZHIPU_PROVIDER_NAME } from "./provider";
 
 type UnsupportedToolMode = "throw" | "skip";
 
@@ -260,7 +261,7 @@ function unsupportedTool(type: string, message: string): AdapterError {
 	return new AdapterError(
 		ADAPTER_REQUEST_UNSUPPORTED_TOOL,
 		`Unsupported Responses tool for Zhipu: ${type}. ${message}`,
-		{ provider: "zhipu", model: "unknown" },
+		{ provider: ZHIPU_PROVIDER_NAME, model: "unknown" },
 	);
 }
 

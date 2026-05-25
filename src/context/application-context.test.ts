@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { DEFAULT_CAPABILITIES } from "../adapter/capabilities";
 import type { GodeXConfig } from "../config";
 import { Registrar } from "../providers/registrar";
 import { ApplicationContext } from "./application-context";
@@ -32,7 +31,7 @@ describe("ApplicationContext", () => {
 		const app = new ApplicationContext(config);
 		const provider = app.registrar.resolve("zhipu");
 		expect(provider.mapper).toBeDefined();
-		expect(provider.chatClient).toBeDefined();
+		expect(provider.client).toBeDefined();
 	});
 
 	test("creates sqlite session store when configured", () => {
@@ -49,7 +48,6 @@ describe("ApplicationContext", () => {
 		const customRegistrar = new Registrar();
 		customRegistrar.registerFactory("zhipu", () => ({
 			name: "mock",
-			capabilities: DEFAULT_CAPABILITIES,
 			mapper: {
 				request: { map: () => ({}) },
 				response: { map: () => ({}) as never },
@@ -58,9 +56,9 @@ describe("ApplicationContext", () => {
 					buildResponseObject: () => ({}) as never,
 				},
 			},
-			chatClient: {
-				chat: async () => ({}),
-				streamChat: async () => new ReadableStream(),
+			client: {
+				request: async () => ({}),
+				stream: async () => new ReadableStream(),
 			},
 		}));
 		const app = new ApplicationContext(config, customRegistrar);

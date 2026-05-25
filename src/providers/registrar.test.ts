@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { DEFAULT_CAPABILITIES } from "../adapter/capabilities";
 import type { Provider } from "../adapter/provider";
 import { Registrar } from "./registrar";
 
 const stubProvider: Provider<unknown, unknown, unknown> = {
 	name: "mock",
-	capabilities: DEFAULT_CAPABILITIES,
 	mapper: {
 		request: { map: () => ({}) },
 		response: { map: () => ({}) as never },
@@ -14,9 +12,9 @@ const stubProvider: Provider<unknown, unknown, unknown> = {
 			buildResponseObject: () => ({}) as never,
 		},
 	},
-	chatClient: {
-		chat: async () => ({}),
-		streamChat: async () => new ReadableStream(),
+	client: {
+		request: async () => ({}),
+		stream: async () => new ReadableStream(),
 	},
 };
 

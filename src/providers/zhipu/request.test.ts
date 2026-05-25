@@ -1,6 +1,5 @@
 // src/providers/zhipu/request.test.ts
 import { describe, expect, test } from "bun:test";
-import { mergeCapabilities } from "../../adapter/capabilities";
 import type { ApplicationContext } from "../../context/application-context";
 import type { ResponsesContext } from "../../context/responses-context";
 import { AdapterError } from "../../error";
@@ -12,7 +11,6 @@ function ctx(
 	partial: Partial<ResponseCreateRequest> = {},
 	session?: ResponsesContext["session"],
 	logger: Logger = createLogger({ level: "error" }),
-	capabilities = mergeCapabilities(),
 ): ResponsesContext {
 	return {
 		request: { model: "glm-5.1", ...partial } as ResponseCreateRequest,
@@ -26,8 +24,7 @@ function ctx(
 		provider: {
 			name: "zhipu",
 			mapper: {} as never,
-			chatClient: {} as never,
-			capabilities,
+			client: {} as never,
 		},
 	} as unknown as ResponsesContext;
 }
@@ -378,28 +375,16 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("rejects requests whose mapped tools exceed provider tool capacity", () => {
-		const requestCtx = ctx(
-			{
-				input: "Hi",
-				tools: [
-					{
-						type: "function",
-						name: "first_tool",
-						parameters: { type: "object" },
-						strict: true,
-					},
-					{
-						type: "function",
-						name: "second_tool",
-						parameters: { type: "object" },
-						strict: true,
-					},
-				],
-			},
-			null,
-			createLogger({ level: "error" }),
-			mergeCapabilities({ maxTools: 1 }),
-		);
+		const tools = Array.from({ length: 129 }, (_, i) => ({
+			type: "function" as const,
+			name: `tool_${i}`,
+			parameters: { type: "object" as const },
+			strict: true,
+		}));
+		const requestCtx = ctx({
+			input: "Hi",
+			tools,
+		});
 
 		let thrown: unknown;
 		try {
@@ -417,13 +402,13 @@ describe("buildZhipuRequest", () => {
 				provider: "zhipu",
 				model: "glm-5.1",
 				parameter: "tools",
-				maxTools: 1,
-				toolCount: 2,
+				maxTools: 128,
+				toolCount: 129,
 			}),
 		);
 	});
 
-	test("skips tools that provider capabilities do not declare as supported", () => {
+	test("skips tools that are not in the supported tool type set", () => {
 		const warnings: string[] = [];
 		const logger: Logger = {
 			...createLogger({ level: "error" }),
@@ -442,12 +427,11 @@ describe("buildZhipuRequest", () => {
 						parameters: { type: "object" },
 						strict: true,
 					},
-					{ type: "web_search" },
+					{ type: "code_interpreter", container: { type: "auto" } },
 				],
 			},
 			null,
 			logger,
-			mergeCapabilities({ supportedToolTypes: new Set(["function"]) }),
 		);
 
 		const result = buildZhipuRequest(requestCtx);
@@ -462,7 +446,7 @@ describe("buildZhipuRequest", () => {
 				},
 			},
 		]);
-		expect(warnings).toEqual(["web_search"]);
+		expect(warnings).toEqual(["code_interpreter"]);
 	});
 
 	test("maps Codex tool call history to chat tool messages", () => {

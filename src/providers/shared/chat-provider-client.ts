@@ -1,63 +1,58 @@
 import { ExchangeError } from "@ahoo-wang/fetcher";
-import type { ChatClient } from "../../adapter/chatClient.ts";
+import type { ProviderClient } from "../../adapter/provider";
 import {
 	PROVIDER_UPSTREAM_ERROR,
 	PROVIDER_UPSTREAM_TIMEOUT,
 	ProviderError,
 } from "../../error";
-import { zhipuApi } from "./api/api";
-import type {
-	ChatCompletionChunk,
-	ChatCompletionResponse,
-	ChatCompletionTextRequest,
-} from "./protocol/completions";
+import type { ChatApi, ChatApiOptions } from "./chat-api";
+import { chatApi } from "./chat-api";
 
-export class ZhipuChatClient
-	implements
-		ChatClient<
-			ChatCompletionTextRequest,
-			ChatCompletionResponse,
-			ChatCompletionChunk
-		>
+export interface ChatProviderClientOptions extends ChatApiOptions {
+	provider: string;
+}
+
+export class ChatProviderClient<TReq, TRes, TChunk>
+	implements ProviderClient<TReq, TRes, TChunk>
 {
-	private readonly api;
+	private readonly api: ChatApi<TReq, TRes, TChunk>;
+	private readonly provider: string;
 
-	constructor(baseURL: string, apiKey: string, timeout?: number) {
-		this.api = zhipuApi({ baseURL, apiKey, timeout });
+	constructor(options: ChatProviderClientOptions) {
+		this.api = chatApi(options);
+		this.provider = options.provider;
 	}
 
-	async chat(body: ChatCompletionTextRequest): Promise<ChatCompletionResponse> {
+	async request(body: TReq): Promise<TRes> {
 		try {
 			return await this.api.chatCompletions(body);
 		} catch (err) {
-			throw await wrapProviderError(err);
+			throw await wrapProviderError(err, this.provider);
 		}
 	}
 
-	async streamChat(body: ChatCompletionTextRequest) {
+	async stream(body: TReq) {
 		try {
-			return await this.api.streamChatCompletions({ ...body, stream: true });
+			return await this.api.streamChatCompletions({
+				...body,
+				stream: true,
+			} as TReq);
 		} catch (err) {
-			throw await wrapProviderError(err);
+			throw await wrapProviderError(err, this.provider);
 		}
 	}
 }
 
-function extractErrorMessage(error: unknown): string {
-	if (typeof error === "string") return error;
-	if (typeof error === "object" && error !== null && "message" in error) {
-		return String((error as { message: unknown }).message);
-	}
-	return String(error);
-}
-
-async function wrapProviderError(err: unknown): Promise<unknown> {
+async function wrapProviderError(
+	err: unknown,
+	provider: string,
+): Promise<unknown> {
 	if (
 		err instanceof Error &&
 		(err.name === "FetchTimeoutError" || err.name === "TimeoutError")
 	) {
 		return new ProviderError(PROVIDER_UPSTREAM_TIMEOUT, "Request timed out", {
-			provider: "zhipu",
+			provider,
 			model: "unknown",
 			upstreamStatus: 408,
 		});
@@ -72,7 +67,7 @@ async function wrapProviderError(err: unknown): Promise<unknown> {
 				? extractErrorMessage((body as { error: unknown }).error)
 				: `Upstream returned ${status}`;
 		return new ProviderError(PROVIDER_UPSTREAM_ERROR, message, {
-			provider: "zhipu",
+			provider,
 			model: "unknown",
 			upstreamStatus: status,
 			upstreamBody: body,
@@ -80,6 +75,14 @@ async function wrapProviderError(err: unknown): Promise<unknown> {
 	}
 
 	return err;
+}
+
+function extractErrorMessage(error: unknown): string {
+	if (typeof error === "string") return error;
+	if (typeof error === "object" && error !== null && "message" in error) {
+		return String((error as { message: unknown }).message);
+	}
+	return String(error);
 }
 
 async function safeResponseJson(

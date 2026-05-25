@@ -12,6 +12,25 @@ import {
 } from "./capabilities";
 import { buildZhipuMessages } from "./messages";
 import type { ChatCompletionTextRequest } from "./protocol/completions";
+
+const ZHIPU_SUPPORTED_TOOL_TYPES: ReadonlySet<string> = new Set([
+	"function",
+	"web_search",
+	"web_search_2025_08_26",
+	"web_search_preview",
+	"web_search_preview_2025_03_11",
+	"file_search",
+	"mcp",
+	"local_shell",
+	"shell",
+	"apply_patch",
+	"custom",
+	"tool_search",
+	"namespace",
+]);
+
+const ZHIPU_MAX_TOOLS = 128;
+
 import type { TextModel } from "./protocol/models";
 import { mapToolChoice, mapTools } from "./tools";
 
@@ -41,7 +60,7 @@ export function buildZhipuRequest(
 	const tools = toolsDisabled
 		? []
 		: mapTools(req.tools, {
-				supportedToolTypes: ctx.provider.capabilities.supportedToolTypes,
+				supportedToolTypes: ZHIPU_SUPPORTED_TOOL_TYPES,
 				unsupported: "skip",
 				onUnsupported: (type) => {
 					ctx.logger.warn("provider.tool.skipped", () => ({
@@ -89,18 +108,17 @@ function assertMappedToolCapacity(
 	toolCount: number,
 	ctx: ResponsesContext,
 ): void {
-	const { maxTools } = ctx.provider.capabilities;
-	if (maxTools < 0 || toolCount <= maxTools) return;
-
-	throw new AdapterError(
-		ADAPTER_REQUEST_UNSUPPORTED_PARAMETER,
-		`Zhipu accepts at most ${maxTools} mapped tools; received ${toolCount}.`,
-		{
-			provider: ctx.resolved.provider,
-			model: ctx.resolved.model,
-			parameter: "tools",
-			maxTools,
-			toolCount,
-		},
-	);
+	if (toolCount > ZHIPU_MAX_TOOLS) {
+		throw new AdapterError(
+			ADAPTER_REQUEST_UNSUPPORTED_PARAMETER,
+			`Zhipu accepts at most ${ZHIPU_MAX_TOOLS} mapped tools; received ${toolCount}.`,
+			{
+				provider: ctx.resolved.provider,
+				model: ctx.resolved.model,
+				parameter: "tools",
+				maxTools: ZHIPU_MAX_TOOLS,
+				toolCount,
+			},
+		);
+	}
 }
