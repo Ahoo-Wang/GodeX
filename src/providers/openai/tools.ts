@@ -117,6 +117,21 @@ export function mapTools(tools: ResponseTool[] | undefined): MappedTools {
 										}) as Record<string, unknown>,
 							},
 						});
+					} else if (nestedTool.type === "custom") {
+						mappedTools.push({
+							type: "function",
+							function: {
+								name: `${tool.name}__${nestedTool.name}`,
+								description:
+									nestedTool.description ??
+									`${tool.description} (${nestedTool.name})`,
+								parameters: {
+									type: "object",
+									properties: { input: { type: "string" } },
+									required: ["input"],
+								},
+							},
+						});
 					}
 				}
 				break;

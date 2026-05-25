@@ -7,6 +7,7 @@ import type {
 	ChatCompletion,
 	ChatCompletionChoice,
 } from "../../protocol/openai/completions";
+import type { ResponseTool } from "../../protocol/openai/responses";
 import { buildResponseObject } from "./response";
 
 function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
@@ -105,6 +106,60 @@ describe("buildResponseObject", () => {
 			expect(result.output[1]?.name).toBe("get_weather");
 			expect(result.output[1]?.arguments).toBe('{"city":"Beijing"}');
 		}
+	});
+
+	test("restores flattened namespace tool calls to FunctionCall namespace", () => {
+		const withNamespaceTool: ChatCompletion = {
+			...openAICompletion,
+			choices: [
+				choice({
+					message: {
+						role: "assistant",
+						content: null,
+						refusal: null,
+						tool_calls: [
+							{
+								type: "function",
+								id: "tc_namespace",
+								function: {
+									name: "mcp__node_repl____js",
+									arguments: '{"code":"1 + 1"}',
+								},
+							},
+						],
+					},
+					finish_reason: "tool_calls",
+				}),
+			],
+		};
+
+		const result = buildResponseObject(
+			ctx({
+				tools: [
+					{
+						type: "namespace",
+						name: "mcp__node_repl__",
+						description: "Node REPL",
+						tools: [
+							{
+								type: "function",
+								name: "js",
+								parameters: { type: "object" },
+							},
+						],
+					} satisfies ResponseTool,
+				],
+			}),
+			withNamespaceTool,
+		);
+
+		expect(result.output[1]).toEqual({
+			type: "function_call",
+			call_id: "tc_namespace",
+			namespace: "mcp__node_repl__",
+			name: "js",
+			arguments: '{"code":"1 + 1"}',
+		});
 	});
 
 	test('maps finish_reason "length" to incomplete (max_output_tokens)', () => {

@@ -12,6 +12,7 @@ import type {
 	ShellCall,
 	ToolSearchCall,
 } from "../../protocol/openai/responses";
+import { findFlattenedNamespaceTool } from "../shared/tool-name-mapping";
 import { toZhipuFunctionName } from "./function-names";
 
 export interface ZhipuFunctionToolCall {
@@ -25,7 +26,8 @@ type RequestedTool =
 	| { type: "shell" }
 	| { type: "apply_patch" }
 	| { type: "tool_search"; execution?: "server" | "client" }
-	| { type: "custom"; name: string };
+	| { type: "custom"; name: string }
+	| { type: "namespace"; namespace: string; name: string };
 
 export function mapZhipuToolCall(
 	ctx: ResponsesContext,
@@ -51,6 +53,13 @@ export function mapZhipuToolCall(
 			return toolSearchCall(callId, args, requestedTool.execution);
 		case "custom":
 			return customToolCall(callId, args, requestedTool.name);
+		case "namespace":
+			return functionCall(
+				callId,
+				requestedTool.name,
+				args,
+				requestedTool.namespace,
+			);
 	}
 }
 
@@ -59,6 +68,18 @@ function findRequestedTool(
 	providerName: string,
 ): RequestedTool | null {
 	if (!tools) return null;
+	const namespaceMatch = findFlattenedNamespaceTool(
+		tools,
+		providerName,
+		toZhipuFunctionName,
+	);
+	if (namespaceMatch) {
+		return {
+			type: "namespace",
+			namespace: namespaceMatch.namespace,
+			name: namespaceMatch.name,
+		};
+	}
 
 	for (const tool of tools) {
 		switch (tool.type) {
@@ -89,10 +110,12 @@ function functionCall(
 	callId: string,
 	name: string,
 	args: string,
+	namespace?: string,
 ): FunctionCall {
 	return {
 		type: "function_call",
 		call_id: callId,
+		...(namespace ? { namespace } : {}),
 		name,
 		arguments: args,
 	};

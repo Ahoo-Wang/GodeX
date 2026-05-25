@@ -115,6 +115,23 @@ describe("buildOpenAIRequest", () => {
 		expect(result.user).toBe("user-123");
 	});
 
+	test("passes through Codex request metadata supported by Chat Completions", () => {
+		const result = buildOpenAIRequest(
+			ctx({
+				input: "Hi",
+				prompt_cache_key: "cache-key-1",
+				prompt_cache_retention: "24h",
+				safety_identifier: "safe-user-1",
+				text: { verbosity: "low" },
+			}),
+		);
+
+		expect(result.prompt_cache_key).toBe("cache-key-1");
+		expect(result.prompt_cache_retention).toBe("24h");
+		expect(result.safety_identifier).toBe("safe-user-1");
+		expect(result.verbosity).toBe("low");
+	});
+
 	test("maps tools and tool_choice", () => {
 		const result = buildOpenAIRequest(
 			ctx({

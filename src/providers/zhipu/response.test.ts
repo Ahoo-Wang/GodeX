@@ -330,6 +330,58 @@ describe("buildResponseObject", () => {
 		});
 	});
 
+	test("restores flattened namespace tool calls to FunctionCall namespace", () => {
+		const withNamespaceTool: ChatCompletionResponse = {
+			...zhipuResponse,
+			choices: [
+				{
+					index: 0,
+					message: {
+						role: "assistant",
+						content: null,
+						tool_calls: [
+							{
+								id: "call_namespace",
+								type: "function",
+								function: {
+									name: "mcp__node_repl____js",
+									arguments: '{"code":"1 + 1"}',
+								},
+							},
+						],
+					},
+					finish_reason: "tool_calls",
+				},
+			],
+		};
+
+		const result = buildResponseObject(
+			withTools([
+				{
+					type: "namespace",
+					name: "mcp__node_repl__",
+					description: "Node REPL",
+					tools: [
+						{
+							type: "function",
+							name: "js",
+							parameters: { type: "object" },
+						},
+					],
+				},
+			]),
+			withNamespaceTool,
+		);
+
+		expect(result.output[1]).toEqual({
+			type: "function_call",
+			call_id: "call_namespace",
+			namespace: "mcp__node_repl__",
+			name: "js",
+			arguments: '{"code":"1 + 1"}',
+		});
+	});
+
 	test("falls back to FunctionCall when built-in tool arguments are incomplete", () => {
 		const malformed: ChatCompletionResponse = {
 			...zhipuResponse,

@@ -79,7 +79,7 @@ function buildOutputItems(
 			content,
 		});
 		for (const tc of message.tool_calls) {
-			if (tc.type === "function") output.push(mapResponseToolCall(tc));
+			if (tc.type === "function") output.push(mapResponseToolCall(ctx, tc));
 		}
 	} else if (message?.content !== null && message?.content !== undefined) {
 		const content = buildContentParts(

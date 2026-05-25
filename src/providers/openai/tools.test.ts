@@ -92,6 +92,40 @@ describe("mapTools", () => {
 		]);
 	});
 
+	test("maps nested custom namespace tool to function tool", () => {
+		const result = mapTools([
+			{
+				type: "namespace",
+				name: "mcp__demo__",
+				description: "Demo namespace",
+				tools: [
+					{
+						type: "custom",
+						name: "raw",
+						description: "Raw input",
+						format: { type: "text" },
+					},
+				],
+			},
+		]);
+
+		expect(result.tools).toEqual([
+			{
+				type: "function",
+				function: {
+					name: "mcp__demo____raw",
+					description: "Raw input",
+					parameters: {
+						type: "object",
+						properties: { input: { type: "string" } },
+						required: ["input"],
+					},
+				},
+			},
+		]);
+		expect(result.webSearchOptions).toBeUndefined();
+	});
+
 	test("skips file_search and MCP tools", () => {
 		const result = mapTools([
 			{

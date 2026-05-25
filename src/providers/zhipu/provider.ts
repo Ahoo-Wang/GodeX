@@ -1,4 +1,4 @@
-import type { Provider } from "../../adapter/provider";
+import { OpenAIProvider } from "../openai/provider";
 import type {
 	ChatCompletionChunk,
 	ChatCompletionResponse,
@@ -20,23 +20,18 @@ export const DEFAULT_ZHIPU_BASE_URL = ZHIPU_CODING_PLAN_BASE_URL;
 
 export const ZHIPU_PROVIDER_NAME = "zhipu";
 
-export class ZhipuProvider
-	implements
-		Provider<
-			ChatCompletionTextRequest,
-			ChatCompletionResponse,
-			ChatCompletionChunk
-		>
-{
-	readonly name = ZHIPU_PROVIDER_NAME;
-	readonly mapper = {
-		request: { map: buildZhipuRequest },
-		response: { map: buildResponseObject },
-		stream: new ZhipuStreamMapper(),
-	};
-	readonly client: ZhipuClient;
-
+export class ZhipuProvider extends OpenAIProvider<
+	ChatCompletionTextRequest,
+	ChatCompletionResponse,
+	ChatCompletionChunk
+> {
 	constructor(baseURL: string, apiKey: string, timeout?: number) {
-		this.client = new ZhipuClient(baseURL, apiKey, timeout);
+		super({
+			name: ZHIPU_PROVIDER_NAME,
+			client: new ZhipuClient(baseURL, apiKey, timeout),
+			request: { map: buildZhipuRequest },
+			response: { map: buildResponseObject },
+			stream: new ZhipuStreamMapper(),
+		});
 	}
 }
