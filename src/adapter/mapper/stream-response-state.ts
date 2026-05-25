@@ -530,6 +530,7 @@ private toolCalls!: ToolCallOutputState;
 			...this.closeOpenToolCalls(),
 		];
 		this.currentPhase = terminalPhase(status.status);
+		this.refreshSnapshot();
 		this.currentSnapshot = {
 			...this.currentSnapshot,
 			...status,

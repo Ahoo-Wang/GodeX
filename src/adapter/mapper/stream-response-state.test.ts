@@ -427,6 +427,11 @@ describe("StreamResponseState terminal behavior", () => {
 		expect(state.snapshot).toMatchObject({
 			status: "completed",
 			completed_at: 1_764_000_010,
+			output: [
+				expect.objectContaining({ type: "reasoning", status: "completed" }),
+				expect.objectContaining({ type: "message", status: "completed" }),
+				expect.objectContaining({ type: "function_call" }),
+			],
 		});
 	});
 
