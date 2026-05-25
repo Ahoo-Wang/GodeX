@@ -4,6 +4,7 @@ import {
 	ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
 	ADAPTER_STREAM_INCOMPLETE_TOOL_CALL,
 	ADAPTER_STREAM_INVALID_TRANSITION,
+	ADAPTER_STREAM_MISSING_OPTIONS,
 	ADAPTER_STREAM_MISSING_OUTPUT_BLOCK,
 	ADAPTER_STREAM_NOT_INITIALIZED,
 	AdapterError,
@@ -105,6 +106,13 @@ export class StreamResponseState {
 		ctx: ResponsesContext,
 		options: StreamResponseStateOptions,
 	): StreamResponseState {
+		if (!options.toolCallOutputItemMapper) {
+			throw streamStateError(
+				ctx,
+				ADAPTER_STREAM_MISSING_OPTIONS,
+				"toolCallOutputItemMapper is required.",
+			);
+		}
 		if (ctx.attributes.has(StreamResponseState.KEY)) {
 			throw streamStateError(
 				ctx,
@@ -242,6 +250,10 @@ export class StreamResponseState {
 		}
 
 		this.activeReasoning.text += delta;
+		this.output.update(
+			this.activeReasoning.outputIndex,
+			reasoningItem(this.activeReasoning),
+		);
 		this.refreshSnapshot();
 
 		events.push({
@@ -335,16 +347,18 @@ export class StreamResponseState {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFunctionCallDelta");
 		const events: ResponseStreamEvent[] = [];
 
-		// Apply delta to accumulator
-		const call = this.toolCalls.apply(delta);
-
-		if (call.done) {
+		// Reject deltas for closed calls before mutating accumulator
+		const idx = delta.index ?? this.toolCalls.size;
+		const existing = this.toolCalls.get(idx);
+		if (existing?.done) {
 			throw streamStateError(
 				this.ctx,
 				ADAPTER_STREAM_INVALID_TRANSITION,
-				`Cannot apply function call delta at index ${call.index}: call is already done.`,
+				`Cannot apply function call delta at index ${idx}: call is already done.`,
 			);
 		}
+
+		const call = this.toolCalls.apply(delta);
 
 		// If no name yet, accumulate silently (arguments may arrive before name)
 		if (!call.name) return [];

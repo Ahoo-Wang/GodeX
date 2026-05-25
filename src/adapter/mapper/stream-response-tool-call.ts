@@ -39,6 +39,10 @@ export class ToolCallOutputState {
 		return this.calls.get(index);
 	}
 
+	get size(): number {
+		return this.calls.size;
+	}
+
 	snapshot(call: ToolCallRecord): ToolCallSnapshot {
 		return {
 			index: call.index,

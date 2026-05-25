@@ -51,11 +51,11 @@ export function buildZhipuOutputItems(
 					]
 				: [],
 		});
-		for (const tc of message.tool_calls) {
+		for (const [index, tc] of message.tool_calls.entries()) {
 			output.push(
 				mapZhipuToolCall(ctx, {
-					index: message.tool_calls.indexOf(tc),
-					id: tc.id ?? "",
+					index,
+					id: tc.id || `call_${index}`,
 					name: tc.function?.name ?? "",
 					arguments: tc.function?.arguments ?? "",
 				}),
