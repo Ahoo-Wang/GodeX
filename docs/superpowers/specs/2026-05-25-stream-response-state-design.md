@@ -82,12 +82,6 @@ enum StreamResponsePhase {
 	FAILED = "failed",
 }
 
-interface StreamResponseStateOptions {
-	mapToolCall: (call: ToolCallSnapshot) => ResponseItem;
-	// Injectable clock for deterministic terminal event tests.
-	nowSeconds?: () => number;
-}
-
 interface FunctionCallDelta {
 	index?: number;
 	id?: string;
@@ -102,12 +96,29 @@ interface ToolCallSnapshot {
 	arguments: string;
 }
 
+/**
+ * Converts a canonical streamed tool-call snapshot into the final Responses
+ * output item shape for the active provider/tool ecosystem.
+ *
+ * The mapper owns provider-specific item selection such as function_call,
+ * local_shell_call, shell_call, apply_patch_call, tool_search_call, or
+ * custom_tool_call. It must be deterministic, side-effect free, and must not
+ * emit stream events or mutate StreamResponseState.
+ */
+type ToolCallOutputItemMapper = (call: ToolCallSnapshot) => ResponseItem;
+
 type StreamResponseTerminalStatus = Pick<
 	ResponseObject,
 	"status" | "error" | "incomplete_details"
 > & {
 	status: "completed" | "incomplete" | "failed";
 };
+
+interface StreamResponseStateOptions {
+	toolCallOutputItemMapper: ToolCallOutputItemMapper;
+	// Injectable clock for deterministic terminal event tests.
+	nowSeconds?: () => number;
+}
 
 class StreamResponseState {
 	static readonly KEY = "stream-response-state";
@@ -216,9 +227,9 @@ Responsibilities:
 - emit `response.function_call_arguments.delta`
 - emit `response.function_call_arguments.done`
 - emit `response.output_item.done`
-- delegate final output item shape to `options.mapToolCall`
+- delegate final output item shape to `options.toolCallOutputItemMapper`
 
-The state machine tracks canonical call snapshots. Provider-specific mapping from a canonical function call into `function_call`, `local_shell_call`, `shell_call`, `apply_patch_call`, `tool_search_call`, `custom_tool_call`, or future item types belongs in `mapToolCall`.
+The state machine tracks canonical call snapshots. Provider-specific mapping from a canonical function call into `function_call`, `local_shell_call`, `shell_call`, `apply_patch_call`, `tool_search_call`, `custom_tool_call`, or future item types belongs in `ToolCallOutputItemMapper`.
 
 ## Event Payload Contract
 
@@ -369,7 +380,7 @@ When a function call has a name and opens, emit `response.output_item.added`:
 - `response`: current `snapshot`
 - `output_index`: function call output index
 - `item_id`: call id
-- `item`: mapped output item from `options.mapToolCall` with empty arguments
+- `item`: mapped output item from `options.toolCallOutputItemMapper` with empty arguments
 
 `response.function_call_arguments.delta`:
 
@@ -517,7 +528,7 @@ The state machine should fail fast on mapper bugs and illegal transitions:
 - duplicate content part opening within the same sub-state
 - done action without an active matching output block
 - function call done without a name
-- missing required `mapToolCall` option during `create()`
+- missing required `toolCallOutputItemMapper` option during `create()`
 
 Errors should use `AdapterError` from the existing GodeX error hierarchy. State-machine contract violations are adapter-layer failures because they indicate an invalid provider mapper interaction with the streaming adapter.
 
@@ -579,7 +590,7 @@ map(ctx, event) {
 	const state =
 		StreamResponseState.get(ctx) ??
 		StreamResponseState.create(ctx, {
-			mapToolCall: (call) => mapToolCall(ctx, call),
+			toolCallOutputItemMapper: (call) => mapToolCall(ctx, call),
 		});
 	const choice = extractChoice(event.data);
 	if (!choice) return [];
@@ -623,7 +634,7 @@ Implement the migration as one atomic changeset. Do not introduce a long-lived c
 3. Replace `StreamState` usage in shared chat stream mapper with `StreamResponseState`.
 4. Remove `StreamMapper.buildResponseObject()` from the contract and tests.
 5. Update `ResponseSessionPersistenceTransformer` and `ResponseLogTransformer` to read `StreamResponseState.snapshot`.
-6. Update OpenAI and Zhipu stream mappers to provide `mapToolCall` options.
+6. Update OpenAI and Zhipu stream mappers to provide `toolCallOutputItemMapper` options.
 7. Delete the old `StreamState` file once no references remain in the same changeset.
 8. Update docs that describe stream state and stream pipeline.
 
@@ -661,7 +672,7 @@ Update integration-level mapper tests:
 
 - shared chat stream mapper emits valid Responses SSE event ordering
 - OpenAI stream mapper maps text, refusal, reasoning, tool calls, and finish reasons
-- Zhipu stream mapper maps custom tool targets through `mapToolCall`
+- Zhipu stream mapper maps custom tool targets through `ToolCallOutputItemMapper`
 - persistence transformer persists `StreamResponseState.snapshot`
 - log transformer can log terminal stream completion from snapshot fallback
 
