@@ -20,13 +20,17 @@ export class CompatibilityLogTransformer extends SafeTransformer<
 		this.enqueue(controller, chunk);
 		if (!this.logged && isTerminalEvent(chunk)) {
 			this.logged = true;
-			logDiagnostics(this.ctx);
+			logDiagnostics(this.ctx, {
+				durationMillis: Date.now() - this.ctx.createdAt * 1000,
+			});
 		}
 	}
 
 	protected override async onFlush(): Promise<void> {
 		if (!this.logged) {
-			logDiagnostics(this.ctx);
+			logDiagnostics(this.ctx, {
+				durationMillis: Date.now() - this.ctx.createdAt * 1000,
+			});
 		}
 	}
 }
@@ -36,6 +40,7 @@ function isTerminalEvent(event: ResponseStreamEvent): boolean {
 		case "response.completed":
 		case "response.failed":
 		case "response.incomplete":
+		case "response.cancelled":
 			return true;
 		default:
 			return false;
