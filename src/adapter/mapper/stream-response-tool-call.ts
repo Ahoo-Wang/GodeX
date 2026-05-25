@@ -51,4 +51,10 @@ export class ToolCallOutputState {
     item(call: ToolCallSnapshot): ResponseItem {
         return this.mapper(call);
     }
+
+    openCalls(): ToolCallRecord[] {
+        return Array.from(this.calls.values())
+            .filter((c) => c.opened && !c.done)
+            .sort((a, b) => (a.outputIndex ?? 0) - (b.outputIndex ?? 0));
+    }
 }

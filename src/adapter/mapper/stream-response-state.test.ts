@@ -398,3 +398,119 @@ describe("StreamResponseState tool calls", () => {
 		expect(state.onFunctionCallDelta({ index: 0, arguments: "y" })).toEqual([]);
 	});
 });
+
+describe("StreamResponseState terminal behavior", () => {
+	test("finish closes open outputs before completed event", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+			nowSeconds: () => 1_764_000_010,
+		});
+		state.start();
+		state.onReasoningTextDelta("think");
+		state.onTextDelta("answer");
+		state.onFunctionCallDelta({ index: 0, id: "call_1", name: "tool", arguments: "{}" });
+
+		const events = state.onFinish({ status: "completed" });
+
+		// Events must close all open blocks in output order, then terminal
+		expect(events.map((event) => event.type)).toEqual([
+			"response.reasoning_text.done",
+			"response.reasoning_text_part.done",
+			"response.output_item.done",
+			"response.output_text.done",
+			"response.content_part.done",
+			"response.output_item.done",
+			"response.function_call_arguments.done",
+			"response.output_item.done",
+			"response.completed",
+		]);
+		expect(state.snapshot).toMatchObject({
+			status: "completed",
+			completed_at: 1_764_000_010,
+		});
+	});
+
+	test("onError from IDLE emits failed terminal response", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+			nowSeconds: () => 1_764_000_010,
+		});
+		// NOTE: state is IDLE, start() was never called
+
+		const events = state.onError({
+			code: "server_error",
+			message: "upstream connection failed before stream started",
+		});
+
+		expect(state.phase).toBe(StreamResponsePhase.FAILED);
+		expect(events).toEqual([
+			expect.objectContaining({
+				type: "response.failed",
+				response: expect.objectContaining({
+					status: "failed",
+					error: {
+						code: "server_error",
+						message: "upstream connection failed before stream started",
+					},
+				}),
+			}),
+		]);
+	});
+
+	test("onError from IN_PROGRESS emits failed terminal response", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+			nowSeconds: () => 1_764_000_010,
+		});
+		state.start();
+
+		const events = state.onError({
+			code: "server_error",
+			message: "upstream stream failed",
+		});
+
+		expect(state.phase).toBe(StreamResponsePhase.FAILED);
+		expect(events).toEqual([
+			expect.objectContaining({
+				type: "response.failed",
+				response: expect.objectContaining({
+					status: "failed",
+					error: {
+						code: "server_error",
+						message: "upstream stream failed",
+					},
+				}),
+			}),
+		]);
+	});
+
+	test("delta after terminal throws", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+		state.onFinish({ status: "completed" });
+
+		expect(() => state.onTextDelta("late")).toThrow(GodeXError);
+	});
+
+	test("streaming usage is not set by finish", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+		state.onFinish({ status: "completed" });
+
+		expect(state.snapshot.usage).toBeUndefined();
+	});
+
+	test("repeated finish throws", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+		state.onFinish({ status: "completed" });
+
+		expect(() => state.onFinish({ status: "completed" })).toThrow(GodeXError);
+	});
+});

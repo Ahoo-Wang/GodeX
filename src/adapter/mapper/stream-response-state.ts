@@ -1,6 +1,7 @@
 import type { ResponsesContext } from "../../context/responses-context";
 import {
 	ADAPTER_STREAM_ALREADY_INITIALIZED,
+	ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
 	ADAPTER_STREAM_INVALID_TRANSITION,
 	ADAPTER_STREAM_MISSING_OUTPUT_BLOCK,
 	ADAPTER_STREAM_NOT_INITIALIZED,
@@ -522,6 +523,12 @@ private toolCalls!: ToolCallOutputState;
 
 	onFinish(status: StreamResponseTerminalStatus): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFinish");
+		const closeEvents: ResponseStreamEvent[] = [
+			...this.closeActiveReasoning(),
+			...this.closeActiveText(),
+			...this.closeActiveRefusal(),
+			...this.closeOpenToolCalls(),
+		];
 		this.currentPhase = terminalPhase(status.status);
 		this.currentSnapshot = {
 			...this.currentSnapshot,
@@ -529,12 +536,138 @@ private toolCalls!: ToolCallOutputState;
 			completed_at: this.options.nowSeconds(),
 		};
 		return [
+			...closeEvents,
 			{ type: terminalEventType(status.status), response: this.snapshot },
 		];
 	}
 
 	onError(error: ResponseError): ResponseStreamEvent[] {
-		return this.onFinish({ status: "failed", error });
+		if (isTerminalPhase(this.currentPhase)) {
+			throw streamStateError(
+				this.ctx,
+				ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
+				"Cannot emit error event on a terminated stream response.",
+			);
+		}
+		this.currentPhase = StreamResponsePhase.FAILED;
+		this.currentSnapshot = {
+			...this.currentSnapshot,
+			status: "failed" as const,
+			error,
+			completed_at: this.options.nowSeconds(),
+		};
+		return [{ type: "response.failed", response: this.snapshot }];
+	}
+
+	private closeActiveReasoning(): ResponseStreamEvent[] {
+		if (!this.activeReasoning) return [];
+		const block = this.activeReasoning;
+		block.done = true;
+		const events: ResponseStreamEvent[] = [];
+		events.push({
+			type: "response.reasoning_text.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			content_index: block.contentIndex,
+			text: block.text,
+		});
+		events.push({
+			type: "response.reasoning_text_part.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			content_index: block.contentIndex,
+			part: { type: "reasoning_text", text: block.text },
+		});
+		const completedItem = reasoningItem(block);
+		this.output.markDone(block.outputIndex, completedItem);
+		events.push({
+			type: "response.output_item.done",
+			output_index: block.outputIndex,
+			item: completedItem,
+		});
+		this.activeReasoning = undefined;
+		return events;
+	}
+
+	private closeActiveText(): ResponseStreamEvent[] {
+		if (!this.activeText) return [];
+		const block = this.activeText;
+		block.done = true;
+		const events: ResponseStreamEvent[] = [];
+		events.push({
+			type: "response.output_text.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			content_index: block.contentIndex,
+			text: block.text,
+		});
+		events.push({
+			type: "response.content_part.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			content_index: block.contentIndex,
+			part: contentPart(block),
+		});
+		const completedItem = messageItem(block);
+		this.output.markDone(block.outputIndex, completedItem);
+		events.push({
+			type: "response.output_item.done",
+			output_index: block.outputIndex,
+			item: completedItem,
+		});
+		this.activeText = undefined;
+		return events;
+	}
+
+	private closeActiveRefusal(): ResponseStreamEvent[] {
+		if (!this.activeRefusal) return [];
+		const block = this.activeRefusal;
+		block.done = true;
+		const events: ResponseStreamEvent[] = [];
+		events.push({
+			type: "response.refusal.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			content_index: block.contentIndex,
+			refusal: block.text,
+		});
+		events.push({
+			type: "response.content_part.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			content_index: block.contentIndex,
+			part: contentPart(block),
+		});
+		const completedItem = messageItem(block);
+		this.output.markDone(block.outputIndex, completedItem);
+		events.push({
+			type: "response.output_item.done",
+			output_index: block.outputIndex,
+			item: completedItem,
+		});
+		this.activeRefusal = undefined;
+		return events;
+	}
+
+	private closeOpenToolCalls(): ResponseStreamEvent[] {
+		const events: ResponseStreamEvent[] = [];
+		for (const call of this.toolCalls.openCalls()) {
+			call.done = true;
+			const finalItem = this.toolCalls.item(call);
+			this.output.markDone(call.outputIndex!, finalItem);
+			events.push({
+				type: "response.function_call_arguments.done",
+				item_id: call.id,
+				output_index: call.outputIndex!,
+				text: call.arguments,
+			});
+			events.push({
+				type: "response.output_item.done",
+				output_index: call.outputIndex!,
+				item: finalItem,
+			});
+		}
+		return events;
 	}
 
 	private refreshSnapshot(): void {
@@ -580,6 +713,14 @@ export function streamStateError(
 		model: ctx.resolved.model,
 		...context,
 	});
+}
+
+function isTerminalPhase(phase: StreamResponsePhase): boolean {
+	return (
+		phase === StreamResponsePhase.COMPLETED ||
+		phase === StreamResponsePhase.INCOMPLETE ||
+		phase === StreamResponsePhase.FAILED
+	);
 }
 
 function terminalPhase(
