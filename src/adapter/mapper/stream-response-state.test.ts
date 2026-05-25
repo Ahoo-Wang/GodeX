@@ -294,12 +294,14 @@ describe("StreamResponseState tool calls", () => {
 		});
 		state.start();
 
-		expect(state.onFunctionCallDelta({ index: 0, arguments: '{"a"' })).toEqual([]);
+		expect(state.onFunctionCallDelta({ index: 0, arguments: '{"a"' })).toEqual(
+			[],
+		);
 		const events = state.onFunctionCallDelta({
 			index: 0,
 			id: "call_1",
 			name: "tool",
-			arguments: ':1}',
+			arguments: ":1}",
 		});
 
 		expect(events).toEqual([
@@ -394,7 +396,9 @@ describe("StreamResponseState tool calls", () => {
 		});
 		state.start();
 
-		expect(state.onFunctionCallDelta({ index: 0, id: "call_1", arguments: "x" })).toEqual([]);
+		expect(
+			state.onFunctionCallDelta({ index: 0, id: "call_1", arguments: "x" }),
+		).toEqual([]);
 		expect(state.onFunctionCallDelta({ index: 0, arguments: "y" })).toEqual([]);
 	});
 });
@@ -408,7 +412,12 @@ describe("StreamResponseState terminal behavior", () => {
 		state.start();
 		state.onReasoningTextDelta("think");
 		state.onTextDelta("answer");
-		state.onFunctionCallDelta({ index: 0, id: "call_1", name: "tool", arguments: "{}" });
+		state.onFunctionCallDelta({
+			index: 0,
+			id: "call_1",
+			name: "tool",
+			arguments: "{}",
+		});
 
 		const events = state.onFinish({ status: "completed" });
 

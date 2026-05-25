@@ -2,10 +2,10 @@ import type { ResponsesContext } from "../../context/responses-context";
 import {
 	ADAPTER_STREAM_ALREADY_INITIALIZED,
 	ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
+	ADAPTER_STREAM_INCOMPLETE_TOOL_CALL,
 	ADAPTER_STREAM_INVALID_TRANSITION,
 	ADAPTER_STREAM_MISSING_OUTPUT_BLOCK,
 	ADAPTER_STREAM_NOT_INITIALIZED,
-	ADAPTER_STREAM_INCOMPLETE_TOOL_CALL,
 	AdapterError,
 } from "../../error";
 import type {
@@ -15,15 +15,15 @@ import type {
 } from "../../protocol/openai/responses";
 import type { ResponseError } from "../../protocol/openai/shared";
 import { responseRequestEchoFields } from "../response-utils";
-import { OutputCollectionState } from "./stream-response-output";
-import { ToolCallOutputState } from "./stream-response-tool-call";
 import {
 	contentPart,
-	messageItem,
-	reasoningItem,
 	type MessageBlock,
+	messageItem,
 	type ReasoningBlock,
+	reasoningItem,
 } from "./stream-response-message";
+import { OutputCollectionState } from "./stream-response-output";
+import { ToolCallOutputState } from "./stream-response-tool-call";
 
 export enum StreamResponsePhase {
 	IDLE = "idle",
@@ -69,7 +69,7 @@ export class StreamResponseState {
 	private currentPhase = StreamResponsePhase.IDLE;
 	private currentSnapshot: ResponseObject;
 	private readonly output = new OutputCollectionState();
-private toolCalls!: ToolCallOutputState;
+	private toolCalls!: ToolCallOutputState;
 	private activeText?: MessageBlock;
 	private activeRefusal?: MessageBlock;
 	private activeReasoning?: ReasoningBlock;
@@ -84,7 +84,9 @@ private toolCalls!: ToolCallOutputState;
 			...options,
 			nowSeconds: options.nowSeconds ?? (() => Math.floor(Date.now() / 1000)),
 		};
-		this.toolCalls = new ToolCallOutputState(this.options.toolCallOutputItemMapper);
+		this.toolCalls = new ToolCallOutputState(
+			this.options.toolCallOutputItemMapper,
+		);
 		this.currentSnapshot = this.baseSnapshot("queued");
 	}
 
@@ -234,10 +236,7 @@ private toolCalls!: ToolCallOutputState;
 	}
 
 	onReasoningTextDelta(delta: string): ResponseStreamEvent[] {
-		this.assertPhase(
-			StreamResponsePhase.IN_PROGRESS,
-			"onReasoningTextDelta",
-		);
+		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onReasoningTextDelta");
 		const events: ResponseStreamEvent[] = [];
 
 		if (!this.activeReasoning) {
@@ -283,10 +282,7 @@ private toolCalls!: ToolCallOutputState;
 	}
 
 	onReasoningTextDone(): ResponseStreamEvent[] {
-		this.assertPhase(
-			StreamResponsePhase.IN_PROGRESS,
-			"onReasoningTextDone",
-		);
+		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onReasoningTextDone");
 
 		if (!this.activeReasoning) {
 			throw streamStateError(
@@ -466,16 +462,18 @@ private toolCalls!: ToolCallOutputState;
 		}
 
 		// Already opened — emit the new delta only
+		const outputIdx = call.outputIndex;
+		if (outputIdx === undefined) return events;
 		if (delta.arguments) {
 			events.push({
 				type: "response.function_call_arguments.delta",
 				item_id: call.id,
-				output_index: call.outputIndex!,
+				output_index: outputIdx,
 				delta: delta.arguments,
 			});
 		}
 
-		this.output.update(call.outputIndex!, this.toolCalls.item(call));
+		this.output.update(outputIdx, this.toolCalls.item(call));
 		this.refreshSnapshot();
 		return events;
 	}
@@ -484,7 +482,7 @@ private toolCalls!: ToolCallOutputState;
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFunctionCallDone");
 		const call = this.toolCalls.get(index);
 		if (call?.done) return [];
-		if (!call || !call.name) {
+		if (!call?.name) {
 			throw streamStateError(
 				this.ctx,
 				ADAPTER_STREAM_INCOMPLETE_TOOL_CALL,
@@ -653,18 +651,20 @@ private toolCalls!: ToolCallOutputState;
 	private closeOpenToolCalls(): ResponseStreamEvent[] {
 		const events: ResponseStreamEvent[] = [];
 		for (const call of this.toolCalls.openCalls()) {
+			const outputIdx = call.outputIndex;
+			if (outputIdx === undefined) continue;
 			call.done = true;
 			const finalItem = this.toolCalls.item(call);
-			this.output.markDone(call.outputIndex!, finalItem);
+			this.output.markDone(outputIdx, finalItem);
 			events.push({
 				type: "response.function_call_arguments.done",
 				item_id: call.id,
-				output_index: call.outputIndex!,
+				output_index: outputIdx,
 				text: call.arguments,
 			});
 			events.push({
 				type: "response.output_item.done",
-				output_index: call.outputIndex!,
+				output_index: outputIdx,
 				item: finalItem,
 			});
 		}

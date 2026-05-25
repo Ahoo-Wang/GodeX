@@ -251,11 +251,7 @@ describe("DefaultAdapter", () => {
 
 	test("stream persists from stream response state snapshot", async () => {
 		const sessionStore = createMockSessionStore();
-		const provider = createMockProvider(
-			{},
-			[],
-			[{ event: "chunk", data: {} }],
-		);
+		const provider = createMockProvider({}, [], [{ event: "chunk", data: {} }]);
 		const ctx = createMockCtx(provider, sessionStore);
 		provider.mapper.stream.map = (
 			ctx: ResponsesContext,
@@ -265,7 +261,9 @@ describe("DefaultAdapter", () => {
 			});
 			state.start();
 			state.onFinish({ status: "completed" });
-			return [{ type: "response.output_text.done", text: "done" }] as ResponseStreamEvent[];
+			return [
+				{ type: "response.output_text.done", text: "done" },
+			] as ResponseStreamEvent[];
 		};
 
 		const adapter = new DefaultAdapter();

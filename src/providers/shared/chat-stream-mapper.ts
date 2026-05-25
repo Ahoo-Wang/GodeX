@@ -1,9 +1,9 @@
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
 import type { StreamMapper } from "../../adapter/mapper/contract";
 import {
+	type FunctionCallDelta,
 	StreamResponsePhase,
 	StreamResponseState,
-	type FunctionCallDelta,
 	type StreamResponseTerminalStatus,
 	type ToolCallSnapshot,
 } from "../../adapter/mapper/stream-response-state";
