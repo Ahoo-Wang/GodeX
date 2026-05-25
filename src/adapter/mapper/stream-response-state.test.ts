@@ -286,3 +286,115 @@ describe("StreamResponseState message and reasoning output", () => {
 		expect(() => state.onReasoningTextDone()).toThrow(GodeXError);
 	});
 });
+
+describe("StreamResponseState tool calls", () => {
+	test("arguments before name are replayed when call opens", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+
+		expect(state.onFunctionCallDelta({ index: 0, arguments: '{"a"' })).toEqual([]);
+		const events = state.onFunctionCallDelta({
+			index: 0,
+			id: "call_1",
+			name: "tool",
+			arguments: ':1}',
+		});
+
+		expect(events).toEqual([
+			expect.objectContaining({
+				type: "response.output_item.added",
+				output_index: 0,
+				item_id: "call_1",
+				item: {
+					type: "function_call",
+					call_id: "call_1",
+					name: "tool",
+					arguments: "",
+				},
+			}),
+			expect.objectContaining({
+				type: "response.function_call_arguments.delta",
+				item_id: "call_1",
+				output_index: 0,
+				delta: '{"a":1}',
+			}),
+		]);
+	});
+
+	test("function call done requires explicit index and closes mapped item", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+		state.onFunctionCallDelta({
+			index: 0,
+			id: "call_1",
+			name: "tool",
+			arguments: "{}",
+		});
+
+		const events = state.onFunctionCallDone(0);
+
+		expect(events).toEqual([
+			expect.objectContaining({
+				type: "response.function_call_arguments.done",
+				item_id: "call_1",
+				output_index: 0,
+				text: "{}",
+			}),
+			expect.objectContaining({
+				type: "response.output_item.done",
+				output_index: 0,
+				item: {
+					type: "function_call",
+					call_id: "call_1",
+					name: "tool",
+					arguments: "{}",
+				},
+			}),
+		]);
+		expect(state.snapshot.output[0]).toEqual({
+			type: "function_call",
+			call_id: "call_1",
+			name: "tool",
+			arguments: "{}",
+		});
+	});
+
+	test("multiple function calls keep output order by arrival", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+		state.onFunctionCallDelta({ index: 1, id: "call_b", name: "second" });
+		state.onFunctionCallDelta({ index: 0, id: "call_a", name: "first" });
+
+		// output order = arrival order, not tool call index
+		expect(state.snapshot.output).toEqual([
+			expect.objectContaining({ call_id: "call_b" }),
+			expect.objectContaining({ call_id: "call_a" }),
+		]);
+	});
+
+	test("function call done before name throws", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+		state.onFunctionCallDelta({ index: 0, arguments: "{}" });
+
+		expect(() => state.onFunctionCallDone(0)).toThrow(GodeXError);
+	});
+
+	test("function call without name emits nothing", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+
+		expect(state.onFunctionCallDelta({ index: 0, id: "call_1", arguments: "x" })).toEqual([]);
+		expect(state.onFunctionCallDelta({ index: 0, arguments: "y" })).toEqual([]);
+	});
+});

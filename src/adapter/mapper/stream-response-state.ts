@@ -4,6 +4,7 @@ import {
 	ADAPTER_STREAM_INVALID_TRANSITION,
 	ADAPTER_STREAM_MISSING_OUTPUT_BLOCK,
 	ADAPTER_STREAM_NOT_INITIALIZED,
+	ADAPTER_STREAM_INCOMPLETE_TOOL_CALL,
 	AdapterError,
 } from "../../error";
 import type {
@@ -14,6 +15,7 @@ import type {
 import type { ResponseError } from "../../protocol/openai/shared";
 import { responseRequestEchoFields } from "../response-utils";
 import { OutputCollectionState } from "./stream-response-output";
+import { ToolCallOutputState } from "./stream-response-tool-call";
 import {
 	contentPart,
 	messageItem,
@@ -66,6 +68,7 @@ export class StreamResponseState {
 	private currentPhase = StreamResponsePhase.IDLE;
 	private currentSnapshot: ResponseObject;
 	private readonly output = new OutputCollectionState();
+private toolCalls!: ToolCallOutputState;
 	private activeText?: MessageBlock;
 	private activeRefusal?: MessageBlock;
 	private activeReasoning?: ReasoningBlock;
@@ -80,6 +83,7 @@ export class StreamResponseState {
 			...options,
 			nowSeconds: options.nowSeconds ?? (() => Math.floor(Date.now() / 1000)),
 		};
+		this.toolCalls = new ToolCallOutputState(this.options.toolCallOutputItemMapper);
 		this.currentSnapshot = this.baseSnapshot("queued");
 	}
 
@@ -417,14 +421,99 @@ export class StreamResponseState {
 		return events;
 	}
 
-	onFunctionCallDelta(_delta: FunctionCallDelta): ResponseStreamEvent[] {
+	onFunctionCallDelta(delta: FunctionCallDelta): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFunctionCallDelta");
-		return [];
+		const events: ResponseStreamEvent[] = [];
+
+		// Apply delta to accumulator
+		const call = this.toolCalls.apply(delta);
+
+		// If no name yet, accumulate silently
+		if (!call.name) return [];
+
+		// Open output item if not yet opened
+		if (!call.opened) {
+			const emptySnapshot = this.toolCalls.snapshot({ ...call, arguments: "" });
+			const emptyItem = this.toolCalls.item(emptySnapshot);
+			const output = this.output.add(emptyItem);
+			call.outputIndex = output.index;
+			call.opened = true;
+
+			events.push({
+				type: "response.output_item.added",
+				output_index: output.index,
+				item_id: call.id,
+				item: emptyItem,
+			});
+
+			// If arguments accumulated before name, emit them as one delta
+			if (call.arguments) {
+				events.push({
+					type: "response.function_call_arguments.delta",
+					item_id: call.id,
+					output_index: output.index,
+					delta: call.arguments,
+				});
+				this.output.update(call.outputIndex, this.toolCalls.item(call));
+			}
+
+			this.refreshSnapshot();
+			return events;
+		}
+
+		// Already opened — emit the new delta only
+		if (delta.arguments) {
+			events.push({
+				type: "response.function_call_arguments.delta",
+				item_id: call.id,
+				output_index: call.outputIndex!,
+				delta: delta.arguments,
+			});
+		}
+
+		this.output.update(call.outputIndex!, this.toolCalls.item(call));
+		this.refreshSnapshot();
+		return events;
 	}
 
-	onFunctionCallDone(_index: number): ResponseStreamEvent[] {
+	onFunctionCallDone(index: number): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFunctionCallDone");
-		return [];
+		const call = this.toolCalls.get(index);
+		if (!call || !call.name) {
+			throw streamStateError(
+				this.ctx,
+				ADAPTER_STREAM_INCOMPLETE_TOOL_CALL,
+				`Cannot complete tool call at index ${index}: call not found or missing name.`,
+			);
+		}
+		if (!call.opened || call.outputIndex === undefined) {
+			throw streamStateError(
+				this.ctx,
+				ADAPTER_STREAM_INCOMPLETE_TOOL_CALL,
+				`Cannot complete tool call at index ${index}: call not opened.`,
+			);
+		}
+
+		call.done = true;
+		const events: ResponseStreamEvent[] = [];
+
+		const finalItem = this.toolCalls.item(call);
+		this.output.markDone(call.outputIndex, finalItem);
+		this.refreshSnapshot();
+
+		events.push({
+			type: "response.function_call_arguments.done",
+			item_id: call.id,
+			output_index: call.outputIndex,
+			text: call.arguments,
+		});
+		events.push({
+			type: "response.output_item.done",
+			output_index: call.outputIndex,
+			item: finalItem,
+		});
+
+		return events;
 	}
 
 	onFinish(status: StreamResponseTerminalStatus): ResponseStreamEvent[] {
