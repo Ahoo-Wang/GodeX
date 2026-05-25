@@ -2,6 +2,7 @@ import type { ResponsesContext } from "../../context/responses-context";
 import {
 	ADAPTER_STREAM_ALREADY_INITIALIZED,
 	ADAPTER_STREAM_INVALID_TRANSITION,
+	ADAPTER_STREAM_MISSING_OUTPUT_BLOCK,
 	ADAPTER_STREAM_NOT_INITIALIZED,
 	AdapterError,
 } from "../../error";
@@ -12,6 +13,14 @@ import type {
 } from "../../protocol/openai/responses";
 import type { ResponseError } from "../../protocol/openai/shared";
 import { responseRequestEchoFields } from "../response-utils";
+import { OutputCollectionState } from "./stream-response-output";
+import {
+	contentPart,
+	messageItem,
+	reasoningItem,
+	type MessageBlock,
+	type ReasoningBlock,
+} from "./stream-response-message";
 
 export enum StreamResponsePhase {
 	IDLE = "idle",
@@ -56,6 +65,11 @@ export class StreamResponseState {
 	readonly options: Required<StreamResponseStateOptions>;
 	private currentPhase = StreamResponsePhase.IDLE;
 	private currentSnapshot: ResponseObject;
+	private readonly output = new OutputCollectionState();
+	private activeText?: MessageBlock;
+	private activeRefusal?: MessageBlock;
+	private activeReasoning?: ReasoningBlock;
+	private outputText = "";
 
 	private constructor(
 		ctx: ResponsesContext,
@@ -121,34 +135,286 @@ export class StreamResponseState {
 		];
 	}
 
-	onTextDelta(_delta: string): ResponseStreamEvent[] {
+	onTextDelta(delta: string): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onTextDelta");
-		return [];
+		const events: ResponseStreamEvent[] = [];
+
+		if (!this.activeText) {
+			const outputIndex = this.output.items().length;
+			const block: MessageBlock = {
+				kind: "text",
+				outputIndex,
+				contentIndex: 0,
+				itemId: `msg_${this.ctx.responseId}_${outputIndex}`,
+				text: "",
+				done: false,
+			};
+
+			const item = messageItem(block);
+			this.output.add(item);
+			this.activeText = block;
+
+			events.push({
+				type: "response.output_item.added",
+				output_index: outputIndex,
+				item,
+			});
+			events.push({
+				type: "response.content_part.added",
+				item_id: block.itemId,
+				output_index: outputIndex,
+				content_index: 0,
+				part: contentPart(block),
+			});
+		}
+
+		this.activeText.text += delta;
+		this.outputText += delta;
+		this.refreshSnapshot();
+
+		events.push({
+			type: "response.output_text.delta",
+			item_id: this.activeText.itemId,
+			output_index: this.activeText.outputIndex,
+			content_index: this.activeText.contentIndex,
+			delta,
+		});
+
+		return events;
 	}
 
 	onTextDone(): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onTextDone");
-		return [];
+
+		if (!this.activeText) {
+			throw streamStateError(
+				this.ctx,
+				ADAPTER_STREAM_MISSING_OUTPUT_BLOCK,
+				"No active text output block to complete.",
+			);
+		}
+
+		const block = this.activeText;
+		block.done = true;
+
+		const events: ResponseStreamEvent[] = [];
+
+		events.push({
+			type: "response.output_text.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			content_index: block.contentIndex,
+			text: block.text,
+		});
+		events.push({
+			type: "response.content_part.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			content_index: block.contentIndex,
+			part: contentPart(block),
+		});
+
+		const completedItem = messageItem(block);
+		this.output.markDone(block.outputIndex, completedItem);
+		this.activeText = undefined;
+		this.refreshSnapshot();
+
+		events.push({
+			type: "response.output_item.done",
+			output_index: block.outputIndex,
+			item: completedItem,
+		});
+
+		return events;
 	}
 
-	onReasoningTextDelta(_delta: string): ResponseStreamEvent[] {
-		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onReasoningTextDelta");
-		return [];
+	onReasoningTextDelta(delta: string): ResponseStreamEvent[] {
+		this.assertPhase(
+			StreamResponsePhase.IN_PROGRESS,
+			"onReasoningTextDelta",
+		);
+		const events: ResponseStreamEvent[] = [];
+
+		if (!this.activeReasoning) {
+			const outputIndex = this.output.items().length;
+			const block: ReasoningBlock = {
+				outputIndex,
+				contentIndex: 0,
+				itemId: `rs_${this.ctx.responseId}_${outputIndex}`,
+				text: "",
+				done: false,
+			};
+
+			const item = reasoningItem(block);
+			this.output.add(item);
+			this.activeReasoning = block;
+
+			events.push({
+				type: "response.output_item.added",
+				output_index: outputIndex,
+				item,
+			});
+			events.push({
+				type: "response.reasoning_text_part.added",
+				item_id: block.itemId,
+				output_index: outputIndex,
+				content_index: 0,
+				part: { type: "reasoning_text", text: "" },
+			});
+		}
+
+		this.activeReasoning.text += delta;
+		this.refreshSnapshot();
+
+		events.push({
+			type: "response.reasoning_text.delta",
+			item_id: this.activeReasoning.itemId,
+			output_index: this.activeReasoning.outputIndex,
+			content_index: this.activeReasoning.contentIndex,
+			delta,
+		});
+
+		return events;
 	}
 
 	onReasoningTextDone(): ResponseStreamEvent[] {
-		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onReasoningTextDone");
-		return [];
+		this.assertPhase(
+			StreamResponsePhase.IN_PROGRESS,
+			"onReasoningTextDone",
+		);
+
+		if (!this.activeReasoning) {
+			throw streamStateError(
+				this.ctx,
+				ADAPTER_STREAM_MISSING_OUTPUT_BLOCK,
+				"No active reasoning output block to complete.",
+			);
+		}
+
+		const block = this.activeReasoning;
+		block.done = true;
+
+		const events: ResponseStreamEvent[] = [];
+
+		events.push({
+			type: "response.reasoning_text.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			content_index: block.contentIndex,
+			text: block.text,
+		});
+		events.push({
+			type: "response.reasoning_text_part.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			content_index: block.contentIndex,
+			part: { type: "reasoning_text", text: block.text },
+		});
+
+		const completedItem = reasoningItem(block);
+		this.output.markDone(block.outputIndex, completedItem);
+		this.activeReasoning = undefined;
+		this.refreshSnapshot();
+
+		events.push({
+			type: "response.output_item.done",
+			output_index: block.outputIndex,
+			item: completedItem,
+		});
+
+		return events;
 	}
 
-	onRefusalDelta(_delta: string): ResponseStreamEvent[] {
+	onRefusalDelta(delta: string): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onRefusalDelta");
-		return [];
+		const events: ResponseStreamEvent[] = [];
+
+		if (!this.activeRefusal) {
+			const outputIndex = this.output.items().length;
+			const block: MessageBlock = {
+				kind: "refusal",
+				outputIndex,
+				contentIndex: 0,
+				itemId: `msg_${this.ctx.responseId}_${outputIndex}`,
+				text: "",
+				done: false,
+			};
+
+			const item = messageItem(block);
+			this.output.add(item);
+			this.activeRefusal = block;
+
+			events.push({
+				type: "response.output_item.added",
+				output_index: outputIndex,
+				item,
+			});
+			events.push({
+				type: "response.content_part.added",
+				item_id: block.itemId,
+				output_index: outputIndex,
+				content_index: 0,
+				part: contentPart(block),
+			});
+		}
+
+		this.activeRefusal.text += delta;
+		this.refreshSnapshot();
+
+		events.push({
+			type: "response.refusal.delta",
+			item_id: this.activeRefusal.itemId,
+			output_index: this.activeRefusal.outputIndex,
+			content_index: this.activeRefusal.contentIndex,
+			delta,
+		});
+
+		return events;
 	}
 
 	onRefusalDone(): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onRefusalDone");
-		return [];
+
+		if (!this.activeRefusal) {
+			throw streamStateError(
+				this.ctx,
+				ADAPTER_STREAM_MISSING_OUTPUT_BLOCK,
+				"No active refusal output block to complete.",
+			);
+		}
+
+		const block = this.activeRefusal;
+		block.done = true;
+
+		const events: ResponseStreamEvent[] = [];
+
+		events.push({
+			type: "response.refusal.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			content_index: block.contentIndex,
+			refusal: block.text,
+		});
+		events.push({
+			type: "response.content_part.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			content_index: block.contentIndex,
+			part: contentPart(block),
+		});
+
+		const completedItem = messageItem(block);
+		this.output.markDone(block.outputIndex, completedItem);
+		this.activeRefusal = undefined;
+		this.refreshSnapshot();
+
+		events.push({
+			type: "response.output_item.done",
+			output_index: block.outputIndex,
+			item: completedItem,
+		});
+
+		return events;
 	}
 
 	onFunctionCallDelta(_delta: FunctionCallDelta): ResponseStreamEvent[] {
@@ -176,6 +442,14 @@ export class StreamResponseState {
 
 	onError(error: ResponseError): ResponseStreamEvent[] {
 		return this.onFinish({ status: "failed", error });
+	}
+
+	private refreshSnapshot(): void {
+		this.currentSnapshot = {
+			...this.currentSnapshot,
+			output: this.output.items(),
+			...(this.outputText ? { output_text: this.outputText } : {}),
+		};
 	}
 
 	private baseSnapshot(status: ResponseObject["status"]): ResponseObject {
