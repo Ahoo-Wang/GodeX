@@ -107,6 +107,17 @@ interface ToolCallSnapshot {
  */
 type ToolCallOutputItemMapper = (call: ToolCallSnapshot) => ResponseItem;
 
+/**
+ * Builds the response snapshot shape for queued and in-progress lifecycle
+ * states. The default implementation uses ResponsesContext fields and request
+ * echo fields; providers can override it when a future integration needs a
+ * different provider-independent initial response shape.
+ */
+type InitialResponseBuilder = (
+	ctx: ResponsesContext,
+	status: ResponseObject["status"],
+) => ResponseObject;
+
 type StreamResponseTerminalStatus = Pick<
 	ResponseObject,
 	"status" | "error" | "incomplete_details"
@@ -116,6 +127,7 @@ type StreamResponseTerminalStatus = Pick<
 
 interface StreamResponseStateOptions {
 	toolCallOutputItemMapper: ToolCallOutputItemMapper;
+	buildInitialResponse?: InitialResponseBuilder;
 	// Injectable clock for deterministic terminal event tests.
 	nowSeconds?: () => number;
 }
@@ -177,7 +189,7 @@ Responsibilities:
 
 `start()` is explicit and required before output actions. Calling an output action before `start()` is a state error.
 
-The initial snapshot is built from `ResponsesContext`: `responseId`, `createdAt`, `resolved.model`, and request echo fields from `responseRequestEchoFields(ctx)`. It starts with `status: "queued"` and empty `output`. `start()` changes the snapshot to `status: "in_progress"` before emitting events, so both `response.created` and `response.in_progress` carry an in-progress response snapshot.
+The initial snapshot is built by `buildInitialResponse(ctx, "queued")`. The default builder uses `responseId`, `createdAt`, `resolved.model`, and request echo fields from `responseRequestEchoFields(ctx)`, with empty `output`. `start()` emits `response.created` with the queued snapshot, then changes the snapshot to `status: "in_progress"` and emits `response.in_progress` with the in-progress snapshot.
 
 ### OutputCollectionState
 
@@ -240,7 +252,7 @@ The state machine must generate complete OpenAI Responses SSE event payloads. `R
 `response.created`:
 
 - `type: "response.created"`
-- `response`: current in-progress `snapshot`
+- `response`: queued snapshot captured before `start()` moves the lifecycle to `in_progress`
 
 `response.in_progress`:
 
@@ -510,6 +522,8 @@ Repeated finish is an invalid transition. It should throw a domain-specific erro
 
 Provider mappers should use this for upstream stream error events that can be represented as a failed Responses stream.
 
+`onError(error)` is valid from both `idle` and `in_progress`, because an upstream stream can fail before the first model chunk starts the response. It is invalid after any terminal phase.
+
 `onFinish({ status: "failed", error })` represents a model-level terminal status conveyed as the normal end of the provider stream. `onError(error)` represents infrastructure or stream-processing failure before a normal provider stop, such as malformed upstream SSE, upstream stream error events, connection loss surfaced inside the stream, or mapper parse errors that should be translated into a failed Responses stream.
 
 ### Usage
@@ -690,6 +704,7 @@ bun run check
 
 - `StreamResponseState` is the only stream response state source.
 - `StreamResponseState` has separate `create()`, `get()`, and `from()` accessors.
+- Initial queued/in-progress snapshots are built through `InitialResponseBuilder`.
 - `StreamMapper` no longer has `buildResponseObject()`.
 - Streaming persistence uses `StreamResponseState.snapshot`.
 - Output event generation is centralized in the state machine.
