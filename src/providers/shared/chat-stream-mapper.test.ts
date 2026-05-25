@@ -1,18 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
+import type { ToolCallSnapshot } from "../../adapter/mapper/stream-response-state";
 import type { ApplicationContext } from "../../context/application-context";
 import type { ResponsesContext } from "../../context/responses-context";
 import { createLogger } from "../../logger";
-import type {
-	ResponseItem,
-	ResponseObject,
-} from "../../protocol/openai/responses";
+import type { ResponseItem } from "../../protocol/openai/responses";
 import {
 	ChatCompletionStreamMapper,
 	type ChatStreamChoice,
 	type ChatStreamToolCallDelta,
 } from "./chat-stream-mapper";
-import { buildChatResponseObject } from "./response-object";
 
 interface TestChunk {
 	delta?: {
@@ -50,28 +47,16 @@ class TestStreamMapper extends ChatCompletionStreamMapper<
 		return { status: "completed" as const };
 	}
 
-	protected mapToolCall(_ctx: ResponsesContext, item: { id: string }) {
+	protected mapToolCall(
+		_ctx: ResponsesContext,
+		call: ToolCallSnapshot,
+	): ResponseItem {
 		return {
 			type: "function_call",
-			call_id: item.id,
-			name: "tool",
-			arguments: "{}",
+			call_id: call.id,
+			name: call.name,
+			arguments: call.arguments,
 		} satisfies ResponseItem;
-	}
-
-	buildResponseObject(
-		ctx: ResponsesContext,
-		state: { outputText: string; completedAt: number | null },
-	): ResponseObject {
-		return buildChatResponseObject(
-			ctx,
-			{ status: "completed" },
-			{
-				outputText: state.outputText,
-				completedAt: state.completedAt,
-				output: [],
-			},
-		);
 	}
 }
 
@@ -103,8 +88,6 @@ describe("ChatCompletionStreamMapper", () => {
 		expect(startEvents.map((event) => event.type)).toEqual([
 			"response.created",
 			"response.in_progress",
-			"response.output_item.added",
-			"response.content_part.added",
 		]);
 
 		const textEvents = mapper.map(
@@ -113,7 +96,22 @@ describe("ChatCompletionStreamMapper", () => {
 		);
 		expect(textEvents).toEqual([
 			expect.objectContaining({
+				type: "response.output_item.added",
+				output_index: 0,
+				item: expect.objectContaining({ type: "message" }),
+			}),
+			expect.objectContaining({
+				type: "response.content_part.added",
+				item_id: "msg_resp_1_0",
+				output_index: 0,
+				content_index: 0,
+				part: expect.objectContaining({ type: "output_text" }),
+			}),
+			expect.objectContaining({
 				type: "response.output_text.delta",
+				item_id: "msg_resp_1_0",
+				output_index: 0,
+				content_index: 0,
 				delta: "Hello",
 			}),
 		]);
@@ -150,12 +148,41 @@ describe("ChatCompletionStreamMapper", () => {
 		expect(endEvents).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({
+					type: "response.output_text.done",
+					item_id: "msg_resp_1_0",
+					output_index: 0,
+					content_index: 0,
+					text: "Hello",
+				}),
+				expect.objectContaining({
+					type: "response.output_item.done",
+					output_index: 0,
+					item: expect.objectContaining({
+						type: "message",
+						status: "completed",
+					}),
+				}),
+				expect.objectContaining({
 					type: "response.function_call_arguments.done",
 					item_id: "call_1",
+					output_index: 1,
 					text: '{"a":1}',
 				}),
 				expect.objectContaining({
+					type: "response.output_item.done",
+					output_index: 1,
+					item: expect.objectContaining({ type: "function_call" }),
+				}),
+				expect.objectContaining({
 					type: "response.completed",
+					response: expect.objectContaining({
+						id: "resp_1",
+						status: "completed",
+						output: expect.arrayContaining([
+							expect.objectContaining({ type: "message" }),
+							expect.objectContaining({ type: "function_call" }),
+						]),
+					}),
 				}),
 			]),
 		);
