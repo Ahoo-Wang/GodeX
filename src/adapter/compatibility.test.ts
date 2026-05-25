@@ -45,8 +45,8 @@ function mockDiagnosticCtx(diagnostics: CompatibilityDiagnostic[]): {
 
 describe("logDiagnostics", () => {
 	test("does nothing when diagnostics array is empty", () => {
-		const { calls } = mockDiagnosticCtx([]);
-		logDiagnostics(mockDiagnosticCtx([]).ctx);
+		const { ctx, calls } = mockDiagnosticCtx([]);
+		logDiagnostics(ctx);
 		expect(calls.length).toBe(0);
 	});
 
@@ -66,8 +66,8 @@ describe("logDiagnostics", () => {
 		expect(calls[0]?.level).toBe("info");
 		expect(calls[0]?.event).toBe("responses.diagnostics");
 		expect(calls[0]?.attr).toMatchObject({
-			requestId: "req_test",
-			responseId: "resp_test",
+			request_id: "req_test",
+			response_id: "resp_test",
 			count: 1,
 		});
 		const diagArray = calls[0]?.attr.diagnostics as CompatibilityDiagnostic[];

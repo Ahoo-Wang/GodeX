@@ -33,8 +33,8 @@ export function logDiagnostics(
 
 	const logger = ctx.logger;
 	const attr = {
-		requestId: ctx.requestId,
-		responseId: ctx.responseId,
+		request_id: ctx.requestId,
+		response_id: ctx.responseId,
 		count: diagnostics.length,
 		diagnostics,
 		...(timing ? { durationMillis: timing.durationMillis } : {}),
