@@ -6,8 +6,8 @@ import type {
 	ResponseStreamEvent,
 } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
-import { DefaultAdapter } from "./default-adapter";
 import type { CompatibilityDiagnostic } from "./compatibility";
+import { DefaultAdapter } from "./default-adapter";
 import { StreamState } from "./mapper/stream-state";
 import type { Provider } from "./provider";
 
@@ -89,7 +89,9 @@ function createMockCtx(
 		resolved: { provider: "test", model: "test" },
 		diagnostics: [],
 		addDiagnostic(d: CompatibilityDiagnostic) {
-			(this as unknown as { diagnostics: CompatibilityDiagnostic[] }).diagnostics.push(d);
+			(
+				this as unknown as { diagnostics: CompatibilityDiagnostic[] }
+			).diagnostics.push(d);
 		},
 		attributes: new Map(),
 		session: null,
@@ -457,11 +459,9 @@ describe("DefaultAdapter", () => {
 		const adapter = new DefaultAdapter();
 		await adapter.request(ctx);
 
-		const diagInfos = warns.filter(
-			(i) => i.event === "responses.diagnostics",
-		);
+		const diagInfos = warns.filter((i) => i.event === "responses.diagnostics");
 		expect(diagInfos.length).toBe(1);
-		expect(diagInfos[0]!.attr).toMatchObject({
+		expect(diagInfos[0]?.attr).toMatchObject({
 			count: 1,
 			diagnostics: [
 				{

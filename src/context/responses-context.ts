@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
-import type { Provider } from "../adapter/provider";
 import type { CompatibilityDiagnostic } from "../adapter/compatibility";
+import type { Provider } from "../adapter/provider";
 import {
 	SERVER_PROVIDER_NOT_REGISTERED,
 	SERVER_REQUEST_INVALID_PARAMETER,

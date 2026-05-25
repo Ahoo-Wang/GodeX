@@ -1,8 +1,8 @@
 // src/providers/zhipu/request.test.ts
 import { describe, expect, test } from "bun:test";
+import type { CompatibilityDiagnostic } from "../../adapter/compatibility";
 import type { ApplicationContext } from "../../context/application-context";
 import type { ResponsesContext } from "../../context/responses-context";
-import type { CompatibilityDiagnostic } from "../../adapter/compatibility";
 import { AdapterError } from "../../error";
 import { createLogger, type Logger } from "../../logger";
 import type { ResponseCreateRequest } from "../../protocol/openai/responses";

@@ -40,7 +40,8 @@ export function warnZhipuRequestDowngrades(ctx: ResponsesContext): void {
 			severity: "warn",
 			path: "truncation",
 			action: "ignored",
-			message: "Automatic context truncation is not implemented; forwarding without truncation.",
+			message:
+				"Automatic context truncation is not implemented; forwarding without truncation.",
 			metadata: { parameter: "truncation", value: ctx.request.truncation },
 		});
 	}
@@ -50,7 +51,8 @@ export function warnZhipuRequestDowngrades(ctx: ResponsesContext): void {
 			severity: "warn",
 			path: "parallel_tool_calls",
 			action: "ignored",
-			message: "Zhipu Chat Completions does not expose parallel tool-call control.",
+			message:
+				"Zhipu Chat Completions does not expose parallel tool-call control.",
 			metadata: {
 				parameter: "parallel_tool_calls",
 				value: ctx.request.parallel_tool_calls,

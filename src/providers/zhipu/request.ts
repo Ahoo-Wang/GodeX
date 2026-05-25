@@ -83,7 +83,8 @@ export function buildZhipuRequest(
 			severity: "warn",
 			path: "tool_choice",
 			action: "degraded",
-			message: "Zhipu Chat Completions only supports auto tool choice; downgraded to auto.",
+			message:
+				"Zhipu Chat Completions only supports auto tool choice; downgraded to auto.",
 			metadata: { parameter: "tool_choice", value: requestedToolChoice },
 		});
 	}

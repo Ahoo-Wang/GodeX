@@ -1,54 +1,54 @@
-import type { ResponsesContext } from "../context/responses-context";
 import type { LogLevel } from "../config/schema";
+import type { ResponsesContext } from "../context/responses-context";
 
 export interface CompatibilityDiagnostic {
-    code: string;
-    severity: LogLevel;
-    path?: string;
-    action: "degraded" | "ignored" | "rejected";
-    message: string;
-    metadata?: Record<string, unknown>;
+	code: string;
+	severity: LogLevel;
+	path?: string;
+	action: "degraded" | "ignored" | "rejected";
+	message: string;
+	metadata?: Record<string, unknown>;
 }
 
 const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
-    trace: 0,
-    debug: 1,
-    info: 2,
-    warn: 3,
-    error: 4,
+	trace: 0,
+	debug: 1,
+	info: 2,
+	warn: 3,
+	error: 4,
 };
 
 export function logDiagnostics(
-    ctx: ResponsesContext,
-    timing?: { durationMillis: number },
+	ctx: ResponsesContext,
+	timing?: { durationMillis: number },
 ): void {
-    const diagnostics = ctx.diagnostics;
-    if (diagnostics.length === 0) return;
+	const diagnostics = ctx.diagnostics;
+	if (diagnostics.length === 0) return;
 
-    const severity = diagnostics.reduce((max, d) => {
-        const current = LOG_LEVEL_PRIORITY[d.severity] ?? 0;
-        const existing = LOG_LEVEL_PRIORITY[max] ?? 0;
-        return current > existing ? d.severity : max;
-    }, "info" as LogLevel);
+	const severity = diagnostics.reduce((max, d) => {
+		const current = LOG_LEVEL_PRIORITY[d.severity] ?? 0;
+		const existing = LOG_LEVEL_PRIORITY[max] ?? 0;
+		return current > existing ? d.severity : max;
+	}, "info" as LogLevel);
 
-    const logger = ctx.logger;
-    const attr = {
-        requestId: ctx.requestId,
-        responseId: ctx.responseId,
-        count: diagnostics.length,
-        diagnostics,
-        ...(timing ? { durationMillis: timing.durationMillis } : {}),
-    };
+	const logger = ctx.logger;
+	const attr = {
+		requestId: ctx.requestId,
+		responseId: ctx.responseId,
+		count: diagnostics.length,
+		diagnostics,
+		...(timing ? { durationMillis: timing.durationMillis } : {}),
+	};
 
-    switch (severity) {
-        case "error":
-            logger.error("responses.diagnostics", () => attr);
-            break;
-        case "warn":
-            logger.warn("responses.diagnostics", () => attr);
-            break;
-        default:
-            logger.info("responses.diagnostics", () => attr);
-            break;
-    }
+	switch (severity) {
+		case "error":
+			logger.error("responses.diagnostics", () => attr);
+			break;
+		case "warn":
+			logger.warn("responses.diagnostics", () => attr);
+			break;
+		default:
+			logger.info("responses.diagnostics", () => attr);
+			break;
+	}
 }
