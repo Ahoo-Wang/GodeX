@@ -196,7 +196,6 @@ export class StreamResponseState {
 
 	onTextDone(): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onTextDone");
-
 		if (!this.activeText) {
 			throw streamStateError(
 				this.ctx,
@@ -204,38 +203,8 @@ export class StreamResponseState {
 				"No active text output block to complete.",
 			);
 		}
-
-		const block = this.activeText;
-		block.done = true;
-
-		const events: ResponseStreamEvent[] = [];
-
-		events.push({
-			type: "response.output_text.done",
-			item_id: block.itemId,
-			output_index: block.outputIndex,
-			content_index: block.contentIndex,
-			text: block.text,
-		});
-		events.push({
-			type: "response.content_part.done",
-			item_id: block.itemId,
-			output_index: block.outputIndex,
-			content_index: block.contentIndex,
-			part: contentPart(block),
-		});
-
-		const completedItem = messageItem(block);
-		this.output.markDone(block.outputIndex, completedItem);
-		this.activeText = undefined;
+		const events = this.closeActiveText();
 		this.refreshSnapshot();
-
-		events.push({
-			type: "response.output_item.done",
-			output_index: block.outputIndex,
-			item: completedItem,
-		});
-
 		return events;
 	}
 
@@ -288,7 +257,6 @@ export class StreamResponseState {
 
 	onReasoningTextDone(): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onReasoningTextDone");
-
 		if (!this.activeReasoning) {
 			throw streamStateError(
 				this.ctx,
@@ -296,38 +264,8 @@ export class StreamResponseState {
 				"No active reasoning output block to complete.",
 			);
 		}
-
-		const block = this.activeReasoning;
-		block.done = true;
-
-		const events: ResponseStreamEvent[] = [];
-
-		events.push({
-			type: "response.reasoning_text.done",
-			item_id: block.itemId,
-			output_index: block.outputIndex,
-			content_index: block.contentIndex,
-			text: block.text,
-		});
-		events.push({
-			type: "response.reasoning_text_part.done",
-			item_id: block.itemId,
-			output_index: block.outputIndex,
-			content_index: block.contentIndex,
-			part: { type: "reasoning_text", text: block.text },
-		});
-
-		const completedItem = reasoningItem(block);
-		this.output.markDone(block.outputIndex, completedItem);
-		this.activeReasoning = undefined;
+		const events = this.closeActiveReasoning();
 		this.refreshSnapshot();
-
-		events.push({
-			type: "response.output_item.done",
-			output_index: block.outputIndex,
-			item: completedItem,
-		});
-
 		return events;
 	}
 
@@ -381,7 +319,6 @@ export class StreamResponseState {
 
 	onRefusalDone(): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onRefusalDone");
-
 		if (!this.activeRefusal) {
 			throw streamStateError(
 				this.ctx,
@@ -389,38 +326,8 @@ export class StreamResponseState {
 				"No active refusal output block to complete.",
 			);
 		}
-
-		const block = this.activeRefusal;
-		block.done = true;
-
-		const events: ResponseStreamEvent[] = [];
-
-		events.push({
-			type: "response.refusal.done",
-			item_id: block.itemId,
-			output_index: block.outputIndex,
-			content_index: block.contentIndex,
-			refusal: block.text,
-		});
-		events.push({
-			type: "response.content_part.done",
-			item_id: block.itemId,
-			output_index: block.outputIndex,
-			content_index: block.contentIndex,
-			part: contentPart(block),
-		});
-
-		const completedItem = messageItem(block);
-		this.output.markDone(block.outputIndex, completedItem);
-		this.activeRefusal = undefined;
+		const events = this.closeActiveRefusal();
 		this.refreshSnapshot();
-
-		events.push({
-			type: "response.output_item.done",
-			output_index: block.outputIndex,
-			item: completedItem,
-		});
-
 		return events;
 	}
 

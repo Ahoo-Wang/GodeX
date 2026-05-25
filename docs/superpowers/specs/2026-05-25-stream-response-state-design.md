@@ -107,17 +107,6 @@ interface ToolCallSnapshot {
  */
 type ToolCallOutputItemMapper = (call: ToolCallSnapshot) => ResponseItem;
 
-/**
- * Builds the response snapshot shape for queued and in-progress lifecycle
- * states. The default implementation uses ResponsesContext fields and request
- * echo fields; providers can override it when a future integration needs a
- * different provider-independent initial response shape.
- */
-type InitialResponseBuilder = (
-	ctx: ResponsesContext,
-	status: ResponseObject["status"],
-) => ResponseObject;
-
 type StreamResponseTerminalStatus = Pick<
 	ResponseObject,
 	"status" | "error" | "incomplete_details"
@@ -127,8 +116,6 @@ type StreamResponseTerminalStatus = Pick<
 
 interface StreamResponseStateOptions {
 	toolCallOutputItemMapper: ToolCallOutputItemMapper;
-	buildInitialResponse?: InitialResponseBuilder;
-	// Injectable clock for deterministic terminal event tests.
 	nowSeconds?: () => number;
 }
 
@@ -189,7 +176,7 @@ Responsibilities:
 
 `start()` is explicit and required before output actions. Calling an output action before `start()` is a state error.
 
-The initial snapshot is built by `buildInitialResponse(ctx, "queued")`. The default builder uses `responseId`, `createdAt`, `resolved.model`, and request echo fields from `responseRequestEchoFields(ctx)`, with empty `output`. `start()` emits `response.created` with the queued snapshot, then changes the snapshot to `status: "in_progress"` and emits `response.in_progress` with the in-progress snapshot.
+The initial snapshot is built internally from `responseId`, `createdAt`, `resolved.model`, and request echo fields from `responseRequestEchoFields(ctx)`, with empty `output` and `status: "queued"`. `start()` transitions the snapshot to `status: "in_progress"` and emits both `response.created` and `response.in_progress` carrying the in-progress snapshot, matching the OpenAI Responses SSE reference behaviour.
 
 ### OutputCollectionState
 
@@ -704,7 +691,7 @@ bun run check
 
 - `StreamResponseState` is the only stream response state source.
 - `StreamResponseState` has separate `create()`, `get()`, and `from()` accessors.
-- Initial queued/in-progress snapshots are built through `InitialResponseBuilder`.
+- Initial queued/in-progress snapshots are built internally from `ResponsesContext` fields and `responseRequestEchoFields()`.
 - `StreamMapper` no longer has `buildResponseObject()`.
 - Streaming persistence uses `StreamResponseState.snapshot`.
 - Output event generation is centralized in the state machine.
