@@ -18,7 +18,7 @@ import { TraceTransformer } from "./transformers/trace-transformer";
 export class DefaultAdapter implements Adapter {
 	async request(ctx: ResponsesContext): Promise<ResponseObject> {
 		ctx.logger.trace("responses.request.body", () => ({ body: ctx.request }));
-		const { mapper, chatClient } = ctx.provider;
+		const { mapper, client } = ctx.provider;
 		const req = await mapper.request.map(ctx);
 		ctx.logger.trace("upstream.request.body", () => ({ body: req }));
 		ctx.logger.debug("provider.request.sending", () => ({
@@ -27,7 +27,7 @@ export class DefaultAdapter implements Adapter {
 			stream: false,
 		}));
 		const upstreamStart = Date.now();
-		const res = await chatClient.chat(req);
+		const res = await client.request(req);
 		ctx.logger.trace("upstream.response.body", () => ({ body: res }));
 		ctx.logger.debug("provider.response.received", () => ({
 			provider: ctx.resolved.provider,
@@ -58,7 +58,7 @@ export class DefaultAdapter implements Adapter {
 		ctx: ResponsesContext,
 	): Promise<ReadableStream<ResponseStreamEvent>> {
 		ctx.logger.trace("responses.request.body", () => ({ body: ctx.request }));
-		const { mapper, chatClient } = ctx.provider;
+		const { mapper, client } = ctx.provider;
 		const req = await mapper.request.map(ctx);
 		ctx.logger.trace("upstream.request.body", () => ({ body: req }));
 		ctx.logger.debug("provider.request.sending", () => ({
@@ -67,7 +67,7 @@ export class DefaultAdapter implements Adapter {
 			stream: true,
 		}));
 		const upstreamStart = Date.now();
-		const events = await chatClient.streamChat(req);
+		const events = await client.stream(req);
 		const upstreamLatencyMillis = Date.now() - upstreamStart;
 		ctx.logger.debug("provider.stream.connected", () => ({
 			provider: ctx.resolved.provider,

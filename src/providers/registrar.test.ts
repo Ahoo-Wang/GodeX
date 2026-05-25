@@ -14,9 +14,9 @@ const stubProvider: Provider<unknown, unknown, unknown> = {
 			buildResponseObject: () => ({}) as never,
 		},
 	},
-	chatClient: {
-		chat: async () => ({}),
-		streamChat: async () => new ReadableStream(),
+	client: {
+		request: async () => ({}),
+		stream: async () => new ReadableStream(),
 	},
 };
 

@@ -1,12 +1,12 @@
 import type { ProviderCapabilities } from "../../adapter/capabilities";
 import { mergeCapabilities } from "../../adapter/capabilities";
 import type { Provider } from "../../adapter/provider";
-import { ZhipuChatClient } from "./chat-client";
 import type {
 	ChatCompletionChunk,
 	ChatCompletionResponse,
 	ChatCompletionTextRequest,
 } from "./protocol/completions";
+import { ZhipuClient } from "./provider-client";
 import { buildZhipuRequest } from "./request";
 import { buildResponseObject } from "./response";
 import { ZhipuStreamMapper } from "./stream";
@@ -61,9 +61,9 @@ export class ZhipuProvider
 		response: { map: buildResponseObject },
 		stream: new ZhipuStreamMapper(),
 	};
-	readonly chatClient: ZhipuChatClient;
+	readonly client: ZhipuClient;
 
 	constructor(baseURL: string, apiKey: string, timeout?: number) {
-		this.chatClient = new ZhipuChatClient(baseURL, apiKey, timeout);
+		this.client = new ZhipuClient(baseURL, apiKey, timeout);
 	}
 }

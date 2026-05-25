@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { ProviderError } from "../../error";
-import { ZhipuChatClient } from "./chat-client";
 import type { ChatCompletionChunk } from "./protocol/completions";
+import { ZhipuClient } from "./provider-client";
 
 function jsonResponse(body: unknown, status = 200): Response {
 	return new Response(JSON.stringify(body), {
@@ -26,8 +26,8 @@ function sseResponse(chunks: Array<{ data: string }>): Response {
 	});
 }
 
-describe("ZhipuChatClient", () => {
-	test("chat returns parsed response on success", async () => {
+describe("ZhipuClient", () => {
+	test("request returns parsed response on success", async () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = (async () => {
 			return jsonResponse({
@@ -45,8 +45,8 @@ describe("ZhipuChatClient", () => {
 		}) as unknown as typeof fetch;
 
 		try {
-			const client = new ZhipuChatClient("https://example.test", "test-key");
-			const response = await client.chat({ model: "glm-5.1", messages: [] });
+			const client = new ZhipuClient("https://example.test", "test-key");
+			const response = await client.request({ model: "glm-5.1", messages: [] });
 
 			expect(response.id).toBe("mock-response");
 		} finally {
@@ -54,16 +54,16 @@ describe("ZhipuChatClient", () => {
 		}
 	});
 
-	test("chat throws ProviderError on HTTP error", async () => {
+	test("request throws ProviderError on HTTP error", async () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = (async () => {
 			return new Response("unauthorized", { status: 401 });
 		}) as unknown as typeof fetch;
 
 		try {
-			const client = new ZhipuChatClient("https://example.test", "bad-key");
+			const client = new ZhipuClient("https://example.test", "bad-key");
 			try {
-				await client.chat({ model: "glm-5.1", messages: [] });
+				await client.request({ model: "glm-5.1", messages: [] });
 				expect.unreachable("Should have thrown");
 			} catch (err) {
 				expect(err).toBeInstanceOf(ProviderError);
@@ -95,8 +95,8 @@ describe("ZhipuChatClient", () => {
 		}) as unknown as typeof fetch;
 
 		try {
-			const client = new ZhipuChatClient("https://example.test", "test-key");
-			const eventStream = await client.streamChat({
+			const client = new ZhipuClient("https://example.test", "test-key");
+			const eventStream = await client.stream({
 				model: "glm-5.1",
 				messages: [],
 			});
@@ -120,9 +120,9 @@ describe("ZhipuChatClient", () => {
 		}) as unknown as typeof fetch;
 
 		try {
-			const client = new ZhipuChatClient("https://example.test", "test-key");
+			const client = new ZhipuClient("https://example.test", "test-key");
 			try {
-				await client.streamChat({ model: "glm-5.1", messages: [] });
+				await client.stream({ model: "glm-5.1", messages: [] });
 				expect.unreachable("Should have thrown");
 			} catch (err) {
 				expect(err).toBeInstanceOf(ProviderError);

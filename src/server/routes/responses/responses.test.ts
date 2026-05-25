@@ -64,14 +64,14 @@ class FakeMapper
 
 function createTestApp(
 	mapper: ProviderMapper<unknown, unknown, unknown>,
-	chatClient: unknown,
+	client: unknown,
 ): ApplicationContext {
 	const registrar = new Registrar();
 	registrar.registerFactory("zhipu", () => ({
 		name: "mock",
 		capabilities: DEFAULT_CAPABILITIES,
 		mapper,
-		chatClient: chatClient as never,
+		client: client as never,
 	}));
 	return new ApplicationContext(config, registrar);
 }
@@ -112,10 +112,10 @@ describe("handleResponses stream errors", () => {
 	test("logs request metadata with snake_case fields", async () => {
 		const logs: CapturedLog[] = [];
 		const app = createTestApp(new FakeMapper(), {
-			async chat(): Promise<Record<string, unknown>> {
+			async request(): Promise<Record<string, unknown>> {
 				return {};
 			},
-			async streamChat() {
+			async stream() {
 				return new ReadableStream();
 			},
 		});
@@ -152,10 +152,10 @@ describe("handleResponses stream errors", () => {
 
 	test("rejects previous_response_id and conversation together before resolving session", async () => {
 		const app = createTestApp(new FakeMapper(), {
-			async chat(): Promise<Record<string, unknown>> {
+			async request(): Promise<Record<string, unknown>> {
 				return {};
 			},
-			async streamChat() {
+			async stream() {
 				return new ReadableStream();
 			},
 		});
@@ -185,10 +185,10 @@ describe("handleResponses stream errors", () => {
 
 	test("rejects invalid model selectors as request errors", async () => {
 		const app = createTestApp(new FakeMapper(), {
-			async chat(): Promise<Record<string, unknown>> {
+			async request(): Promise<Record<string, unknown>> {
 				return {};
 			},
-			async streamChat() {
+			async stream() {
 				return new ReadableStream();
 			},
 		});
@@ -220,10 +220,10 @@ describe("handleResponses stream errors", () => {
 
 	test("propagates stream body errors instead of encoding SSE error events", async () => {
 		const app = createTestApp(new FakeMapper(), {
-			async chat(): Promise<Record<string, unknown>> {
+			async request(): Promise<Record<string, unknown>> {
 				return {};
 			},
-			async streamChat() {
+			async stream() {
 				const stream = new ReadableStream({
 					start(controller) {
 						controller.error(
@@ -324,11 +324,11 @@ describe("handleResponses stream errors", () => {
 			name: "mock",
 			capabilities: DEFAULT_CAPABILITIES,
 			mapper,
-			chatClient: {
-				async chat(): Promise<Record<string, unknown>> {
+			client: {
+				async request(): Promise<Record<string, unknown>> {
 					return {};
 				},
-				async streamChat() {
+				async stream() {
 					return new ReadableStream({
 						start(controller) {
 							controller.enqueue({ event: "message", data: {} });
@@ -367,10 +367,10 @@ describe("handleResponses stream errors", () => {
 
 	test("returns provider errors as HTTP status before SSE starts", async () => {
 		const app = createTestApp(new FakeMapper(), {
-			async chat(): Promise<Record<string, unknown>> {
+			async request(): Promise<Record<string, unknown>> {
 				return {};
 			},
-			async streamChat() {
+			async stream() {
 				throw new ProviderError(
 					"provider.upstream.rate_limit",
 					"Too many requests",
@@ -405,7 +405,7 @@ describe("handleResponses stream errors", () => {
 	test("maps sync provider timeouts to request_timeout responses", async () => {
 		const logs: CapturedLog[] = [];
 		const app = createTestApp(new FakeMapper(), {
-			async chat(): Promise<Record<string, unknown>> {
+			async request(): Promise<Record<string, unknown>> {
 				throw new ProviderError(
 					"provider.upstream.timeout",
 					"Request timed out",
@@ -416,7 +416,7 @@ describe("handleResponses stream errors", () => {
 					},
 				);
 			},
-			async streamChat() {
+			async stream() {
 				return new ReadableStream();
 			},
 		});
@@ -460,10 +460,10 @@ describe("handleResponses stream errors", () => {
 				},
 			},
 			{
-				async chat(): Promise<Record<string, unknown>> {
+				async request(): Promise<Record<string, unknown>> {
 					return {};
 				},
-				async streamChat() {
+				async stream() {
 					return new ReadableStream();
 				},
 			},
@@ -503,10 +503,10 @@ describe("handleResponses stream errors", () => {
 				},
 			},
 			{
-				async chat(): Promise<Record<string, unknown>> {
+				async request(): Promise<Record<string, unknown>> {
 					return {};
 				},
-				async streamChat() {
+				async stream() {
 					return new ReadableStream();
 				},
 			},
@@ -530,10 +530,10 @@ describe("handleResponses stream errors", () => {
 
 	test("resolves the requested model once for a request", async () => {
 		const app = createTestApp(new FakeMapper(), {
-			async chat(): Promise<Record<string, unknown>> {
+			async request(): Promise<Record<string, unknown>> {
 				return {};
 			},
-			async streamChat() {
+			async stream() {
 				return new ReadableStream();
 			},
 		});
@@ -603,10 +603,10 @@ describe("handleResponses stream errors", () => {
 				},
 			},
 			{
-				async chat(): Promise<Record<string, unknown>> {
+				async request(): Promise<Record<string, unknown>> {
 					return {};
 				},
-				async streamChat() {
+				async stream() {
 					return new ReadableStream();
 				},
 			},

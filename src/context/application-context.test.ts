@@ -32,7 +32,7 @@ describe("ApplicationContext", () => {
 		const app = new ApplicationContext(config);
 		const provider = app.registrar.resolve("zhipu");
 		expect(provider.mapper).toBeDefined();
-		expect(provider.chatClient).toBeDefined();
+		expect(provider.client).toBeDefined();
 	});
 
 	test("creates sqlite session store when configured", () => {
@@ -58,9 +58,9 @@ describe("ApplicationContext", () => {
 					buildResponseObject: () => ({}) as never,
 				},
 			},
-			chatClient: {
-				chat: async () => ({}),
-				streamChat: async () => new ReadableStream(),
+			client: {
+				request: async () => ({}),
+				stream: async () => new ReadableStream(),
 			},
 		}));
 		const app = new ApplicationContext(config, customRegistrar);

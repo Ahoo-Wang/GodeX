@@ -26,7 +26,7 @@ function ctx(
 		provider: {
 			name: "zhipu",
 			mapper: {} as never,
-			chatClient: {} as never,
+			client: {} as never,
 			capabilities,
 		},
 	} as unknown as ResponsesContext;

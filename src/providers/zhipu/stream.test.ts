@@ -60,7 +60,7 @@ function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 		createdAt: 1_764_000_000,
 		logger: createLogger({ level: "error" }),
 		app: {} as unknown as ApplicationContext,
-		provider: { mapper: {} as never, chatClient: {} as never },
+		provider: { mapper: {} as never, client: {} as never },
 		attributes: new Map(),
 	} as unknown as ResponsesContext;
 }

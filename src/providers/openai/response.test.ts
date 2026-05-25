@@ -26,7 +26,7 @@ function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 		provider: {
 			name: "openai",
 			mapper: {} as never,
-			chatClient: {} as never,
+			client: {} as never,
 			capabilities: mergeCapabilities(),
 		},
 	} as unknown as ResponsesContext;

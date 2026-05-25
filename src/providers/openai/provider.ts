@@ -6,7 +6,7 @@ import type {
 	ChatCompletionChunk,
 	ChatCompletionCreateRequest,
 } from "../../protocol/openai/completions";
-import { OpenAIChatClient } from "./chat-client";
+import { OpenAIClient } from "./provider-client";
 import { buildOpenAIRequest } from "./request";
 import { buildResponseObject } from "./response";
 import { OpenAIStreamMapper } from "./stream";
@@ -47,9 +47,9 @@ export class OpenAIProvider
 		response: { map: buildResponseObject },
 		stream: new OpenAIStreamMapper(),
 	};
-	readonly chatClient: OpenAIChatClient;
+	readonly client: OpenAIClient;
 
 	constructor(baseURL: string, apiKey: string, timeout?: number) {
-		this.chatClient = new OpenAIChatClient(baseURL, apiKey, timeout);
+		this.client = new OpenAIClient(baseURL, apiKey, timeout);
 	}
 }

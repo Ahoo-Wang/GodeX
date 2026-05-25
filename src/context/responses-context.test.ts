@@ -40,9 +40,9 @@ function createTestApp(): ApplicationContext {
 				buildResponseObject: () => ({}) as never,
 			},
 		},
-		chatClient: {
-			chat: async () => ({}),
-			streamChat: async () => new ReadableStream(),
+		client: {
+			request: async () => ({}),
+			stream: async () => new ReadableStream(),
 		},
 	}));
 	return new ApplicationContext(config, registrar);

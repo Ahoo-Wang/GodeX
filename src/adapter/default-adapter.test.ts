@@ -29,9 +29,9 @@ function createMockProvider(
 				buildResponseObject: () => providerRes as ResponseObject,
 			},
 		},
-		chatClient: {
-			chat: async () => providerRes,
-			streamChat: async () =>
+		client: {
+			request: async () => providerRes,
+			stream: async () =>
 				new ReadableStream({
 					start(controller) {
 						for (const event of providerStreamEvents) {
@@ -108,7 +108,7 @@ async function readStream<T>(stream: ReadableStream<T>): Promise<T[]> {
 }
 
 describe("DefaultAdapter", () => {
-	test("request maps, calls chatClient, maps response, saves session", async () => {
+	test("request maps, calls client, maps response, saves session", async () => {
 		const responseObject = {
 			id: "resp_123",
 			object: "response" as const,
@@ -359,7 +359,7 @@ describe("DefaultAdapter", () => {
 	test("stream propagates provider read errors", async () => {
 		const upstreamError = new Error("upstream stream failed");
 		const provider = createMockProvider({});
-		provider.chatClient.streamChat = async () =>
+		provider.client.stream = async () =>
 			new ReadableStream({
 				start(controller) {
 					controller.error(upstreamError);
@@ -392,7 +392,7 @@ describe("DefaultAdapter", () => {
 			{ type: "response.completed", response: responseObject },
 		];
 		let terminalInputSent = false;
-		provider.chatClient.streamChat = async () =>
+		provider.client.stream = async () =>
 			new ReadableStream({
 				pull(controller) {
 					if (controller.desiredSize === null) return;
