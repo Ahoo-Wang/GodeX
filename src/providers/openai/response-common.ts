@@ -74,7 +74,13 @@ export function buildOpenAIResponseObject(
 
 export function mapUsage(
 	usage:
-		| { prompt_tokens: number; completion_tokens: number; total_tokens: number }
+		| {
+				prompt_tokens: number;
+				completion_tokens: number;
+				total_tokens: number;
+				completion_tokens_details?: { reasoning_tokens?: number };
+				prompt_tokens_details?: { cached_tokens?: number };
+		  }
 		| undefined,
 ): ResponseUsage | undefined {
 	if (!usage) return undefined;
@@ -82,5 +88,19 @@ export function mapUsage(
 		input_tokens: usage.prompt_tokens,
 		output_tokens: usage.completion_tokens,
 		total_tokens: usage.total_tokens,
+		...(usage.prompt_tokens_details?.cached_tokens !== undefined
+			? {
+					input_tokens_details: {
+						cached_tokens: usage.prompt_tokens_details.cached_tokens,
+					},
+				}
+			: {}),
+		...(usage.completion_tokens_details?.reasoning_tokens !== undefined
+			? {
+					output_tokens_details: {
+						reasoning_tokens: usage.completion_tokens_details.reasoning_tokens,
+					},
+				}
+			: {}),
 	};
 }

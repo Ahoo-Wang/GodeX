@@ -14,7 +14,10 @@ export function buildOpenAIRequest(
 		messages,
 	};
 
-	if (req.stream) result.stream = true;
+	if (req.stream) {
+		result.stream = true;
+		result.stream_options = { include_usage: true };
+	}
 	if (req.temperature !== undefined) result.temperature = req.temperature;
 	if (req.top_p !== undefined) result.top_p = req.top_p;
 	if (req.max_output_tokens !== undefined)
@@ -23,6 +26,8 @@ export function buildOpenAIRequest(
 	if (req.metadata) result.metadata = req.metadata;
 	if (req.store !== undefined) result.store = req.store;
 	if (req.service_tier) result.service_tier = req.service_tier;
+	if (req.parallel_tool_calls !== undefined)
+		result.parallel_tool_calls = req.parallel_tool_calls;
 
 	if (req.reasoning?.effort && req.reasoning.effort !== "none") {
 		result.reasoning_effort = req.reasoning.effort;

@@ -164,10 +164,19 @@ describe("buildOpenAIRequest", () => {
 		expect(result.tools).toBeUndefined();
 	});
 
-	test("sets stream flag", () => {
+	test("sets stream flag with stream_options.include_usage", () => {
 		const result = buildOpenAIRequest(ctx({ input: "Hi", stream: true }));
 
 		expect(result.stream).toBe(true);
+		expect(result.stream_options).toEqual({ include_usage: true });
+	});
+
+	test("passes through parallel_tool_calls", () => {
+		const result = buildOpenAIRequest(
+			ctx({ input: "Hi", parallel_tool_calls: false }),
+		);
+
+		expect(result.parallel_tool_calls).toBe(false);
 	});
 
 	test("passes through metadata, store, and service_tier", () => {

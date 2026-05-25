@@ -277,4 +277,81 @@ describe("buildResponseObject", () => {
 			]);
 		}
 	});
+
+	test("returns failed status for empty choices array", () => {
+		const emptyChoices: ChatCompletion = {
+			...openAICompletion,
+			choices: [],
+		};
+
+		const result = buildResponseObject(ctx(), emptyChoices);
+
+		expect(result.status).toBe("failed");
+		expect(result.output).toEqual([]);
+		expect(result.output_text).toBe("");
+		expect(result.usage).toBeNull();
+	});
+
+	test("includes refusal in message when tool_calls and refusal both present", () => {
+		const withToolCallsAndRefusal: ChatCompletion = {
+			...openAICompletion,
+			choices: [
+				choice({
+					message: {
+						role: "assistant",
+						content: "Sure, here's the info.",
+						refusal: "Cannot share sensitive data.",
+						tool_calls: [
+							{
+								type: "function",
+								id: "tc_1",
+								function: {
+									name: "get_data",
+									arguments: '{"q":"sales"}',
+								},
+							},
+						],
+					},
+					finish_reason: "tool_calls",
+				}),
+			],
+		};
+
+		const result = buildResponseObject(ctx(), withToolCallsAndRefusal);
+
+		const msgItem = result.output[0];
+		expect(msgItem?.type).toBe("message");
+		if (msgItem?.type === "message") {
+			const content = msgItem.content as unknown as Array<
+				Record<string, unknown>
+			>;
+			expect(content).toContainEqual({
+				type: "refusal",
+				refusal: "Cannot share sensitive data.",
+			});
+		}
+	});
+
+	test("maps usage with detailed token breakdowns", () => {
+		const withDetailedUsage: ChatCompletion = {
+			...openAICompletion,
+			usage: {
+				prompt_tokens: 100,
+				completion_tokens: 50,
+				total_tokens: 150,
+				prompt_tokens_details: { cached_tokens: 40 },
+				completion_tokens_details: { reasoning_tokens: 20 },
+			},
+		};
+
+		const result = buildResponseObject(ctx(), withDetailedUsage);
+
+		expect(result.usage).toEqual({
+			input_tokens: 100,
+			output_tokens: 50,
+			total_tokens: 150,
+			input_tokens_details: { cached_tokens: 40 },
+			output_tokens_details: { reasoning_tokens: 20 },
+		});
+	});
 });

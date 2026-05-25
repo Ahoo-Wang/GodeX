@@ -10,6 +10,7 @@ import type { ChatCompletionChunk } from "../../protocol/openai/completions";
 import type {
 	ResponseItem,
 	ResponseObject,
+	ResponseOutputContent,
 	ResponseStreamEvent,
 } from "../../protocol/openai/responses";
 import {
@@ -169,6 +170,13 @@ export class OpenAIStreamMapper implements StreamMapper<ChatCompletionChunk> {
 				: resp.status === "incomplete"
 					? "response.incomplete"
 					: "response.failed";
+		const messageContent: ResponseOutputContent[] = [];
+		if (state.outputText) {
+			messageContent.push({ type: "output_text", text: state.outputText });
+		}
+		if (state.refusal) {
+			messageContent.push({ type: "refusal", refusal: state.refusal });
+		}
 		return [
 			{
 				type: "response.output_text.done",
@@ -188,7 +196,7 @@ export class OpenAIStreamMapper implements StreamMapper<ChatCompletionChunk> {
 					type: "message",
 					role: "assistant",
 					status: "completed",
-					content: [{ type: "output_text", text: state.outputText }],
+					content: messageContent,
 				},
 			},
 			...state.toolCalls.flatMap(
@@ -236,9 +244,13 @@ export class OpenAIStreamMapper implements StreamMapper<ChatCompletionChunk> {
 				summary: [{ type: "summary_text", text: state.reasoningContent }],
 			});
 		}
-		const content = state.outputText
-			? [{ type: "output_text" as const, text: state.outputText }]
-			: [];
+		const content: ResponseOutputContent[] = [];
+		if (state.outputText) {
+			content.push({ type: "output_text", text: state.outputText });
+		}
+		if (state.refusal) {
+			content.push({ type: "refusal", refusal: state.refusal });
+		}
 		output.push({
 			id: `msg_${ctx.responseId}`,
 			type: "message",

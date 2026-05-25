@@ -20,6 +20,21 @@ export function buildResponseObject(
 	ctx: ResponsesContext,
 	openAIRes: ChatCompletion,
 ): ResponseObject {
+	if (!openAIRes.choices || openAIRes.choices.length === 0) {
+		return buildOpenAIResponseObject(
+			ctx,
+			{
+				status: "failed",
+				error: { code: "server_error", message: "Empty choices from upstream" },
+			},
+			{
+				output: [],
+				outputText: "",
+				usage: null,
+				completedAt: Math.floor(Date.now() / 1000),
+			},
+		);
+	}
 	const choice = openAIRes.choices[0];
 	const output = buildOutputItems(ctx, openAIRes);
 	return buildOpenAIResponseObject(
@@ -54,7 +69,7 @@ function buildOutputItems(
 
 	if (message?.tool_calls && message.tool_calls.length > 0) {
 		const content = message.content
-			? buildContentParts(message.content, message.annotations)
+			? buildContentParts(message.content, message.annotations, message.refusal)
 			: [];
 		output.push({
 			id: `msg_${ctx.responseId}`,
@@ -104,7 +119,9 @@ function buildContentParts(
 		text: content,
 	};
 	if (annotations && annotations.length > 0) {
-		textPart.annotations = annotations.map(mapAnnotation);
+		textPart.annotations = annotations
+			.map(mapAnnotation)
+			.filter((a): a is URLCitation => a !== null);
 	}
 	parts.push(textPart);
 
@@ -115,7 +132,9 @@ function buildContentParts(
 	return parts;
 }
 
-function mapAnnotation(annotation: ChatCompletionAnnotation): URLCitation {
+function mapAnnotation(
+	annotation: ChatCompletionAnnotation,
+): URLCitation | null {
 	if (annotation.type === "url_citation") {
 		const cit = annotation.url_citation;
 		return {
@@ -126,13 +145,7 @@ function mapAnnotation(annotation: ChatCompletionAnnotation): URLCitation {
 			url: cit.url,
 		};
 	}
-	return {
-		type: "url_citation",
-		start_index: 0,
-		end_index: 0,
-		title: "",
-		url: "",
-	};
+	return null;
 }
 
 function extractOutputText(output: ResponseItem[]): string {

@@ -186,6 +186,22 @@ describe("mapToolChoice", () => {
 		});
 	});
 
+	test("maps allowed_tools tool choice", () => {
+		const result = mapToolChoice({
+			type: "allowed_tools",
+			mode: "auto",
+			tools: [{ type: "function", name: "get_weather" }],
+		});
+
+		expect(result).toEqual({
+			type: "allowed_tools",
+			allowed_tools: {
+				mode: "auto",
+				tools: [{ type: "function", name: "get_weather" }],
+			},
+		});
+	});
+
 	test("maps unknown tool choice to auto", () => {
 		expect(mapToolChoice("unknown_value" as never)).toBe("auto");
 	});

@@ -232,21 +232,21 @@ function downgradedToolCallToMessage(
 			return toolCallMessage(item.call_id, "local_shell", {
 				command: item.action.command,
 				env: item.action.env,
-				...(item.action.timeout_ms
+				...(item.action.timeout_ms != null
 					? { timeout_ms: item.action.timeout_ms }
 					: {}),
 				...(item.action.user !== undefined ? { user: item.action.user } : {}),
-				...(item.action.working_directory
+				...(item.action.working_directory != null
 					? { working_directory: item.action.working_directory }
 					: {}),
 			});
 		case "shell_call":
 			return toolCallMessage(item.call_id, "shell", {
 				commands: item.action.commands,
-				...(item.action.timeout_ms
+				...(item.action.timeout_ms != null
 					? { timeout_ms: item.action.timeout_ms }
 					: {}),
-				...(item.action.max_output_length
+				...(item.action.max_output_length != null
 					? { max_output_length: item.action.max_output_length }
 					: {}),
 			});

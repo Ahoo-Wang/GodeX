@@ -212,6 +212,19 @@ export function mapToolChoice(
 				custom: { name: choice.name },
 			} satisfies ChatCompletionNamedToolChoiceCustom;
 		}
+		if (
+			choice.type === "allowed_tools" &&
+			"mode" in choice &&
+			"tools" in choice
+		) {
+			return {
+				type: "allowed_tools",
+				allowed_tools: {
+					mode: choice.mode as "auto" | "required",
+					tools: (choice as { tools: Record<string, unknown>[] }).tools,
+				},
+			};
+		}
 	}
 	return "auto";
 }
