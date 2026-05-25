@@ -1,26 +1,20 @@
 import type {
-	StreamState,
-	ToolCallAccumulator,
-} from "../../adapter/mapper/stream-state";
+	StreamResponseTerminalStatus,
+	ToolCallSnapshot,
+} from "../../adapter/mapper/stream-response-state";
 import type { ResponsesContext } from "../../context/responses-context";
 import type {
 	ChatCompletionChunk,
 	ChatCompletionStreamDelta,
 } from "../../protocol/openai/completions";
-import type {
-	ResponseItem,
-	ResponseObject,
-} from "../../protocol/openai/responses";
+import type { ResponseItem } from "../../protocol/openai/responses";
 import type { FinishReason } from "../../protocol/openai/shared";
 import {
 	ChatCompletionStreamMapper,
 	type ChatStreamChoice,
 	type ChatStreamToolCallDelta,
 } from "../shared/chat-stream-mapper";
-import {
-	buildOpenAIResponseObject,
-	openAIStatusFields,
-} from "./response-common";
+import { openAIStatusFields } from "./response-common";
 import { mapToolCall } from "./tool-calls";
 
 export class OpenAIStreamMapper extends ChatCompletionStreamMapper<
@@ -73,25 +67,16 @@ export class OpenAIStreamMapper extends ChatCompletionStreamMapper<
 			});
 	}
 
-	protected mapFinishReason(finishReason: FinishReason) {
-		return openAIStatusFields(finishReason);
+	protected mapFinishReason(
+		finishReason: FinishReason,
+	): StreamResponseTerminalStatus {
+		return openAIStatusFields(finishReason) as StreamResponseTerminalStatus;
 	}
 
 	protected mapToolCall(
 		ctx: ResponsesContext,
-		toolCall: ToolCallAccumulator,
+		toolCall: ToolCallSnapshot,
 	): ResponseItem {
 		return mapToolCall(ctx, toolCall);
-	}
-
-	buildResponseObject(
-		ctx: ResponsesContext,
-		state: StreamState,
-	): ResponseObject {
-		return buildOpenAIResponseObject(ctx, state.finalStatus, {
-			completedAt: state.completedAt ?? Math.floor(Date.now() / 1000),
-			outputText: state.outputText,
-			output: this.buildOutputItems(ctx, state),
-		});
 	}
 }

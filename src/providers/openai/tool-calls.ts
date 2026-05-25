@@ -1,11 +1,11 @@
-import type { ToolCallAccumulator } from "../../adapter/mapper/stream-state";
+import type { ToolCallSnapshot } from "../../adapter/mapper/stream-response-state";
 import type { ResponsesContext } from "../../context/responses-context";
 import type { FunctionCall } from "../../protocol/openai/responses";
 import { findFlattenedNamespaceTool } from "../shared/tool-name-mapping";
 
 export function mapToolCall(
 	ctx: ResponsesContext,
-	toolCall: ToolCallAccumulator,
+	toolCall: ToolCallSnapshot,
 ): FunctionCall {
 	return functionCallFromName(
 		ctx,

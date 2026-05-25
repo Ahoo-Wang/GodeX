@@ -74,8 +74,6 @@ describe("OpenAIStreamMapper", () => {
 		expect(startEvents.map((event) => event.type)).toEqual([
 			"response.created",
 			"response.in_progress",
-			"response.output_item.added",
-			"response.content_part.added",
 		]);
 
 		const contentEvents = mapper.map(
@@ -93,10 +91,14 @@ describe("OpenAIStreamMapper", () => {
 		);
 
 		expect(contentEvents).toEqual([
+			expect.objectContaining({ type: "response.output_item.added" }),
+			expect.objectContaining({ type: "response.content_part.added" }),
 			expect.objectContaining({
 				type: "response.output_text.delta",
 				delta: "Hello",
 			}),
+			expect.objectContaining({ type: "response.output_item.added" }),
+			expect.objectContaining({ type: "response.content_part.added" }),
 			expect.objectContaining({
 				type: "response.refusal.delta",
 				delta: "No",

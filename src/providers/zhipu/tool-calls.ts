@@ -1,5 +1,6 @@
 // src/providers/zhipu/tool-calls.ts
 
+import type { ToolCallSnapshot } from "../../adapter/mapper/stream-response-state";
 import { isRecord } from "../../adapter/utils";
 import type { ResponsesContext } from "../../context/responses-context";
 import type {
@@ -15,12 +16,6 @@ import type {
 import { findFlattenedNamespaceTool } from "../shared/tool-name-mapping";
 import { toZhipuFunctionName } from "./function-names";
 
-export interface ZhipuFunctionToolCall {
-	id?: string;
-	name?: string;
-	arguments?: string;
-}
-
 type RequestedTool =
 	| { type: "local_shell" }
 	| { type: "shell" }
@@ -31,7 +26,7 @@ type RequestedTool =
 
 export function mapZhipuToolCall(
 	ctx: ResponsesContext,
-	toolCall: ZhipuFunctionToolCall,
+	toolCall: ToolCallSnapshot,
 ): ResponseItem {
 	const name = toolCall.name ?? "";
 	const callId = toolCall.id ?? `fc_${name || "tool"}`;
