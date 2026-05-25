@@ -10,8 +10,11 @@ import {
 	expect,
 	test,
 } from "bun:test";
-import { zhipuApi } from "../providers/zhipu/api/api";
-import type { ChatCompletionChunk } from "../providers/zhipu/protocol/completions";
+import { chatApi } from "../providers/shared/chat-api";
+import type {
+	ChatCompletionChunk,
+	ChatCompletionResponse,
+} from "../providers/zhipu/protocol/completions";
 import { getLoopbackPort } from "./ports";
 
 let mockServer: ReturnType<typeof Bun.serve> | null = null;
@@ -122,7 +125,11 @@ function lastUpstreamRequest() {
 
 describe("E2E: ZhipuApi", () => {
 	test("chatCompletions posts JSON to the Zhipu chat completions endpoint", async () => {
-		const api = zhipuApi({ baseURL: mockBase, apiKey: "test-key" });
+		const api = chatApi<
+			Record<string, unknown>,
+			ChatCompletionResponse,
+			ChatCompletionChunk
+		>({ baseURL: mockBase, apiKey: "test-key" });
 
 		const response = await api.chatCompletions({
 			model: "glm-5.1",
@@ -145,7 +152,11 @@ describe("E2E: ZhipuApi", () => {
 	});
 
 	test("streamChatCompletions consumes SSE chunks until the DONE sentinel", async () => {
-		const api = zhipuApi({ baseURL: mockBase, apiKey: "stream-key" });
+		const api = chatApi<
+			Record<string, unknown>,
+			ChatCompletionResponse,
+			ChatCompletionChunk
+		>({ baseURL: mockBase, apiKey: "stream-key" });
 
 		const eventStream = await api.streamChatCompletions({
 			model: "glm-5.1",
