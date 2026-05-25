@@ -47,10 +47,12 @@ Provider stream mappers own:
 - providing provider-specific tool call mapping strategy
 - mapping provider finish reasons to Responses status fields
 
-The public state-machine actions return the events caused by that state transition:
+The state machine is created once, then retrieved by downstream code through a separate accessor. Public actions return the events caused by that state transition:
 
 ```ts
-const state = StreamResponseState.from(ctx, options);
+const state =
+	StreamResponseState.get(ctx) ??
+	StreamResponseState.create(ctx, options);
 
 const events: ResponseStreamEvent[] = [];
 events.push(...state.start());
@@ -82,6 +84,7 @@ enum StreamResponsePhase {
 
 interface StreamResponseStateOptions {
 	mapToolCall: (call: ToolCallSnapshot) => ResponseItem;
+	// Injectable clock for deterministic terminal event tests.
 	nowSeconds?: () => number;
 }
 
@@ -112,10 +115,12 @@ class StreamResponseState {
 	readonly phase: StreamResponsePhase;
 	readonly snapshot: ResponseObject;
 
-	static from(
+	static create(
 		ctx: ResponsesContext,
-		options?: StreamResponseStateOptions,
+		options: StreamResponseStateOptions,
 	): StreamResponseState;
+	static get(ctx: ResponsesContext): StreamResponseState | undefined;
+	static from(ctx: ResponsesContext): StreamResponseState;
 
 	start(): ResponseStreamEvent[];
 	onTextDelta(delta: string): ResponseStreamEvent[];
@@ -125,15 +130,17 @@ class StreamResponseState {
 	onRefusalDelta(delta: string): ResponseStreamEvent[];
 	onRefusalDone(): ResponseStreamEvent[];
 	onFunctionCallDelta(delta: FunctionCallDelta): ResponseStreamEvent[];
-	onFunctionCallDone(index?: number): ResponseStreamEvent[];
+	onFunctionCallDone(index: number): ResponseStreamEvent[];
 	onFinish(status: StreamResponseTerminalStatus): ResponseStreamEvent[];
 	onError(error: ResponseError): ResponseStreamEvent[];
 }
 ```
 
-`ctx` is injected once through `from(ctx, options)`. Action methods do not accept `ctx`.
+`ctx` is injected once through `create(ctx, options)`. Action methods do not accept `ctx`.
 
-`from(ctx, options)` returns the single state machine for the request. The first call must provide required options. Later calls may omit options and retrieve the existing state.
+`create(ctx, options)` stores the state machine in the request context and throws if one already exists. `from(ctx)` retrieves the existing state and throws a clear adapter error if `create()` has not been called. `get(ctx)` is a non-throwing convenience for provider mappers that lazily create state on the first upstream event.
+
+Only `StreamResponseState.create/get/from` may touch `ResponsesContext.attributes` for this state. This keeps the existing context extension point but hides the `unknown` cast behind typed state-machine accessors. The design does not add a typed `ResponsesContext.streamResponseState` property because that would broaden the request context API for one pipeline concern.
 
 ## Sub-State Machines
 
@@ -158,6 +165,8 @@ Responsibilities:
 - reject invalid transitions such as delta after terminal
 
 `start()` is explicit and required before output actions. Calling an output action before `start()` is a state error.
+
+The initial snapshot is built from `ResponsesContext`: `responseId`, `createdAt`, `resolved.model`, and request echo fields from `responseRequestEchoFields(ctx)`. It starts with `status: "queued"` and empty `output`. `start()` changes the snapshot to `status: "in_progress"` before emitting events, so both `response.created` and `response.in_progress` carry an in-progress response snapshot.
 
 ### OutputCollectionState
 
@@ -211,6 +220,178 @@ Responsibilities:
 
 The state machine tracks canonical call snapshots. Provider-specific mapping from a canonical function call into `function_call`, `local_shell_call`, `shell_call`, `apply_patch_call`, `tool_search_call`, `custom_tool_call`, or future item types belongs in `mapToolCall`.
 
+## Event Payload Contract
+
+The state machine must generate complete OpenAI Responses SSE event payloads. `ResponseSseEncodeTransformer` remains responsible only for wire encoding and sequence-number fallback.
+
+### Response Lifecycle Events
+
+`response.created`:
+
+- `type: "response.created"`
+- `response`: current in-progress `snapshot`
+
+`response.in_progress`:
+
+- `type: "response.in_progress"`
+- `response`: current in-progress `snapshot`
+
+Terminal event:
+
+- `type`: `response.completed`, `response.incomplete`, or `response.failed`
+- `response`: final `snapshot`
+
+### Message Text Events
+
+When a text block opens, emit `response.output_item.added`:
+
+- `type: "response.output_item.added"`
+- `response`: current `snapshot`
+- `output_index`: allocated output index
+- `item`: assistant message item with `id`, `type: "message"`, `role: "assistant"`, `status: "in_progress"`, and empty `content`
+
+Then emit `response.content_part.added`:
+
+- `type: "response.content_part.added"`
+- `response`: current `snapshot`
+- `item_id`: message item id
+- `output_index`: message output index
+- `content_index`: allocated content index
+- `part`: `{ type: "output_text", text: "" }`
+
+`response.output_text.delta`:
+
+- `type: "response.output_text.delta"`
+- `item_id`: message item id
+- `output_index`: message output index
+- `content_index`: text content index
+- `delta`: text delta
+
+`response.output_text.done`:
+
+- `type: "response.output_text.done"`
+- `item_id`: message item id
+- `output_index`: message output index
+- `content_index`: text content index
+- `text`: accumulated text
+
+`response.content_part.done`:
+
+- `type: "response.content_part.done"`
+- `response`: current `snapshot`
+- `item_id`: message item id
+- `output_index`: message output index
+- `content_index`: text content index
+- `part`: final `{ type: "output_text", text }`
+
+`response.output_item.done`:
+
+- `type: "response.output_item.done"`
+- `response`: current `snapshot`
+- `output_index`: message output index
+- `item`: final assistant message item with `status: "completed"` and final content
+
+### Refusal Events
+
+Refusal uses the same message item lifecycle as text, but the content part is `{ type: "refusal", refusal: "" }`. `response.content_part.added`, `response.content_part.done`, and `response.output_item.done` carry the same fields as text events, replacing the text part with the refusal part.
+
+`response.refusal.delta`:
+
+- `type: "response.refusal.delta"`
+- `item_id`: message item id
+- `output_index`: message output index
+- `content_index`: refusal content index
+- `delta`: refusal delta
+
+`response.refusal.done`:
+
+- `type: "response.refusal.done"`
+- `item_id`: message item id
+- `output_index`: message output index
+- `content_index`: refusal content index
+- `refusal`: accumulated refusal text
+
+### Reasoning Events
+
+When a reasoning block opens, emit `response.output_item.added`:
+
+- `type: "response.output_item.added"`
+- `response`: current `snapshot`
+- `output_index`: reasoning output index
+- `item`: reasoning item with `id`, `type: "reasoning"`, `summary: []`, `content: []`, and `status: "in_progress"`
+
+Then emit `response.reasoning_text_part.added`:
+
+- `type: "response.reasoning_text_part.added"`
+- `response`: current `snapshot`
+- `item_id`: reasoning item id
+- `output_index`: reasoning output index
+- `content_index`: reasoning content index
+- `part`: `{ type: "reasoning_text", text: "" }`
+
+`response.reasoning_text.delta`:
+
+- `type: "response.reasoning_text.delta"`
+- `item_id`: reasoning item id
+- `output_index`: reasoning output index
+- `content_index`: reasoning content index
+- `delta`: reasoning text delta
+
+`response.reasoning_text.done`:
+
+- `type: "response.reasoning_text.done"`
+- `item_id`: reasoning item id
+- `output_index`: reasoning output index
+- `content_index`: reasoning content index
+- `text`: accumulated reasoning text
+
+`response.reasoning_text_part.done`:
+
+- `type: "response.reasoning_text_part.done"`
+- `response`: current `snapshot`
+- `item_id`: reasoning item id
+- `output_index`: reasoning output index
+- `content_index`: reasoning content index
+- `part`: final `{ type: "reasoning_text", text }`
+
+`response.output_item.done`:
+
+- `type: "response.output_item.done"`
+- `response`: current `snapshot`
+- `output_index`: reasoning output index
+- `item`: final reasoning item with `status: "completed"` and final content
+
+### Function Call Events
+
+When a function call has a name and opens, emit `response.output_item.added`:
+
+- `type: "response.output_item.added"`
+- `response`: current `snapshot`
+- `output_index`: function call output index
+- `item_id`: call id
+- `item`: mapped output item from `options.mapToolCall` with empty arguments
+
+`response.function_call_arguments.delta`:
+
+- `type: "response.function_call_arguments.delta"`
+- `item_id`: call id
+- `output_index`: function call output index
+- `delta`: argument delta
+
+`response.function_call_arguments.done`:
+
+- `type: "response.function_call_arguments.done"`
+- `item_id`: call id
+- `output_index`: function call output index
+- `text`: accumulated arguments
+
+`response.output_item.done`:
+
+- `type: "response.output_item.done"`
+- `response`: current `snapshot`
+- `output_index`: function call output index
+- `item`: final mapped output item
+
 ## Event Semantics
 
 ### Start
@@ -230,7 +411,7 @@ Calling `start()` outside `idle` is an invalid transition.
 
 - ignores empty deltas with no state change and no events
 - requires lifecycle `in_progress`
-- opens a message item and output text content part if needed
+- opens a new message item and output text content part when there is no active text block
 - appends `delta` to the text content state
 - updates `snapshot.output_text`
 - emits `response.output_text.delta`
@@ -243,13 +424,15 @@ Calling `start()` outside `idle` is an invalid transition.
 
 Calling `onTextDone()` without an active text block is an invalid transition.
 
+After `onTextDone()`, a later `onTextDelta()` opens a new assistant message output item with a new `output_index`. This is the expected representation for Anthropic-style `text -> tool_use -> text` interleaving.
+
 ### Refusal Delta
 
 `onRefusalDelta(delta)`:
 
 - ignores empty deltas with no state change and no events
 - requires lifecycle `in_progress`
-- opens a message item and refusal content part if needed
+- opens a new message item and refusal content part when there is no active refusal block
 - appends `delta` to the refusal content state
 - emits `response.refusal.delta`
 
@@ -269,10 +452,10 @@ Calling `onRefusalDone()` without an active refusal block is an invalid transiti
 - requires lifecycle `in_progress`
 - opens a reasoning output item if needed
 - appends `delta` to reasoning content
-- emits the Responses reasoning text delta event
+- emits `response.reasoning_text.delta`
 - updates the reasoning item in `snapshot.output`
 
-`onReasoningTextDone()` closes the active reasoning item and emits the matching reasoning done event.
+`onReasoningTextDone()` closes the active reasoning item and emits `response.reasoning_text.done`, `response.reasoning_text_part.done`, and `response.output_item.done`.
 
 Calling `onReasoningTextDone()` without an active reasoning block is an invalid transition.
 
@@ -292,7 +475,7 @@ Calling `onReasoningTextDone()` without an active reasoning block is an invalid 
 1. `response.function_call_arguments.done`
 2. `response.output_item.done`
 
-When `index` is omitted, the state machine closes the only active function call. If there is not exactly one active function call, omitting `index` is an invalid transition.
+The `index` argument is required. Chat Completions tool calls provide indexes, and Anthropic content blocks also provide block indexes. Chat-compatible mappers that only receive a final `finish_reason` may skip explicit `onFunctionCallDone()` calls and let `onFinish()` close all still-open function calls in output order.
 
 ### Finish
 
@@ -316,6 +499,12 @@ Repeated finish is an invalid transition. It should throw a domain-specific erro
 
 Provider mappers should use this for upstream stream error events that can be represented as a failed Responses stream.
 
+`onFinish({ status: "failed", error })` represents a model-level terminal status conveyed as the normal end of the provider stream. `onError(error)` represents infrastructure or stream-processing failure before a normal provider stop, such as malformed upstream SSE, upstream stream error events, connection loss surfaced inside the stream, or mapper parse errors that should be translated into a failed Responses stream.
+
+### Usage
+
+Streaming usage accounting is out of scope for the first implementation. `snapshot.usage` remains `undefined` unless a later provider-independent action such as `onUsage(usage)` is added. This avoids hiding provider-specific usage semantics inside `onFinish()`.
+
 ## Error Policy
 
 The state machine should fail fast on mapper bugs and illegal transitions:
@@ -328,9 +517,31 @@ The state machine should fail fast on mapper bugs and illegal transitions:
 - duplicate content part opening within the same sub-state
 - done action without an active matching output block
 - function call done without a name
-- missing required `mapToolCall` option on first creation
+- missing required `mapToolCall` option during `create()`
 
 Errors should use `AdapterError` from the existing GodeX error hierarchy. State-machine contract violations are adapter-layer failures because they indicate an invalid provider mapper interaction with the streaming adapter.
+
+Add stream-specific adapter error codes to `src/error/codes.ts`:
+
+```ts
+export const ADAPTER_STREAM_NOT_INITIALIZED =
+	"adapter.stream.not_initialized";
+export const ADAPTER_STREAM_ALREADY_INITIALIZED =
+	"adapter.stream.already_initialized";
+export const ADAPTER_STREAM_INVALID_TRANSITION =
+	"adapter.stream.invalid_transition";
+export const ADAPTER_STREAM_OUTPUT_BEFORE_START =
+	"adapter.stream.output_before_start";
+export const ADAPTER_STREAM_DELTA_AFTER_TERMINAL =
+	"adapter.stream.delta_after_terminal";
+export const ADAPTER_STREAM_MISSING_OPTIONS = "adapter.stream.missing_options";
+export const ADAPTER_STREAM_MISSING_OUTPUT_BLOCK =
+	"adapter.stream.missing_output_block";
+export const ADAPTER_STREAM_INCOMPLETE_TOOL_CALL =
+	"adapter.stream.incomplete_tool_call";
+```
+
+Use the most specific code when one applies, and `ADAPTER_STREAM_INVALID_TRANSITION` for less common invalid transitions.
 
 Provider mappers may ignore provider keepalive, ping, or unknown future event types before they reach `StreamResponseState`.
 
@@ -347,9 +558,9 @@ export interface StreamMapper<TChunk> {
 }
 ```
 
-`ResponseSessionPersistenceTransformer` should persist from `StreamResponseState.from(ctx).snapshot` when a terminal event appears or when flush sees a terminal snapshot.
+`ResponseSessionPersistenceTransformer` should prefer the `response` embedded in terminal events. On flush fallback, it should call `StreamResponseState.get(ctx)` and persist `state.snapshot` only if a state exists and its phase is terminal.
 
-`ResponseLogTransformer` should log from the terminal event response when present, otherwise from `StreamResponseState.snapshot` if terminal.
+`ResponseLogTransformer` should log from the terminal event response when present, otherwise use `StreamResponseState.get(ctx)?.snapshot` if the state phase is terminal.
 
 The adapter stream pipeline remains:
 
@@ -365,9 +576,11 @@ Chat-compatible mappers become thin translators:
 
 ```ts
 map(ctx, event) {
-	const state = StreamResponseState.from(ctx, {
-		mapToolCall: (call) => mapToolCall(ctx, call),
-	});
+	const state =
+		StreamResponseState.get(ctx) ??
+		StreamResponseState.create(ctx, {
+			mapToolCall: (call) => mapToolCall(ctx, call),
+		});
 	const choice = extractChoice(event.data);
 	if (!choice) return [];
 
@@ -403,31 +616,42 @@ Future Anthropic mapper shape:
 
 ## Migration Plan
 
-1. Add `StreamResponseState` and sub-state helpers under `src/adapter/mapper`.
-2. Replace `StreamState` usage in shared chat stream mapper with `StreamResponseState`.
-3. Remove `StreamMapper.buildResponseObject()` from the contract and tests.
-4. Update `ResponseSessionPersistenceTransformer` and `ResponseLogTransformer` to read `StreamResponseState.snapshot`.
-5. Update OpenAI and Zhipu stream mappers to provide `mapToolCall` options.
-6. Delete the old `StreamState` file if no longer referenced.
-7. Update docs that describe stream state and stream pipeline.
+Implement the migration as one atomic changeset. Do not introduce a long-lived compatibility layer where `StreamState` and `StreamResponseState` both drive stream persistence or event generation.
+
+1. Add error codes for stream state-machine contract violations.
+2. Add `StreamResponseState` and sub-state helpers under `src/adapter/mapper`.
+3. Replace `StreamState` usage in shared chat stream mapper with `StreamResponseState`.
+4. Remove `StreamMapper.buildResponseObject()` from the contract and tests.
+5. Update `ResponseSessionPersistenceTransformer` and `ResponseLogTransformer` to read `StreamResponseState.snapshot`.
+6. Update OpenAI and Zhipu stream mappers to provide `mapToolCall` options.
+7. Delete the old `StreamState` file once no references remain in the same changeset.
+8. Update docs that describe stream state and stream pipeline.
+
+Steps 3 through 7 are not independently shippable. The implementation plan should keep commits or checkpoints buildable, but the stream pipeline should not be considered migrated until all of them are complete.
 
 ## Testing Plan
 
-Add focused state-machine tests:
+Add focused state-machine tests. The list below is the minimum; implementation should target 30 or more state-machine unit tests because the state space crosses lifecycle phase, output type, open/close behavior, and error handling.
 
 - starts response and emits created/in-progress once
 - repeated start throws a GodeX domain error
 - rejects output before start
+- from before create throws `adapter.stream.not_initialized`
+- duplicate create throws `adapter.stream.already_initialized`
 - text delta opens message and content part lazily
 - text done closes output text, content part, and message item
+- text after text done opens a new output item
 - text snapshot updates `output`, `output_text`, `output_index`, and `content_index`
 - refusal uses a distinct content part
 - refusal done closes refusal, content part, and message item
 - reasoning creates a reasoning output item
 - reasoning done closes the reasoning item
+- finish closes an open reasoning item before terminal response
 - function call arguments before name are accumulated and emitted once opened
+- accumulated function call arguments replay after call opens
 - function call done emits arguments done and output item done
 - multiple function calls preserve output order and stable indexes
+- function call done requires an explicit index
 - finish closes open outputs before terminal event
 - terminal snapshot contains final status and completed timestamp
 - repeated finish throws a GodeX domain error
@@ -454,9 +678,12 @@ bun run check
 ## Acceptance Criteria
 
 - `StreamResponseState` is the only stream response state source.
+- `StreamResponseState` has separate `create()`, `get()`, and `from()` accessors.
 - `StreamMapper` no longer has `buildResponseObject()`.
 - Streaming persistence uses `StreamResponseState.snapshot`.
 - Output event generation is centralized in the state machine.
+- Generated Responses SSE events include explicit `response`, `item`, `item_id`, `output_index`, and `content_index` fields according to the event payload contract.
 - Provider mappers translate provider deltas into state-machine actions.
 - Illegal state transitions produce GodeX domain errors.
+- Stream-specific adapter error codes are added to `src/error/codes.ts`.
 - The design can support Anthropic content block streaming without reshaping the state-machine boundary.
