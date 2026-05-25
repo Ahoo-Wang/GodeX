@@ -26,6 +26,12 @@ export function buildOpenAIRequest(
 	if (req.metadata) result.metadata = req.metadata;
 	if (req.store !== undefined) result.store = req.store;
 	if (req.service_tier) result.service_tier = req.service_tier;
+	if (req.prompt_cache_key !== undefined)
+		result.prompt_cache_key = req.prompt_cache_key;
+	if (req.prompt_cache_retention !== undefined)
+		result.prompt_cache_retention = req.prompt_cache_retention;
+	if (req.safety_identifier !== undefined)
+		result.safety_identifier = req.safety_identifier;
 	if (req.parallel_tool_calls !== undefined)
 		result.parallel_tool_calls = req.parallel_tool_calls;
 
@@ -47,6 +53,7 @@ export function buildOpenAIRequest(
 			},
 		};
 	}
+	if (req.text?.verbosity !== undefined) result.verbosity = req.text.verbosity;
 
 	if (req.tools && req.tools.length > 0) {
 		const mapped = mapTools(req.tools);

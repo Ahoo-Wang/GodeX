@@ -1,16 +1,20 @@
-import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
-import type { StreamMapper } from "../../adapter/mapper/contract";
-import {
-	StreamPhase,
+import type {
 	StreamState,
-	type ToolCallAccumulator,
+	ToolCallAccumulator,
 } from "../../adapter/mapper/stream-state";
 import type { ResponsesContext } from "../../context/responses-context";
 import type {
 	ResponseItem,
 	ResponseObject,
-	ResponseStreamEvent,
+	ResponseOutputContent,
 } from "../../protocol/openai/responses";
+import {
+	ChatCompletionStreamMapper,
+	type ChatStreamChoice,
+	type ChatStreamToolCallDelta,
+} from "../shared/chat-stream-mapper";
+import { findFlattenedNamespaceTool } from "../shared/tool-name-mapping";
+import { toZhipuFunctionName } from "./function-names";
 import type {
 	ChatCompletionChunk,
 	ChatCompletionStreamDelta,
@@ -19,202 +23,67 @@ import type {
 import { buildZhipuResponseObject, zhipuStatusFields } from "./response-common";
 import { mapZhipuToolCall } from "./tool-calls";
 
-export class ZhipuStreamMapper implements StreamMapper<ChatCompletionChunk> {
-	map(
-		ctx: ResponsesContext,
-		event: JsonServerSentEvent<ChatCompletionChunk>,
-	): ResponseStreamEvent[] {
-		const state = StreamState.from(ctx);
-		const chunk = event.data;
-		const choices = chunk.choices;
-		if (!choices || choices.length === 0) return [];
-
-		const choice = choices[0];
-		if (!choice) return [];
-		const delta = choice.delta ?? {};
-		const finishReason = choice.finish_reason as FinishReason | null;
-
-		const events: ResponseStreamEvent[] = [];
-
-		if (state.phase === StreamPhase.HEADERS) {
-			events.push(...this.emitStartEvents(ctx, state));
-			state.phase = StreamPhase.CONTENT;
-		}
-
-		if (delta.content !== null && delta.content !== undefined) {
-			const text = extractStreamDeltaText(delta.content);
-			if (text) {
-				state.outputText += text;
-				events.push({
-					type: "response.output_text.delta",
-					delta: text,
-				});
-			}
-		}
-
-		if (
-			delta.reasoning_content !== null &&
-			delta.reasoning_content !== undefined
-		) {
-			const text = String(delta.reasoning_content);
-			state.reasoningContent += text;
-			events.push({
-				type: "response.reasoning_text.delta",
-				delta: text,
-			});
-		}
-
-		if (delta.tool_calls) {
-			for (const tc of delta.tool_calls) {
-				const fn = tc.function;
-				const index =
-					typeof tc.index === "number" ? tc.index : state.toolCalls.length;
-				let toolCall = state.toolCalls.find((item) => item.index === index);
-				if (!toolCall) {
-					toolCall = {
-						index,
-						id: typeof tc.id === "string" ? tc.id : `call_${index}`,
-						name: "",
-						arguments: "",
-					};
-					state.toolCalls.push(toolCall);
-				} else if (typeof tc.id === "string") {
-					toolCall.id = tc.id;
-				}
-
-				if (fn?.name) {
-					const accumulatedArguments = toolCall.arguments;
-					const hadName = toolCall.name !== "";
-					toolCall.name = fn.name;
-					if (!hadName) {
-						events.push({
-							type: "response.output_item.added",
-							item_id: toolCall.id,
-							item: {
-								type: "function_call",
-								call_id: toolCall.id,
-								name: fn.name,
-								arguments: "",
-							},
-						});
-						if (accumulatedArguments) {
-							events.push({
-								type: "response.function_call_arguments.delta",
-								item_id: toolCall.id,
-								delta: accumulatedArguments,
-							});
-						}
-					}
-				}
-				if (fn?.arguments) {
-					toolCall.arguments += fn.arguments;
-					if (!toolCall.name) {
-						continue;
-					}
-					events.push({
-						type: "response.function_call_arguments.delta",
-						item_id: toolCall.id,
-						delta: fn.arguments,
-					});
-				}
-			}
-		}
-
-		if (finishReason) {
-			events.push(...this.emitEndEvents(ctx, state, finishReason));
-			state.phase = StreamPhase.DONE;
-		}
-
-		return events;
+export class ZhipuStreamMapper extends ChatCompletionStreamMapper<
+	ChatCompletionChunk,
+	ChatCompletionStreamDelta,
+	FinishReason
+> {
+	protected extractChoice(
+		chunk: ChatCompletionChunk,
+	): ChatStreamChoice<ChatCompletionStreamDelta, FinishReason> | null {
+		const choice = chunk.choices?.[0];
+		if (!choice) return null;
+		return {
+			delta: choice.delta ?? {},
+			finishReason: choice.finish_reason as FinishReason | null,
+		};
 	}
 
-	private emitStartEvents(
+	protected extractText(delta: ChatCompletionStreamDelta): string {
+		return delta.content != null ? extractStreamDeltaText(delta.content) : "";
+	}
+
+	protected override extractReasoningText(
+		delta: ChatCompletionStreamDelta,
+	): string {
+		return delta.reasoning_content != null
+			? String(delta.reasoning_content)
+			: "";
+	}
+
+	protected override extractToolCalls(
+		delta: ChatCompletionStreamDelta,
+	): ChatStreamToolCallDelta[] {
+		return delta.tool_calls ?? [];
+	}
+
+	protected mapFinishReason(finishReason: FinishReason) {
+		return zhipuStatusFields(finishReason);
+	}
+
+	protected mapToolCall(
 		ctx: ResponsesContext,
+		toolCall: ToolCallAccumulator,
+	): ResponseItem {
+		return mapZhipuToolCall(ctx, toolCall);
+	}
+
+	protected override resolveToolCallIdentity(
+		ctx: ResponsesContext,
+		upstreamName: string,
+	): { name: string; namespace?: string } {
+		const match = findFlattenedNamespaceTool(
+			ctx.request.tools,
+			upstreamName,
+			toZhipuFunctionName,
+		);
+		return match ?? { name: upstreamName };
+	}
+
+	protected override doneMessageContent(
 		state: StreamState,
-	): ResponseStreamEvent[] {
-		const resp = this.buildPartialResponse(ctx, state, "in_progress");
-		return [
-			{ type: "response.created", response: resp },
-			{ type: "response.in_progress", response: resp },
-			{
-				type: "response.output_item.added",
-				response: resp,
-				item: {
-					id: `msg_${ctx.responseId}`,
-					type: "message",
-					role: "assistant",
-					status: "in_progress",
-					content: [],
-				},
-			},
-			{
-				type: "response.content_part.added",
-				response: resp,
-				part: { type: "output_text", text: "" },
-			},
-		];
-	}
-
-	private emitEndEvents(
-		ctx: ResponsesContext,
-		state: StreamState,
-		finishReason: FinishReason,
-	): ResponseStreamEvent[] {
-		state.completedAt = Math.floor(Date.now() / 1000);
-		state.finalStatus = zhipuStatusFields(finishReason);
-		const resp = this.buildResponseObject(ctx, state);
-		const terminalType =
-			resp.status === "completed"
-				? "response.completed"
-				: resp.status === "incomplete"
-					? "response.incomplete"
-					: "response.failed";
-		return [
-			{
-				type: "response.output_text.done",
-				response: resp,
-				text: state.outputText,
-			},
-			{
-				type: "response.content_part.done",
-				response: resp,
-				part: { type: "output_text", text: state.outputText },
-			},
-			{
-				type: "response.output_item.done",
-				response: resp,
-				item: {
-					id: `msg_${ctx.responseId}`,
-					type: "message",
-					role: "assistant",
-					status: "completed",
-					content: [{ type: "output_text", text: state.outputText }],
-				},
-			},
-			...state.toolCalls.flatMap(
-				(tc: ToolCallAccumulator): ResponseStreamEvent[] => [
-					{
-						type: "response.function_call_arguments.done",
-						item_id: tc.id,
-						text: tc.arguments,
-					},
-					{
-						type: "response.output_item.done",
-						response: resp,
-						item: mapZhipuToolCall(ctx, tc),
-					},
-				],
-			),
-			{ type: terminalType, response: resp },
-		];
-	}
-
-	private buildPartialResponse(
-		ctx: ResponsesContext,
-		_state: StreamState,
-		status: ResponseObject["status"] = "in_progress",
-	): ResponseObject {
-		return buildZhipuResponseObject(ctx, { status });
+	): ResponseOutputContent[] {
+		return [{ type: "output_text", text: state.outputText }];
 	}
 
 	buildResponseObject(
@@ -226,35 +95,6 @@ export class ZhipuStreamMapper implements StreamMapper<ChatCompletionChunk> {
 			outputText: state.outputText,
 			output: this.buildOutputItems(ctx, state),
 		});
-	}
-
-	buildOutputItems(ctx: ResponsesContext, state: StreamState): ResponseItem[] {
-		const output: ResponseItem[] = [];
-
-		if (state.reasoningContent) {
-			output.push({
-				id: `rs_${ctx.responseId}`,
-				type: "reasoning",
-				summary: [{ type: "summary_text", text: state.reasoningContent }],
-			});
-		}
-
-		const content = state.outputText
-			? [{ type: "output_text" as const, text: state.outputText }]
-			: [];
-		output.push({
-			id: `msg_${ctx.responseId}`,
-			type: "message",
-			role: "assistant",
-			status: "completed",
-			content,
-		});
-
-		for (const tc of state.toolCalls) {
-			output.push(mapZhipuToolCall(ctx, tc));
-		}
-
-		return output;
 	}
 }
 

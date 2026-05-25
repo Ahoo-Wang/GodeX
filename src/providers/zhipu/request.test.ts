@@ -652,6 +652,41 @@ describe("buildZhipuRequest", () => {
 		]);
 	});
 
+	test("preserves zero-valued shell call options in downgraded history", () => {
+		const result = buildZhipuRequest(
+			ctx({
+				input: [
+					{
+						type: "shell_call",
+						call_id: "call_shell",
+						action: {
+							commands: ["pwd"],
+							timeout_ms: 0,
+							max_output_length: 0,
+						},
+						status: "completed",
+					},
+				],
+			}),
+		);
+
+		expect(result.messages[0]).toEqual({
+			role: "assistant",
+			content: "",
+			tool_calls: [
+				{
+					id: "call_shell",
+					type: "function",
+					function: {
+						name: "shell",
+						arguments:
+							'{"commands":["pwd"],"timeout_ms":0,"max_output_length":0}',
+					},
+				},
+			],
+		});
+	});
+
 	test("throws instead of silently dropping unsupported current input content", () => {
 		expect(() =>
 			buildZhipuRequest(

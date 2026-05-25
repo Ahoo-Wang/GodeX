@@ -1,44 +1,18 @@
-import { responseRequestEchoFields } from "../../adapter/response-utils";
 import type { ResponsesContext } from "../../context/responses-context";
-import type {
-	ResponseObject,
-	ResponseUsage,
-} from "../../protocol/openai/responses";
+import type { ResponseObject } from "../../protocol/openai/responses";
+import {
+	buildChatResponseObject,
+	type ResponseObjectParts,
+	type ResponseStatusFields,
+} from "../shared/response-object";
 import type { FinishReason } from "./protocol/completions";
-
-type ResponseStatusFields = Pick<
-	ResponseObject,
-	"status" | "error" | "incomplete_details"
->;
-
-interface ResponseObjectParts {
-	output?: ResponseObject["output"];
-	outputText?: string;
-	usage?: ResponseUsage | null;
-	completedAt?: number | null;
-}
 
 export function buildZhipuResponseObject(
 	ctx: ResponsesContext,
 	status: ResponseStatusFields,
 	parts: ResponseObjectParts = {},
 ): ResponseObject {
-	return {
-		id: ctx.responseId,
-		object: "response",
-		created_at: ctx.createdAt,
-		...status,
-		model: ctx.resolved.model,
-		output: parts.output ?? [],
-		...(parts.outputText !== undefined
-			? { output_text: parts.outputText }
-			: {}),
-		...(parts.usage !== undefined ? { usage: parts.usage } : {}),
-		...(parts.completedAt !== undefined
-			? { completed_at: parts.completedAt }
-			: {}),
-		...responseRequestEchoFields(ctx),
-	};
+	return buildChatResponseObject(ctx, status, parts);
 }
 
 export function zhipuStatusFields(
