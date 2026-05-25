@@ -9,10 +9,8 @@ export const DoneDetector: TerminateDetector = (event: ServerSentEvent) => {
 	return event.data === "[DONE]";
 };
 
-export function createStreamResultExtractor<T>(): ResultExtractor<
-	JsonServerSentEventStream<T>
-> {
-	return (exchange: FetchExchange) => {
-		return exchange.requiredResponse.requiredJsonEventStream(DoneDetector);
-	};
-}
+export const JsonStreamResultExtractor: ResultExtractor<
+	JsonServerSentEventStream<unknown>
+> = (exchange: FetchExchange) => {
+	return exchange.requiredResponse.requiredJsonEventStream(DoneDetector);
+};
