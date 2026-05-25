@@ -9,7 +9,6 @@ const stubProvider: Provider<unknown, unknown, unknown> = {
 		response: { map: () => ({}) as never },
 		stream: {
 			map: () => [] as never[],
-			buildResponseObject: () => ({}) as never,
 		},
 	},
 	client: {

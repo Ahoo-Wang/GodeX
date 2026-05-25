@@ -75,7 +75,6 @@ describe("ResponseSessionPersistenceTransformer", () => {
 					async saveSession() {
 						throw new Error("disk full");
 					},
-					buildResponseObject: () => response,
 				}),
 			),
 		);

@@ -5,7 +5,10 @@ import type {
 	ResponseStreamEvent,
 } from "../../protocol/openai/responses";
 import type { ResponseSessionStore } from "../../session";
-import { StreamState } from "../mapper/stream-state";
+import {
+	StreamResponsePhase,
+	StreamResponseState,
+} from "../mapper/stream-response-state";
 import { responseFromTerminalEvent } from "./stream-utils";
 
 export interface ResponseSessionPersistenceTransformerOptions {
@@ -15,10 +18,6 @@ export interface ResponseSessionPersistenceTransformerOptions {
 		responseObject: ResponseObject,
 		ctx: ResponsesContext,
 	) => Promise<void>;
-	buildResponseObject: (
-		ctx: ResponsesContext,
-		state: StreamState,
-	) => ResponseObject | Promise<ResponseObject>;
 }
 
 export class ResponseSessionPersistenceTransformer extends SafeTransformer<
@@ -49,14 +48,18 @@ export class ResponseSessionPersistenceTransformer extends SafeTransformer<
 	}
 
 	protected override async onFlush(): Promise<void> {
-		const ctx = this.options.ctx;
-		const state = StreamState.from(ctx);
-		if (!this.completedResponse && !state.completedAt) return;
+		if (this.completedResponse) return;
 
-		const responseObject =
-			this.completedResponse ??
-			(await this.options.buildResponseObject(ctx, state));
-		await this.persist(responseObject);
+		const state = StreamResponseState.get(this.options.ctx);
+		if (!state) return;
+		if (
+			state.phase !== StreamResponsePhase.COMPLETED &&
+			state.phase !== StreamResponsePhase.INCOMPLETE &&
+			state.phase !== StreamResponsePhase.FAILED
+		) {
+			return;
+		}
+		await this.persist(state.snapshot);
 	}
 
 	private async persist(responseObject: ResponseObject): Promise<void> {

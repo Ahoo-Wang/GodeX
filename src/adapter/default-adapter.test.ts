@@ -8,8 +8,18 @@ import type {
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import type { CompatibilityDiagnostic } from "./compatibility";
 import { DefaultAdapter } from "./default-adapter";
-import { StreamState } from "./mapper/stream-state";
+import { StreamResponseState } from "./mapper/stream-response-state";
 import type { Provider } from "./provider";
+
+function toolCallMapper(call: { id: string; name: string; arguments: string }) {
+	return {
+		type: "function_call" as const,
+		id: call.id,
+		call_id: call.id,
+		name: call.name,
+		arguments: call.arguments,
+	};
+}
 
 function createMockProvider(
 	providerRes: unknown,
@@ -25,7 +35,6 @@ function createMockProvider(
 			},
 			stream: {
 				map: () => streamEvents as never[],
-				buildResponseObject: () => providerRes as ResponseObject,
 			},
 		},
 		client: {
@@ -240,41 +249,30 @@ describe("DefaultAdapter", () => {
 		expect(sessionStore.saved[0]?.id).toBe("resp_123");
 	});
 
-	test("stream can persist from the mapper final response builder", async () => {
-		const responseObject: ResponseObject = {
-			id: "resp_from_state",
-			object: "response",
-			status: "completed",
-			model: "test",
-			created_at: 1,
-			completed_at: 2,
-			output: [],
-		};
+	test("stream persists from stream response state snapshot", async () => {
+		const sessionStore = createMockSessionStore();
 		const provider = createMockProvider(
-			responseObject,
+			{},
 			[],
 			[{ event: "chunk", data: {} }],
 		);
-		const sessionStore = createMockSessionStore();
 		const ctx = createMockCtx(provider, sessionStore);
 		provider.mapper.stream.map = (
 			ctx: ResponsesContext,
 		): ResponseStreamEvent[] => {
-			const state = StreamState.from(ctx);
-			state.completedAt = 2;
-			state.finalStatus = { status: "completed" };
-			return [{ type: "response.output_text.done", text: "done" }];
+			const state = StreamResponseState.create(ctx, {
+				toolCallOutputItemMapper: toolCallMapper,
+			});
+			state.start();
+			state.onFinish({ status: "completed" });
+			return [{ type: "response.output_text.done", text: "done" }] as ResponseStreamEvent[];
 		};
-		provider.mapper.stream.buildResponseObject = (
-			_ctx: ResponsesContext,
-			_state: StreamState,
-		) => responseObject;
 
 		const adapter = new DefaultAdapter();
 		await readStream(await adapter.stream(ctx));
 
 		expect(sessionStore.saved.length).toBe(1);
-		expect(sessionStore.saved[0]?.id).toBe("resp_from_state");
+		expect(sessionStore.saved[0]?.id).toBe("resp_123");
 	});
 
 	test("request logs trace for responses request body, upstream request body, and upstream response body", async () => {

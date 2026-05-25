@@ -14,7 +14,6 @@ describe("Provider", () => {
 		};
 		const streamMapper: StreamMapper<unknown> = {
 			map: () => [] as never[],
-			buildResponseObject: () => ({}) as never,
 		};
 		const client: ProviderClient<unknown, unknown, unknown> = {
 			request: async () => ({}),

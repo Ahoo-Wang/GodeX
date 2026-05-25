@@ -6,7 +6,6 @@ import type {
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import type { Adapter } from "./adapter";
 import { logDiagnostics } from "./compatibility";
-import type { StreamState } from "./mapper/stream-state";
 import { CompatibilityLogTransformer } from "./transformers/compatibility-log-transformer";
 import { ProviderEventToResponseTransformer } from "./transformers/provider-event-to-response-transformer";
 import { ResponseLogTransformer } from "./transformers/response-log-transformer";
@@ -109,10 +108,6 @@ export class DefaultAdapter implements Adapter {
 						new ResponseSessionPersistenceTransformer({
 							ctx,
 							saveSession,
-							buildResponseObject: async (
-								ctx: ResponsesContext,
-								state: StreamState,
-							) => mapper.stream.buildResponseObject(ctx, state),
 						}),
 					);
 

@@ -54,9 +54,10 @@ export function buildZhipuOutputItems(
 		for (const tc of message.tool_calls) {
 			output.push(
 				mapZhipuToolCall(ctx, {
-					id: tc.id,
-					name: tc.function?.name,
-					arguments: tc.function?.arguments,
+					index: message.tool_calls.indexOf(tc),
+					id: tc.id ?? "",
+					name: tc.function?.name ?? "",
+					arguments: tc.function?.arguments ?? "",
 				}),
 			);
 		}

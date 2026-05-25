@@ -50,14 +50,6 @@ class FakeMapper
 			_ctx: ResponsesContext,
 			_event: JsonServerSentEvent<unknown>,
 		): ResponseStreamEvent[] => [],
-		buildResponseObject: (ctx: ResponsesContext): ResponseObject => ({
-			id: ctx.responseId,
-			object: "response",
-			created_at: ctx.createdAt,
-			status: "completed",
-			model: ctx.resolved.model,
-			output: [],
-		}),
 	};
 }
 
@@ -306,14 +298,6 @@ describe("handleResponses stream errors", () => {
 						},
 					},
 				],
-				buildResponseObject: (ctx: ResponsesContext): ResponseObject => ({
-					id: ctx.responseId,
-					object: "response",
-					created_at: ctx.createdAt,
-					status: "completed",
-					model: ctx.resolved.model,
-					output: [],
-				}),
 			},
 		};
 
@@ -587,16 +571,6 @@ describe("handleResponses stream errors", () => {
 				},
 				stream: {
 					map: () => [] as ResponseStreamEvent[],
-					buildResponseObject(ctx: ResponsesContext): ResponseObject {
-						return {
-							id: ctx.responseId,
-							object: "response",
-							created_at: ctx.createdAt,
-							status: "completed",
-							model: ctx.resolved.model,
-							output: [],
-						};
-					},
 				},
 			},
 			{
