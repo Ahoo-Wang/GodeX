@@ -11,6 +11,7 @@ import type { ResponsesContext } from "../../context/responses-context";
 import type {
 	ResponseItem,
 	ResponseStreamEvent,
+	ResponseUsage,
 } from "../../protocol/openai/responses";
 import { findFlattenedNamespaceTool } from "./tool-name-mapping";
 
@@ -45,7 +46,11 @@ export abstract class ChatCompletionStreamMapper<
 				toolCallOutputItemMapper: (call) => this.mapToolCall(ctx, call),
 			});
 		const choice = this.extractChoice(event.data);
-		if (!choice) return [];
+		if (!choice) {
+			const usage = this.extractUsage(event.data);
+			if (usage) state.onUsage(usage);
+			return [];
+		}
 
 		const events: ResponseStreamEvent[] = [];
 		if (state.phase === StreamResponsePhase.IDLE) {
@@ -77,6 +82,10 @@ export abstract class ChatCompletionStreamMapper<
 			events.push(...state.onFinish(this.mapFinishReason(choice.finishReason)));
 		}
 
+		// Usage may arrive in the finish chunk or a subsequent usage-only chunk
+		const usage = this.extractUsage(event.data);
+		if (usage) state.onUsage(usage);
+
 		return events;
 	}
 
@@ -96,6 +105,10 @@ export abstract class ChatCompletionStreamMapper<
 
 	protected extractToolCalls(_delta: TDelta): ChatStreamToolCallDelta[] {
 		return [];
+	}
+
+	protected extractUsage(_chunk: TChunk): ResponseUsage | undefined {
+		return undefined;
 	}
 
 	protected abstract mapFinishReason(

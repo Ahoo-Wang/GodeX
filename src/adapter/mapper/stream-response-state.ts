@@ -13,6 +13,7 @@ import type {
 	ResponseItem,
 	ResponseObject,
 	ResponseStreamEvent,
+	ResponseUsage,
 } from "../../protocol/openai/responses";
 import type { ResponseError } from "../../protocol/openai/shared";
 import { responseRequestEchoFields } from "../response-utils";
@@ -368,7 +369,8 @@ export class StreamResponseState {
 		// Open output item if not yet opened
 		if (!call.opened) {
 			const emptySnapshot = this.toolCalls.snapshot({ ...call, arguments: "" });
-			const emptyItem = this.toolCalls.item(emptySnapshot);
+			const rawItem = this.toolCalls.item(emptySnapshot);
+			const emptyItem = normalizeItemStatus(rawItem, "in_progress");
 			const output = this.output.add(emptyItem);
 			call.outputIndex = output.index;
 			call.opened = true;
@@ -440,7 +442,8 @@ export class StreamResponseState {
 		call.done = true;
 		const events: ResponseStreamEvent[] = [];
 
-		const finalItem = this.toolCalls.item(call);
+		const rawItem = this.toolCalls.item(call);
+		const finalItem = normalizeItemStatus(rawItem, "completed");
 		this.output.markDone(call.outputIndex, finalItem);
 		this.refreshSnapshot();
 
@@ -501,6 +504,10 @@ export class StreamResponseState {
 		];
 	}
 
+	onUsage(usage: ResponseUsage): void {
+		this.currentSnapshot = { ...this.currentSnapshot, usage };
+	}
+
 	private closeAllActiveBlocks(): ResponseStreamEvent[] {
 		type Closable = { outputIndex: number; close(): ResponseStreamEvent[] };
 		const items: Closable[] = [];
@@ -541,7 +548,8 @@ export class StreamResponseState {
 		if (call.outputIndex === undefined) return [];
 		call.done = true;
 		const outputIdx = call.outputIndex;
-		const finalItem = this.toolCalls.item(call);
+		const rawItem = this.toolCalls.item(call);
+		const finalItem = normalizeItemStatus(rawItem, "completed");
 		this.output.markDone(outputIdx, finalItem);
 		return [
 			{
@@ -691,6 +699,16 @@ export function streamStateError(
 		model: ctx.resolved.model,
 		...context,
 	});
+}
+
+function normalizeItemStatus(
+	item: ResponseItem,
+	status: "in_progress" | "completed",
+): ResponseItem {
+	if ("status" in item) {
+		return { ...item, status } as ResponseItem;
+	}
+	return item;
 }
 
 function isTerminalPhase(phase: StreamResponsePhase): boolean {

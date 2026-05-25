@@ -7,7 +7,10 @@ import type {
 	ChatCompletionChunk,
 	ChatCompletionStreamDelta,
 } from "../../protocol/openai/completions";
-import type { ResponseItem } from "../../protocol/openai/responses";
+import type {
+	ResponseItem,
+	ResponseUsage,
+} from "../../protocol/openai/responses";
 import type { FinishReason } from "../../protocol/openai/shared";
 import {
 	ChatCompletionStreamMapper,
@@ -22,6 +25,17 @@ export class OpenAIStreamMapper extends ChatCompletionStreamMapper<
 	ChatCompletionStreamDelta,
 	FinishReason
 > {
+	protected override extractUsage(
+		chunk: ChatCompletionChunk,
+	): ResponseUsage | undefined {
+		if (!chunk.usage) return undefined;
+		return {
+			input_tokens: chunk.usage.prompt_tokens,
+			output_tokens: chunk.usage.completion_tokens,
+			total_tokens: chunk.usage.total_tokens,
+		};
+	}
+
 	protected extractChoice(
 		chunk: ChatCompletionChunk,
 	): ChatStreamChoice<ChatCompletionStreamDelta, FinishReason> | null {
@@ -55,14 +69,22 @@ export class OpenAIStreamMapper extends ChatCompletionStreamMapper<
 		delta: ChatCompletionStreamDelta,
 	): ChatStreamToolCallDelta[] {
 		return (delta.tool_calls ?? [])
-			.filter((toolCall) => toolCall.type === "function")
+			.filter((toolCall) => {
+				const raw = toolCall as unknown as Record<string, unknown>;
+				return raw.type === "function" || raw.function;
+			})
 			.map((toolCall) => {
-				const rawIndex = (toolCall as unknown as Record<string, unknown>).index;
+				const raw = toolCall as unknown as Record<string, unknown>;
 				return {
-					index: typeof rawIndex === "number" ? rawIndex : undefined,
-					id: toolCall.id,
-					type: toolCall.type,
-					function: toolCall.function,
+					index: typeof raw.index === "number" ? raw.index : undefined,
+					id: raw.id as string,
+					type: (raw.type as string) ?? "function",
+					function: raw.function as
+						| {
+								name?: string;
+								arguments?: string;
+						  }
+						| undefined,
 				};
 			});
 	}

@@ -506,7 +506,7 @@ describe("ZhipuStreamMapper", () => {
 						env: { CI: "1" },
 						timeout_ms: 1000,
 					},
-					status: "in_progress",
+					status: "completed",
 				}),
 			}),
 			expect.objectContaining({
@@ -514,7 +514,7 @@ describe("ZhipuStreamMapper", () => {
 					type: "apply_patch_call",
 					call_id: "call_patch",
 					operation: { type: "delete_file", path: "tmp.txt" },
-					status: "in_progress",
+					status: "completed",
 				}),
 			}),
 		]);
