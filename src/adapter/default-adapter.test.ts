@@ -86,6 +86,7 @@ function createMockCtx(
 		responseId: "resp_123",
 		createdAt: Math.floor(Date.now() / 1000),
 		resolved: { provider: "test", model: "test" },
+		diagnostics: [],
 		attributes: new Map(),
 		session: null,
 	} as unknown as ResponsesContext;

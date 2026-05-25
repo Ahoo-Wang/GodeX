@@ -36,7 +36,6 @@ function isTerminalEvent(event: ResponseStreamEvent): boolean {
 		case "response.completed":
 		case "response.failed":
 		case "response.incomplete":
-		case "error":
 			return true;
 		default:
 			return false;

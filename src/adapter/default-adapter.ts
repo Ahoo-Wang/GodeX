@@ -14,6 +14,8 @@ import {
 	pipeTransform,
 } from "./transformers/stream-utils";
 import { TraceTransformer } from "./transformers/trace-transformer";
+import { logDiagnostics } from "./compatibility";
+import { CompatibilityLogTransformer } from "./transformers/compatibility-log-transformer";
 
 export class DefaultAdapter implements Adapter {
 	async request(ctx: ResponsesContext): Promise<ResponseObject> {
@@ -42,6 +44,9 @@ export class DefaultAdapter implements Adapter {
 			durationMillis: Date.now() - ctx.createdAt * 1000,
 			usage: response.usage,
 		}));
+		logDiagnostics(ctx, {
+			durationMillis: Date.now() - ctx.createdAt * 1000,
+		});
 		try {
 			await saveSession(ctx.app.sessionStore, response, ctx);
 		} catch (err) {
@@ -96,21 +101,22 @@ export class DefaultAdapter implements Adapter {
 			new ResponseLogTransformer(ctx),
 		);
 
-		if (ctx.request.store === false) {
-			return logStream;
-		}
+		const sessionStream =
+			ctx.request.store === false
+				? logStream
+				: pipeTransform(
+						logStream,
+						new ResponseSessionPersistenceTransformer({
+							ctx,
+							saveSession,
+							buildResponseObject: async (
+								ctx: ResponsesContext,
+								state: StreamState,
+							) => mapper.stream.buildResponseObject(ctx, state),
+						}),
+					);
 
-		return pipeTransform(
-			logStream,
-			new ResponseSessionPersistenceTransformer({
-				ctx,
-				saveSession,
-				buildResponseObject: async (
-					ctx: ResponsesContext,
-					state: StreamState,
-				) => mapper.stream.buildResponseObject(ctx, state),
-			}),
-		);
+		return pipeTransform(sessionStream, new CompatibilityLogTransformer(ctx));
 	}
 }
 
