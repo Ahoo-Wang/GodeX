@@ -44,5 +44,4 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # superpowers specs and plans
 docs/superpowers/
 .claude/
-docs/superpowers/
 docs/references/codex/request.json
