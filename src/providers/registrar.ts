@@ -1,5 +1,6 @@
 import type { Provider } from "../adapter/provider";
 import type { ProviderConfig } from "../config";
+import { SERVER_PROVIDER_NOT_REGISTERED, ServerError } from "../error";
 import type { Logger } from "../logger";
 
 export type ProviderFactory = (
@@ -45,7 +46,12 @@ export class Registrar {
 
 	resolve(name: string): Provider<unknown, unknown, unknown> {
 		const provider = this.providers.get(name);
-		if (!provider) throw new Error(`Provider not registered: ${name}`);
+		if (!provider)
+			throw new ServerError(
+				SERVER_PROVIDER_NOT_REGISTERED,
+				`Provider not registered: ${name}`,
+				{ provider: name },
+			);
 		return provider;
 	}
 

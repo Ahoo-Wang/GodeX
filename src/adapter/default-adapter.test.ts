@@ -11,7 +11,7 @@ import { DefaultAdapter } from "./default-adapter";
 import {
 	StreamResponsePhase,
 	StreamResponseState,
-} from "./mapper/stream-response-state";
+} from "./mapper/chat/stream-response-state";
 import type { Provider } from "./provider";
 
 function toolCallMapper(call: { id: string; name: string; arguments: string }) {

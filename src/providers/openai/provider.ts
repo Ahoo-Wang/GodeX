@@ -13,10 +13,8 @@ import type {
 	ChatCompletionChunk,
 	ChatCompletionCreateRequest,
 } from "../../protocol/openai/completions";
+import { createOpenAIMapper } from "./mapper";
 import { OpenAIClient } from "./provider-client";
-import { buildOpenAIRequest } from "./request";
-import { buildResponseObject } from "./response";
-import { OpenAIStreamMapper } from "./stream";
 
 export const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 
@@ -79,11 +77,12 @@ function defaultOpenAIResponsibilities(
 	ChatCompletion,
 	ChatCompletionChunk
 > {
+	const mapper = createOpenAIMapper();
 	return {
 		name: OPENAI_PROVIDER_NAME,
 		client: new OpenAIClient(baseURL, apiKey, timeout),
-		request: { map: buildOpenAIRequest },
-		response: { map: buildResponseObject },
-		stream: new OpenAIStreamMapper(),
+		request: mapper.request,
+		response: mapper.response,
+		stream: mapper.stream,
 	};
 }

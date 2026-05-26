@@ -12,7 +12,7 @@ import {
 	post,
 } from "@ahoo-wang/fetcher-decorator";
 import type { JsonServerSentEventStream } from "@ahoo-wang/fetcher-eventstream";
-import { JsonStreamResultExtractor } from "./stream-result-extractor.ts";
+import { JsonStreamResultExtractor } from "./stream-result-extractor";
 
 export interface ChatApiOptions extends BaseURLCapable, TimeoutCapable {
 	apiKey: string;

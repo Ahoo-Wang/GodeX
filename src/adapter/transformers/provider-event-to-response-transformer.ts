@@ -4,8 +4,8 @@ import {
 } from "@ahoo-wang/fetcher-eventstream";
 import type { ResponsesContext } from "../../context/responses-context";
 import type { ResponseStreamEvent } from "../../protocol/openai/responses";
+import { StreamResponseState } from "../mapper/chat/stream-response-state";
 import type { StreamMapper } from "../mapper/contract";
-import { StreamResponseState } from "../mapper/stream-response-state";
 
 export class ProviderEventToResponseTransformer extends SafeTransformer<
 	JsonServerSentEvent<unknown>,

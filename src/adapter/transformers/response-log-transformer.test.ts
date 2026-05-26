@@ -5,7 +5,7 @@ import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../../protocol/openai";
-import { StreamResponseState } from "../mapper/stream-response-state";
+import { StreamResponseState } from "../mapper/chat/stream-response-state";
 import { ResponseLogTransformer } from "./response-log-transformer";
 import { pipeTransform } from "./stream-utils";
 

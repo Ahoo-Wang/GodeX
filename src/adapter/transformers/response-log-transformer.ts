@@ -4,7 +4,7 @@ import type { ResponseStreamEvent } from "../../protocol/openai/responses";
 import {
 	StreamResponsePhase,
 	StreamResponseState,
-} from "../mapper/stream-response-state";
+} from "../mapper/chat/stream-response-state";
 import {
 	ATTR_UPSTREAM_LATENCY_MILLIS,
 	responseFromTerminalEvent,
