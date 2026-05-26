@@ -184,6 +184,86 @@ describe("E2E: trace recording", () => {
 			db.close();
 		}
 	});
+
+	test("tracks repeated prompt cache keys and flags changed prefixes", async () => {
+		tempDir = mkdtempSync(join(tmpdir(), "godex-trace-cache-e2e-"));
+		const upstreamRequests: Record<string, unknown>[] = [];
+		const mockBase = await startMockZhipu(upstreamRequests);
+		const tracePath = join(tempDir, "trace.db");
+		const godexBase = await startGodex(mockBase, tracePath);
+
+		await expectCompleted(
+			await postStreamingResponse(godexBase, {
+				prompt_cache_key: "cache-mechanism-key",
+				input: "Use the stable cache prefix.",
+			}),
+		);
+		await expectCompleted(
+			await postStreamingResponse(godexBase, {
+				prompt_cache_key: "cache-mechanism-key",
+				input: "Use the stable cache prefix.",
+			}),
+		);
+		await expectCompleted(
+			await postStreamingResponse(godexBase, {
+				prompt_cache_key: "cache-mechanism-key",
+				input: "Use the changed cache prefix.",
+			}),
+		);
+
+		expect(upstreamRequests).toHaveLength(3);
+
+		await app?.close();
+		app = undefined;
+
+		const db = new Database(tracePath, { readonly: true, strict: true });
+		try {
+			const rows = db
+				.query("SELECT * FROM trace_requests ORDER BY id")
+				.all() as TraceRequestRow[];
+			const usageRows = db
+				.query("SELECT * FROM trace_usage ORDER BY id")
+				.all() as TraceUsageRow[];
+
+			expect(rows).toHaveLength(3);
+			expect(usageRows).toHaveLength(3);
+			const [first, repeated, changed] = rows as [
+				TraceRequestRow,
+				TraceRequestRow,
+				TraceRequestRow,
+			];
+
+			expect(first.requested_prompt_cache_key).toBe("cache-mechanism-key");
+			expect(repeated.requested_prompt_cache_key).toBe("cache-mechanism-key");
+			expect(changed.requested_prompt_cache_key).toBe("cache-mechanism-key");
+			expect(first.prefix_hash).toEqual(expect.any(String));
+			expect(repeated.prefix_hash).toBe(first.prefix_hash);
+			expect(changed.prefix_hash).not.toBe(first.prefix_hash);
+
+			expect(parseJson<string[]>(first.cache_risk_reasons_json)).toEqual([
+				"prompt_cache_key was not preserved in provider request",
+			]);
+			expect(parseJson<string[]>(repeated.cache_risk_reasons_json)).toEqual([
+				"prompt_cache_key was not preserved in provider request",
+			]);
+			expect(parseJson<string[]>(changed.cache_risk_reasons_json)).toEqual([
+				"prompt_cache_key prefix changed",
+				"prompt_cache_key was not preserved in provider request",
+			]);
+			expect(first.cache_risk_level).toBe("medium");
+			expect(repeated.cache_risk_level).toBe("medium");
+			expect(changed.cache_risk_level).toBe("high");
+			expect(
+				parseJson<Record<string, boolean>>(changed.passthrough_json),
+			).toEqual({
+				prompt_cache_key: false,
+				prompt_cache_retention: true,
+				cache_control: false,
+			});
+		} finally {
+			db.close();
+		}
+	});
 });
 
 async function startMockZhipu(
@@ -299,6 +379,29 @@ function handleMockStream(): Response {
 			"Cache-Control": "no-cache",
 		},
 	});
+}
+
+async function postStreamingResponse(
+	godexBase: string,
+	body: Record<string, unknown>,
+): Promise<Response> {
+	return fetch(`${godexBase}/v1/responses`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			model: "gpt-5",
+			stream: true,
+			...body,
+		}),
+	});
+}
+
+async function expectCompleted(res: Response): Promise<void> {
+	expect(res.status).toBe(200);
+	const events = await collectSSEEvents(res);
+	expect(events.some((event) => event.type === "response.completed")).toBe(
+		true,
+	);
 }
 
 async function collectSSEEvents(
