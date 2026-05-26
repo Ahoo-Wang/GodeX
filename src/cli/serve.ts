@@ -5,7 +5,7 @@ import { createBuiltinRegistrar } from "../providers/builtin";
 import { createBuiltinRoutes, startServer } from "../server";
 import { GODEX_VERSION } from "../version";
 import { formatStartupBanner } from "./banner";
-import type { CliRuntime } from "./runtime";
+import type { CliRuntime, CliServerHandle } from "./runtime";
 import type { CliOptions } from "./runtime-config";
 import { assertConfigReady, loadRuntimeConfig } from "./runtime-config";
 
@@ -39,7 +39,7 @@ export async function serve(
 	);
 
 	const runServer = runtime.startServer ?? startServer;
-	let server: { stop(): void } | { port: number };
+	let server: CliServerHandle;
 	try {
 		server = runServer({
 			config,
@@ -62,7 +62,7 @@ export async function serve(
 }
 
 export function registerShutdownHandlers(
-	server: { stop(): void } | { port: number },
+	server: CliServerHandle,
 	closeResources: () => void | Promise<void>,
 	logger: Logger,
 ): () => void {
@@ -81,7 +81,7 @@ export function registerShutdownHandlers(
 		void (async () => {
 			logger.info("godex.shutting.down", () => ({ signal }));
 			try {
-				if ("stop" in server && typeof server.stop === "function") {
+				if (typeof server.stop === "function") {
 					server.stop();
 				}
 			} catch (err) {
