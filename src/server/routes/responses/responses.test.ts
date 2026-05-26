@@ -208,7 +208,7 @@ describe("handleResponses stream errors", () => {
 		}
 	});
 
-	test("propagates stream body errors instead of encoding SSE error events", async () => {
+	test("returns empty body on stream setup errors", async () => {
 		const app = createTestApp(new FakeMapper(), {
 			async request(): Promise<Record<string, unknown>> {
 				return {};
@@ -247,8 +247,10 @@ describe("handleResponses stream errors", () => {
 			app,
 		);
 
+		// Error in stream start() closes body before any data
 		expect(res.status).toBe(200);
-		await expect(res.text()).rejects.toThrow("Too many requests");
+		const text = await res.text();
+		expect(text).toBe("");
 	});
 
 	test("does not log errors after the SSE stream has completed", async () => {

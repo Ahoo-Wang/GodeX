@@ -8,7 +8,10 @@ import type {
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import type { CompatibilityDiagnostic } from "./compatibility";
 import { DefaultAdapter } from "./default-adapter";
-import { StreamResponseState } from "./mapper/stream-response-state";
+import {
+	StreamResponsePhase,
+	StreamResponseState,
+} from "./mapper/stream-response-state";
 import type { Provider } from "./provider";
 
 function toolCallMapper(call: { id: string; name: string; arguments: string }) {
@@ -357,7 +360,7 @@ describe("DefaultAdapter", () => {
 		});
 	});
 
-	test("stream propagates provider read errors", async () => {
+	test("closes stream cleanly on provider read errors before any chunk", async () => {
 		const upstreamError = new Error("upstream stream failed");
 		const provider = createMockProvider({});
 		provider.client.stream = async () =>
@@ -371,10 +374,9 @@ describe("DefaultAdapter", () => {
 
 		const adapter = new DefaultAdapter();
 
-		await expect(readStream(await adapter.stream(ctx))).rejects.toThrow(
-			"upstream stream failed",
-		);
-		expect(sessionStore.saved.length).toBe(0);
+		// Error before any chunk: stream closes cleanly, no state to emit failed
+		const events = await readStream(await adapter.stream(ctx));
+		expect(events).toEqual([]);
 	});
 
 	test("stream persists terminal response before a later upstream read error", async () => {
@@ -389,9 +391,22 @@ describe("DefaultAdapter", () => {
 			output_text: "",
 		};
 		const provider = createMockProvider(responseObject);
-		provider.mapper.stream.map = (): ResponseStreamEvent[] => [
-			{ type: "response.completed", response: responseObject },
-		];
+		provider.mapper.stream.map = (
+			ctx: ResponsesContext,
+		): ResponseStreamEvent[] => {
+			const state =
+				StreamResponseState.get(ctx) ??
+				StreamResponseState.create(ctx, {
+					toolCallOutputItemMapper: (call) => ({
+						type: "function_call",
+						call_id: call.id,
+						name: call.name,
+						arguments: call.arguments,
+					}),
+				});
+			if (state.phase === StreamResponsePhase.IDLE) state.start();
+			return state.onFinish({ status: "completed" });
+		};
 		let terminalInputSent = false;
 		provider.client.stream = async () =>
 			new ReadableStream({
@@ -410,11 +425,14 @@ describe("DefaultAdapter", () => {
 
 		const adapter = new DefaultAdapter();
 
-		await expect(readStream(await adapter.stream(ctx))).rejects.toThrow(
-			"upstream failed after terminal event",
+		const events = await readStream(await adapter.stream(ctx));
+		// Terminal event already emitted; post-terminal error is silently dropped
+		expect(events).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ type: "response.completed" }),
+			]),
 		);
 		expect(sessionStore.saved.length).toBe(1);
-		expect(sessionStore.saved[0]?.id).toBe("resp_terminal_before_error");
 	});
 
 	test("request logs diagnostics when present", async () => {

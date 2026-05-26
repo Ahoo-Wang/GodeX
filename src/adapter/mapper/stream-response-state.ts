@@ -543,7 +543,8 @@ export class StreamResponseState {
 	}
 
 	private flushPendingTerminal(): ResponseStreamEvent[] {
-		const status = this.pendingTerminal!;
+		const status = this.pendingTerminal;
+		if (!status) return [];
 		this.currentPhase = terminalPhase(status.status);
 		this.pendingTerminal = undefined;
 		this.refreshSnapshot();
