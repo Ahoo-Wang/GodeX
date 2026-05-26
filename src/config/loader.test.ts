@@ -278,10 +278,10 @@ describe("buildConfig", () => {
 		expect(config.logging.file).toBeUndefined();
 	});
 
-	test("defaults trace config to disabled", () => {
+	test("defaults trace config to enabled", () => {
 		const config = buildConfig(validFileConfig, {});
 		expect(config.trace).toEqual({
-			enabled: false,
+			enabled: true,
 			path: "./data/trace.db",
 			max_queue_size: 10000,
 			flush_interval_ms: 1000,
