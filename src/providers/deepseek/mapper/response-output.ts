@@ -5,6 +5,7 @@ import type {
 import type { ResponsesContext } from "../../../context/responses-context";
 import type { ResponseItem } from "../../../protocol/openai/responses";
 import type { ChatCompletion, FinishReason } from "../protocol/completions";
+import { mapDeepSeekToolCall } from "./tool-calls";
 
 export class DeepSeekResponseAccessor
 	implements
@@ -26,7 +27,56 @@ export class DeepSeekResponseAccessor
 export class DeepSeekResponseOutputMapper
 	implements ChatResponseOutputMapper<ChatCompletion>
 {
-	map(_ctx: ResponsesContext, _result: ChatCompletion): ResponseItem[] {
-		return [];
+	map(ctx: ResponsesContext, result: ChatCompletion): ResponseItem[] {
+		return buildDeepSeekOutputItems(ctx, result);
 	}
+}
+
+export function buildDeepSeekOutputItems(
+	ctx: ResponsesContext,
+	deepSeekRes: ChatCompletion,
+): ResponseItem[] {
+	const choice = deepSeekRes.choices[0];
+	const message = choice?.message;
+	const output: ResponseItem[] = [];
+
+	if (message?.reasoning_content) {
+		output.push({
+			id: `rs_${ctx.responseId}`,
+			type: "reasoning",
+			summary: [{ type: "summary_text", text: message.reasoning_content }],
+		});
+	}
+
+	if (message?.tool_calls && message.tool_calls.length > 0) {
+		output.push({
+			id: `msg_${ctx.responseId}`,
+			type: "message",
+			role: "assistant",
+			status: "completed",
+			content: message.content
+				? [{ type: "output_text", text: message.content }]
+				: [],
+		});
+		for (const [index, tc] of message.tool_calls.entries()) {
+			output.push(
+				mapDeepSeekToolCall(ctx, {
+					index,
+					id: tc.id || `call_${index}`,
+					name: tc.function.name,
+					arguments: tc.function.arguments,
+				}),
+			);
+		}
+	} else if (message?.content !== null && message?.content !== undefined) {
+		output.push({
+			id: `msg_${ctx.responseId}`,
+			type: "message",
+			role: "assistant",
+			status: "completed",
+			content: [{ type: "output_text", text: message.content }],
+		});
+	}
+
+	return output;
 }
