@@ -524,4 +524,24 @@ describe("buildResponseObject", () => {
 			message: "Zhipu finished with reason: network_error",
 		});
 	});
+	test("maps empty choices to failed response", () => {
+		const emptyChoices: ChatCompletionResponse = {
+			id: "zhipu_task_1",
+			created: 1_764_000_001,
+			model: "glm-5.1",
+			choices: [],
+			usage: { prompt_tokens: 1, completion_tokens: 0, total_tokens: 1 },
+		};
+
+		const result = mapResponse(ctx(), emptyChoices);
+
+		expect(result.status).toBe("failed");
+		expect(result.error).toEqual({
+			code: "server_error",
+			message: "Empty choices from upstream",
+		});
+		expect(result.output).toEqual([]);
+		expect(result.output_text).toBe("");
+		expect(result.usage).toBeNull();
+	});
 });

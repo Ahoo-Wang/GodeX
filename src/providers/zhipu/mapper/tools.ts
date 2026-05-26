@@ -337,7 +337,6 @@ export class ZhipuToolChoiceMapper
 		_plan: CompatibilityPlan,
 		tools: ChatTool[] | undefined,
 	): ToolChoice | undefined {
-		if (!tools || tools.length === 0) return undefined;
 		const requestedToolChoice = ctx.request.tool_choice;
 		if (
 			requestedToolChoice !== undefined &&
@@ -354,6 +353,7 @@ export class ZhipuToolChoiceMapper
 				metadata: { parameter: "tool_choice", value: requestedToolChoice },
 			});
 		}
+		if (!tools || tools.length === 0) return undefined;
 		return mapZhipuToolChoice(requestedToolChoice);
 	}
 }

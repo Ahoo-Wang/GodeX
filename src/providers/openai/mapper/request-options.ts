@@ -5,8 +5,7 @@ import type {
 } from "../../../adapter/mapper/chat/contract";
 import type { ResponsesContext } from "../../../context/responses-context";
 import type { ChatCompletionCreateRequest } from "../../../protocol/openai/completions";
-import type { ResponseToolChoice } from "../../../protocol/openai/responses";
-import { mapOpenAIToolChoice, mapOpenAITools } from "./tools";
+import { mapOpenAITools } from "./tools";
 
 export class OpenAIRequestFactory
 	implements ChatRequestFactory<ChatCompletionCreateRequest>
@@ -76,14 +75,8 @@ export class OpenAIRequestOptionsMapper
 
 		if (req.tools && req.tools.length > 0) {
 			const mapped = mapOpenAITools(req.tools);
-			if (mapped.tools.length > 0) request.tools = mapped.tools;
 			if (mapped.webSearchOptions)
 				request.web_search_options = mapped.webSearchOptions;
 		}
-
-		const toolChoice = mapOpenAIToolChoice(
-			req.tool_choice as ResponseToolChoice | undefined,
-		);
-		if (toolChoice !== undefined) request.tool_choice = toolChoice;
 	}
 }
