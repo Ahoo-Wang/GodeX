@@ -68,10 +68,10 @@ export class DefaultAdapter implements Adapter {
 	async stream(
 		ctx: ResponsesContext,
 	): Promise<ReadableStream<ResponseStreamEvent>> {
-		ctx.logger.trace("responses.request.body", () => ({ body: ctx.request }));
 		const { mapper, client } = ctx.provider;
 		const req = await mapper.request.map(ctx);
-		ctx.logger.trace("upstream.request.body", () => ({ body: req }));
+		analyzePromptCache(ctx, req);
+		recordTraceEvent(ctx, "provider.request.body", req);
 		ctx.logger.debug("provider.request.sending", () => ({
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,

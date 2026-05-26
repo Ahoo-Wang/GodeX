@@ -419,7 +419,7 @@ describe("DefaultAdapter", () => {
 		);
 	});
 
-	test("stream logs trace for responses request body, upstream request body, and stream events", async () => {
+	test("stream records trace events for request body and stream events", async () => {
 		const responseObject: ResponseObject = {
 			id: "resp_stream_trace",
 			object: "response",
@@ -429,6 +429,7 @@ describe("DefaultAdapter", () => {
 			completed_at: 2,
 			output: [],
 			output_text: "",
+			usage: { input_tokens: 5, output_tokens: 10, total_tokens: 15 },
 		};
 		const provider = createMockProvider(
 			responseObject,
@@ -437,35 +438,29 @@ describe("DefaultAdapter", () => {
 		);
 		const sessionStore = createMockSessionStore();
 
-		const traces: Array<{ event: string; attr?: Record<string, unknown> }> = [];
-		const ctx = createMockCtx(provider, sessionStore, true, {
-			trace: (event, attr) => {
-				traces.push({
-					event,
-					attr: typeof attr === "function" ? attr() : attr,
-				});
-			},
-		});
+		const ctx = createMockCtx(
+			provider,
+			sessionStore,
+			true,
+		) as ResponsesContext & {
+			traceEvents: unknown[];
+		};
 
 		const adapter = new DefaultAdapter();
 		await readStream(await adapter.stream(ctx));
 
-		const eventNames = traces.map((t) => t.event);
-		expect(eventNames).toEqual([
-			"responses.request.body",
-			"upstream.request.body",
+		const kindEvents = ctx.traceEvents.map((e) => (e as { kind: string }).kind);
+		expect(kindEvents).toEqual(["request", "event", "event", "event", "usage"]);
+		const eventKind = ctx.traceEvents.filter(
+			(e) => (e as { kind: string }).kind === "event",
+		);
+		expect(
+			eventKind.map((e) => (e as { event_name: string }).event_name),
+		).toEqual([
+			"provider.request.body",
 			"upstream.stream.event.raw",
 			"upstream.stream.event.transformed",
 		]);
-
-		expect(traces[0]?.attr).toMatchObject({ body: ctx.request });
-		expect(traces[1]?.attr).toMatchObject({ body: { model: "test" } });
-		expect(traces[2]?.attr).toMatchObject({
-			data: { event: "chunk", data: { text: "hi" } },
-		});
-		expect(traces[3]?.attr).toMatchObject({
-			data: { type: "response.completed", response: responseObject },
-		});
 	});
 
 	test("closes stream cleanly on provider read errors before any chunk", async () => {
