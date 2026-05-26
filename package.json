@@ -50,7 +50,7 @@
     "@ahoo-wang/godex-linux-x64": "0.0.2",
     "@ahoo-wang/godex-linux-arm64": "0.0.2",
     "@ahoo-wang/godex-win32-x64": "0.0.2",
-    "@ahoo-wang/godex-win32-arm64": "0.0.2"
+    "@ahoo-wang/godex-win32-arm64": "0.0.22"
   },
   "devDependencies": {
     "@ahoo-wang/fetcher": "^3.16.8",
