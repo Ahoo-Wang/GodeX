@@ -1,9 +1,47 @@
 import { describe, expect, test } from "bun:test";
 import {
+	DEFAULT_DEEPSEEK_BASE_URL,
+	DEEPSEEK_PROVIDER_NAME,
+} from "../providers/deepseek/provider";
+import {
+	DEFAULT_OPENAI_BASE_URL,
+	OPENAI_PROVIDER_NAME,
+} from "../providers/openai/provider";
+import {
 	ZHIPU_BASE_URL,
 	ZHIPU_CODING_PLAN_BASE_URL,
 } from "../providers/zhipu/provider";
 import { buildConfigYaml } from "./init";
+import {
+	getInitProviderDefinition,
+	INIT_PROVIDER_DEFINITIONS,
+} from "./init-providers";
+
+describe("INIT_PROVIDER_DEFINITIONS", () => {
+	test("includes OpenAI, Zhipu, and DeepSeek", () => {
+		expect(INIT_PROVIDER_DEFINITIONS.map((provider) => provider.id)).toEqual([
+			OPENAI_PROVIDER_NAME,
+			"zhipu",
+			DEEPSEEK_PROVIDER_NAME,
+		]);
+	});
+
+	test("defines provider-specific API key placeholders and base URLs", () => {
+		expect(getInitProviderDefinition("openai")).toMatchObject({
+			apiKeyPlaceholder: "${OPENAI_API_KEY}",
+			defaultBaseUrl: DEFAULT_OPENAI_BASE_URL,
+		});
+		expect(getInitProviderDefinition("deepseek")).toMatchObject({
+			apiKeyPlaceholder: "${DEEPSEEK_API_KEY}",
+			defaultBaseUrl: DEFAULT_DEEPSEEK_BASE_URL,
+		});
+		expect(
+			getInitProviderDefinition("zhipu")?.baseUrlChoices.map(
+				(choice) => choice.value,
+			),
+		).toEqual([ZHIPU_CODING_PLAN_BASE_URL, ZHIPU_BASE_URL]);
+	});
+});
 
 describe("buildConfigYaml", () => {
 	const baseOpts = {
