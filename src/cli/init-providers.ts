@@ -1,6 +1,6 @@
 import {
-	DEFAULT_DEEPSEEK_BASE_URL,
 	DEEPSEEK_PROVIDER_NAME,
+	DEFAULT_DEEPSEEK_BASE_URL,
 } from "../providers/deepseek/provider";
 import {
 	DEFAULT_OPENAI_BASE_URL,

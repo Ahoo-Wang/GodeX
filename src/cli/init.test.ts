@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
-	DEFAULT_DEEPSEEK_BASE_URL,
 	DEEPSEEK_PROVIDER_NAME,
+	DEFAULT_DEEPSEEK_BASE_URL,
 } from "../providers/deepseek/provider";
 import {
 	DEFAULT_OPENAI_BASE_URL,
@@ -11,7 +11,7 @@ import {
 	ZHIPU_BASE_URL,
 	ZHIPU_CODING_PLAN_BASE_URL,
 } from "../providers/zhipu/provider";
-import { buildConfigYaml } from "./init";
+import { buildConfigYaml, resolveDefaultProvider } from "./init";
 import {
 	getInitProviderDefinition,
 	INIT_PROVIDER_DEFINITIONS,
@@ -122,5 +122,17 @@ describe("buildConfigYaml", () => {
 	test("omits sqlite config for memory backend", () => {
 		const yaml = buildConfigYaml({ ...baseOpts, sessionBackend: "memory" });
 		expect(yaml).not.toContain("sqlite:");
+	});
+});
+
+describe("resolveDefaultProvider", () => {
+	test("uses the only configured provider without prompting", () => {
+		expect(resolveDefaultProvider(["deepseek"], undefined)).toBe("deepseek");
+	});
+
+	test("uses selected default when multiple providers are configured", () => {
+		expect(resolveDefaultProvider(["deepseek", "openai"], "openai")).toBe(
+			"openai",
+		);
 	});
 });
