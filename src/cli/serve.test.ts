@@ -83,6 +83,53 @@ describe("registerShutdownHandlers", () => {
 		expect(exitCount).toBe(1);
 	});
 
+	test("still closes resources when server stop fails", async () => {
+		const warnings: Array<{ event: string; attr?: Record<string, unknown> }> =
+			[];
+		const logger: Logger = {
+			level: "info",
+			child: () => logger,
+			trace: () => {},
+			debug: () => {},
+			info: () => {},
+			warn: (event, attr) => {
+				warnings.push({
+					event,
+					attr: typeof attr === "function" ? attr() : attr,
+				});
+			},
+			error: () => {},
+		};
+		let closed = false;
+		let exitCode: string | number | null | undefined;
+		process.exit = ((code?: string | number | null | undefined) => {
+			exitCode = code;
+		}) as typeof process.exit;
+
+		const cleanup = registerShutdownHandlers(
+			{
+				stop: () => {
+					throw new Error("stop failed");
+				},
+			},
+			() => {
+				closed = true;
+			},
+			logger,
+		);
+		cleanups.push(cleanup);
+
+		process.emit("SIGINT", "SIGINT");
+		await new Promise((resolve) => setTimeout(resolve, 5));
+
+		expect(closed).toBe(true);
+		expect(exitCode).toBe(0);
+		expect(warnings).toContainEqual({
+			event: "godex.shutdown.stop.error",
+			attr: { error: "Error: stop failed" },
+		});
+	});
+
 	test("returns cleanup that removes registered signal listeners", () => {
 		const logger: Logger = {
 			level: "info",

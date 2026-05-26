@@ -65,8 +65,14 @@ export function registerShutdownHandlers(
 		cleanup();
 		void (async () => {
 			logger.info("godex.shutting.down", () => ({ signal }));
-			if ("stop" in server && typeof server.stop === "function") {
-				server.stop();
+			try {
+				if ("stop" in server && typeof server.stop === "function") {
+					server.stop();
+				}
+			} catch (err) {
+				logger.warn("godex.shutdown.stop.error", () => ({
+					error: String(err),
+				}));
 			}
 			try {
 				await closeResources();

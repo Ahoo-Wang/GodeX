@@ -3,9 +3,12 @@ import type { ResponseUsage } from "../protocol/openai";
 import type {
 	PromptCacheAnalysisInput,
 	PromptCacheDetection,
+	TraceEventRecordEvent,
 	TraceRequestRecordEvent,
 } from "./types";
 import { traceUsageFromResponseUsage } from "./usage";
+
+type TraceEventName = TraceEventRecordEvent["event_name"];
 
 export function nowTraceMillis(): number {
 	return Date.now();
@@ -99,11 +102,7 @@ function recordTraceRequest(
 
 export function recordTraceEvent(
 	ctx: ResponsesContext,
-	eventName:
-		| "provider.request.body"
-		| "provider.response.body"
-		| "upstream.stream.event.raw"
-		| "upstream.stream.event.transformed",
+	eventName: TraceEventName,
 	payload: unknown,
 	sequence?: number,
 ): void {
