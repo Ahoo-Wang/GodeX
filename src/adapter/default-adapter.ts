@@ -7,6 +7,7 @@ import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import type { Adapter } from "./adapter";
 import { logDiagnostics } from "./compatibility";
 import { StreamResponseState } from "./mapper/stream-response-state";
+import { wrapWithErrorHandler } from "./stream-error-handler";
 import { CompatibilityLogTransformer } from "./transformers/compatibility-log-transformer";
 import { ProviderEventToResponseTransformer } from "./transformers/provider-event-to-response-transformer";
 import { ResponseLogTransformer } from "./transformers/response-log-transformer";
@@ -91,8 +92,10 @@ export class DefaultAdapter implements Adapter {
 			new ProviderEventToResponseTransformer(mapper.stream, ctx),
 		);
 
+		const errorSafeStream = wrapWithErrorHandler(eventStream, ctx);
+
 		const traceTransformedStream = pipeTransform(
-			eventStream,
+			errorSafeStream,
 			new TraceTransformer("upstream.stream.event.transformed", ctx),
 		);
 
