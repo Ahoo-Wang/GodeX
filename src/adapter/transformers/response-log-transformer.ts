@@ -1,6 +1,10 @@
 import { SafeTransformer } from "@ahoo-wang/fetcher-eventstream";
 import type { ResponsesContext } from "../../context/responses-context";
-import type { ResponseStreamEvent } from "../../protocol/openai/responses";
+import type {
+	ResponseObject,
+	ResponseStreamEvent,
+} from "../../protocol/openai/responses";
+import { recordTraceUsage } from "../../trace";
 import {
 	StreamResponsePhase,
 	StreamResponseState,
@@ -16,6 +20,7 @@ export class ResponseLogTransformer extends SafeTransformer<
 > {
 	private eventCount = 0;
 	private logged = false;
+	private usageRecorded = false;
 
 	constructor(private readonly ctx: ResponsesContext) {
 		super();
@@ -42,6 +47,7 @@ export class ResponseLogTransformer extends SafeTransformer<
 		) {
 			return;
 		}
+		this.recordUsage(state.snapshot);
 		const outputCount = state.snapshot.output.length;
 		this.ctx.logger.info("responses.stream.completed", () => ({
 			status: state.snapshot.status,
@@ -60,6 +66,7 @@ export class ResponseLogTransformer extends SafeTransformer<
 		if (this.logged) return;
 		const response = responseFromTerminalEvent(chunk);
 		if (!response) return;
+		this.recordUsage(response);
 		this.ctx.logger.info("responses.stream.completed", () => ({
 			status: response.status,
 			model: response.model,
@@ -72,5 +79,12 @@ export class ResponseLogTransformer extends SafeTransformer<
 			streamEventCount: this.eventCount,
 		}));
 		this.logged = true;
+	}
+
+	private recordUsage(response: ResponseObject): void {
+		if (this.usageRecorded) return;
+		if (!response.usage) return;
+		recordTraceUsage(this.ctx, response.usage);
+		this.usageRecorded = true;
 	}
 }

@@ -49,8 +49,18 @@ export class ZhipuStreamDeltaMapper
 		return (delta.tool_calls ?? []) as ChatStreamToolCallDelta[];
 	}
 
-	extractUsage(_chunk: ChatCompletionChunk): ResponseUsage | undefined {
-		return undefined;
+	extractUsage(chunk: ChatCompletionChunk): ResponseUsage | undefined {
+		if (!chunk.usage) return undefined;
+		const result: ResponseUsage = {
+			input_tokens: chunk.usage.prompt_tokens,
+			output_tokens: chunk.usage.completion_tokens,
+			total_tokens: chunk.usage.total_tokens,
+		};
+		const cached = chunk.usage.prompt_tokens_details?.cached_tokens;
+		if (cached !== undefined) {
+			result.input_tokens_details = { cached_tokens: cached };
+		}
+		return result;
 	}
 }
 

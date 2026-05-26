@@ -4,6 +4,11 @@ import type {
 	ResponseStreamEvent,
 } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
+import {
+	analyzePromptCache,
+	recordTraceEvent,
+	recordTraceUsage,
+} from "../trace/integration";
 import type { Adapter } from "./adapter";
 import { logDiagnostics } from "./compatibility";
 import { wrapWithErrorHandler } from "./stream-error-handler";
@@ -19,10 +24,10 @@ import { TraceTransformer } from "./transformers/trace-transformer";
 
 export class DefaultAdapter implements Adapter {
 	async request(ctx: ResponsesContext): Promise<ResponseObject> {
-		ctx.logger.trace("responses.request.body", () => ({ body: ctx.request }));
 		const { mapper, client } = ctx.provider;
 		const req = await mapper.request.map(ctx);
-		ctx.logger.trace("upstream.request.body", () => ({ body: req }));
+		analyzePromptCache(ctx, req);
+		recordTraceEvent(ctx, "provider.request.body", req);
 		ctx.logger.debug("provider.request.sending", () => ({
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
@@ -30,13 +35,14 @@ export class DefaultAdapter implements Adapter {
 		}));
 		const upstreamStart = Date.now();
 		const res = await client.request(req);
-		ctx.logger.trace("upstream.response.body", () => ({ body: res }));
+		recordTraceEvent(ctx, "provider.response.body", res);
 		ctx.logger.debug("provider.response.received", () => ({
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
 			upstreamDurationMillis: Date.now() - upstreamStart,
 		}));
 		const response = await mapper.response.map(ctx, res);
+		recordTraceUsage(ctx, response.usage, (res as { usage?: unknown })?.usage);
 		ctx.logger.info("responses.request.completed", () => ({
 			status: response.status,
 			model: response.model,
@@ -62,10 +68,10 @@ export class DefaultAdapter implements Adapter {
 	async stream(
 		ctx: ResponsesContext,
 	): Promise<ReadableStream<ResponseStreamEvent>> {
-		ctx.logger.trace("responses.request.body", () => ({ body: ctx.request }));
 		const { mapper, client } = ctx.provider;
 		const req = await mapper.request.map(ctx);
-		ctx.logger.trace("upstream.request.body", () => ({ body: req }));
+		analyzePromptCache(ctx, req);
+		recordTraceEvent(ctx, "provider.request.body", req);
 		ctx.logger.debug("provider.request.sending", () => ({
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,

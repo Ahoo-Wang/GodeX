@@ -87,6 +87,16 @@ function sse(
 	return { data: chunk(overrides), event: "chunk" };
 }
 
+function usageSse(
+	usage: NonNullable<ChatCompletionChunk["usage"]> = {
+		prompt_tokens: 1,
+		completion_tokens: 0,
+		total_tokens: 1,
+	},
+): JsonServerSentEvent<ChatCompletionChunk> {
+	return sse({ choices: [], usage });
+}
+
 function extractResponseObject(
 	events: ResponseStreamEvent[],
 ): ResponseObject | undefined {
@@ -179,12 +189,15 @@ describe("ZhipuStreamMapper", () => {
 			}),
 		);
 
-		const events = mapStream(
-			testCtx,
-			sse({
-				choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
-			}),
-		);
+		const events = [
+			...mapStream(
+				testCtx,
+				sse({
+					choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+				}),
+			),
+			...mapStream(testCtx, usageSse()),
+		];
 
 		const types = events.map((e) => e.type);
 		expect(types).toContain("response.output_text.done");
@@ -202,12 +215,15 @@ describe("ZhipuStreamMapper", () => {
 				choices: [{ index: 0, delta: { content: "Hi" }, finish_reason: null }],
 			}),
 		);
-		const events = mapStream(
-			testCtx,
-			sse({
-				choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
-			}),
-		);
+		const events = [
+			...mapStream(
+				testCtx,
+				sse({
+					choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+				}),
+			),
+			...mapStream(testCtx, usageSse()),
+		];
 
 		const resp = extractResponseObject(events);
 		expect(resp).toMatchObject({
@@ -287,12 +303,15 @@ describe("ZhipuStreamMapper", () => {
 			}),
 		);
 
-		const events = mapStream(
-			testCtx,
-			sse({
-				choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
-			}),
-		);
+		const events = [
+			...mapStream(
+				testCtx,
+				sse({
+					choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
+				}),
+			),
+			...mapStream(testCtx, usageSse()),
+		];
 
 		const doneEvents = events.filter(
 			(event) => event.type === "response.function_call_arguments.done",
@@ -403,12 +422,15 @@ describe("ZhipuStreamMapper", () => {
 			}),
 		]);
 
-		const events = mapStream(
-			testCtx,
-			sse({
-				choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
-			}),
-		);
+		const events = [
+			...mapStream(
+				testCtx,
+				sse({
+					choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
+				}),
+			),
+			...mapStream(testCtx, usageSse()),
+		];
 
 		const itemDoneEvents = events.filter(
 			(event) =>
@@ -486,12 +508,15 @@ describe("ZhipuStreamMapper", () => {
 			}),
 		);
 
-		const events = mapStream(
-			testCtx,
-			sse({
-				choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
-			}),
-		);
+		const events = [
+			...mapStream(
+				testCtx,
+				sse({
+					choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
+				}),
+			),
+			...mapStream(testCtx, usageSse()),
+		];
 
 		const itemDoneEvents = events.filter(
 			(event) =>
@@ -554,12 +579,15 @@ describe("ZhipuStreamMapper", () => {
 			}),
 		);
 
-		const events = mapStream(
-			testCtx,
-			sse({
-				choices: [{ index: 0, delta: {}, finish_reason: "length" }],
-			}),
-		);
+		const events = [
+			...mapStream(
+				testCtx,
+				sse({
+					choices: [{ index: 0, delta: {}, finish_reason: "length" }],
+				}),
+			),
+			...mapStream(testCtx, usageSse()),
+		];
 
 		expect(events.at(-1)).toMatchObject({
 			type: "response.incomplete",
@@ -579,12 +607,15 @@ describe("ZhipuStreamMapper", () => {
 		const testCtx = ctx();
 		mapStream(testCtx, sse());
 
-		const events = mapStream(
-			testCtx,
-			sse({
-				choices: [{ index: 0, delta: {}, finish_reason: "network_error" }],
-			}),
-		);
+		const events = [
+			...mapStream(
+				testCtx,
+				sse({
+					choices: [{ index: 0, delta: {}, finish_reason: "network_error" }],
+				}),
+			),
+			...mapStream(testCtx, usageSse()),
+		];
 
 		expect(events.at(-1)).toMatchObject({
 			type: "response.failed",
@@ -602,6 +633,88 @@ describe("ZhipuStreamMapper", () => {
 			error: {
 				code: "server_error",
 				message: "Zhipu finished with reason: network_error",
+			},
+		});
+	});
+
+	test("preserves zero cached token usage", () => {
+		const testCtx = ctx();
+		mapStream(
+			testCtx,
+			sse({
+				choices: [],
+				usage: {
+					prompt_tokens: 10,
+					completion_tokens: 5,
+					total_tokens: 15,
+					prompt_tokens_details: { cached_tokens: 0 },
+				},
+			}),
+		);
+		const events = mapStream(
+			testCtx,
+			sse({
+				choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+			}),
+		);
+
+		expect(extractResponseObject(events)).toMatchObject({
+			usage: {
+				input_tokens: 10,
+				output_tokens: 5,
+				total_tokens: 15,
+				input_tokens_details: { cached_tokens: 0 },
+			},
+		});
+	});
+
+	test("waits for usage-only chunk after finish before completing", () => {
+		const testCtx = ctx();
+		mapStream(testCtx, sse());
+		mapStream(
+			testCtx,
+			sse({
+				choices: [
+					{
+						index: 0,
+						delta: { content: "Hi" },
+						finish_reason: null,
+					},
+				],
+			}),
+		);
+
+		const finishEvents = mapStream(
+			testCtx,
+			sse({
+				choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+			}),
+		);
+		expect(extractResponseObject(finishEvents)).toBeUndefined();
+
+		const usageEvents = mapStream(
+			testCtx,
+			sse({
+				choices: [],
+				usage: {
+					prompt_tokens: 10,
+					completion_tokens: 5,
+					total_tokens: 15,
+					prompt_tokens_details: { cached_tokens: 4 },
+				},
+			}),
+		);
+
+		expect(usageEvents.at(-1)).toMatchObject({
+			type: "response.completed",
+			response: {
+				status: "completed",
+				usage: {
+					input_tokens: 10,
+					output_tokens: 5,
+					total_tokens: 15,
+					input_tokens_details: { cached_tokens: 4 },
+				},
 			},
 		});
 	});

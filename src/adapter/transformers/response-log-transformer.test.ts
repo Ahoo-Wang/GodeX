@@ -25,12 +25,16 @@ async function drain<T>(stream: ReadableStream<T>): Promise<T[]> {
 
 function createTestContext(logger: Logger): ResponsesContext {
 	return {
+		requestId: "req_test",
 		responseId: "resp_test",
 		createdAt: 1,
 		resolved: { provider: "zhipu", model: "glm-4" },
 		logger,
 		attributes: new Map(),
 		request: {},
+		app: {
+			traceRecorder: { record: () => {} },
+		},
 	} as unknown as ResponsesContext;
 }
 
@@ -219,6 +223,41 @@ describe("ResponseLogTransformer", () => {
 			outputCount: 0,
 			streamEventCount: 1,
 		});
+	});
+
+	test("records terminal usage exactly once", async () => {
+		const records: unknown[] = [];
+		const logger: Logger = {
+			level: "info",
+			child: () => logger,
+			trace: () => {},
+			debug: () => {},
+			info: () => {},
+			warn: () => {},
+			error: () => {},
+		};
+		const ctx = {
+			...createTestContext(logger),
+			requestId: "req_usage",
+			responseId: "resp_usage",
+			app: {
+				traceEnabled: true,
+				traceRecorder: { record: (event: unknown) => records.push(event) },
+			},
+		} as unknown as ResponsesContext;
+		const stream = new ReadableStream<ResponseStreamEvent>({
+			start(controller) {
+				controller.enqueue(terminalEvent());
+				controller.close();
+			},
+		});
+		await drain(pipeTransform(stream, new ResponseLogTransformer(ctx)));
+		expect(records).toEqual([
+			expect.objectContaining({
+				kind: "usage",
+				usage: expect.objectContaining({ input_tokens: 10 }),
+			}),
+		]);
 	});
 
 	test("does not log when stream ends without terminal event and phase is not terminal", async () => {

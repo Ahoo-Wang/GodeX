@@ -10,6 +10,7 @@ import type {
 	LogLevel,
 	ModelsConfig,
 	ProviderConfig,
+	TraceConfig,
 } from "./schema";
 
 const LOG_LEVELS: readonly LogLevel[] = [
@@ -57,6 +58,60 @@ export function resolveDefaultSqlitePath(): string {
 	if (EnvVars.isDev) return "./data/sessions.db";
 	return join(homedir(), ".godex", "data", "sessions.db");
 }
+
+function resolveDefaultTracePath(): string {
+	if (EnvVars.isDev) return "./data/trace.db";
+	return join(homedir(), ".godex", "data", "trace.db");
+}
+
+function positiveInteger(value: unknown, field: string): number {
+	if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) {
+		throw new Error(`${field} must be a positive integer`);
+	}
+	return value;
+}
+
+function parseTraceConfig(file: Record<string, unknown>): TraceConfig {
+	const raw = file.trace;
+	if (typeof raw !== "object" || raw === null) {
+		return {
+			enabled: false,
+			path: resolveDefaultTracePath(),
+			max_queue_size: 10000,
+			flush_interval_ms: 1000,
+			batch_size: 100,
+			capture_payload: false,
+			payload_max_bytes: 65536,
+		};
+	}
+	const t = raw as Record<string, unknown>;
+	const enabled = t.enabled === true;
+	return {
+		enabled,
+		path:
+			typeof t.path === "string" && t.path.trim() !== ""
+				? t.path
+				: resolveDefaultTracePath(),
+		max_queue_size:
+			t.max_queue_size !== undefined
+				? positiveInteger(t.max_queue_size, "trace.max_queue_size")
+				: 10000,
+		flush_interval_ms:
+			t.flush_interval_ms !== undefined
+				? positiveInteger(t.flush_interval_ms, "trace.flush_interval_ms")
+				: 1000,
+		batch_size:
+			t.batch_size !== undefined
+				? positiveInteger(t.batch_size, "trace.batch_size")
+				: 100,
+		capture_payload: t.capture_payload === true,
+		payload_max_bytes:
+			t.payload_max_bytes !== undefined
+				? positiveInteger(t.payload_max_bytes, "trace.payload_max_bytes")
+				: 65536,
+	};
+}
+
 export function loadConfigFromFile(
 	configPath: string,
 ): Record<string, unknown> | null {
@@ -233,6 +288,7 @@ export function buildConfig(
 			console: parseConsoleLoggingConfig(logging),
 			file: parseFileLoggingConfig(logging),
 		},
+		trace: parseTraceConfig(file),
 	};
 }
 

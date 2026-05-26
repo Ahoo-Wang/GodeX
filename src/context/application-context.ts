@@ -9,6 +9,18 @@ import { ModelResolver } from "../resolver";
 import type { ResponseSessionStore } from "../session";
 import { MemoryResponseSessionStore } from "../session/memory";
 import { SQLiteResponseSessionStore } from "../session/sqlite";
+import {
+	AsyncTraceRecorder,
+	ChatCompletionPromptCacheRequestAnalyzer,
+	LruPromptCacheObservationIndex,
+	NoopTraceRecorder,
+	PrefixPromptCacheDetector,
+	type PromptCacheDetector,
+	type PromptCacheObservationIndex,
+	type ProviderPromptCacheRequestAnalyzer,
+	SQLiteTraceStore,
+	type TraceRecorder,
+} from "../trace";
 
 function createSessionStore(config: {
 	session: { backend: string; sqlite?: { path: string } };
@@ -27,6 +39,11 @@ export class ApplicationContext {
 	readonly registrar: Registrar;
 	readonly adapter: Adapter;
 	readonly sessionStore: ResponseSessionStore;
+	readonly traceRecorder: TraceRecorder;
+	readonly promptCacheRequestAnalyzer: ProviderPromptCacheRequestAnalyzer;
+	readonly promptCacheDetector: PromptCacheDetector;
+	readonly promptCacheObservationIndex: PromptCacheObservationIndex;
+	readonly traceEnabled: boolean;
 
 	constructor(config: GodeXConfig, registrar?: Registrar) {
 		this.config = config;
@@ -39,5 +56,37 @@ export class ApplicationContext {
 		this.registrar.registerProviders(config.providers, this.logger);
 		this.adapter = new DefaultAdapter();
 		this.sessionStore = createSessionStore(config);
+		this.traceEnabled = config.trace.enabled;
+		this.promptCacheRequestAnalyzer =
+			new ChatCompletionPromptCacheRequestAnalyzer();
+		this.promptCacheDetector = new PrefixPromptCacheDetector();
+		this.promptCacheObservationIndex = new LruPromptCacheObservationIndex(
+			Math.max(1000, config.trace.max_queue_size),
+		);
+		this.traceRecorder = config.trace.enabled
+			? new AsyncTraceRecorder({
+					store: new SQLiteTraceStore(config.trace.path),
+					logger: this.logger,
+					maxQueueSize: config.trace.max_queue_size,
+					flushIntervalMs: config.trace.flush_interval_ms,
+					batchSize: config.trace.batch_size,
+					capturePayload: config.trace.capture_payload,
+					payloadMaxBytes: config.trace.payload_max_bytes,
+				})
+			: new NoopTraceRecorder();
+	}
+
+	async close(): Promise<void> {
+		try {
+			await this.traceRecorder.close?.();
+		} catch (err) {
+			this.logger.warn("trace.close.error", () => ({ error: String(err) }));
+		}
+		if (
+			"close" in this.sessionStore &&
+			typeof this.sessionStore.close === "function"
+		) {
+			this.sessionStore.close();
+		}
 	}
 }

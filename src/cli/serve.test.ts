@@ -1,16 +1,17 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Logger } from "../logger";
-import type { ResponseSessionStore } from "../session";
 import { registerShutdownHandlers } from "./serve";
 
 const originalExit = process.exit;
+const cleanups: Array<() => void> = [];
 
 afterEach(() => {
+	for (const cleanup of cleanups.splice(0)) cleanup();
 	process.exit = originalExit;
 });
 
 describe("registerShutdownHandlers", () => {
-	test("logs shutdown with dot-only event name", () => {
+	test("logs shutdown and calls closeResources callback", async () => {
 		const logs: Array<{ event: string; attr?: Record<string, unknown> }> = [];
 		const logger: Logger = {
 			level: "info",
@@ -26,43 +27,132 @@ describe("registerShutdownHandlers", () => {
 			warn: () => {},
 			error: () => {},
 		};
-		const beforeSigint = process.listeners("SIGINT");
-		const beforeSigterm = process.listeners("SIGTERM");
-		let sigintListener: NodeJS.SignalsListener | undefined;
-		let sigtermListener: NodeJS.SignalsListener | undefined;
+		let closed = false;
+		let exitCode: string | number | null | undefined;
 		process.exit = ((code?: string | number | null | undefined) => {
-			throw new Error(`exit:${String(code)}`);
+			exitCode = code;
+		}) as typeof process.exit;
+		const cleanup = registerShutdownHandlers(
+			{ stop: () => {} },
+			() => {
+				closed = true;
+			},
+			logger,
+		);
+		cleanups.push(cleanup);
+		process.emit("SIGINT", "SIGINT");
+		await new Promise((resolve) => setTimeout(resolve, 5));
+		expect(closed).toBe(true);
+		expect(exitCode).toBe(0);
+		expect(logs).toContainEqual({
+			event: "godex.shutting.down",
+			attr: { signal: "SIGINT" },
+		});
+	});
+
+	test("runs shutdown once across repeated signals", async () => {
+		const logger: Logger = {
+			level: "info",
+			child: () => logger,
+			trace: () => {},
+			debug: () => {},
+			info: () => {},
+			warn: () => {},
+			error: () => {},
+		};
+		let closeCount = 0;
+		let exitCount = 0;
+		process.exit = (() => {
+			exitCount++;
+		}) as typeof process.exit;
+		const cleanup = registerShutdownHandlers(
+			{ stop: () => {} },
+			() => {
+				closeCount++;
+			},
+			logger,
+		);
+		cleanups.push(cleanup);
+
+		process.emit("SIGINT", "SIGINT");
+		process.emit("SIGTERM", "SIGTERM");
+		process.emit("SIGINT", "SIGINT");
+		await new Promise((resolve) => setTimeout(resolve, 5));
+
+		expect(closeCount).toBe(1);
+		expect(exitCount).toBe(1);
+	});
+
+	test("still closes resources when server stop fails", async () => {
+		const warnings: Array<{ event: string; attr?: Record<string, unknown> }> =
+			[];
+		const logger: Logger = {
+			level: "info",
+			child: () => logger,
+			trace: () => {},
+			debug: () => {},
+			info: () => {},
+			warn: (event, attr) => {
+				warnings.push({
+					event,
+					attr: typeof attr === "function" ? attr() : attr,
+				});
+			},
+			error: () => {},
+		};
+		let closed = false;
+		let exitCode: string | number | null | undefined;
+		process.exit = ((code?: string | number | null | undefined) => {
+			exitCode = code;
 		}) as typeof process.exit;
 
-		try {
-			registerShutdownHandlers(
-				{ stop: () => {} },
-				{} as ResponseSessionStore,
-				logger,
-			);
-			sigintListener = process
-				.listeners("SIGINT")
-				.find((listener) => !beforeSigint.includes(listener)) as
-				| NodeJS.SignalsListener
-				| undefined;
-			sigtermListener = process
-				.listeners("SIGTERM")
-				.find((listener) => !beforeSigterm.includes(listener)) as
-				| NodeJS.SignalsListener
-				| undefined;
+		const cleanup = registerShutdownHandlers(
+			{
+				stop: () => {
+					throw new Error("stop failed");
+				},
+			},
+			() => {
+				closed = true;
+			},
+			logger,
+		);
+		cleanups.push(cleanup);
 
-			expect(() => sigintListener?.("SIGINT")).toThrow("exit:0");
-			expect(logs).toContainEqual({
-				event: "godex.shutting.down",
-				attr: { signal: "SIGINT" },
-			});
-		} finally {
-			if (sigintListener) {
-				process.removeListener("SIGINT", sigintListener);
-			}
-			if (sigtermListener) {
-				process.removeListener("SIGTERM", sigtermListener);
-			}
-		}
+		process.emit("SIGINT", "SIGINT");
+		await new Promise((resolve) => setTimeout(resolve, 5));
+
+		expect(closed).toBe(true);
+		expect(exitCode).toBe(0);
+		expect(warnings).toContainEqual({
+			event: "godex.shutdown.stop.error",
+			attr: { error: "Error: stop failed" },
+		});
+	});
+
+	test("returns cleanup that removes registered signal listeners", () => {
+		const logger: Logger = {
+			level: "info",
+			child: () => logger,
+			trace: () => {},
+			debug: () => {},
+			info: () => {},
+			warn: () => {},
+			error: () => {},
+		};
+		const sigintCount = process.listenerCount("SIGINT");
+		const sigtermCount = process.listenerCount("SIGTERM");
+
+		const cleanup = registerShutdownHandlers(
+			{ stop: () => {} },
+			() => {},
+			logger,
+		);
+
+		expect(process.listenerCount("SIGINT")).toBe(sigintCount + 1);
+		expect(process.listenerCount("SIGTERM")).toBe(sigtermCount + 1);
+		cleanup();
+		expect(process.listenerCount("SIGINT")).toBe(sigintCount);
+		expect(process.listenerCount("SIGTERM")).toBe(sigtermCount);
 	});
 });

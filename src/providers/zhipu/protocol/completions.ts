@@ -499,6 +499,9 @@ export interface ChatCompletionTextRequest {
 	messages: TextMessage[];
 	/** 是否启用流式输出 @default false */
 	stream?: boolean;
+	stream_options?: {
+		include_usage: boolean;
+	};
 	/** 思维链配置 */
 	thinking?: ChatThinking;
 	/** 是否启用采样策略 @default true */

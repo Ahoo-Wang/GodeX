@@ -14,6 +14,15 @@ const config: GodeXConfig = {
 	},
 	session: { backend: "memory" },
 	logging: { level: "error" },
+	trace: {
+		enabled: false,
+		path: "./data/trace.db",
+		max_queue_size: 10000,
+		flush_interval_ms: 1000,
+		batch_size: 100,
+		capture_payload: false,
+		payload_max_bytes: 65536,
+	},
 };
 
 describe("ApplicationContext", () => {
@@ -65,5 +74,43 @@ describe("ApplicationContext", () => {
 		expect(app.registrar).toBe(customRegistrar);
 		const provider = app.registrar.resolve("zhipu");
 		expect(provider).toBeDefined();
+	});
+
+	test("creates noop trace recorder when trace is disabled", () => {
+		const app = new ApplicationContext(config);
+		expect(app.traceRecorder).toBeDefined();
+		expect(() =>
+			app.traceRecorder.record({
+				kind: "event",
+				request_id: "req_1",
+				response_id: "resp_1",
+				provider: "test",
+				model: "test",
+				created_at: Date.now(),
+				event_name: "provider.request.body",
+			}),
+		).not.toThrow();
+	});
+
+	test("closes trace recorder and session store", async () => {
+		const app = new ApplicationContext(config);
+		let traceClosed = false;
+		let sessionClosed = false;
+		(
+			app as unknown as {
+				traceRecorder: { record(_e: unknown): void; close(): void };
+			}
+		).traceRecorder = {
+			record: () => {},
+			close: () => {
+				traceClosed = true;
+			},
+		};
+		(app.sessionStore as { close?: () => void }).close = () => {
+			sessionClosed = true;
+		};
+		await app.close();
+		expect(traceClosed).toBe(true);
+		expect(sessionClosed).toBe(true);
 	});
 });

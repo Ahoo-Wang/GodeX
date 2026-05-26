@@ -27,7 +27,10 @@ export class ZhipuRequestOptionsMapper
 		request: ChatCompletionTextRequest,
 	): void {
 		const req = ctx.request;
-		if (req.stream) request.stream = true;
+		if (req.stream) {
+			request.stream = true;
+			request.stream_options = { include_usage: true };
+		}
 		if (req.temperature !== undefined)
 			request.temperature = Math.min(Math.max(req.temperature, 0), 1.0);
 		if (req.top_p !== undefined) request.top_p = req.top_p;
