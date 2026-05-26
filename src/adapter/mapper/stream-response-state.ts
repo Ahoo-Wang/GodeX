@@ -63,6 +63,7 @@ export type StreamResponseTerminalStatus = Pick<
 
 export interface StreamResponseStateOptions {
 	toolCallOutputItemMapper: ToolCallOutputItemMapper;
+	deferTerminal?: boolean;
 	nowSeconds?: () => number;
 }
 
@@ -79,6 +80,7 @@ export class StreamResponseState {
 	private activeRefusal?: MessageBlock;
 	private activeReasoning?: ReasoningBlock;
 	private outputText = "";
+	private pendingTerminal?: StreamResponseTerminalStatus;
 
 	private constructor(
 		ctx: ResponsesContext,
@@ -86,6 +88,7 @@ export class StreamResponseState {
 	) {
 		this.ctx = ctx;
 		this.options = {
+			deferTerminal: false,
 			...options,
 			nowSeconds: options.nowSeconds ?? (() => Math.floor(Date.now() / 1000)),
 		};
@@ -155,7 +158,7 @@ export class StreamResponseState {
 	}
 
 	onTextDelta(delta: string): ResponseStreamEvent[] {
-		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onTextDelta");
+		this.assertActive("onTextDelta");
 		if (!delta) return [];
 		const events: ResponseStreamEvent[] = [];
 
@@ -204,7 +207,7 @@ export class StreamResponseState {
 	}
 
 	onTextDone(): ResponseStreamEvent[] {
-		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onTextDone");
+		this.assertActive("onTextDone");
 		if (!this.activeText) {
 			throw streamStateError(
 				this.ctx,
@@ -218,7 +221,7 @@ export class StreamResponseState {
 	}
 
 	onReasoningTextDelta(delta: string): ResponseStreamEvent[] {
-		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onReasoningTextDelta");
+		this.assertActive("onReasoningTextDelta");
 		if (!delta) return [];
 		const events: ResponseStreamEvent[] = [];
 
@@ -269,7 +272,7 @@ export class StreamResponseState {
 	}
 
 	onReasoningTextDone(): ResponseStreamEvent[] {
-		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onReasoningTextDone");
+		this.assertActive("onReasoningTextDone");
 		if (!this.activeReasoning) {
 			throw streamStateError(
 				this.ctx,
@@ -283,7 +286,7 @@ export class StreamResponseState {
 	}
 
 	onRefusalDelta(delta: string): ResponseStreamEvent[] {
-		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onRefusalDelta");
+		this.assertActive("onRefusalDelta");
 		if (!delta) return [];
 		const events: ResponseStreamEvent[] = [];
 
@@ -331,7 +334,7 @@ export class StreamResponseState {
 	}
 
 	onRefusalDone(): ResponseStreamEvent[] {
-		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onRefusalDone");
+		this.assertActive("onRefusalDone");
 		if (!this.activeRefusal) {
 			throw streamStateError(
 				this.ctx,
@@ -345,7 +348,7 @@ export class StreamResponseState {
 	}
 
 	onFunctionCallDelta(delta: FunctionCallDelta): ResponseStreamEvent[] {
-		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFunctionCallDelta");
+		this.assertActive("onFunctionCallDelta");
 		const events: ResponseStreamEvent[] = [];
 
 		// Reject deltas for closed calls before mutating accumulator
@@ -421,7 +424,7 @@ export class StreamResponseState {
 	}
 
 	onFunctionCallDone(index: number): ResponseStreamEvent[] {
-		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFunctionCallDone");
+		this.assertActive("onFunctionCallDone");
 		const call = this.toolCalls.get(index);
 		if (call?.done) {
 			throw streamStateError(
@@ -470,22 +473,36 @@ export class StreamResponseState {
 
 	onFinish(status: StreamResponseTerminalStatus): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFinish");
+		if (this.pendingTerminal) {
+			throw streamStateError(
+				this.ctx,
+				ADAPTER_STREAM_INVALID_TRANSITION,
+				"finish already requested for this stream response.",
+			);
+		}
 		const closeEvents = this.closeAllActiveBlocks();
-		this.currentPhase = terminalPhase(status.status);
-		this.refreshSnapshot();
-		this.currentSnapshot = {
-			...this.currentSnapshot,
-			...status,
-			completed_at: this.options.nowSeconds(),
-		};
-		return [
-			...closeEvents,
-			{ type: terminalEventType(status.status), response: this.snapshot },
-		];
+		if (!this.options.deferTerminal) {
+			this.currentPhase = terminalPhase(status.status);
+			this.refreshSnapshot();
+			this.currentSnapshot = {
+				...this.currentSnapshot,
+				...status,
+				completed_at: this.options.nowSeconds(),
+			};
+			return [
+				...closeEvents,
+				{ type: terminalEventType(status.status), response: this.snapshot },
+			];
+		}
+		this.pendingTerminal = status;
+		if (this.currentSnapshot.usage) {
+			return [...closeEvents, ...this.flushPendingTerminal()];
+		}
+		return closeEvents;
 	}
 
 	onError(error: ResponseError): ResponseStreamEvent[] {
-		if (isTerminalPhase(this.currentPhase)) {
+		if (isTerminalPhase(this.currentPhase) || this.pendingTerminal) {
 			throw streamStateError(
 				this.ctx,
 				ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
@@ -512,12 +529,32 @@ export class StreamResponseState {
 
 	onUsage(usage: ResponseUsage): ResponseStreamEvent[] {
 		this.currentSnapshot = { ...this.currentSnapshot, usage };
-		if (isTerminalPhase(this.currentPhase)) {
-			const s = this.currentSnapshot
-				.status as StreamResponseTerminalStatus["status"];
-			return [{ type: terminalEventType(s), response: this.snapshot }];
+		if (this.pendingTerminal) {
+			return this.flushPendingTerminal();
 		}
 		return [];
+	}
+
+	finalize(): ResponseStreamEvent[] {
+		if (this.pendingTerminal) {
+			return this.flushPendingTerminal();
+		}
+		return [];
+	}
+
+	private flushPendingTerminal(): ResponseStreamEvent[] {
+		const status = this.pendingTerminal!;
+		this.currentPhase = terminalPhase(status.status);
+		this.pendingTerminal = undefined;
+		this.refreshSnapshot();
+		this.currentSnapshot = {
+			...this.currentSnapshot,
+			...status,
+			completed_at: this.options.nowSeconds(),
+		};
+		return [
+			{ type: terminalEventType(status.status), response: this.snapshot },
+		];
 	}
 
 	private closeAllActiveBlocks(): ResponseStreamEvent[] {
@@ -686,6 +723,17 @@ export class StreamResponseState {
 			output: [],
 			...responseRequestEchoFields(this.ctx),
 		};
+	}
+
+	private assertActive(action: string): void {
+		this.assertPhase(StreamResponsePhase.IN_PROGRESS, action);
+		if (this.pendingTerminal) {
+			throw streamStateError(
+				this.ctx,
+				ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
+				`${action} cannot run after finish has been requested.`,
+			);
+		}
 	}
 
 	private assertPhase(expected: StreamResponsePhase, action: string): void {

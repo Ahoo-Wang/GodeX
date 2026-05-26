@@ -17,7 +17,7 @@ import {
 	type ChatStreamChoice,
 	type ChatStreamToolCallDelta,
 } from "../shared/chat-stream-mapper";
-import { openAIStatusFields } from "./response-common";
+import { mapUsage, openAIStatusFields } from "./response-common";
 import { mapToolCall } from "./tool-calls";
 
 export class OpenAIStreamMapper extends ChatCompletionStreamMapper<
@@ -25,15 +25,12 @@ export class OpenAIStreamMapper extends ChatCompletionStreamMapper<
 	ChatCompletionStreamDelta,
 	FinishReason
 > {
+	protected override deferTerminal = true;
+
 	protected override extractUsage(
 		chunk: ChatCompletionChunk,
 	): ResponseUsage | undefined {
-		if (!chunk.usage) return undefined;
-		return {
-			input_tokens: chunk.usage.prompt_tokens,
-			output_tokens: chunk.usage.completion_tokens,
-			total_tokens: chunk.usage.total_tokens,
-		};
+		return mapUsage(chunk.usage ?? undefined);
 	}
 
 	protected extractChoice(
