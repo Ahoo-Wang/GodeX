@@ -243,6 +243,12 @@ describe("DeepSeek response mapping", () => {
 			mapResponse(ctx(), completion("insufficient_system_resource")).status,
 		).toBe("failed");
 		expect(
+			mapResponse(ctx(), completion("unknown_reason" as FinishReason)).error,
+		).toEqual({
+			code: "server_error",
+			message: "Unexpected DeepSeek finish reason: unknown_reason",
+		});
+		expect(
 			mapResponse(ctx(), {
 				id: "empty",
 				created: 1,

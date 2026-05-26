@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { createDeepSeekProvider } from "./factory";
 import {
 	DEEPSEEK_PROVIDER_NAME,
 	DEFAULT_DEEPSEEK_BASE_URL,
@@ -19,5 +20,16 @@ describe("DeepSeekProvider", () => {
 		expect(provider.mapper.request.map).toBeFunction();
 		expect(provider.mapper.response.map).toBeFunction();
 		expect(provider.mapper.stream.map).toBeFunction();
+	});
+
+	test("factory creates a configured DeepSeek provider", () => {
+		const provider = createDeepSeekProvider({
+			api_key: "test-key",
+			base_url: "",
+		});
+
+		expect(provider.name).toBe(DEEPSEEK_PROVIDER_NAME);
+		expect(provider.client).toBeDefined();
+		expect(provider.mapper.request.map).toBeFunction();
 	});
 });
