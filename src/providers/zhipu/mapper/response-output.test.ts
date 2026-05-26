@@ -142,6 +142,25 @@ describe("buildResponseObject", () => {
 		expect(result.tools).toHaveLength(1);
 	});
 
+	test("preserves zero cached token usage", () => {
+		const result = mapResponse(ctx(), {
+			...zhipuResponse,
+			usage: {
+				prompt_tokens: 10,
+				completion_tokens: 5,
+				total_tokens: 15,
+				prompt_tokens_details: { cached_tokens: 0 },
+			},
+		});
+
+		expect(result.usage).toEqual({
+			input_tokens: 10,
+			output_tokens: 5,
+			total_tokens: 15,
+			input_tokens_details: { cached_tokens: 0 },
+		});
+	});
+
 	test("preserves empty output_text when assistant content is empty", () => {
 		const emptyText: ChatCompletionResponse = {
 			...zhipuResponse,

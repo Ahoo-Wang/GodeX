@@ -1,5 +1,10 @@
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseUsage } from "../protocol/openai";
+import type {
+	PromptCacheAnalysisInput,
+	PromptCacheDetection,
+	TraceRequestRecordEvent,
+} from "./types";
 import { traceUsageFromResponseUsage } from "./usage";
 
 export function nowTraceMillis(): number {
@@ -18,8 +23,10 @@ export function analyzePromptCache(
 	providerRequest: unknown,
 ): void {
 	if (!ctx.app.traceEnabled) return;
+	let current: PromptCacheAnalysisInput | undefined;
+	let detection: PromptCacheDetection | undefined;
 	try {
-		const current = ctx.app.promptCacheRequestAnalyzer.analyze({
+		current = ctx.app.promptCacheRequestAnalyzer.analyze({
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
 			request: ctx.request,
@@ -31,7 +38,7 @@ export function analyzePromptCache(
 			model: ctx.resolved.model,
 			cache_identity_key: key,
 		});
-		const detection = ctx.app.promptCacheDetector.detect({
+		detection = ctx.app.promptCacheDetector.detect({
 			current,
 			previous,
 		});
@@ -47,28 +54,47 @@ export function analyzePromptCache(
 				request_id: ctx.requestId,
 			});
 		}
-		ctx.app.traceRecorder.record({
-			kind: "request",
-			request_id: ctx.requestId,
-			response_id: ctx.responseId,
-			provider: ctx.resolved.provider,
-			model: ctx.resolved.model,
-			created_at: nowTraceMillis(),
-			stream: ctx.request.stream === true,
-			requested_prompt_cache_key: current.requested_prompt_cache_key,
-			requested_prompt_cache_retention:
-				current.requested_prompt_cache_retention,
-			prompt_cache_key: current.prompt_cache_key,
-			prompt_cache_retention: current.prompt_cache_retention,
-			cache_detection: detection,
-			payload: { payload: ctx.request },
-		});
 	} catch (err) {
 		ctx.logger.warn("trace.prompt_cache_detection.error", () => ({
 			request_id: ctx.requestId,
 			error: String(err),
 		}));
 	}
+	recordTraceRequest(ctx, current, detection);
+}
+
+function recordTraceRequest(
+	ctx: ResponsesContext,
+	current?: PromptCacheAnalysisInput,
+	detection?: PromptCacheDetection,
+): void {
+	const record: TraceRequestRecordEvent = {
+		kind: "request",
+		request_id: ctx.requestId,
+		response_id: ctx.responseId,
+		provider: ctx.resolved.provider,
+		model: ctx.resolved.model,
+		created_at: nowTraceMillis(),
+		stream: ctx.request.stream === true,
+		payload: { payload: ctx.request },
+	};
+	if (current?.requested_prompt_cache_key !== undefined) {
+		record.requested_prompt_cache_key = current.requested_prompt_cache_key;
+	}
+	if (current?.requested_prompt_cache_retention !== undefined) {
+		record.requested_prompt_cache_retention =
+			current.requested_prompt_cache_retention;
+	}
+	if (current?.prompt_cache_key !== undefined) {
+		record.prompt_cache_key = current.prompt_cache_key;
+	}
+	if (current?.prompt_cache_retention !== undefined) {
+		record.prompt_cache_retention = current.prompt_cache_retention;
+	}
+	if (detection) {
+		record.cache_detection = detection;
+	}
+	ctx.app.traceRecorder.record(record);
 }
 
 export function recordTraceEvent(

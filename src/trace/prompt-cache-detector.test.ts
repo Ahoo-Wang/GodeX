@@ -72,6 +72,21 @@ describe("PrefixPromptCacheDetector", () => {
 		expect(result.prefix_hash).toBe("hash-1");
 	});
 
+	test("does not flag tool fingerprint without previous observation", () => {
+		const detector = new PrefixPromptCacheDetector();
+		const result = detector.detect({
+			current: analysis({
+				requested_prompt_cache_key: "key-1",
+				prompt_cache_key: "key-1",
+				tool_fingerprint: { names: ["search"], hash: "tools-1" },
+			}),
+		});
+		expect(result.risk_level).toBe("none");
+		expect(result.reasons).not.toContain(
+			"tool order or names changed for cache identity",
+		);
+	});
+
 	test("flags mismatched passthrough value as risk", () => {
 		const detector = new PrefixPromptCacheDetector();
 		const result = detector.detect({

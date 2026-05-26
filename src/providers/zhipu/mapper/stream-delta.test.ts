@@ -606,6 +606,37 @@ describe("ZhipuStreamMapper", () => {
 		});
 	});
 
+	test("preserves zero cached token usage", () => {
+		const testCtx = ctx();
+		mapStream(
+			testCtx,
+			sse({
+				choices: [],
+				usage: {
+					prompt_tokens: 10,
+					completion_tokens: 5,
+					total_tokens: 15,
+					prompt_tokens_details: { cached_tokens: 0 },
+				},
+			}),
+		);
+		const events = mapStream(
+			testCtx,
+			sse({
+				choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+			}),
+		);
+
+		expect(extractResponseObject(events)).toMatchObject({
+			usage: {
+				input_tokens: 10,
+				output_tokens: 5,
+				total_tokens: 15,
+				input_tokens_details: { cached_tokens: 0 },
+			},
+		});
+	});
+
 	test("empty choices returns empty array", () => {
 		const testCtx = ctx();
 		const events = mapStream(testCtx, sse({ choices: [] }));

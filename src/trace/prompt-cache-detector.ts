@@ -57,7 +57,7 @@ export class PrefixPromptCacheDetector implements PromptCacheDetector {
 			risk = "high";
 			reasons.push("prompt_cache_key prefix changed");
 		}
-		if (toolsChanged(current, input.previous)) {
+		if (input.previous && toolsChanged(current, input.previous)) {
 			risk = maxRisk(risk, "medium");
 			reasons.push("tool order or names changed for cache identity");
 		}

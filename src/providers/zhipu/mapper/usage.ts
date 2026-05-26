@@ -13,7 +13,7 @@ export class ZhipuUsageMapper
 			total_tokens: source.usage.total_tokens,
 		};
 		const cached = source.usage.prompt_tokens_details?.cached_tokens;
-		if (cached) {
+		if (cached !== undefined) {
 			result.input_tokens_details = { cached_tokens: cached };
 		}
 		return result;

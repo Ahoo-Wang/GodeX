@@ -57,7 +57,7 @@ export class ZhipuStreamDeltaMapper
 			total_tokens: chunk.usage.total_tokens,
 		};
 		const cached = chunk.usage.prompt_tokens_details?.cached_tokens;
-		if (cached) {
+		if (cached !== undefined) {
 			result.input_tokens_details = { cached_tokens: cached };
 		}
 		return result;
