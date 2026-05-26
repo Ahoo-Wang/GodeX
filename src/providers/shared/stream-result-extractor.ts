@@ -1,3 +1,4 @@
+import "@ahoo-wang/fetcher-eventstream";
 import type { FetchExchange, ResultExtractor } from "@ahoo-wang/fetcher";
 import type {
 	JsonServerSentEventStream,
