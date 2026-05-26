@@ -32,10 +32,11 @@ function contentText(content: unknown): string {
 }
 
 function toolName(tool: unknown): string {
-	if (!isRecord(tool)) return "";
+	if (!isRecord(tool)) return "unknown";
 	const fn = tool.function;
 	if (isRecord(fn) && typeof fn.name === "string") return fn.name;
-	return typeof tool.name === "string" ? tool.name : "";
+	if (typeof tool.name === "string") return tool.name;
+	return typeof tool.type === "string" ? tool.type : "unknown";
 }
 
 function hasCacheControlField(req: Record<string, unknown>): boolean {

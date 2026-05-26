@@ -70,6 +70,30 @@ describe("ChatCompletionPromptCacheRequestAnalyzer", () => {
 		expect(b.tool_fingerprint?.names).toEqual(["second", "first"]);
 	});
 
+	test("labels provider tools without function names by type", () => {
+		const analyzer = new ChatCompletionPromptCacheRequestAnalyzer();
+		const analysis = analyzer.analyze({
+			provider: "zhipu",
+			model: "glm-5.1",
+			request: { model: "glm-5.1" },
+			providerRequest: {
+				model: "glm-5.1",
+				messages: [],
+				tools: [
+					{ type: "function", function: { name: "local_shell" } },
+					{
+						type: "web_search",
+						web_search: { enable: true, search_engine: "search_pro" },
+					},
+				],
+			},
+		});
+		expect(analysis.tool_fingerprint?.names).toEqual([
+			"local_shell",
+			"web_search",
+		]);
+	});
+
 	test("collects dynamic text candidates from instructions and system messages", () => {
 		const analyzer = new ChatCompletionPromptCacheRequestAnalyzer();
 		const analysis = analyzer.analyze({
