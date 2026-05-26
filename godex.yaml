@@ -85,15 +85,15 @@ session:
 # 关闭时 (enabled: false) 零开销 — 直接使用 NoopTraceRecorder 丢弃所有事件。
 # ---------------------------------------------------------------------------
 trace:
-  enabled: true                    # true 时启用独立 trace.db, false 时零开销
+  enabled: false                    # 是否启用 (默认 false)
   path: ./data/trace.db             # SQLite trace 数据库路径 (开发环境默认)
                                     #   非开发环境默认 ~/.godex/data/trace.db
   max_queue_size: 10000             # 异步队列最大长度，满时丢弃并 warn
   flush_interval_ms: 1000           # 后台批量 flush 间隔 (毫秒)
   batch_size: 100                   # 单次 flush 最大记录数
-  capture_payload: true            # false: 只记录 payload_hash + payload_bytes
-                                    # true:  存储完整 payload JSON, 超过
-                                    #        payload_max_bytes 时截断并标记
+  capture_payload: false            # 是否存储完整 payload JSON (默认 false)
+                                    #   false: 只记录 payload_hash + payload_bytes
+                                    #   true:  超过 payload_max_bytes 时截断并标记
   payload_max_bytes: 65536          # capture_payload=true 时单条 payload 最大字节数
 
 # ---------------------------------------------------------------------------
