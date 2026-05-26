@@ -42,7 +42,7 @@ export function reasoningItem(block: ReasoningBlock): Reasoning {
 		type: "reasoning",
 		status: block.done ? "completed" : "in_progress",
 		summary: [],
-		content: [{ type: "reasoning_text", text: block.text }],
+		content: block.done ? [{ type: "reasoning_text", text: block.text }] : [],
 	};
 }
 
