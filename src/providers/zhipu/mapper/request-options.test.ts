@@ -1,12 +1,13 @@
 // src/providers/zhipu/request.test.ts
 import { describe, expect, test } from "bun:test";
-import type { CompatibilityDiagnostic } from "../../adapter/compatibility";
-import type { ApplicationContext } from "../../context/application-context";
-import type { ResponsesContext } from "../../context/responses-context";
-import { AdapterError } from "../../error";
-import { createLogger, type Logger } from "../../logger";
-import type { ResponseCreateRequest } from "../../protocol/openai/responses";
-import { buildZhipuRequest } from "./request";
+import type { CompatibilityDiagnostic } from "../../../adapter/compatibility";
+import type { ApplicationContext } from "../../../context/application-context";
+import type { ResponsesContext } from "../../../context/responses-context";
+import { AdapterError } from "../../../error";
+import { createLogger, type Logger } from "../../../logger";
+import type { ResponseCreateRequest } from "../../../protocol/openai/responses";
+import type { ChatCompletionTextRequest } from "../protocol/completions";
+import { createZhipuMapper } from "./index";
 
 function ctx(
 	partial: Partial<ResponseCreateRequest> = {},
@@ -35,9 +36,13 @@ function ctx(
 	} as unknown as ResponsesContext;
 }
 
+const requestMapper = createZhipuMapper().request;
+const mapRequest = (c: ResponsesContext): ChatCompletionTextRequest =>
+	requestMapper.map(c) as ChatCompletionTextRequest;
+
 describe("buildZhipuRequest", () => {
 	test("converts string input to user message", () => {
-		const result = buildZhipuRequest(
+		const result = mapRequest(
 			ctx({ input: "Hello", instructions: "Be helpful." }),
 		);
 		expect(result.model).toBe("glm-5.1");
@@ -50,7 +55,7 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("converts array input items to messages", () => {
-		const result = buildZhipuRequest(
+		const result = mapRequest(
 			ctx({
 				input: [
 					{ role: "user", content: "Hi" },
@@ -91,14 +96,14 @@ describe("buildZhipuRequest", () => {
 				],
 			},
 		);
-		const result = buildZhipuRequest(sessionCtx);
+		const result = mapRequest(sessionCtx);
 		expect(result.messages[0]).toEqual({ role: "user", content: "First" });
 		expect(result.messages[1]).toEqual({ role: "assistant", content: "Reply" });
 		expect(result.messages[2]).toEqual({ role: "user", content: "Follow-up" });
 	});
 
 	test("preserves tool call IDs for function call outputs", () => {
-		const result = buildZhipuRequest(
+		const result = mapRequest(
 			ctx({
 				input: [
 					{
@@ -118,7 +123,7 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("converts text content arrays in function call outputs", () => {
-		const result = buildZhipuRequest(
+		const result = mapRequest(
 			ctx({
 				input: [
 					{
@@ -159,7 +164,7 @@ describe("buildZhipuRequest", () => {
 			},
 		);
 
-		const result = buildZhipuRequest(sessionCtx);
+		const result = mapRequest(sessionCtx);
 
 		expect(result.messages[0]).toEqual({
 			role: "assistant",
@@ -187,7 +192,7 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("maps reasoning to thinking config", () => {
-		const result = buildZhipuRequest(
+		const result = mapRequest(
 			ctx({
 				reasoning: { effort: "high" },
 			}),
@@ -196,34 +201,30 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("clamps temperature to 1.0 max", () => {
-		const result = buildZhipuRequest(ctx({ temperature: 1.5 }));
+		const result = mapRequest(ctx({ temperature: 1.5 }));
 		expect(result.temperature).toBe(1.0);
 	});
 
 	test("clamps temperature to 0.0 min", () => {
-		const result = buildZhipuRequest(ctx({ temperature: -0.3 }));
+		const result = mapRequest(ctx({ temperature: -0.3 }));
 		expect(result.temperature).toBe(0);
 	});
 
 	test("maps max_output_tokens to max_tokens", () => {
-		const result = buildZhipuRequest(ctx({ max_output_tokens: 4096 }));
+		const result = mapRequest(ctx({ max_output_tokens: 4096 }));
 		expect(result.max_tokens).toBe(4096);
 	});
 
 	test("maps safety identifiers to Zhipu user_id", () => {
-		const safetyResult = buildZhipuRequest(
-			ctx({ safety_identifier: "codex-user-1" }),
-		);
+		const safetyResult = mapRequest(ctx({ safety_identifier: "codex-user-1" }));
 		expect(safetyResult.user_id).toBe("codex-user-1");
 
-		const deprecatedUserResult = buildZhipuRequest(
-			ctx({ user: "legacy-user" }),
-		);
+		const deprecatedUserResult = mapRequest(ctx({ user: "legacy-user" }));
 		expect(deprecatedUserResult.user_id).toBe("legacy-user");
 	});
 
 	test("sets stream: true when requested", () => {
-		const result = buildZhipuRequest(ctx({ stream: true }));
+		const result = mapRequest(ctx({ stream: true }));
 		expect(result.stream).toBe(true);
 	});
 
@@ -235,14 +236,14 @@ describe("buildZhipuRequest", () => {
 		];
 
 		for (const request of unsupportedRequests) {
-			expect(() => buildZhipuRequest(ctx(request))).toThrow(AdapterError);
+			expect(() => mapRequest(ctx(request))).toThrow(AdapterError);
 		}
 	});
 
 	test("downgrades truncation auto instead of rejecting the request", () => {
 		const testCtx = ctx({ input: "Hi", truncation: "auto" });
 
-		const result = buildZhipuRequest(testCtx);
+		const result = mapRequest(testCtx);
 
 		expect(result.messages).toEqual([{ role: "user", content: "Hi" }]);
 		expect("truncation" in result).toBe(false);
@@ -259,7 +260,7 @@ describe("buildZhipuRequest", () => {
 	test("does not map parallel_tool_calls to Zhipu tool_stream", () => {
 		const testCtx = ctx({ input: "Hi", parallel_tool_calls: true });
 
-		const result = buildZhipuRequest(testCtx);
+		const result = mapRequest(testCtx);
 
 		expect("tool_stream" in result).toBe(false);
 		expect(testCtx.diagnostics).toContainEqual(
@@ -273,7 +274,7 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("accepts optional OpenAI fields that are echoed but not sent to Zhipu", () => {
-		const result = buildZhipuRequest(
+		const result = mapRequest(
 			ctx({
 				input: "Hi",
 				include: ["message.output_text.logprobs"],
@@ -293,7 +294,7 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("maps response_format json_schema to response_format json_object", () => {
-		const result = buildZhipuRequest(
+		const result = mapRequest(
 			ctx({
 				text: { format: { type: "json_schema", name: "person", schema: {} } },
 			}),
@@ -302,7 +303,7 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("maps response_format json_object to response_format json_object", () => {
-		const result = buildZhipuRequest(
+		const result = mapRequest(
 			ctx({
 				text: { format: { type: "json_object" } },
 			}),
@@ -311,7 +312,7 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test('treats tool_choice "none" as an explicit no-tools downgrade', () => {
-		const result = buildZhipuRequest(
+		const result = mapRequest(
 			ctx({
 				tools: [
 					{
@@ -342,7 +343,7 @@ describe("buildZhipuRequest", () => {
 			tool_choice: "required",
 		});
 
-		const result = buildZhipuRequest(testCtx);
+		const result = mapRequest(testCtx);
 
 		expect(result.tool_choice).toBe("auto");
 		expect(testCtx.diagnostics).toContainEqual(
@@ -369,7 +370,7 @@ describe("buildZhipuRequest", () => {
 
 		let thrown: unknown;
 		try {
-			buildZhipuRequest(requestCtx);
+			mapRequest(requestCtx);
 		} catch (err) {
 			thrown = err;
 		}
@@ -403,7 +404,7 @@ describe("buildZhipuRequest", () => {
 			],
 		});
 
-		const result = buildZhipuRequest(testCtx);
+		const result = mapRequest(testCtx);
 
 		expect(result.tools).toEqual([
 			{
@@ -427,7 +428,7 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("maps Codex tool call history to chat tool messages", () => {
-		const result = buildZhipuRequest(
+		const result = mapRequest(
 			ctx({
 				input: [
 					{
@@ -543,7 +544,7 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("maps downgraded local_shell and tool_search history with matching function arguments", () => {
-		const result = buildZhipuRequest(
+		const result = mapRequest(
 			ctx({
 				input: [
 					{
@@ -630,7 +631,7 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("preserves zero-valued shell call options in downgraded history", () => {
-		const result = buildZhipuRequest(
+		const result = mapRequest(
 			ctx({
 				input: [
 					{
@@ -665,7 +666,7 @@ describe("buildZhipuRequest", () => {
 	});
 
 	test("silently skips unsupported current input content", () => {
-		const request = buildZhipuRequest(
+		const request = mapRequest(
 			ctx({
 				input: [
 					{
@@ -708,7 +709,7 @@ describe("buildZhipuRequest", () => {
 			],
 		});
 
-		const result = buildZhipuRequest(testCtx);
+		const result = mapRequest(testCtx);
 
 		expect(result.tools).toBeUndefined();
 		expect(testCtx.diagnostics.map((d) => d.metadata?.toolType)).toEqual([

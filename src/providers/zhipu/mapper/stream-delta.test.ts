@@ -1,16 +1,16 @@
 // src/providers/zhipu/stream.test.ts
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
-import type { ApplicationContext } from "../../context/application-context";
-import type { ResponsesContext } from "../../context/responses-context";
-import { createLogger } from "../../logger";
+import type { ApplicationContext } from "../../../context/application-context";
+import type { ResponsesContext } from "../../../context/responses-context";
+import { createLogger } from "../../../logger";
 import type {
 	ResponseObject,
 	ResponseStreamEvent,
 	ResponseTool,
-} from "../../protocol/openai/responses";
-import type { ChatCompletionChunk } from "./protocol/completions";
-import { ZhipuStreamMapper } from "./stream";
+} from "../../../protocol/openai/responses";
+import type { ChatCompletionChunk } from "../protocol/completions";
+import { createZhipuMapper } from "./index";
 
 function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 	return {
@@ -104,11 +104,15 @@ function extractResponseObject(
 }
 
 describe("ZhipuStreamMapper", () => {
-	const mapper = new ZhipuStreamMapper();
+	const streamMapper = createZhipuMapper().stream;
+	const mapStream = (
+		c: ResponsesContext,
+		e: JsonServerSentEvent<ChatCompletionChunk>,
+	): ResponseStreamEvent[] => streamMapper.map(c, e) as ResponseStreamEvent[];
 
 	test("first chunk produces created + in_progress events", () => {
 		const testCtx = ctx();
-		const events = mapper.map(testCtx, sse());
+		const events = mapStream(testCtx, sse());
 
 		const types = events.map((e) => e.type);
 		expect(types).toContain("response.created");
@@ -117,9 +121,9 @@ describe("ZhipuStreamMapper", () => {
 
 	test("content delta produces item added and output_text.delta", () => {
 		const testCtx = ctx();
-		mapper.map(testCtx, sse());
+		mapStream(testCtx, sse());
 
-		const events = mapper.map(
+		const events = mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -140,9 +144,9 @@ describe("ZhipuStreamMapper", () => {
 
 	test("reasoning delta produces item added and reasoning_text.delta", () => {
 		const testCtx = ctx();
-		mapper.map(testCtx, sse());
+		mapStream(testCtx, sse());
 
-		const events = mapper.map(
+		const events = mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -167,15 +171,15 @@ describe("ZhipuStreamMapper", () => {
 
 	test("finish_reason: stop produces completed events", () => {
 		const testCtx = ctx();
-		mapper.map(testCtx, sse());
-		mapper.map(
+		mapStream(testCtx, sse());
+		mapStream(
 			testCtx,
 			sse({
 				choices: [{ index: 0, delta: { content: "Hi" }, finish_reason: null }],
 			}),
 		);
 
-		const events = mapper.map(
+		const events = mapStream(
 			testCtx,
 			sse({
 				choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
@@ -191,14 +195,14 @@ describe("ZhipuStreamMapper", () => {
 
 	test("completed response echoes request fields like non-stream response", () => {
 		const testCtx = ctx();
-		mapper.map(testCtx, sse());
-		mapper.map(
+		mapStream(testCtx, sse());
+		mapStream(
 			testCtx,
 			sse({
 				choices: [{ index: 0, delta: { content: "Hi" }, finish_reason: null }],
 			}),
 		);
-		const events = mapper.map(
+		const events = mapStream(
 			testCtx,
 			sse({
 				choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
@@ -240,7 +244,7 @@ describe("ZhipuStreamMapper", () => {
 
 	test("tool call chunks are grouped by index and emit argument done events", () => {
 		const testCtx = ctx();
-		mapper.map(
+		mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -265,7 +269,7 @@ describe("ZhipuStreamMapper", () => {
 				],
 			}),
 		);
-		mapper.map(
+		mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -283,7 +287,7 @@ describe("ZhipuStreamMapper", () => {
 			}),
 		);
 
-		const events = mapper.map(
+		const events = mapStream(
 			testCtx,
 			sse({
 				choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
@@ -343,7 +347,7 @@ describe("ZhipuStreamMapper", () => {
 
 	test("merges tool call chunks when arguments arrive before function name", () => {
 		const testCtx = ctx();
-		mapper.map(
+		mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -364,7 +368,7 @@ describe("ZhipuStreamMapper", () => {
 			}),
 		);
 
-		const nameEvents = mapper.map(
+		const nameEvents = mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -399,7 +403,7 @@ describe("ZhipuStreamMapper", () => {
 			}),
 		]);
 
-		const events = mapper.map(
+		const events = mapStream(
 			testCtx,
 			sse({
 				choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
@@ -428,7 +432,7 @@ describe("ZhipuStreamMapper", () => {
 			{ type: "local_shell" },
 			{ type: "apply_patch" },
 		]);
-		mapper.map(
+		mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -460,7 +464,7 @@ describe("ZhipuStreamMapper", () => {
 				],
 			}),
 		);
-		mapper.map(
+		mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -482,7 +486,7 @@ describe("ZhipuStreamMapper", () => {
 			}),
 		);
 
-		const events = mapper.map(
+		const events = mapStream(
 			testCtx,
 			sse({
 				choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
@@ -536,8 +540,8 @@ describe("ZhipuStreamMapper", () => {
 
 	test("finish_reason: length produces incomplete event and output snapshot", () => {
 		const testCtx = ctx();
-		mapper.map(testCtx, sse());
-		mapper.map(
+		mapStream(testCtx, sse());
+		mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -550,7 +554,7 @@ describe("ZhipuStreamMapper", () => {
 			}),
 		);
 
-		const events = mapper.map(
+		const events = mapStream(
 			testCtx,
 			sse({
 				choices: [{ index: 0, delta: {}, finish_reason: "length" }],
@@ -573,9 +577,9 @@ describe("ZhipuStreamMapper", () => {
 
 	test("finish_reason: network_error produces failed event and output snapshot", () => {
 		const testCtx = ctx();
-		mapper.map(testCtx, sse());
+		mapStream(testCtx, sse());
 
-		const events = mapper.map(
+		const events = mapStream(
 			testCtx,
 			sse({
 				choices: [{ index: 0, delta: {}, finish_reason: "network_error" }],
@@ -604,7 +608,7 @@ describe("ZhipuStreamMapper", () => {
 
 	test("empty choices returns empty array", () => {
 		const testCtx = ctx();
-		const events = mapper.map(testCtx, sse({ choices: [] }));
+		const events = mapStream(testCtx, sse({ choices: [] }));
 		expect(events).toEqual([]);
 	});
 });

@@ -1,6 +1,6 @@
 // src/providers/zhipu/tools.test.ts
 import { describe, expect, test } from "bun:test";
-import { AdapterError } from "../../error";
+import { AdapterError } from "../../../error";
 import { mapToolChoice, mapTools } from "./tools";
 
 describe("mapTools", () => {

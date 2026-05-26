@@ -1,11 +1,14 @@
 // src/providers/zhipu/response.test.ts
 import { describe, expect, test } from "bun:test";
-import type { ApplicationContext } from "../../context/application-context";
-import type { ResponsesContext } from "../../context/responses-context";
-import { createLogger } from "../../logger";
-import type { ResponseTool } from "../../protocol/openai/responses";
-import type { ChatCompletionResponse } from "./protocol/completions";
-import { buildResponseObject } from "./response";
+import type { ApplicationContext } from "../../../context/application-context";
+import type { ResponsesContext } from "../../../context/responses-context";
+import { createLogger } from "../../../logger";
+import type {
+	ResponseObject,
+	ResponseTool,
+} from "../../../protocol/openai/responses";
+import type { ChatCompletionResponse } from "../protocol/completions";
+import { createZhipuMapper } from "./index";
 
 function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 	return {
@@ -81,9 +84,15 @@ const zhipuResponse: ChatCompletionResponse = {
 	usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
 };
 
+const responseMapper = createZhipuMapper().response;
+const mapResponse = (
+	c: ResponsesContext,
+	r: ChatCompletionResponse,
+): ResponseObject => responseMapper.map(c, r) as ResponseObject;
+
 describe("buildResponseObject", () => {
 	test("maps basic text response", () => {
-		const result = buildResponseObject(ctx(), zhipuResponse);
+		const result = mapResponse(ctx(), zhipuResponse);
 
 		expect(result.id).toBe("resp_1");
 		expect(result.object).toBe("response");
@@ -148,7 +157,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(ctx(), emptyText);
+		const result = mapResponse(ctx(), emptyText);
 
 		expect(result.output_text).toBe("");
 	});
@@ -177,7 +186,7 @@ describe("buildResponseObject", () => {
 				},
 			],
 		};
-		const result = buildResponseObject(ctx(), withTools);
+		const result = mapResponse(ctx(), withTools);
 
 		expect(result.output[0]?.type).toBe("message");
 		expect(result.output[1]?.type).toBe("function_call");
@@ -214,7 +223,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(
+		const result = mapResponse(
 			withTools([{ type: "local_shell" }]),
 			withLocalShell,
 		);
@@ -268,7 +277,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(
+		const result = mapResponse(
 			withTools([{ type: "apply_patch" }, { type: "tool_search" }]),
 			withBuiltIns,
 		);
@@ -317,7 +326,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(
+		const result = mapResponse(
 			withTools([{ type: "custom", name: "read-file" }]),
 			withCustom,
 		);
@@ -355,7 +364,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(
+		const result = mapResponse(
 			withTools([
 				{
 					type: "namespace",
@@ -407,10 +416,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(
-			withTools([{ type: "local_shell" }]),
-			malformed,
-		);
+		const result = mapResponse(withTools([{ type: "local_shell" }]), malformed);
 
 		expect(result.output[1]).toEqual({
 			type: "function_call",
@@ -435,7 +441,7 @@ describe("buildResponseObject", () => {
 				},
 			],
 		};
-		const result = buildResponseObject(ctx(), withReasoning);
+		const result = mapResponse(ctx(), withReasoning);
 
 		expect(result.output).toHaveLength(2);
 		expect(result.output[0]?.type).toBe("reasoning");
@@ -463,7 +469,7 @@ describe("buildResponseObject", () => {
 				},
 			],
 		};
-		const result = buildResponseObject(ctx(), withSearch);
+		const result = mapResponse(ctx(), withSearch);
 
 		const searchItem = result.output.find(
 			(item) => item.type === "web_search_call",
@@ -489,7 +495,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(ctx(), truncated);
+		const result = mapResponse(ctx(), truncated);
 
 		expect(result.status).toBe("incomplete");
 		expect(result.incomplete_details).toEqual({ reason: "max_output_tokens" });
@@ -510,7 +516,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(ctx(), failed);
+		const result = mapResponse(ctx(), failed);
 
 		expect(result.status).toBe("failed");
 		expect(result.error).toEqual({
