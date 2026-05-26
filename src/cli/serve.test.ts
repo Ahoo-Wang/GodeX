@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Logger } from "../logger";
-import type { ResponseSessionStore } from "../session";
 import { registerShutdownHandlers } from "./serve";
 
 const originalExit = process.exit;
@@ -10,7 +9,7 @@ afterEach(() => {
 });
 
 describe("registerShutdownHandlers", () => {
-	test("logs shutdown with dot-only event name", () => {
+	test("logs shutdown and calls closeResources callback", async () => {
 		const logs: Array<{ event: string; attr?: Record<string, unknown> }> = [];
 		const logger: Logger = {
 			level: "info",
@@ -26,43 +25,25 @@ describe("registerShutdownHandlers", () => {
 			warn: () => {},
 			error: () => {},
 		};
-		const beforeSigint = process.listeners("SIGINT");
-		const beforeSigterm = process.listeners("SIGTERM");
-		let sigintListener: NodeJS.SignalsListener | undefined;
-		let sigtermListener: NodeJS.SignalsListener | undefined;
+		let closed = false;
+		let exitCode: string | number | null | undefined;
 		process.exit = ((code?: string | number | null | undefined) => {
-			throw new Error(`exit:${String(code)}`);
+			exitCode = code;
 		}) as typeof process.exit;
-
-		try {
-			registerShutdownHandlers(
-				{ stop: () => {} },
-				{} as ResponseSessionStore,
-				logger,
-			);
-			sigintListener = process
-				.listeners("SIGINT")
-				.find((listener) => !beforeSigint.includes(listener)) as
-				| NodeJS.SignalsListener
-				| undefined;
-			sigtermListener = process
-				.listeners("SIGTERM")
-				.find((listener) => !beforeSigterm.includes(listener)) as
-				| NodeJS.SignalsListener
-				| undefined;
-
-			expect(() => sigintListener?.("SIGINT")).toThrow("exit:0");
-			expect(logs).toContainEqual({
-				event: "godex.shutting.down",
-				attr: { signal: "SIGINT" },
-			});
-		} finally {
-			if (sigintListener) {
-				process.removeListener("SIGINT", sigintListener);
-			}
-			if (sigtermListener) {
-				process.removeListener("SIGTERM", sigtermListener);
-			}
-		}
+		registerShutdownHandlers(
+			{ stop: () => {} },
+			() => {
+				closed = true;
+			},
+			logger,
+		);
+		process.emit("SIGINT", "SIGINT");
+		await new Promise((resolve) => setTimeout(resolve, 5));
+		expect(closed).toBe(true);
+		expect(exitCode).toBe(0);
+		expect(logs).toContainEqual({
+			event: "godex.shutting.down",
+			attr: { signal: "SIGINT" },
+		});
 	});
 });
