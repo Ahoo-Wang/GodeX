@@ -71,4 +71,19 @@ describe("PrefixPromptCacheDetector", () => {
 		expect(result.risk_level).toBe("none");
 		expect(result.prefix_hash).toBe("hash-1");
 	});
+
+	test("flags mismatched passthrough value as risk", () => {
+		const detector = new PrefixPromptCacheDetector();
+		const result = detector.detect({
+			current: analysis({
+				requested_prompt_cache_key: "key-a",
+				prompt_cache_key: "key-b",
+			}),
+		});
+		expect(result.risk_level).toBe("medium");
+		expect(result.passthrough.prompt_cache_key).toBe(false);
+		expect(result.reasons).toContain(
+			"prompt_cache_key was not preserved in provider request",
+		);
+	});
 });

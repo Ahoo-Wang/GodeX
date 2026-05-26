@@ -63,6 +63,68 @@ describe("TraceRecorder", () => {
 		recorder.close();
 	});
 
+	test("record does not synchronously call insertBatch when batchSize is reached", () => {
+		let insertCalled = false;
+		const recorder = new AsyncTraceRecorder({
+			maxQueueSize: 10,
+			batchSize: 1,
+			flushIntervalMs: 60_000,
+			capturePayload: false,
+			payloadMaxBytes: 1024,
+			logger: { warn: () => {} },
+			store: {
+				insertBatch: async () => {
+					insertCalled = true;
+				},
+				close: () => {},
+			},
+		});
+		recorder.record(requestEvent("req_1"));
+		expect(insertCalled).toBe(false);
+		recorder.close();
+	});
+
+	test("close waits for in-flight flush before closing store", async () => {
+		let deferredResolve: () => void = () => {};
+		const deferred = new Promise<void>((resolve) => {
+			deferredResolve = resolve;
+		});
+		let storeClosed = false;
+		const steps: string[] = [];
+		const recorder = new AsyncTraceRecorder({
+			maxQueueSize: 10,
+			batchSize: 1,
+			flushIntervalMs: 60_000,
+			capturePayload: false,
+			payloadMaxBytes: 1024,
+			logger: { warn: () => {} },
+			store: {
+				insertBatch: async () => {
+					steps.push("insert-started");
+					await deferred;
+					steps.push("insert-completed");
+				},
+				close: () => {
+					steps.push("store-closed");
+					storeClosed = true;
+				},
+			},
+		});
+		recorder.record(requestEvent("req_1"));
+		// Give the scheduled flush a tick to start
+		await new Promise((r) => setTimeout(r, 1));
+		const closePromise = recorder.close();
+		expect(storeClosed).toBe(false);
+		deferredResolve();
+		await closePromise;
+		expect(storeClosed).toBe(true);
+		expect(steps).toEqual([
+			"insert-started",
+			"insert-completed",
+			"store-closed",
+		]);
+	});
+
 	test("warns instead of throwing when store flush fails", async () => {
 		const warnings: string[] = [];
 		const recorder = new AsyncTraceRecorder({
