@@ -144,6 +144,47 @@ describe("registerShutdownHandlers", () => {
 		});
 	});
 
+	test("logs resource cleanup failures during shutdown", async () => {
+		const warnings: Array<{ event: string; attr?: Record<string, unknown> }> =
+			[];
+		const logger: Logger = {
+			level: "info",
+			child: () => logger,
+			trace: () => {},
+			debug: () => {},
+			info: () => {},
+			warn: (event, attr) => {
+				warnings.push({
+					event,
+					attr: typeof attr === "function" ? attr() : attr,
+				});
+			},
+			error: () => {},
+		};
+		let exitCode: string | number | null | undefined;
+		process.exit = ((code?: string | number | null | undefined) => {
+			exitCode = code;
+		}) as typeof process.exit;
+
+		const cleanup = registerShutdownHandlers(
+			{ port: 3000 },
+			() => {
+				throw new Error("close failed");
+			},
+			logger,
+		);
+		cleanups.push(cleanup);
+
+		process.emit("SIGTERM", "SIGTERM");
+		await new Promise((resolve) => setTimeout(resolve, 5));
+
+		expect(exitCode).toBe(0);
+		expect(warnings).toContainEqual({
+			event: "godex.shutdown.close.error",
+			attr: { error: "Error: close failed" },
+		});
+	});
+
 	test("returns cleanup that removes registered signal listeners", () => {
 		const logger: Logger = {
 			level: "info",
@@ -186,7 +227,9 @@ describe("serve", () => {
 					{
 						stdout: { write: () => {} },
 						loadConfigFromFile: (path) =>
-							path === "godex.yaml" ? validConfig : null,
+							path === "godex.yaml"
+								? { ...validConfig, logging: { level: "info" } }
+								: null,
 						startServer: () => {
 							throw new Error("listen failed");
 						},
@@ -214,7 +257,9 @@ describe("serve", () => {
 					{
 						stdout: { write: () => {} },
 						loadConfigFromFile: (path) =>
-							path === "godex.yaml" ? validConfig : null,
+							path === "godex.yaml"
+								? { ...validConfig, logging: { level: "warn" } }
+								: null,
 						startServer: () => {
 							throw new Error("listen failed");
 						},

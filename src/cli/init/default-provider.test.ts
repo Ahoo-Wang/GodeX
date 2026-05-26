@@ -5,6 +5,12 @@ import { ZHIPU_PROVIDER_NAME } from "../../providers/zhipu/provider";
 import { resolveDefaultProvider } from "./default-provider";
 
 describe("resolveDefaultProvider", () => {
+	test("rejects empty provider selections", () => {
+		expect(() => resolveDefaultProvider([], undefined)).toThrow(
+			"At least one provider must be configured",
+		);
+	});
+
 	test("uses the only configured provider without prompting", () => {
 		expect(resolveDefaultProvider([DEEPSEEK_PROVIDER_NAME], undefined)).toBe(
 			DEEPSEEK_PROVIDER_NAME,
