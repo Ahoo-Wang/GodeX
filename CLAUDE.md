@@ -73,28 +73,11 @@ Each provider declares `ProviderCapabilities` (supported parameters, tools, tool
 
 ### Provider structure
 
-Each provider under `src/providers/<name>/` follows this pattern:
+Each provider under `src/providers/<name>/` implements the sub-responsibility interfaces from `chat/contract.ts` in individual mapper files (`messages.ts`, `tools.ts`, `request-options.ts`, `response-output.ts`, `usage.ts`, `finish-reason.ts`, `stream-delta.ts`, `tool-calls.ts`, `capabilities.ts`, `compatibility.ts`), wired together by a `createXxxMapper()` factory in `mapper/index.ts`. The provider class (`provider.ts`) bundles the mapper with a `ChatProviderClient` subclass.
 
-```
-provider/
-├── provider.ts             # Provider class
-├── provider-client.ts      # HTTP client (extends ChatProviderClient)
-├── factory.ts              # createXxxProvider(config)
-├── index.ts                # Barrel re-export
-├── protocol/               # Provider-specific types (Zhipu only)
-└── mapper/
-    ├── index.ts            # createXxxMapper() + barrel exports
-    ├── capabilities.ts     # ProviderCapabilities declaration
-    ├── compatibility.ts    # CompatibilityNegotiator implementation
-    ├── messages.ts         # ChatMessageMapper implementation
-    ├── tools.ts            # ChatToolMapper + ChatToolChoiceMapper
-    ├── request-options.ts  # ChatRequestFactory + ChatRequestOptionsMapper
-    ├── response-output.ts  # ChatResponseAccessor + ChatResponseOutputMapper
-    ├── usage.ts            # ChatUsageMapper
-    ├── finish-reason.ts    # ChatFinishReasonMapper
-    ├── stream-delta.ts     # ChatStreamDeltaMapper
-    └── tool-calls.ts       # ChatToolCallMapper + ChatToolCallIdentityResolver
-```
+### Layer boundaries
+
+`src/adapter/mapper/chat/` must never import from `src/providers/`. Provider-specific code implements the chat contracts; the chat infrastructure stays provider-agnostic. Shared provider utilities live in `src/providers/shared/` — extract common logic there before duplicating across providers.
 
 ### Stream pipeline
 
