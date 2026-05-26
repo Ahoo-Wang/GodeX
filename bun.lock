@@ -24,7 +24,7 @@
       },
       "optionalDependencies": {
         "@ahoo-wang/godex-darwin-arm64": "0.0.2",
-        "@ahoo-wang/godex-darwin-x64": "0.0.2",
+        "@ahoo-wang/godex-darwin-x64": "0.0.22",
         "@ahoo-wang/godex-linux-arm64": "0.0.2",
         "@ahoo-wang/godex-linux-x64": "0.0.2",
         "@ahoo-wang/godex-win32-arm64": "0.0.2",
@@ -41,7 +41,7 @@
 
     "@ahoo-wang/godex-darwin-arm64": ["@ahoo-wang/godex-darwin-arm64@0.0.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-uvsk29w5VSCjyc7zCqf5IpgmFk7ga6pnvuAj2vTArnqwyNRQ63g+CtrOMNh2CNPSqMrFZaghYPmJlx4HNMZn/g=="],
 
-    "@ahoo-wang/godex-darwin-x64": ["@ahoo-wang/godex-darwin-x64@0.0.2", "", { "os": "darwin", "cpu": "x64" }, "sha512-pq1SpJS1dEQCbq6cZJjSo7knhslxCA+9eillTIzkPwt7sOsTqxOXOSuMhkLfIzBX7oSgM2SQW1VhDt4a0IQXpg=="],
+    "@ahoo-wang/godex-darwin-x64": ["@ahoo-wang/godex-darwin-x64@0.0.22", "", { "os": "darwin", "cpu": "x64" }, "sha512-eB26KLhJbEH8Nz+HhTjtT1KZ99TGNP4dpf7zDqSc2RiIH+shZ/+AzRCpzvM24XK2ik0mVz85gSLwr8v1HqEUOg=="],
 
     "@ahoo-wang/godex-linux-arm64": ["@ahoo-wang/godex-linux-arm64@0.0.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-BpRRiRQc3icaDYLqF5mJgOS7jhubVeqdKkAnSX3OeI+m+S5/yDRLBKQYMNLCr5L6cANS3U/meafkG/A8UrpqVQ=="],
 
