@@ -29,7 +29,7 @@ export interface ChatToolChoiceMapper<TTools, TToolChoice> {
 }
 
 export interface ChatCompletionRequestShape<TMessage, TTools, TToolChoice> {
-	model: unknown;
+	model: string;
 	messages: TMessage[];
 	tools?: TTools;
 	tool_choice?: TToolChoice;

@@ -30,8 +30,10 @@ export function wrapWithErrorHandler(
 						})) {
 							controller.enqueue(e);
 						}
-					} catch {
-						// onError may throw if already terminal
+					} catch (e) {
+						ctx.logger.warn("stream.error.handler.failed", () => ({
+							error: String(e),
+						}));
 					}
 				}
 				controller.close();
