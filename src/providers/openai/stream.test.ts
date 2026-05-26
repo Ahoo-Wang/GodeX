@@ -106,7 +106,7 @@ describe("OpenAIStreamMapper", () => {
 		]);
 	});
 
-	test("restores namespace tool call identity consistently from added through done", () => {
+	test("restores namespace tool call identity and defers terminal until usage", () => {
 		const testCtx = ctx({
 			tools: [
 				{
@@ -164,6 +164,8 @@ describe("OpenAIStreamMapper", () => {
 				arguments: "",
 			},
 		});
+
+		// Continuation chunk (no type field, just function.arguments)
 		mapper.map(
 			testCtx,
 			sse({
@@ -174,7 +176,6 @@ describe("OpenAIStreamMapper", () => {
 							tool_calls: [
 								{
 									index: 0,
-									type: "function",
 									function: { arguments: ':"1 + 1"}' },
 								} as never,
 							],
@@ -186,6 +187,7 @@ describe("OpenAIStreamMapper", () => {
 			}),
 		);
 
+		// Finish chunk: onFinish defers terminal (deferTerminal=true)
 		const events = mapper.map(
 			testCtx,
 			sse({
@@ -214,10 +216,31 @@ describe("OpenAIStreamMapper", () => {
 				}),
 			]),
 		);
-		expect(terminalEvent(events)).toMatchObject({
+		// Terminal is deferred; no terminal event in this chunk
+		expect(terminalEvent(events)).toBeUndefined();
+
+		// Usage-only chunk flushes the pending terminal
+		const usageEvents = mapper.map(
+			testCtx,
+			sse({
+				choices: [],
+				usage: {
+					prompt_tokens: 100,
+					completion_tokens: 50,
+					total_tokens: 150,
+				},
+			} as Partial<ChatCompletionChunk> as ChatCompletionChunk),
+		);
+
+		expect(terminalEvent(usageEvents)).toMatchObject({
 			type: "response.completed",
 			response: {
 				status: "completed",
+				usage: {
+					input_tokens: 100,
+					output_tokens: 50,
+					total_tokens: 150,
+				},
 				output: expect.arrayContaining([
 					expect.objectContaining({
 						type: "function_call",

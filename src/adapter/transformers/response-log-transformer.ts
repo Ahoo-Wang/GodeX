@@ -33,7 +33,9 @@ export class ResponseLogTransformer extends SafeTransformer<
 	protected override async onFlush(): Promise<void> {
 		if (this.logged) return;
 		const state = StreamResponseState.get(this.ctx);
+
 		if (!state) return;
+		state.finalize();
 		if (
 			state.phase !== StreamResponsePhase.COMPLETED &&
 			state.phase !== StreamResponsePhase.INCOMPLETE &&

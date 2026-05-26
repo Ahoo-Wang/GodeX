@@ -36,6 +36,8 @@ export abstract class ChatCompletionStreamMapper<
 	TFinishReason extends string,
 > implements StreamMapper<TChunk>
 {
+	protected deferTerminal = false;
+
 	map(
 		ctx: ResponsesContext,
 		event: JsonServerSentEvent<TChunk>,
@@ -44,11 +46,12 @@ export abstract class ChatCompletionStreamMapper<
 			StreamResponseState.get(ctx) ??
 			StreamResponseState.create(ctx, {
 				toolCallOutputItemMapper: (call) => this.mapToolCall(ctx, call),
+				deferTerminal: this.deferTerminal,
 			});
 		const choice = this.extractChoice(event.data);
 		if (!choice) {
 			const usage = this.extractUsage(event.data);
-			if (usage) state.onUsage(usage);
+			if (usage) return state.onUsage(usage);
 			return [];
 		}
 
@@ -78,13 +81,15 @@ export abstract class ChatCompletionStreamMapper<
 			);
 		}
 
+		// Set usage before onFinish so terminal event carries usage
+		const usage = this.extractUsage(event.data);
+		if (usage) {
+			events.push(...state.onUsage(usage));
+		}
+
 		if (choice.finishReason) {
 			events.push(...state.onFinish(this.mapFinishReason(choice.finishReason)));
 		}
-
-		// Usage may arrive in the finish chunk or a subsequent usage-only chunk
-		const usage = this.extractUsage(event.data);
-		if (usage) state.onUsage(usage);
 
 		return events;
 	}

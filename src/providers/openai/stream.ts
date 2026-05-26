@@ -25,6 +25,7 @@ export class OpenAIStreamMapper extends ChatCompletionStreamMapper<
 	ChatCompletionStreamDelta,
 	FinishReason
 > {
+	protected override deferTerminal = true;
 	protected override extractUsage(
 		chunk: ChatCompletionChunk,
 	): ResponseUsage | undefined {
