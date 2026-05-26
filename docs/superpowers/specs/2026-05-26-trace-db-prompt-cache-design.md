@@ -92,6 +92,7 @@ export interface TraceRecordBase {
 	response_id: string;
 	provider: string;
 	model: string;
+	/** Unix milliseconds when this trace record was observed/enqueued. */
 	created_at: number;
 }
 
@@ -106,8 +107,6 @@ export interface TraceRequestRecordEvent extends TraceRecordBase {
 	stream: boolean;
 	prompt_cache_key?: string;
 	prompt_cache_retention?: string;
-	prefix_hash?: string;
-	prefix_bytes?: number;
 	cache_detection?: PromptCacheDetection;
 	payload?: TracePayloadInput;
 }
@@ -141,6 +140,8 @@ export interface TraceUsageSnapshot {
 
 The recorder converts `kind: "request"` events into `trace_requests`, `kind: "usage"` events into `trace_usage`, and `kind: "event"` events into `trace_events`. `TracePayloadInput.payload` is summarized according to the payload capture policy inside the recorder, so adapter code does not duplicate serialization or truncation rules.
 
+All trace `created_at` values use Unix milliseconds from the moment the trace record is observed or enqueued. They are trace timestamps, not Responses API `created_at` values. This means `trace_requests.created_at`, `trace_events.created_at`, and `trace_usage.created_at` each describe when that specific trace row was produced.
+
 `record()` must:
 
 - return synchronously
@@ -169,6 +170,7 @@ export interface PromptCacheObservation {
 		names: string[];
 		hash: string;
 	};
+	/** Unix milliseconds when this observation was remembered. */
 	created_at: number;
 	request_id: string;
 }
@@ -298,6 +300,8 @@ Detection rules:
 
 The detector receives the previous observation from `PromptCacheObservationIndex`, keyed by `provider + model + prompt_cache_key`. The index is updated by `DefaultAdapter` after detection and does not read SQLite in the request path. If the previous observation is unavailable, detection still records the current prefix hash and uses risk rules that do not require history.
 
+When `prompt_cache_key` is absent, the detector still computes and records `prefix_hash`, `prefix_bytes`, `tool_fingerprint`, passthrough status, and dynamic-text findings. Historical comparisons are skipped because there is no stable cache identity, so these rules do not run: same-key prefix hash changed, same-key tool order changed, and observation index updates. The absence of `prompt_cache_key` is not a risk by itself.
+
 Dynamic-text detection is intentionally heuristic. False positives are expected and acceptable because detection results are observability data only. The first implementation keeps the patterns hard-coded and covered by tests; making patterns configurable is out of scope for this first trace DB feature.
 
 `passthrough.cache_control` is future-proofing for providers with Anthropic-style request shapes. With the current OpenAI-compatible providers, it will usually be `false` and should not be treated as a failure by itself.
@@ -318,6 +322,8 @@ The truncated preview is stored in the same `payload_json` column. `payload_byte
 This replaces the old payload-level trace logger role while keeping payload capture explicit and opt-in.
 
 ## SQLite Schema
+
+All `created_at` columns below store Unix milliseconds from the moment the trace row was observed or enqueued.
 
 ### `trace_requests`
 
@@ -347,6 +353,8 @@ Indexes:
 
 - `idx_trace_requests_request_id`
 - `idx_trace_requests_cache_identity` on `(provider, model, prompt_cache_key, created_at)`
+
+`prefix_hash` and `prefix_bytes` are written from `TraceRequestRecordEvent.cache_detection`. If detection is unavailable because analysis failed, those columns remain null.
 
 ### `trace_usage`
 
@@ -422,17 +430,22 @@ All trace operations use `record()` and are not awaited.
 `DefaultAdapter.stream(ctx)` flow:
 
 1. Run `mapper.request.map(ctx)` to produce the provider request.
-2. Analyze the provider request, read previous observation, detect prompt cache risk, and update the observation index.
-3. Record request-level cache analysis, detection, and the Responses request payload summary to `trace_requests`.
-4. Record `provider.request.body` as a trace event summary and optional payload.
-5. Call `client.stream(providerRequest)`.
-6. `TraceTransformer("upstream.stream.event.raw")` records raw provider SSE chunks.
-7. `ProviderEventToResponseTransformer` maps provider chunks.
-8. `TraceTransformer("upstream.stream.event.transformed")` records transformed Responses events.
-9. Terminal response events trigger usage recording to `trace_usage`.
-10. SSE output is never delayed by trace flushing.
+2. Analyze the provider request through `ProviderPromptCacheRequestAnalyzer`.
+3. Read the previous prompt cache observation from `ctx.app.promptCacheObservationIndex`.
+4. Detect cache risk through `PromptCacheDetector`.
+5. Update `ctx.app.promptCacheObservationIndex` with the current observation when `prompt_cache_key` exists.
+6. Record request-level cache analysis, detection, and the Responses request payload summary to `trace_requests`.
+7. Record `provider.request.body` as a trace event summary and optional payload.
+8. Call `client.stream(providerRequest)`.
+9. `TraceTransformer("upstream.stream.event.raw")` records raw provider SSE chunks.
+10. `ProviderEventToResponseTransformer` maps provider chunks.
+11. `TraceTransformer("upstream.stream.event.transformed")` records transformed Responses events.
+12. `ResponseLogTransformer` records response usage to `trace_usage` when it observes a terminal response or terminal stream state with usage.
+13. SSE output is never delayed by trace flushing.
 
 `TraceTransformer` must enqueue each chunk unchanged. Trace recording is a side effect after pass-through and must not change stream output if recording fails.
+
+No separate usage transformer is needed for the first implementation. `ResponseLogTransformer` already observes terminal response objects through `responseFromTerminalEvent()` and through `StreamResponseState` in `onFlush()`. It should call a shared trace usage helper at most once per stream, after enqueueing the chunk that exposed the terminal response. If the terminal response has no usage, no `trace_usage` row is written.
 
 ## Replacing Existing Trace Logs
 
@@ -488,6 +501,20 @@ Trace errors are observability failures, not API failures.
 
 The CLI shutdown path should call `app.close()` instead of closing only the session store. Tests for `registerShutdownHandlers` should verify that both trace recorder and session store close paths are invoked.
 
+`registerShutdownHandlers` should take a close callback instead of a `ResponseSessionStore`:
+
+```ts
+export function registerShutdownHandlers(
+	server: { stop(): void } | { port: number },
+	closeResources: () => void | Promise<void>,
+	logger: Logger,
+): void;
+```
+
+`serve()` passes `() => app.close()`. This keeps the shutdown helper independent of the concrete `ApplicationContext` type while allowing tests to assert that the application-level close path runs.
+
+The shutdown handler should await `closeResources()` before calling `process.exit(0)`. If closing fails, it logs a warning and still exits.
+
 ## Testing
 
 Add focused tests:
@@ -509,6 +536,7 @@ Add focused tests:
 - `PrefixPromptCacheDetector` tests:
   - same cache key with changed prefix hash is high risk
   - changed tools order is detected
+  - requests without `prompt_cache_key` skip historical comparison but still record prefix hash and dynamic-text findings
   - dynamic values in instructions/system/developer content are detected
   - missing passthrough fields are detected
 - Adapter tests:
@@ -518,7 +546,7 @@ Add focused tests:
 - Stream tests:
   - `TraceTransformer` passes chunks through unchanged
   - raw and transformed stream event records contain hash/size
-  - terminal response event records usage
+  - `ResponseLogTransformer` records terminal response usage exactly once when usage is present
 - No route tests for `/v1/godex/*`, because this design adds no HTTP API.
 
 Verification commands:
