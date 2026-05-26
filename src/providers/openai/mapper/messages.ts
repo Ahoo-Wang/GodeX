@@ -17,16 +17,11 @@ import type {
 } from "../../../protocol/openai/responses";
 import type { ResponseSessionSnapshot } from "../../../session";
 import {
-	downgradedResponseToolCallPayload,
-	downgradedResponseToolOutputPayload,
+	convertResponseItemToMessage,
 	extractResponseText,
-	isResponseMessageItem,
 	type ResponseMessageItemLike,
-	responseFunctionCallPayload,
-	responseFunctionOutputPayload,
 	type UnsupportedMode,
 	unsupportedResponseInputContentError,
-	unsupportedResponseInputItemError,
 } from "../../shared/response-message-payloads";
 import { OPENAI_PROVIDER_NAME } from "../provider";
 
@@ -73,51 +68,22 @@ export class OpenAIMessageMapper
 	}
 }
 
-function responseItemToMessage(
+const responseItemToMessage = (
 	item: ResponseItem,
-	onUnsupported: UnsupportedMode = "skip",
-): ChatCompletionMessageParam | null {
-	const options = payloadOptions(onUnsupported);
-	if (isResponseMessageItem(item)) {
-		return messageItemToMessage(item, onUnsupported);
-	}
-	if (item.type === "function_call_output") {
-		const payload = responseFunctionOutputPayload(item, options);
-		return toolOutputMessage(payload.callId, payload.content);
-	}
-	if (item.type === "function_call") {
-		const payload = responseFunctionCallPayload(item);
-		return toolCallMessage(
-			payload.callId,
-			payload.name,
-			payload.argumentsValue,
-		);
-	}
-
-	const downgradedToolCall = downgradedResponseToolCallPayload(item);
-	if (downgradedToolCall) {
-		return toolCallMessage(
-			downgradedToolCall.callId,
-			downgradedToolCall.name,
-			downgradedToolCall.argumentsValue,
-		);
-	}
-
-	const downgradedToolOutput = downgradedResponseToolOutputPayload(
+	onUnsupported?: UnsupportedMode,
+) =>
+	convertResponseItemToMessage<ChatCompletionMessageParam>(
+		{
+			defaultMode: "skip",
+			provider: OPENAI_PROVIDER_NAME,
+			providerLabel: "OpenAI",
+			buildToolCallMessage: toolCallMessage,
+			buildToolOutputMessage: toolOutputMessage,
+			buildMessageItemMessage: messageItemToMessage,
+		},
 		item,
-		options,
+		onUnsupported,
 	);
-	if (downgradedToolOutput)
-		return toolOutputMessage(
-			downgradedToolOutput.callId,
-			downgradedToolOutput.content,
-		);
-
-	if (onUnsupported === "throw") {
-		throw unsupportedResponseInputItemError(item, options);
-	}
-	return null;
-}
 
 function messageItemToMessage(
 	item: ResponseItem & ResponseMessageItemLike,

@@ -318,6 +318,76 @@ export function extractResponseOutputText(output: ResponseItem[]): string {
 		.join("");
 }
 
+export interface ResponseItemToMessageConfig<TMessage> {
+	defaultMode: UnsupportedMode;
+	provider: string;
+	providerLabel: string;
+	buildToolCallMessage: (
+		callId: string,
+		name: string,
+		argumentsValue: string | Record<string, unknown>,
+	) => TMessage;
+	buildToolOutputMessage: (callId: string, content: string) => TMessage;
+	buildMessageItemMessage: (
+		item: ResponseItem & ResponseMessageItemLike,
+		onUnsupported: UnsupportedMode,
+	) => TMessage;
+}
+
+export function convertResponseItemToMessage<TMessage>(
+	config: ResponseItemToMessageConfig<TMessage>,
+	item: ResponseItem,
+	onUnsupported?: UnsupportedMode,
+): TMessage | null {
+	const mode = onUnsupported ?? config.defaultMode;
+	const options: ResponseMessagePayloadOptions = {
+		provider: config.provider,
+		providerLabel: config.providerLabel,
+		onUnsupported: mode,
+	};
+
+	if (isResponseMessageItem(item)) {
+		return config.buildMessageItemMessage(item, mode);
+	}
+	if (item.type === "function_call_output") {
+		const payload = responseFunctionOutputPayload(item, options);
+		return config.buildToolOutputMessage(payload.callId, payload.content);
+	}
+	if (item.type === "function_call") {
+		const payload = responseFunctionCallPayload(item);
+		return config.buildToolCallMessage(
+			payload.callId,
+			payload.name,
+			payload.argumentsValue,
+		);
+	}
+
+	const downgradedToolCall = downgradedResponseToolCallPayload(item);
+	if (downgradedToolCall) {
+		return config.buildToolCallMessage(
+			downgradedToolCall.callId,
+			downgradedToolCall.name,
+			downgradedToolCall.argumentsValue,
+		);
+	}
+
+	const downgradedToolOutput = downgradedResponseToolOutputPayload(
+		item,
+		options,
+	);
+	if (downgradedToolOutput) {
+		return config.buildToolOutputMessage(
+			downgradedToolOutput.callId,
+			downgradedToolOutput.content,
+		);
+	}
+
+	if (mode === "throw") {
+		throw unsupportedResponseInputItemError(item, options);
+	}
+	return null;
+}
+
 function errorContext(options: ResponseMessagePayloadOptions) {
 	return {
 		provider: options.provider,

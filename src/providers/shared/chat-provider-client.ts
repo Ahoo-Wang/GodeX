@@ -12,7 +12,9 @@ export interface ChatProviderClientOptions extends ChatApiOptions {
 	provider: string;
 }
 
-export class ChatProviderClient<TReq, TRes, TChunk>
+type StreamableRequest = { stream?: boolean };
+
+export class ChatProviderClient<TReq extends StreamableRequest, TRes, TChunk>
 	implements ProviderClient<TReq, TRes, TChunk>
 {
 	private readonly api: ChatApi<TReq, TRes, TChunk>;
