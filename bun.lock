@@ -26,7 +26,7 @@
         "@ahoo-wang/godex-darwin-arm64": "0.0.2",
         "@ahoo-wang/godex-darwin-x64": "0.0.2",
         "@ahoo-wang/godex-linux-arm64": "0.0.2",
-        "@ahoo-wang/godex-linux-x64": "0.0.2",
+        "@ahoo-wang/godex-linux-x64": "0.0.22",
         "@ahoo-wang/godex-win32-arm64": "0.0.2",
         "@ahoo-wang/godex-win32-x64": "0.0.2",
       },
@@ -45,7 +45,7 @@
 
     "@ahoo-wang/godex-linux-arm64": ["@ahoo-wang/godex-linux-arm64@0.0.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-BpRRiRQc3icaDYLqF5mJgOS7jhubVeqdKkAnSX3OeI+m+S5/yDRLBKQYMNLCr5L6cANS3U/meafkG/A8UrpqVQ=="],
 
-    "@ahoo-wang/godex-linux-x64": ["@ahoo-wang/godex-linux-x64@0.0.2", "", { "os": "linux", "cpu": "x64" }, "sha512-CUoCURuhBZiq9vjhzAqRYSO2YYWh3aOaK3V+PtPgDY6PcNQ8FS8Q8dWz5XQu99tzE+Q7m3Vd7K4kiJZSiG+AIQ=="],
+    "@ahoo-wang/godex-linux-x64": ["@ahoo-wang/godex-linux-x64@0.0.22", "", { "os": "linux", "cpu": "x64" }, "sha512-pHX6c3pf/IeOSKSDpkPjnpWYEqiJCa/ttM9w1+7mXzr1E9RU0/24y1MZ7K2CVH0hMKM9P5SZ456azPJqcx95Fg=="],
 
     "@ahoo-wang/godex-win32-arm64": ["@ahoo-wang/godex-win32-arm64@0.0.2", "", { "os": "win32", "cpu": "arm64" }, "sha512-gimBG8DBq4bECpj9HS+2Wnemh1otZ/xqNo2Q1yApYX/Ip/MVqfjvq/o13y5ls+ncfym0X8IK8FFSG7rssc18pw=="],
 
