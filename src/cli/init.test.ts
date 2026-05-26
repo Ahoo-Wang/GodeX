@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import yaml from "js-yaml";
+import { buildConfig } from "../config";
 import {
 	DEEPSEEK_PROVIDER_NAME,
 	DEFAULT_DEEPSEEK_BASE_URL,
@@ -10,8 +12,13 @@ import {
 import {
 	ZHIPU_BASE_URL,
 	ZHIPU_CODING_PLAN_BASE_URL,
+	ZHIPU_PROVIDER_NAME,
 } from "../providers/zhipu/provider";
-import { buildConfigYaml, resolveDefaultProvider } from "./init";
+import {
+	buildConfigYaml,
+	type InitConfigYamlOptions,
+	resolveDefaultProvider,
+} from "./init";
 import {
 	getInitProviderDefinition,
 	INIT_PROVIDER_DEFINITIONS,
@@ -21,7 +28,7 @@ describe("INIT_PROVIDER_DEFINITIONS", () => {
 	test("includes OpenAI, Zhipu, and DeepSeek", () => {
 		expect(INIT_PROVIDER_DEFINITIONS.map((provider) => provider.id)).toEqual([
 			OPENAI_PROVIDER_NAME,
-			"zhipu",
+			ZHIPU_PROVIDER_NAME,
 			DEEPSEEK_PROVIDER_NAME,
 		]);
 	});
@@ -45,10 +52,10 @@ describe("INIT_PROVIDER_DEFINITIONS", () => {
 
 describe("buildConfigYaml", () => {
 	const baseOpts = {
-		defaultProvider: "zhipu",
+		defaultProvider: ZHIPU_PROVIDER_NAME,
 		providers: [
 			{
-				id: "zhipu",
+				id: ZHIPU_PROVIDER_NAME,
 				apiKey: "${ZHIPU_API_KEY}",
 				baseUrl: ZHIPU_CODING_PLAN_BASE_URL,
 			},
@@ -56,14 +63,14 @@ describe("buildConfigYaml", () => {
 		port: "5678",
 		sessionBackend: "sqlite" as const,
 		logLevel: "info",
-	};
+	} satisfies InitConfigYamlOptions;
 
 	test("uses coding plan base URL when selected", () => {
 		const yaml = buildConfigYaml({
 			...baseOpts,
 			providers: [
 				{
-					id: "zhipu",
+					id: ZHIPU_PROVIDER_NAME,
 					apiKey: "${ZHIPU_API_KEY}",
 					baseUrl: ZHIPU_CODING_PLAN_BASE_URL,
 				},
@@ -77,7 +84,7 @@ describe("buildConfigYaml", () => {
 			...baseOpts,
 			providers: [
 				{
-					id: "zhipu",
+					id: ZHIPU_PROVIDER_NAME,
 					apiKey: "${ZHIPU_API_KEY}",
 					baseUrl: ZHIPU_BASE_URL,
 				},
@@ -89,15 +96,15 @@ describe("buildConfigYaml", () => {
 	test("renders multiple providers and selected default provider", () => {
 		const yaml = buildConfigYaml({
 			...baseOpts,
-			defaultProvider: "deepseek",
+			defaultProvider: DEEPSEEK_PROVIDER_NAME,
 			providers: [
 				{
-					id: "deepseek",
+					id: DEEPSEEK_PROVIDER_NAME,
 					apiKey: "${DEEPSEEK_API_KEY}",
 					baseUrl: DEFAULT_DEEPSEEK_BASE_URL,
 				},
 				{
-					id: "openai",
+					id: OPENAI_PROVIDER_NAME,
 					apiKey: "${OPENAI_API_KEY}",
 					baseUrl: DEFAULT_OPENAI_BASE_URL,
 				},
@@ -111,6 +118,42 @@ describe("buildConfigYaml", () => {
 		expect(yaml).toContain("  openai:");
 		expect(yaml).toContain("    api_key: ${OPENAI_API_KEY}");
 		expect(yaml).toContain(`    base_url: ${DEFAULT_OPENAI_BASE_URL}`);
+	});
+
+	test("renders multi-provider YAML accepted by the config loader", () => {
+		const rawYaml = buildConfigYaml({
+			...baseOpts,
+			defaultProvider: DEEPSEEK_PROVIDER_NAME,
+			providers: [
+				{
+					id: DEEPSEEK_PROVIDER_NAME,
+					apiKey: "deepseek-test-key",
+					baseUrl: DEFAULT_DEEPSEEK_BASE_URL,
+				},
+				{
+					id: OPENAI_PROVIDER_NAME,
+					apiKey: "openai-test-key",
+					baseUrl: DEFAULT_OPENAI_BASE_URL,
+				},
+			],
+			sessionBackend: "memory",
+			logLevel: "warn",
+		});
+
+		const parsed = yaml.load(rawYaml) as Record<string, unknown>;
+		const config = buildConfig(parsed, {});
+
+		expect(config.default_provider).toBe(DEEPSEEK_PROVIDER_NAME);
+		expect(Object.keys(config.providers)).toEqual([
+			DEEPSEEK_PROVIDER_NAME,
+			OPENAI_PROVIDER_NAME,
+		]);
+		expect(config.providers[DEEPSEEK_PROVIDER_NAME]).toEqual({
+			api_key: "deepseek-test-key",
+			base_url: DEFAULT_DEEPSEEK_BASE_URL,
+		});
+		expect(config.session.backend).toBe("memory");
+		expect(config.logging.level).toBe("warn");
 	});
 
 	test("includes sqlite path for sqlite backend", () => {
@@ -127,12 +170,26 @@ describe("buildConfigYaml", () => {
 
 describe("resolveDefaultProvider", () => {
 	test("uses the only configured provider without prompting", () => {
-		expect(resolveDefaultProvider(["deepseek"], undefined)).toBe("deepseek");
+		expect(resolveDefaultProvider([DEEPSEEK_PROVIDER_NAME], undefined)).toBe(
+			DEEPSEEK_PROVIDER_NAME,
+		);
 	});
 
 	test("uses selected default when multiple providers are configured", () => {
-		expect(resolveDefaultProvider(["deepseek", "openai"], "openai")).toBe(
-			"openai",
-		);
+		expect(
+			resolveDefaultProvider(
+				[DEEPSEEK_PROVIDER_NAME, OPENAI_PROVIDER_NAME],
+				OPENAI_PROVIDER_NAME,
+			),
+		).toBe(OPENAI_PROVIDER_NAME);
+	});
+
+	test("rejects a selected default that is not configured", () => {
+		expect(() =>
+			resolveDefaultProvider(
+				[DEEPSEEK_PROVIDER_NAME, OPENAI_PROVIDER_NAME],
+				ZHIPU_PROVIDER_NAME,
+			),
+		).toThrow('Default provider "zhipu" is not configured');
 	});
 });

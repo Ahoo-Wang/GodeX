@@ -6,6 +6,7 @@ import {
 	getInitProviderDefinition,
 	INIT_PROVIDER_DEFINITIONS,
 	type InitProviderDefinition,
+	type InitProviderId,
 } from "./init-providers";
 
 interface InitOptions {
@@ -30,7 +31,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
 	}
 
 	const providerConfigs: InitProviderConfig[] = [];
-	for (const providerId of selectedProviders as string[]) {
+	for (const providerId of selectedProviders as InitProviderId[]) {
 		const definition = getInitProviderDefinition(providerId);
 		if (!definition) continue;
 		const providerConfig = await promptProviderConfig(definition);
@@ -42,7 +43,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
 		return;
 	}
 
-	let selectedDefaultProvider: string | undefined;
+	let selectedDefaultProvider: InitProviderId | undefined;
 	if (providerConfigs.length > 1) {
 		const defaultProvider = await clack.select({
 			message: "Default provider:",
@@ -56,7 +57,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
 			clack.cancel("Operation cancelled");
 			return;
 		}
-		selectedDefaultProvider = defaultProvider as string;
+		selectedDefaultProvider = defaultProvider as InitProviderId;
 	}
 
 	const port = await clack.text({
@@ -146,7 +147,7 @@ async function promptProviderConfig(
 }
 
 export interface InitProviderConfig {
-	id: string;
+	id: InitProviderId;
 	apiKey: string;
 	baseUrl: string;
 }
@@ -188,10 +189,18 @@ export function buildConfigYaml(opts: InitConfigYamlOptions): string {
 }
 
 export function resolveDefaultProvider(
-	providerIds: string[],
-	selectedDefaultProvider: string | undefined,
-): string {
-	return providerIds.length === 1
-		? (providerIds[0] ?? "")
-		: (selectedDefaultProvider ?? providerIds[0] ?? "");
+	providerIds: readonly InitProviderId[],
+	selectedDefaultProvider: InitProviderId | undefined,
+): InitProviderId {
+	if (providerIds.length === 0) {
+		throw new Error("At least one provider must be configured");
+	}
+	if (providerIds.length === 1) return providerIds[0] as InitProviderId;
+
+	const defaultProvider =
+		selectedDefaultProvider ?? (providerIds[0] as InitProviderId);
+	if (!providerIds.includes(defaultProvider)) {
+		throw new Error(`Default provider "${defaultProvider}" is not configured`);
+	}
+	return defaultProvider;
 }

@@ -12,6 +12,11 @@ import {
 	ZHIPU_PROVIDER_NAME,
 } from "../providers/zhipu/provider";
 
+export type InitProviderId =
+	| typeof OPENAI_PROVIDER_NAME
+	| typeof ZHIPU_PROVIDER_NAME
+	| typeof DEEPSEEK_PROVIDER_NAME;
+
 export interface InitProviderBaseUrlChoice {
 	value: string;
 	label: string;
@@ -19,7 +24,7 @@ export interface InitProviderBaseUrlChoice {
 }
 
 export interface InitProviderDefinition {
-	id: string;
+	id: InitProviderId;
 	label: string;
 	apiKeyPlaceholder: string;
 	baseUrlChoices: InitProviderBaseUrlChoice[];
