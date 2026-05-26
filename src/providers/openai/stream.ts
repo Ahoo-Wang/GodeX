@@ -74,14 +74,11 @@ export class OpenAIStreamMapper extends ChatCompletionStreamMapper<
 				const raw = toolCall as unknown as Record<string, unknown>;
 				return {
 					index: typeof raw.index === "number" ? raw.index : undefined,
-					id: raw.id as string,
-					type: (raw.type as string) ?? "function",
-					function: raw.function as
-						| {
-								name?: string;
-								arguments?: string;
-						  }
-						| undefined,
+					id: typeof raw.id === "string" ? raw.id : undefined,
+					type: typeof raw.type === "string" ? raw.type : "function",
+					function: (typeof raw.function === "object" && raw.function
+						? raw.function
+						: undefined) as { name?: string; arguments?: string } | undefined,
 				};
 			});
 	}

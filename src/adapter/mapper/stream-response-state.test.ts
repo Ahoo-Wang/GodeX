@@ -522,6 +522,15 @@ describe("StreamResponseState terminal behavior", () => {
 		expect(() => state.onTextDelta("late")).toThrow(GodeXError);
 	});
 
+	test("delta before start throws with specific error code", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		// state is IDLE, start() was never called
+
+		expect(() => state.onTextDelta("early")).toThrow(GodeXError);
+	});
+
 	test("streaming usage is not set by finish", () => {
 		const state = StreamResponseState.create(ctx(), {
 			toolCallOutputItemMapper: toolMapper,

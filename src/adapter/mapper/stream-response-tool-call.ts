@@ -28,8 +28,11 @@ export class ToolCallOutputState {
 				opened: false,
 				done: false,
 			} satisfies ToolCallRecord);
-		if (delta.id) current.id = delta.id;
-		if (delta.name) current.name = delta.name;
+		// Freeze id and name once the call is opened
+		if (!current.opened) {
+			if (delta.id) current.id = delta.id;
+			if (delta.name) current.name = delta.name;
+		}
 		if (delta.arguments) current.arguments += delta.arguments;
 		this.calls.set(index, current);
 		return current;

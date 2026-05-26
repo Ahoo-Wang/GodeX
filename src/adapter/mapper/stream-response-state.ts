@@ -7,6 +7,7 @@ import {
 	ADAPTER_STREAM_MISSING_OPTIONS,
 	ADAPTER_STREAM_MISSING_OUTPUT_BLOCK,
 	ADAPTER_STREAM_NOT_INITIALIZED,
+	ADAPTER_STREAM_OUTPUT_BEFORE_START,
 	AdapterError,
 } from "../../error";
 import type {
@@ -150,7 +151,10 @@ export class StreamResponseState {
 	start(): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IDLE, "start");
 		this.currentPhase = StreamResponsePhase.IN_PROGRESS;
-		this.currentSnapshot = this.baseSnapshot("in_progress");
+		this.currentSnapshot = {
+			...this.currentSnapshot,
+			status: "in_progress",
+		};
 		return [
 			{ type: "response.created", response: this.currentSnapshot },
 			{ type: "response.in_progress", response: this.currentSnapshot },
@@ -739,9 +743,16 @@ export class StreamResponseState {
 
 	private assertPhase(expected: StreamResponsePhase, action: string): void {
 		if (this.currentPhase !== expected) {
+			const code =
+				expected === StreamResponsePhase.IN_PROGRESS &&
+				this.currentPhase === StreamResponsePhase.IDLE
+					? ADAPTER_STREAM_OUTPUT_BEFORE_START
+					: isTerminalPhase(this.currentPhase)
+						? ADAPTER_STREAM_DELTA_AFTER_TERMINAL
+						: ADAPTER_STREAM_INVALID_TRANSITION;
 			throw streamStateError(
 				this.ctx,
-				ADAPTER_STREAM_INVALID_TRANSITION,
+				code,
 				`${action} cannot run while stream response phase is ${this.currentPhase}.`,
 				{ action, phase: this.currentPhase },
 			);
