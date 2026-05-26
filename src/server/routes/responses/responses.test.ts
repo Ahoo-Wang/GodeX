@@ -24,6 +24,15 @@ const config: GodeXConfig = {
 	},
 	session: { backend: "memory" },
 	logging: { level: "error" },
+	trace: {
+		enabled: false,
+		path: "./data/trace.db",
+		max_queue_size: 10000,
+		flush_interval_ms: 1000,
+		batch_size: 100,
+		capture_payload: false,
+		payload_max_bytes: 65536,
+	},
 };
 
 class FakeMapper

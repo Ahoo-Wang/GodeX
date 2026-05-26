@@ -42,6 +42,16 @@ export interface LoggingConfig {
 	file?: FileLoggingConfig;
 }
 
+export interface TraceConfig {
+	enabled: boolean;
+	path: string;
+	max_queue_size: number;
+	flush_interval_ms: number;
+	batch_size: number;
+	capture_payload: boolean;
+	payload_max_bytes: number;
+}
+
 export interface GodeXConfig {
 	server: ServerConfig;
 	default_provider: string;
@@ -49,4 +59,5 @@ export interface GodeXConfig {
 	providers: Record<string, ProviderConfig>;
 	session: SessionConfig;
 	logging: LoggingConfig;
+	trace: TraceConfig;
 }

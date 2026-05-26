@@ -277,4 +277,56 @@ describe("buildConfig", () => {
 		expect(config.logging.console).toBeUndefined();
 		expect(config.logging.file).toBeUndefined();
 	});
+
+	test("defaults trace config to disabled", () => {
+		const config = buildConfig(validFileConfig, {});
+		expect(config.trace).toEqual({
+			enabled: false,
+			path: "./data/trace.db",
+			max_queue_size: 10000,
+			flush_interval_ms: 1000,
+			batch_size: 100,
+			capture_payload: false,
+			payload_max_bytes: 65536,
+		});
+	});
+
+	test("parses trace config when enabled", () => {
+		const config = buildConfig(
+			{
+				...validFileConfig,
+				trace: {
+					enabled: true,
+					path: "./tmp/trace.sqlite",
+					max_queue_size: 10,
+					flush_interval_ms: 25,
+					batch_size: 5,
+					capture_payload: true,
+					payload_max_bytes: 128,
+				},
+			},
+			{},
+		);
+		expect(config.trace).toEqual({
+			enabled: true,
+			path: "./tmp/trace.sqlite",
+			max_queue_size: 10,
+			flush_interval_ms: 25,
+			batch_size: 5,
+			capture_payload: true,
+			payload_max_bytes: 128,
+		});
+	});
+
+	test("throws for invalid trace numeric values", () => {
+		expect(() =>
+			buildConfig(
+				{
+					...validFileConfig,
+					trace: { enabled: true, max_queue_size: 0 },
+				},
+				{},
+			),
+		).toThrow("trace.max_queue_size must be a positive integer");
+	});
 });
