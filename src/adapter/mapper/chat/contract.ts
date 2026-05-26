@@ -4,9 +4,9 @@ import type {
 	ResponseObject,
 	ResponseUsage,
 } from "../../../protocol/openai/responses";
+import type { CompatibilityPlan } from "./compatibility-plan";
 import type { ResponseStatusFields } from "./response-object-builder";
 import type { ToolCallSnapshot } from "./stream-response-state";
-import type { CompatibilityPlan } from "./compatibility-plan";
 
 export interface CompatibilityNegotiator {
 	negotiate(ctx: ResponsesContext): CompatibilityPlan;
@@ -48,8 +48,7 @@ export interface ChatRequestOptionsMapper<TReq> {
 }
 
 export interface ChatResponseAccessor<TRes, TChoice, TFinishReason>
-	extends ChatChoiceExtractor<TRes, TChoice>
-{
+	extends ChatChoiceExtractor<TRes, TChoice> {
 	finishReason(
 		choice: TChoice | undefined,
 	): TFinishReason | string | null | undefined;
