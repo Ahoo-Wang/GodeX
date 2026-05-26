@@ -1,6 +1,7 @@
 export * from "./compatibility-plan";
 export * from "./contract";
 export * from "./request-mapper";
+export * from "./response-mapper";
 export * from "./response-object-builder";
 export * from "./stream-response-message";
 export * from "./stream-response-output";
