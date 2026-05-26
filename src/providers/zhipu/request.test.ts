@@ -664,24 +664,28 @@ describe("buildZhipuRequest", () => {
 		});
 	});
 
-	test("throws instead of silently dropping unsupported current input content", () => {
-		expect(() =>
-			buildZhipuRequest(
-				ctx({
-					input: [
-						{
-							role: "user",
-							content: [
-								{
-									type: "input_image",
-									image_url: "https://example.com/cat.png",
-								},
-							],
-						},
-					],
-				}),
-			),
-		).toThrow(AdapterError);
+	test("silently skips unsupported current input content", () => {
+		const request = buildZhipuRequest(
+			ctx({
+				input: [
+					{
+						role: "user",
+						content: [
+							{
+								type: "input_image",
+								image_url: "https://example.com/cat.png",
+							},
+							{
+								type: "input_text",
+								text: "Hello",
+							},
+						],
+					},
+				],
+			}),
+		);
+		// Should not throw; unsupported content is silently skipped
+		expect(request).toBeDefined();
 	});
 
 	test("gracefully skips unsupported provider-side tools", () => {

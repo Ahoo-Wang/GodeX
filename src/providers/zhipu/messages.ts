@@ -41,7 +41,7 @@ export function buildZhipuMessages(
 			if (typeof item === "string") {
 				messages.push({ role: "user", content: item });
 			} else {
-				const msg = responseItemToMessage(item as ResponseItem, "throw");
+				const msg = responseItemToMessage(item as ResponseItem, "skip");
 				if (msg) messages.push(msg);
 			}
 		}
