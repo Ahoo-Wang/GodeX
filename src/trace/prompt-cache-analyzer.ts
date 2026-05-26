@@ -5,12 +5,14 @@ import type {
 	ProviderPromptCacheRequestAnalyzer,
 } from "./types";
 
+const textEncoder = new TextEncoder();
+
 function stableJson(value: unknown): string {
 	return JSON.stringify(value);
 }
 
 function byteLength(value: string): number {
-	return new TextEncoder().encode(value).byteLength;
+	return textEncoder.encode(value).byteLength;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -35,5 +35,5 @@ export const ZHIPU_CAPABILITIES: ProviderCapabilities = {
 	toolChoice: { supported: new Set(["auto", "none"]) },
 	responseFormats: { supported: new Set(["json_object", "json_schema"]) },
 	reasoning: { effort: "boolean" },
-	streaming: { usage: false },
+	streaming: { usage: true },
 };

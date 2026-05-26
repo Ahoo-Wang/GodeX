@@ -46,4 +46,35 @@ describe("registerShutdownHandlers", () => {
 			attr: { signal: "SIGINT" },
 		});
 	});
+
+	test("runs shutdown once for repeated signals", async () => {
+		const logger: Logger = {
+			level: "info",
+			child: () => logger,
+			trace: () => {},
+			debug: () => {},
+			info: () => {},
+			warn: () => {},
+			error: () => {},
+		};
+		let closeCount = 0;
+		let exitCount = 0;
+		process.exit = (() => {
+			exitCount++;
+		}) as typeof process.exit;
+		registerShutdownHandlers(
+			{ stop: () => {} },
+			() => {
+				closeCount++;
+			},
+			logger,
+		);
+
+		process.emit("SIGINT", "SIGINT");
+		process.emit("SIGINT", "SIGINT");
+		await new Promise((resolve) => setTimeout(resolve, 5));
+
+		expect(closeCount).toBe(1);
+		expect(exitCount).toBe(1);
+	});
 });

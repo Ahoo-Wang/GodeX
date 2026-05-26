@@ -66,6 +66,7 @@ export function createZhipuMapper(): ProviderMapper<
 			finishReason,
 			identity: new ZhipuToolCallIdentityResolver(),
 			toolCall: new ZhipuToolCallMapper(),
+			deferTerminal: true,
 		}),
 	};
 }
