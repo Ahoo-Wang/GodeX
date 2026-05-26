@@ -105,6 +105,8 @@ export interface TracePayloadInput {
 export interface TraceRequestRecordEvent extends TraceRecordBase {
 	kind: "request";
 	stream: boolean;
+	requested_prompt_cache_key?: string;
+	requested_prompt_cache_retention?: string;
 	prompt_cache_key?: string;
 	prompt_cache_retention?: string;
 	cache_detection?: PromptCacheDetection;
@@ -163,7 +165,8 @@ All trace `created_at` values use Unix milliseconds from the moment the trace re
 export interface PromptCacheObservation {
 	provider: string;
 	model: string;
-	prompt_cache_key: string;
+	/** Cache identity key; prefer requested_prompt_cache_key, then provider-side prompt_cache_key. */
+	cache_identity_key: string;
 	prefix_hash: string;
 	prefix_bytes: number;
 	tool_fingerprint?: {
@@ -179,7 +182,7 @@ export interface PromptCacheObservationIndex {
 	get(input: {
 		provider: string;
 		model: string;
-		prompt_cache_key?: string;
+		cache_identity_key?: string;
 	}): PromptCacheObservation | null;
 	remember(observation: PromptCacheObservation): void;
 }
@@ -189,7 +192,7 @@ export interface PromptCacheObservationIndex {
 
 The first implementation should use a bounded LRU-style map with a default maximum equal to `trace.max_queue_size`, capped to a reasonable floor of at least 1,000 entries. When the bound is reached, the oldest observations are evicted. This keeps repeated cache-key detection useful without allowing unbounded memory growth.
 
-Observations are tracked only when `prompt_cache_key` is present. Requests without a cache key still get prefix hash and heuristic detection, but they do not enter the cache-key observation index.
+Observations are tracked only when a cache identity key exists. The cache identity key is `requested_prompt_cache_key` when the original Responses request provided it; otherwise it is the provider-side `prompt_cache_key` if one exists. Requests without either key still get prefix hash and heuristic detection, but they do not enter the cache-key observation index.
 
 ### SQLite Trace Store
 
@@ -241,6 +244,10 @@ This keeps provider request shape knowledge out of the detector.
 export interface PromptCacheAnalysisInput {
 	provider: string;
 	model: string;
+	/** From original Responses request: what the caller asked GodeX to preserve. */
+	requested_prompt_cache_key?: string;
+	requested_prompt_cache_retention?: string;
+	/** From mapped provider request: what GodeX will actually send upstream. */
 	prompt_cache_key?: string;
 	prompt_cache_retention?: string;
 	has_cache_control?: boolean;
@@ -267,6 +274,8 @@ export interface PromptCacheAnalysisInput {
 
 The analyzer must preserve original provider request order. It may hash and summarize request parts, but it must not normalize by sorting or otherwise hide ordering changes that can affect prompt cache behavior.
 
+The analyzer also records both sides of cache passthrough. `requested_prompt_cache_key` and `requested_prompt_cache_retention` come from the original Responses request. `prompt_cache_key` and `prompt_cache_retention` come from the mapped provider request. The detector uses these paired fields to detect cases where the caller supplied cache fields but the provider request did not preserve them.
+
 ## Prefix Prompt Cache Detector
 
 `PrefixPromptCacheDetector` is the default detector. It produces:
@@ -291,16 +300,16 @@ export interface PromptCacheDetection {
 
 Detection rules:
 
-- high risk when the same `provider + model + prompt_cache_key` has a different `static_prefix_hash` from the previous observation
-- medium or high risk when tool names, count, or order changes for the same cache key
+- high risk when the same cache identity key has a different `static_prefix_hash` from the previous observation
+- medium or high risk when tool names, count, or order changes for the same cache identity key
 - medium risk when `instructions`, system, or developer content appears to contain dynamic request IDs, response IDs, UUIDs, nanoid-like values, ISO timestamps, Unix timestamps, current-time phrases, or other obvious runtime values
-- medium risk when the provider request does not preserve `prompt_cache_key` or `prompt_cache_retention` where the Responses request provided them
+- medium risk when `requested_prompt_cache_key` is present but provider-side `prompt_cache_key` is missing, or when `requested_prompt_cache_retention` is present but provider-side `prompt_cache_retention` is missing
 - low or informational risk when Anthropic-style `cache_control` is present or absent, because GodeX records this but does not add or remove it
 - risk evidence is recorded only to trace DB and never fed back into request mapping
 
-The detector receives the previous observation from `PromptCacheObservationIndex`, keyed by `provider + model + prompt_cache_key`. The index is updated by `DefaultAdapter` after detection and does not read SQLite in the request path. If the previous observation is unavailable, detection still records the current prefix hash and uses risk rules that do not require history.
+The detector receives the previous observation from `PromptCacheObservationIndex`, keyed by `provider + model + cache_identity_key`. The index is updated by `DefaultAdapter` after detection and does not read SQLite in the request path. If the previous observation is unavailable, detection still records the current prefix hash and uses risk rules that do not require history.
 
-When `prompt_cache_key` is absent, the detector still computes and records `prefix_hash`, `prefix_bytes`, `tool_fingerprint`, passthrough status, and dynamic-text findings. Historical comparisons are skipped because there is no stable cache identity, so these rules do not run: same-key prefix hash changed, same-key tool order changed, and observation index updates. The absence of `prompt_cache_key` is not a risk by itself.
+When both requested and provider-side cache keys are absent, the detector still computes and records `prefix_hash`, `prefix_bytes`, `tool_fingerprint`, passthrough status, and dynamic-text findings. Historical comparisons are skipped because there is no stable cache identity, so these rules do not run: same-key prefix hash changed, same-key tool order changed, and observation index updates. The absence of a cache key is not a risk by itself.
 
 Dynamic-text detection is intentionally heuristic. False positives are expected and acceptable because detection results are observability data only. The first implementation keeps the patterns hard-coded and covered by tests; making patterns configurable is out of scope for this first trace DB feature.
 
@@ -336,6 +345,8 @@ Stores request-level cache analysis and detection:
 - `model TEXT NOT NULL`
 - `stream INTEGER NOT NULL`
 - `created_at INTEGER NOT NULL`
+- `requested_prompt_cache_key TEXT NULL`
+- `requested_prompt_cache_retention TEXT NULL`
 - `prompt_cache_key TEXT NULL`
 - `prompt_cache_retention TEXT NULL`
 - `prefix_hash TEXT NULL`
@@ -352,9 +363,10 @@ Stores request-level cache analysis and detection:
 Indexes:
 
 - `idx_trace_requests_request_id`
-- `idx_trace_requests_cache_identity` on `(provider, model, prompt_cache_key, created_at)`
+- `idx_trace_requests_requested_cache_identity` on `(provider, model, requested_prompt_cache_key, created_at)`
+- `idx_trace_requests_provider_cache_identity` on `(provider, model, prompt_cache_key, created_at)`
 
-`prefix_hash` and `prefix_bytes` are written from `TraceRequestRecordEvent.cache_detection`. If detection is unavailable because analysis failed, those columns remain null.
+`requested_prompt_cache_key` and `requested_prompt_cache_retention` come from the original Responses request through `PromptCacheAnalysisInput`. `prompt_cache_key` and `prompt_cache_retention` come from the mapped provider request. `prefix_hash` and `prefix_bytes` are written from `TraceRequestRecordEvent.cache_detection`. If detection is unavailable because analysis failed, those columns remain null.
 
 ### `trace_usage`
 
@@ -414,7 +426,7 @@ Indexes:
 2. Analyze the provider request through `ProviderPromptCacheRequestAnalyzer`.
 3. Read the previous prompt cache observation from `ctx.app.promptCacheObservationIndex`.
 4. Detect cache risk through `PromptCacheDetector`.
-5. Update `ctx.app.promptCacheObservationIndex` with the current observation when `prompt_cache_key` exists.
+5. Update `ctx.app.promptCacheObservationIndex` with the current observation when a cache identity key exists.
 6. Record request-level cache analysis, detection, and the Responses request payload summary to `trace_requests`.
 7. Record `provider.request.body` as a trace event summary and optional payload.
 8. Call `client.request(providerRequest)`.
@@ -433,7 +445,7 @@ All trace operations use `record()` and are not awaited.
 2. Analyze the provider request through `ProviderPromptCacheRequestAnalyzer`.
 3. Read the previous prompt cache observation from `ctx.app.promptCacheObservationIndex`.
 4. Detect cache risk through `PromptCacheDetector`.
-5. Update `ctx.app.promptCacheObservationIndex` with the current observation when `prompt_cache_key` exists.
+5. Update `ctx.app.promptCacheObservationIndex` with the current observation when a cache identity key exists.
 6. Record request-level cache analysis, detection, and the Responses request payload summary to `trace_requests`.
 7. Record `provider.request.body` as a trace event summary and optional payload.
 8. Call `client.stream(providerRequest)`.
@@ -531,12 +543,12 @@ Add focused tests:
 - `ChatCompletionPromptCacheRequestAnalyzer` tests:
   - preserves message order
   - preserves tool order
-  - extracts `prompt_cache_key` and `prompt_cache_retention`
+  - extracts requested cache fields from the Responses request and provider-side cache fields from the mapped provider request
   - reports `cache_control` presence without modifying it
 - `PrefixPromptCacheDetector` tests:
-  - same cache key with changed prefix hash is high risk
+  - same cache identity key with changed prefix hash is high risk
   - changed tools order is detected
-  - requests without `prompt_cache_key` skip historical comparison but still record prefix hash and dynamic-text findings
+  - requests without requested or provider-side cache keys skip historical comparison but still record prefix hash and dynamic-text findings
   - dynamic values in instructions/system/developer content are detected
   - missing passthrough fields are detected
 - Adapter tests:
