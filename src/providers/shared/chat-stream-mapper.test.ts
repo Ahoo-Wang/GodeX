@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
-import type { ToolCallSnapshot } from "../../adapter/mapper/stream-response-state";
+import type { ToolCallSnapshot } from "../../adapter/mapper/chat/stream-response-state";
 import type { ApplicationContext } from "../../context/application-context";
 import type { ResponsesContext } from "../../context/responses-context";
 import { createLogger } from "../../logger";

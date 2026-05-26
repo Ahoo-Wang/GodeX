@@ -5,7 +5,7 @@ import {
 import type { ResponsesContext } from "../../context/responses-context";
 import type { ResponseStreamEvent } from "../../protocol/openai/responses";
 import type { StreamMapper } from "../mapper/contract";
-import { StreamResponseState } from "../mapper/stream-response-state";
+import { StreamResponseState } from "../mapper/chat/stream-response-state";
 
 export class ProviderEventToResponseTransformer extends SafeTransformer<
 	JsonServerSentEvent<unknown>,

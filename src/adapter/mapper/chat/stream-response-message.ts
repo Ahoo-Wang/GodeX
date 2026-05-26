@@ -1,7 +1,7 @@
 import type {
 	Reasoning,
 	ResponseOutputMessage,
-} from "../../protocol/openai/responses";
+} from "../../../protocol/openai/responses";
 
 export type MessageBlockKind = "text" | "refusal";
 

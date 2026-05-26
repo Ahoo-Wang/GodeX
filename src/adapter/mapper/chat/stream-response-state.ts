@@ -1,4 +1,4 @@
-import type { ResponsesContext } from "../../context/responses-context";
+import type { ResponsesContext } from "../../../context/responses-context";
 import {
 	ADAPTER_STREAM_ALREADY_INITIALIZED,
 	ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
@@ -9,15 +9,15 @@ import {
 	ADAPTER_STREAM_NOT_INITIALIZED,
 	ADAPTER_STREAM_OUTPUT_BEFORE_START,
 	AdapterError,
-} from "../../error";
+} from "../../../error";
 import type {
 	ResponseItem,
 	ResponseObject,
 	ResponseStreamEvent,
 	ResponseUsage,
-} from "../../protocol/openai/responses";
-import type { ResponseError } from "../../protocol/openai/shared";
-import { responseRequestEchoFields } from "../response-utils";
+} from "../../../protocol/openai/responses";
+import type { ResponseError } from "../../../protocol/openai/shared";
+import { responseRequestEchoFields } from "../../response-utils";
 import {
 	contentPart,
 	type MessageBlock,

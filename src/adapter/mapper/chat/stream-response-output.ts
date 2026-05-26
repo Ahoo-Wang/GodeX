@@ -1,4 +1,4 @@
-import type { ResponseItem } from "../../protocol/openai/responses";
+import type { ResponseItem } from "../../../protocol/openai/responses";
 
 export interface OutputRecord {
 	index: number;

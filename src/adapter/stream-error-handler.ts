@@ -1,6 +1,6 @@
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseStreamEvent } from "../protocol/openai/responses";
-import { StreamResponseState } from "./mapper/stream-response-state";
+import { StreamResponseState } from "./mapper/chat/stream-response-state";
 
 /**
  * Wraps a ResponseStreamEvent stream so that read errors trigger a

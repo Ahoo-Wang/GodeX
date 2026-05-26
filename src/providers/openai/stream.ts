@@ -1,7 +1,7 @@
 import type {
 	StreamResponseTerminalStatus,
 	ToolCallSnapshot,
-} from "../../adapter/mapper/stream-response-state";
+} from "../../adapter/mapper/chat/stream-response-state";
 import type { ResponsesContext } from "../../context/responses-context";
 import type {
 	ChatCompletionChunk,

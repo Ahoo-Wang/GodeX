@@ -1,6 +1,6 @@
 // src/providers/zhipu/tool-calls.ts
 
-import type { ToolCallSnapshot } from "../../adapter/mapper/stream-response-state";
+import type { ToolCallSnapshot } from "../../adapter/mapper/chat/stream-response-state";
 import { isRecord } from "../../adapter/utils";
 import type { ResponsesContext } from "../../context/responses-context";
 import type {

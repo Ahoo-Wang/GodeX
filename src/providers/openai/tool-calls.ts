@@ -1,4 +1,4 @@
-import type { ToolCallSnapshot } from "../../adapter/mapper/stream-response-state";
+import type { ToolCallSnapshot } from "../../adapter/mapper/chat/stream-response-state";
 import type { ResponsesContext } from "../../context/responses-context";
 import type { FunctionCall } from "../../protocol/openai/responses";
 import { findFlattenedNamespaceTool } from "../shared/tool-name-mapping";

@@ -8,7 +8,7 @@ import type { ResponseSessionStore } from "../../session";
 import {
 	StreamResponsePhase,
 	StreamResponseState,
-} from "../mapper/stream-response-state";
+} from "../mapper/chat/stream-response-state";
 import { responseFromTerminalEvent } from "./stream-utils";
 
 export interface ResponseSessionPersistenceTransformerOptions {
