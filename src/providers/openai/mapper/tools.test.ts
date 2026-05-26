@@ -1,10 +1,9 @@
-// src/providers/openai/tools.test.ts
 import { describe, expect, test } from "bun:test";
-import { mapToolChoice, mapTools } from "./tools";
+import { mapOpenAIToolChoice, mapOpenAITools } from "./tools";
 
-describe("mapTools", () => {
+describe("mapOpenAITools", () => {
 	test("maps function tool — direct passthrough", () => {
-		const result = mapTools([
+		const result = mapOpenAITools([
 			{
 				type: "function",
 				name: "get_weather",
@@ -37,14 +36,14 @@ describe("mapTools", () => {
 	});
 
 	test("maps web_search to web_search_options (not in tools array)", () => {
-		const result = mapTools([{ type: "web_search" }]);
+		const result = mapOpenAITools([{ type: "web_search" }]);
 
 		expect(result.tools).toEqual([]);
 		expect(result.webSearchOptions).toEqual({});
 	});
 
 	test("maps web_search with user_location", () => {
-		const result = mapTools([
+		const result = mapOpenAITools([
 			{
 				type: "web_search",
 				search_context_size: "high",
@@ -73,7 +72,7 @@ describe("mapTools", () => {
 	});
 
 	test("maps custom tool — direct passthrough", () => {
-		const result = mapTools([
+		const result = mapOpenAITools([
 			{
 				type: "custom",
 				name: "read-file",
@@ -93,7 +92,7 @@ describe("mapTools", () => {
 	});
 
 	test("maps nested custom namespace tool to function tool", () => {
-		const result = mapTools([
+		const result = mapOpenAITools([
 			{
 				type: "namespace",
 				name: "mcp__demo__",
@@ -127,7 +126,7 @@ describe("mapTools", () => {
 	});
 
 	test("skips file_search and MCP tools", () => {
-		const result = mapTools([
+		const result = mapOpenAITools([
 			{
 				type: "file_search",
 				vector_store_ids: ["vs_abc"],
@@ -145,7 +144,7 @@ describe("mapTools", () => {
 	});
 
 	test("maps builtin tools (local_shell, shell, apply_patch) to function tools", () => {
-		const result = mapTools([
+		const result = mapOpenAITools([
 			{ type: "local_shell" },
 			{ type: "shell", environment: { type: "local" } },
 			{ type: "apply_patch" },
@@ -168,14 +167,14 @@ describe("mapTools", () => {
 	});
 
 	test("returns empty result for undefined tools", () => {
-		const result = mapTools(undefined);
+		const result = mapOpenAITools(undefined);
 
 		expect(result.tools).toEqual([]);
 		expect(result.webSearchOptions).toBeUndefined();
 	});
 
 	test("maps web_search_preview to web_search_options", () => {
-		const result = mapTools([
+		const result = mapOpenAITools([
 			{
 				type: "web_search_preview",
 				search_context_size: "low",
@@ -189,21 +188,24 @@ describe("mapTools", () => {
 	});
 });
 
-describe("mapToolChoice", () => {
+describe("mapOpenAIToolChoice", () => {
 	test('maps "auto" to "auto"', () => {
-		expect(mapToolChoice("auto")).toBe("auto");
+		expect(mapOpenAIToolChoice("auto")).toBe("auto");
 	});
 
 	test('maps "none" to "none"', () => {
-		expect(mapToolChoice("none")).toBe("none");
+		expect(mapOpenAIToolChoice("none")).toBe("none");
 	});
 
 	test('maps "required" to "required"', () => {
-		expect(mapToolChoice("required")).toBe("required");
+		expect(mapOpenAIToolChoice("required")).toBe("required");
 	});
 
 	test("maps function tool choice to named function choice", () => {
-		const result = mapToolChoice({ type: "function", name: "get_weather" });
+		const result = mapOpenAIToolChoice({
+			type: "function",
+			name: "get_weather",
+		});
 
 		expect(result).toEqual({
 			type: "function",
@@ -212,7 +214,7 @@ describe("mapToolChoice", () => {
 	});
 
 	test("maps custom tool choice to named custom choice", () => {
-		const result = mapToolChoice({ type: "custom", name: "read-file" });
+		const result = mapOpenAIToolChoice({ type: "custom", name: "read-file" });
 
 		expect(result).toEqual({
 			type: "custom",
@@ -221,7 +223,7 @@ describe("mapToolChoice", () => {
 	});
 
 	test("maps allowed_tools tool choice", () => {
-		const result = mapToolChoice({
+		const result = mapOpenAIToolChoice({
 			type: "allowed_tools",
 			mode: "auto",
 			tools: [{ type: "function", name: "get_weather" }],
@@ -237,10 +239,10 @@ describe("mapToolChoice", () => {
 	});
 
 	test("maps unknown tool choice to auto", () => {
-		expect(mapToolChoice("unknown_value" as never)).toBe("auto");
+		expect(mapOpenAIToolChoice("unknown_value" as never)).toBe("auto");
 	});
 
 	test("maps undefined to undefined", () => {
-		expect(mapToolChoice(undefined)).toBeUndefined();
+		expect(mapOpenAIToolChoice(undefined)).toBeUndefined();
 	});
 });

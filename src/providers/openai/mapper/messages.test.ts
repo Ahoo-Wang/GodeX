@@ -1,7 +1,6 @@
-// src/providers/openai/messages.test.ts
 import { describe, expect, test } from "bun:test";
-import type { ResponseCreateRequest } from "../../protocol/openai/responses";
-import type { ResponseSessionSnapshot } from "../../session";
+import type { ResponseCreateRequest } from "../../../protocol/openai/responses";
+import type { ResponseSessionSnapshot } from "../../../session";
 import { buildOpenAIMessages } from "./messages";
 
 function req(partial: Partial<ResponseCreateRequest> = {}) {

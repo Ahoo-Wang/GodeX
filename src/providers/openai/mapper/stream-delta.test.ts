@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
-import type { ApplicationContext } from "../../context/application-context";
-import type { ResponsesContext } from "../../context/responses-context";
-import { createLogger } from "../../logger";
-import type { ChatCompletionChunk } from "../../protocol/openai/completions";
-import type { ResponseStreamEvent } from "../../protocol/openai/responses";
-import { OpenAIStreamMapper } from "./stream";
+import type { ApplicationContext } from "../../../context/application-context";
+import type { ResponsesContext } from "../../../context/responses-context";
+import { createLogger } from "../../../logger";
+import type { ChatCompletionChunk } from "../../../protocol/openai/completions";
+import type { ResponseStreamEvent } from "../../../protocol/openai/responses";
+import { createOpenAIMapper } from "./index";
 
 function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 	return {
@@ -66,17 +66,21 @@ function terminalEvent(events: ResponseStreamEvent[]) {
 }
 
 describe("OpenAIStreamMapper", () => {
-	const mapper = new OpenAIStreamMapper();
+	const streamMapper = createOpenAIMapper().stream;
+	const mapStream = (
+		c: ResponsesContext,
+		e: JsonServerSentEvent<ChatCompletionChunk>,
+	): ResponseStreamEvent[] => streamMapper.map(c, e) as ResponseStreamEvent[];
 
 	test("maps content and refusal deltas through the shared stream lifecycle", () => {
 		const testCtx = ctx();
-		const startEvents = mapper.map(testCtx, sse());
+		const startEvents = mapStream(testCtx, sse());
 		expect(startEvents.map((event) => event.type)).toEqual([
 			"response.created",
 			"response.in_progress",
 		]);
 
-		const contentEvents = mapper.map(
+		const contentEvents = mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -124,7 +128,7 @@ describe("OpenAIStreamMapper", () => {
 			],
 		});
 
-		const addedEvents = mapper.map(
+		const addedEvents = mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -164,7 +168,7 @@ describe("OpenAIStreamMapper", () => {
 				arguments: "",
 			},
 		});
-		mapper.map(
+		mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -185,7 +189,7 @@ describe("OpenAIStreamMapper", () => {
 			}),
 		);
 
-		const events = mapper.map(
+		const events = mapStream(
 			testCtx,
 			sse({
 				choices: [
@@ -218,7 +222,7 @@ describe("OpenAIStreamMapper", () => {
 		expect(terminalEvent(events)).toBeUndefined();
 
 		// Usage chunk flushes the pending terminal
-		const usageEvents = mapper.map(
+		const usageEvents = mapStream(
 			testCtx,
 			sse({
 				choices: [],

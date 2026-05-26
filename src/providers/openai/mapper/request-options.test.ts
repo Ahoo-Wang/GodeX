@@ -1,9 +1,9 @@
-// src/providers/openai/request.test.ts
 import { describe, expect, test } from "bun:test";
-import type { ApplicationContext } from "../../context/application-context";
-import type { ResponsesContext } from "../../context/responses-context";
-import { createLogger } from "../../logger";
-import { buildOpenAIRequest } from "./request";
+import type { ApplicationContext } from "../../../context/application-context";
+import type { ResponsesContext } from "../../../context/responses-context";
+import { createLogger } from "../../../logger";
+import type { ChatCompletionCreateRequest } from "../../../protocol/openai/completions";
+import { createOpenAIMapper } from "./index";
 
 function ctx(partial: Record<string, unknown> = {}): ResponsesContext {
 	return {
@@ -27,8 +27,12 @@ function ctx(partial: Record<string, unknown> = {}): ResponsesContext {
 }
 
 describe("buildOpenAIRequest", () => {
+	const mapper = createOpenAIMapper();
+	const mapRequest = (c: ResponsesContext): ChatCompletionCreateRequest =>
+		mapper.request.map(c) as ChatCompletionCreateRequest;
+
 	test("converts basic text request", () => {
-		const result = buildOpenAIRequest(ctx({ input: "Hello" }));
+		const result = mapRequest(ctx({ input: "Hello" }));
 
 		expect(result.model).toBe("gpt-4o");
 		expect(result.messages).toEqual([{ role: "user", content: "Hello" }]);
@@ -36,7 +40,7 @@ describe("buildOpenAIRequest", () => {
 	});
 
 	test("maps instructions to developer message", () => {
-		const result = buildOpenAIRequest(
+		const result = mapRequest(
 			ctx({ input: "Hi", instructions: "Be helpful." }),
 		);
 
@@ -48,15 +52,13 @@ describe("buildOpenAIRequest", () => {
 	});
 
 	test("passes through temperature", () => {
-		const result = buildOpenAIRequest(ctx({ input: "Hi", temperature: 0.7 }));
+		const result = mapRequest(ctx({ input: "Hi", temperature: 0.7 }));
 
 		expect(result.temperature).toBe(0.7);
 	});
 
 	test("maps max_output_tokens to max_completion_tokens", () => {
-		const result = buildOpenAIRequest(
-			ctx({ input: "Hi", max_output_tokens: 4096 }),
-		);
+		const result = mapRequest(ctx({ input: "Hi", max_output_tokens: 4096 }));
 
 		expect(result.max_completion_tokens).toBe(4096);
 		expect("max_tokens" in (result as unknown as Record<string, unknown>)).toBe(
@@ -65,7 +67,7 @@ describe("buildOpenAIRequest", () => {
 	});
 
 	test("maps reasoning effort", () => {
-		const result = buildOpenAIRequest(
+		const result = mapRequest(
 			ctx({ input: "Hi", reasoning: { effort: "high" } }),
 		);
 
@@ -73,7 +75,7 @@ describe("buildOpenAIRequest", () => {
 	});
 
 	test('does not map reasoning effort "none"', () => {
-		const result = buildOpenAIRequest(
+		const result = mapRequest(
 			ctx({ input: "Hi", reasoning: { effort: "none" } }),
 		);
 
@@ -85,7 +87,7 @@ describe("buildOpenAIRequest", () => {
 			type: "object",
 			properties: { name: { type: "string" } },
 		};
-		const result = buildOpenAIRequest(
+		const result = mapRequest(
 			ctx({
 				input: "Hi",
 				text: {
@@ -110,13 +112,13 @@ describe("buildOpenAIRequest", () => {
 	});
 
 	test("passes through user field", () => {
-		const result = buildOpenAIRequest(ctx({ input: "Hi", user: "user-123" }));
+		const result = mapRequest(ctx({ input: "Hi", user: "user-123" }));
 
 		expect(result.user).toBe("user-123");
 	});
 
 	test("passes through Codex request metadata supported by Chat Completions", () => {
-		const result = buildOpenAIRequest(
+		const result = mapRequest(
 			ctx({
 				input: "Hi",
 				prompt_cache_key: "cache-key-1",
@@ -133,7 +135,7 @@ describe("buildOpenAIRequest", () => {
 	});
 
 	test("maps tools and tool_choice", () => {
-		const result = buildOpenAIRequest(
+		const result = mapRequest(
 			ctx({
 				input: "Hi",
 				tools: [
@@ -161,7 +163,7 @@ describe("buildOpenAIRequest", () => {
 	});
 
 	test("maps web_search tool to web_search_options", () => {
-		const result = buildOpenAIRequest(
+		const result = mapRequest(
 			ctx({
 				input: "Hi",
 				tools: [
@@ -180,22 +182,20 @@ describe("buildOpenAIRequest", () => {
 	});
 
 	test("sets stream flag with stream_options.include_usage", () => {
-		const result = buildOpenAIRequest(ctx({ input: "Hi", stream: true }));
+		const result = mapRequest(ctx({ input: "Hi", stream: true }));
 
 		expect(result.stream).toBe(true);
 		expect(result.stream_options).toEqual({ include_usage: true });
 	});
 
 	test("passes through parallel_tool_calls", () => {
-		const result = buildOpenAIRequest(
-			ctx({ input: "Hi", parallel_tool_calls: false }),
-		);
+		const result = mapRequest(ctx({ input: "Hi", parallel_tool_calls: false }));
 
 		expect(result.parallel_tool_calls).toBe(false);
 	});
 
 	test("passes through metadata, store, and service_tier", () => {
-		const result = buildOpenAIRequest(
+		const result = mapRequest(
 			ctx({
 				input: "Hi",
 				metadata: { tenant: "test" },

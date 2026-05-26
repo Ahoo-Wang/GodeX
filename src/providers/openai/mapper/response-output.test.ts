@@ -1,14 +1,16 @@
-// src/providers/openai/response.test.ts
 import { describe, expect, test } from "bun:test";
-import type { ApplicationContext } from "../../context/application-context";
-import type { ResponsesContext } from "../../context/responses-context";
-import { createLogger } from "../../logger";
+import type { ApplicationContext } from "../../../context/application-context";
+import type { ResponsesContext } from "../../../context/responses-context";
+import { createLogger } from "../../../logger";
 import type {
 	ChatCompletion,
 	ChatCompletionChoice,
-} from "../../protocol/openai/completions";
-import type { ResponseTool } from "../../protocol/openai/responses";
-import { buildResponseObject } from "./response";
+} from "../../../protocol/openai/completions";
+import type {
+	ResponseObject,
+	ResponseTool,
+} from "../../../protocol/openai/responses";
+import { createOpenAIMapper } from "./index";
 
 function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 	return {
@@ -57,8 +59,14 @@ const openAICompletion: ChatCompletion = {
 };
 
 describe("buildResponseObject", () => {
+	const mapper = createOpenAIMapper();
+	const mapResponse = (
+		c: ResponsesContext,
+		r: ChatCompletion,
+	): ResponseObject => mapper.response.map(c, r) as ResponseObject;
+
 	test("maps basic text response to completed with output_text", () => {
-		const result = buildResponseObject(ctx(), openAICompletion);
+		const result = mapResponse(ctx(), openAICompletion);
 
 		expect(result.id).toBe("resp_1");
 		expect(result.object).toBe("response");
@@ -97,7 +105,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(ctx(), withToolCalls);
+		const result = mapResponse(ctx(), withToolCalls);
 
 		expect(result.output[0]?.type).toBe("message");
 		expect(result.output[1]?.type).toBe("function_call");
@@ -133,7 +141,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(
+		const result = mapResponse(
 			ctx({
 				tools: [
 					{
@@ -177,7 +185,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(ctx(), truncated);
+		const result = mapResponse(ctx(), truncated);
 
 		expect(result.status).toBe("incomplete");
 		expect(result.incomplete_details).toEqual({
@@ -200,7 +208,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(ctx(), filtered);
+		const result = mapResponse(ctx(), filtered);
 
 		expect(result.status).toBe("incomplete");
 		expect(result.incomplete_details).toEqual({
@@ -209,7 +217,7 @@ describe("buildResponseObject", () => {
 	});
 
 	test("maps usage (prompt_tokens→input_tokens, etc.)", () => {
-		const result = buildResponseObject(ctx(), openAICompletion);
+		const result = mapResponse(ctx(), openAICompletion);
 
 		expect(result.usage).toEqual({
 			input_tokens: 10,
@@ -237,7 +245,7 @@ describe("buildResponseObject", () => {
 			],
 		} as unknown as ChatCompletion;
 
-		const result = buildResponseObject(ctx(), withReasoning);
+		const result = mapResponse(ctx(), withReasoning);
 
 		expect(result.output).toHaveLength(2);
 		expect(result.output[0]?.type).toBe("reasoning");
@@ -263,7 +271,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(ctx(), withRefusal);
+		const result = mapResponse(ctx(), withRefusal);
 
 		expect(result.output).toHaveLength(1);
 		expect(result.output[0]?.type).toBe("message");
@@ -308,7 +316,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(ctx(), withAnnotations);
+		const result = mapResponse(ctx(), withAnnotations);
 
 		expect(result.output).toHaveLength(1);
 		expect(result.output[0]?.type).toBe("message");
@@ -337,7 +345,7 @@ describe("buildResponseObject", () => {
 			choices: [],
 		};
 
-		const result = buildResponseObject(ctx(), emptyChoices);
+		const result = mapResponse(ctx(), emptyChoices);
 
 		expect(result.status).toBe("failed");
 		expect(result.output).toEqual([]);
@@ -370,7 +378,7 @@ describe("buildResponseObject", () => {
 			],
 		};
 
-		const result = buildResponseObject(ctx(), withToolCallsAndRefusal);
+		const result = mapResponse(ctx(), withToolCallsAndRefusal);
 
 		const msgItem = result.output[0];
 		expect(msgItem?.type).toBe("message");
@@ -397,7 +405,7 @@ describe("buildResponseObject", () => {
 			},
 		};
 
-		const result = buildResponseObject(ctx(), withDetailedUsage);
+		const result = mapResponse(ctx(), withDetailedUsage);
 
 		expect(result.usage).toEqual({
 			input_tokens: 100,
