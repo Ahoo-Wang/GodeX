@@ -103,7 +103,10 @@ describe("TraceTransformer", () => {
 		});
 
 		const output = await drain(
-			pipeTransform(stream, new TraceTransformer("test.event", ctx)),
+			pipeTransform(
+				stream,
+				new TraceTransformer("upstream.stream.event.transformed", ctx),
+			),
 		);
 
 		expect(output).toEqual(events);
