@@ -117,6 +117,13 @@ export interface ChatToolChoiceMapper<TToolChoice> {
 	map(ctx: ResponsesContext, plan: CompatibilityPlan): TToolChoice | undefined;
 }
 
+export interface ChatCompletionRequestShape<TMessage, TTools, TToolChoice> {
+	model: unknown;
+	messages: TMessage[];
+	tools?: TTools;
+	tool_choice?: TToolChoice;
+}
+
 export interface ChatChoiceExtractor<TSource, TChoice> {
 	firstChoice(source: TSource): TChoice | undefined;
 }
@@ -185,18 +192,18 @@ Provider implementations may use classes or plain objects. The important boundar
 
 ### Request
 
-`ChatRequestMapper<TReq, TMessage, TTools, TToolChoice>` implements `RequestMapper<TReq>`.
+`ChatRequestMapper<TReq, TMessage, TTools, TToolChoice>` implements `RequestMapper<TReq>`, where `TReq` extends the minimal Chat Completions request shape: `model`, `messages`, optional `tools`, and optional `tool_choice`.
 
 Responsibilities:
 
 - call `CompatibilityNegotiator.negotiate(ctx)` once
 - create the provider request skeleton through `ChatRequestFactory`
-- assign mapped messages
-- assign mapped tools
-- assign mapped tool choice only when valid for the effective plan
+- assign mapped messages to `request.messages`
+- assign mapped tools to `request.tools`
+- assign mapped tool choice to `request.tool_choice` only when valid for the effective plan
 - apply provider request options such as stream flags, temperature, top-p, token limit, user identity, reasoning, response format, metadata, store, service tier, and provider-specific fields
 
-It should not know provider-specific field names beyond the request factory and assignment hooks supplied by provider modules.
+`ChatRequestMapper` intentionally knows only the standard Chat Completions request fields `messages`, `tools`, and `tool_choice`. Provider-specific fields such as `stream_options`, `web_search_options`, `thinking`, `response_format`, and token limits stay in `ChatRequestOptionsMapper`.
 
 The request skeleton is the minimum valid provider request object before optional mapping. It should include required provider fields such as the upstream model field and any required empty containers such as `messages` when the provider type requires them. Optional parameters such as sampling, streaming, tool choice, response format, metadata, and reasoning belong in `ChatRequestOptionsMapper`, not in the factory.
 
