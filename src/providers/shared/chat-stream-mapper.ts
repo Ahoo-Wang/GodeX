@@ -1,5 +1,4 @@
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
-import type { StreamMapper } from "../../adapter/mapper/contract";
 import {
 	type FunctionCallDelta,
 	StreamResponsePhase,
@@ -7,6 +6,7 @@ import {
 	type StreamResponseTerminalStatus,
 	type ToolCallSnapshot,
 } from "../../adapter/mapper/chat/stream-response-state";
+import type { StreamMapper } from "../../adapter/mapper/contract";
 import type { ResponsesContext } from "../../context/responses-context";
 import type {
 	ResponseItem,

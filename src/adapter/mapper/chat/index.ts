@@ -3,6 +3,7 @@ export * from "./contract";
 export * from "./request-mapper";
 export * from "./response-mapper";
 export * from "./response-object-builder";
+export * from "./stream-mapper";
 export * from "./stream-response-message";
 export * from "./stream-response-output";
 export * from "./stream-response-state";
