@@ -1,4 +1,4 @@
-import type { ResponseCreateRequest, ResponseUsage } from "../protocol/openai";
+import type { ResponseCreateRequest } from "../protocol/openai";
 
 export interface TracePayloadOptions {
 	capturePayload: boolean;
@@ -154,4 +154,3 @@ export interface PromptCacheDetection {
 	};
 }
 
-export type TraceResponseUsage = ResponseUsage | null | undefined;
