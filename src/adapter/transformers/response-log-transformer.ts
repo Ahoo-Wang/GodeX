@@ -1,7 +1,10 @@
 import { SafeTransformer } from "@ahoo-wang/fetcher-eventstream";
 import type { ResponsesContext } from "../../context/responses-context";
 import type { ResponseStreamEvent } from "../../protocol/openai/responses";
-import { StreamState } from "../mapper/stream-state";
+import {
+	StreamResponsePhase,
+	StreamResponseState,
+} from "../mapper/stream-response-state";
 import {
 	ATTR_UPSTREAM_LATENCY_MILLIS,
 	responseFromTerminalEvent,
@@ -29,11 +32,19 @@ export class ResponseLogTransformer extends SafeTransformer<
 
 	protected override async onFlush(): Promise<void> {
 		if (this.logged) return;
-		const state = StreamState.from(this.ctx);
-		if (!state.completedAt) return;
-		const outputCount = state.toolCalls.length + (state.outputText ? 1 : 0);
+		const state = StreamResponseState.get(this.ctx);
+
+		if (!state) return;
+		if (
+			state.phase !== StreamResponsePhase.COMPLETED &&
+			state.phase !== StreamResponsePhase.INCOMPLETE &&
+			state.phase !== StreamResponsePhase.FAILED
+		) {
+			return;
+		}
+		const outputCount = state.snapshot.output.length;
 		this.ctx.logger.info("responses.stream.completed", () => ({
-			status: state.finalStatus.status,
+			status: state.snapshot.status,
 			model: this.ctx.resolved.model,
 			outputCount,
 			durationMillis: Date.now() - this.ctx.createdAt * 1000,

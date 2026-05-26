@@ -1,13 +1,9 @@
 import type {
-	StreamState,
-	ToolCallAccumulator,
-} from "../../adapter/mapper/stream-state";
+	StreamResponseTerminalStatus,
+	ToolCallSnapshot,
+} from "../../adapter/mapper/stream-response-state";
 import type { ResponsesContext } from "../../context/responses-context";
-import type {
-	ResponseItem,
-	ResponseObject,
-	ResponseOutputContent,
-} from "../../protocol/openai/responses";
+import type { ResponseItem } from "../../protocol/openai/responses";
 import {
 	ChatCompletionStreamMapper,
 	type ChatStreamChoice,
@@ -20,7 +16,7 @@ import type {
 	ChatCompletionStreamDelta,
 	FinishReason,
 } from "./protocol/completions";
-import { buildZhipuResponseObject, zhipuStatusFields } from "./response-common";
+import { zhipuStatusFields } from "./response-common";
 import { mapZhipuToolCall } from "./tool-calls";
 
 export class ZhipuStreamMapper extends ChatCompletionStreamMapper<
@@ -57,13 +53,15 @@ export class ZhipuStreamMapper extends ChatCompletionStreamMapper<
 		return delta.tool_calls ?? [];
 	}
 
-	protected mapFinishReason(finishReason: FinishReason) {
-		return zhipuStatusFields(finishReason);
+	protected mapFinishReason(
+		finishReason: FinishReason,
+	): StreamResponseTerminalStatus {
+		return zhipuStatusFields(finishReason) as StreamResponseTerminalStatus;
 	}
 
 	protected mapToolCall(
 		ctx: ResponsesContext,
-		toolCall: ToolCallAccumulator,
+		toolCall: ToolCallSnapshot,
 	): ResponseItem {
 		return mapZhipuToolCall(ctx, toolCall);
 	}
@@ -78,23 +76,6 @@ export class ZhipuStreamMapper extends ChatCompletionStreamMapper<
 			toZhipuFunctionName,
 		);
 		return match ?? { name: upstreamName };
-	}
-
-	protected override doneMessageContent(
-		state: StreamState,
-	): ResponseOutputContent[] {
-		return [{ type: "output_text", text: state.outputText }];
-	}
-
-	buildResponseObject(
-		ctx: ResponsesContext,
-		state: StreamState,
-	): ResponseObject {
-		return buildZhipuResponseObject(ctx, state.finalStatus, {
-			completedAt: state.completedAt ?? Math.floor(Date.now() / 1000),
-			outputText: state.outputText,
-			output: this.buildOutputItems(ctx, state),
-		});
 	}
 }
 

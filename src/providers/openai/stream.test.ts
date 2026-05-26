@@ -74,8 +74,6 @@ describe("OpenAIStreamMapper", () => {
 		expect(startEvents.map((event) => event.type)).toEqual([
 			"response.created",
 			"response.in_progress",
-			"response.output_item.added",
-			"response.content_part.added",
 		]);
 
 		const contentEvents = mapper.map(
@@ -93,10 +91,14 @@ describe("OpenAIStreamMapper", () => {
 		);
 
 		expect(contentEvents).toEqual([
+			expect.objectContaining({ type: "response.output_item.added" }),
+			expect.objectContaining({ type: "response.content_part.added" }),
 			expect.objectContaining({
 				type: "response.output_text.delta",
 				delta: "Hello",
 			}),
+			expect.objectContaining({ type: "response.output_item.added" }),
+			expect.objectContaining({ type: "response.content_part.added" }),
 			expect.objectContaining({
 				type: "response.refusal.delta",
 				delta: "No",
@@ -172,7 +174,6 @@ describe("OpenAIStreamMapper", () => {
 							tool_calls: [
 								{
 									index: 0,
-									type: "function",
 									function: { arguments: ':"1 + 1"}' },
 								} as never,
 							],
@@ -208,14 +209,36 @@ describe("OpenAIStreamMapper", () => {
 						namespace: "mcp__node_repl__",
 						name: "js",
 						arguments: '{"code":"1 + 1"}',
+						status: "completed",
 					},
 				}),
 			]),
 		);
-		expect(terminalEvent(events)).toMatchObject({
+		// Terminal is deferred; no terminal event in finish chunk
+		expect(terminalEvent(events)).toBeUndefined();
+
+		// Usage chunk flushes the pending terminal
+		const usageEvents = mapper.map(
+			testCtx,
+			sse({
+				choices: [],
+				usage: {
+					prompt_tokens: 100,
+					completion_tokens: 50,
+					total_tokens: 150,
+				},
+			} as Partial<ChatCompletionChunk> as ChatCompletionChunk),
+		);
+
+		expect(terminalEvent(usageEvents)).toMatchObject({
 			type: "response.completed",
 			response: {
 				status: "completed",
+				usage: {
+					input_tokens: 100,
+					output_tokens: 50,
+					total_tokens: 150,
+				},
 				output: expect.arrayContaining([
 					expect.objectContaining({
 						type: "function_call",
@@ -223,6 +246,7 @@ describe("OpenAIStreamMapper", () => {
 						namespace: "mcp__node_repl__",
 						name: "js",
 						arguments: '{"code":"1 + 1"}',
+						status: "completed",
 					}),
 				]),
 			},

@@ -4,7 +4,6 @@ import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../../protocol/openai/responses";
-import type { StreamState } from "./stream-state";
 
 export interface RequestMapper<TReq> {
 	map(ctx: ResponsesContext): TReq | Promise<TReq>;
@@ -22,9 +21,4 @@ export interface StreamMapper<TChunk> {
 		ctx: ResponsesContext,
 		event: JsonServerSentEvent<TChunk>,
 	): ResponseStreamEvent[] | Promise<ResponseStreamEvent[]>;
-
-	buildResponseObject(
-		ctx: ResponsesContext,
-		state: StreamState,
-	): ResponseObject | Promise<ResponseObject>;
 }

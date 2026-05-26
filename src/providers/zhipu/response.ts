@@ -51,12 +51,13 @@ export function buildZhipuOutputItems(
 					]
 				: [],
 		});
-		for (const tc of message.tool_calls) {
+		for (const [index, tc] of message.tool_calls.entries()) {
 			output.push(
 				mapZhipuToolCall(ctx, {
-					id: tc.id,
-					name: tc.function?.name,
-					arguments: tc.function?.arguments,
+					index,
+					id: tc.id || `call_${index}`,
+					name: tc.function?.name ?? "",
+					arguments: tc.function?.arguments ?? "",
 				}),
 			);
 		}

@@ -1,7 +1,7 @@
 import type {
-	StreamState,
-	ToolCallAccumulator,
-} from "../../adapter/mapper/stream-state";
+	StreamResponseTerminalStatus,
+	ToolCallSnapshot,
+} from "../../adapter/mapper/stream-response-state";
 import type { ResponsesContext } from "../../context/responses-context";
 import type {
 	ChatCompletionChunk,
@@ -9,7 +9,7 @@ import type {
 } from "../../protocol/openai/completions";
 import type {
 	ResponseItem,
-	ResponseObject,
+	ResponseUsage,
 } from "../../protocol/openai/responses";
 import type { FinishReason } from "../../protocol/openai/shared";
 import {
@@ -17,10 +17,7 @@ import {
 	type ChatStreamChoice,
 	type ChatStreamToolCallDelta,
 } from "../shared/chat-stream-mapper";
-import {
-	buildOpenAIResponseObject,
-	openAIStatusFields,
-} from "./response-common";
+import { mapUsage, openAIStatusFields } from "./response-common";
 import { mapToolCall } from "./tool-calls";
 
 export class OpenAIStreamMapper extends ChatCompletionStreamMapper<
@@ -28,6 +25,14 @@ export class OpenAIStreamMapper extends ChatCompletionStreamMapper<
 	ChatCompletionStreamDelta,
 	FinishReason
 > {
+	protected override deferTerminal = true;
+
+	protected override extractUsage(
+		chunk: ChatCompletionChunk,
+	): ResponseUsage | undefined {
+		return mapUsage(chunk.usage ?? undefined);
+	}
+
 	protected extractChoice(
 		chunk: ChatCompletionChunk,
 	): ChatStreamChoice<ChatCompletionStreamDelta, FinishReason> | null {
@@ -61,37 +66,33 @@ export class OpenAIStreamMapper extends ChatCompletionStreamMapper<
 		delta: ChatCompletionStreamDelta,
 	): ChatStreamToolCallDelta[] {
 		return (delta.tool_calls ?? [])
-			.filter((toolCall) => toolCall.type === "function")
+			.filter((toolCall) => {
+				const raw = toolCall as unknown as Record<string, unknown>;
+				return raw.type === "function" || raw.function;
+			})
 			.map((toolCall) => {
-				const rawIndex = (toolCall as unknown as Record<string, unknown>).index;
+				const raw = toolCall as unknown as Record<string, unknown>;
 				return {
-					index: typeof rawIndex === "number" ? rawIndex : undefined,
-					id: toolCall.id,
-					type: toolCall.type,
-					function: toolCall.function,
+					index: typeof raw.index === "number" ? raw.index : undefined,
+					id: typeof raw.id === "string" ? raw.id : undefined,
+					type: typeof raw.type === "string" ? raw.type : "function",
+					function: (typeof raw.function === "object" && raw.function
+						? raw.function
+						: undefined) as { name?: string; arguments?: string } | undefined,
 				};
 			});
 	}
 
-	protected mapFinishReason(finishReason: FinishReason) {
-		return openAIStatusFields(finishReason);
+	protected mapFinishReason(
+		finishReason: FinishReason,
+	): StreamResponseTerminalStatus {
+		return openAIStatusFields(finishReason) as StreamResponseTerminalStatus;
 	}
 
 	protected mapToolCall(
 		ctx: ResponsesContext,
-		toolCall: ToolCallAccumulator,
+		toolCall: ToolCallSnapshot,
 	): ResponseItem {
 		return mapToolCall(ctx, toolCall);
-	}
-
-	buildResponseObject(
-		ctx: ResponsesContext,
-		state: StreamState,
-	): ResponseObject {
-		return buildOpenAIResponseObject(ctx, state.finalStatus, {
-			completedAt: state.completedAt ?? Math.floor(Date.now() / 1000),
-			outputText: state.outputText,
-			output: this.buildOutputItems(ctx, state),
-		});
 	}
 }

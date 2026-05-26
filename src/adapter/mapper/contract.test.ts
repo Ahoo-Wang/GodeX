@@ -1,33 +1,25 @@
 import { describe, expect, test } from "bun:test";
+import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
 import type { ResponsesContext } from "../../context/responses-context";
-import type { ResponseObject } from "../../protocol/openai/responses";
 import type { StreamMapper } from "./contract";
-import type { StreamState } from "./stream-state";
 
 describe("StreamMapper contract", () => {
-	test("requires a final response builder for session persistence", () => {
-		const response: ResponseObject = {
-			id: "resp_1",
-			object: "response",
-			created_at: 1,
-			status: "completed",
-			model: "test",
-			output: [],
-		};
+	test("maps provider stream events to response stream events", () => {
 		const mapper: StreamMapper<unknown> = {
-			map: () => [],
-			buildResponseObject: (_ctx: ResponsesContext, _state: StreamState) =>
-				response,
+			map: (_ctx: ResponsesContext, _event: JsonServerSentEvent<unknown>) => [
+				{ type: "response.created" },
+			],
 		};
 
-		expect(
-			mapper.buildResponseObject({} as ResponsesContext, {} as StreamState),
-		).toBe(response);
+		expect(mapper).toBeDefined();
 	});
 
-	test("rejects stream mappers that cannot build a final response", () => {
-		// @ts-expect-error StreamMapper must build a final ResponseObject.
-		const mapper: StreamMapper<unknown> = { map: () => [] };
+	test("rejects stream mappers that still expose final response builders", () => {
+		const mapper: StreamMapper<unknown> = {
+			map: () => [],
+			// @ts-expect-error StreamMapper no longer builds final responses.
+			buildResponseObject: () => ({}),
+		};
 
 		expect(mapper).toBeDefined();
 	});

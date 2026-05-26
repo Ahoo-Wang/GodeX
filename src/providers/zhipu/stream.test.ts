@@ -106,18 +106,16 @@ function extractResponseObject(
 describe("ZhipuStreamMapper", () => {
 	const mapper = new ZhipuStreamMapper();
 
-	test("first chunk produces created + in_progress + output_item.added + content_part.added", () => {
+	test("first chunk produces created + in_progress events", () => {
 		const testCtx = ctx();
 		const events = mapper.map(testCtx, sse());
 
 		const types = events.map((e) => e.type);
 		expect(types).toContain("response.created");
 		expect(types).toContain("response.in_progress");
-		expect(types).toContain("response.output_item.added");
-		expect(types).toContain("response.content_part.added");
 	});
 
-	test("content delta produces output_text.delta", () => {
+	test("content delta produces item added and output_text.delta", () => {
 		const testCtx = ctx();
 		mapper.map(testCtx, sse());
 
@@ -131,6 +129,8 @@ describe("ZhipuStreamMapper", () => {
 		);
 
 		expect(events).toEqual([
+			expect.objectContaining({ type: "response.output_item.added" }),
+			expect.objectContaining({ type: "response.content_part.added" }),
 			expect.objectContaining({
 				type: "response.output_text.delta",
 				delta: "Hello",
@@ -138,7 +138,7 @@ describe("ZhipuStreamMapper", () => {
 		]);
 	});
 
-	test("reasoning delta produces reasoning_text.delta", () => {
+	test("reasoning delta produces item added and reasoning_text.delta", () => {
 		const testCtx = ctx();
 		mapper.map(testCtx, sse());
 
@@ -156,6 +156,8 @@ describe("ZhipuStreamMapper", () => {
 		);
 
 		expect(events).toEqual([
+			expect.objectContaining({ type: "response.output_item.added" }),
+			expect.objectContaining({ type: "response.reasoning_text_part.added" }),
 			expect.objectContaining({
 				type: "response.reasoning_text.delta",
 				delta: "Let me think...",
@@ -381,28 +383,21 @@ describe("ZhipuStreamMapper", () => {
 				],
 			}),
 		);
-		expect(nameEvents).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({
-					type: "response.output_item.added",
-					item_id: "call_late_name",
-					item: expect.objectContaining({
-						type: "function_call",
-						name: "get_weather",
-					}),
+		expect(nameEvents).toEqual([
+			expect.objectContaining({
+				type: "response.output_item.added",
+				item_id: "call_late_name",
+				item: expect.objectContaining({
+					type: "function_call",
+					name: "get_weather",
 				}),
-				expect.objectContaining({
-					type: "response.function_call_arguments.delta",
-					item_id: "call_late_name",
-					delta: '{"city"',
-				}),
-				expect.objectContaining({
-					type: "response.function_call_arguments.delta",
-					item_id: "call_late_name",
-					delta: ':"Beijing"}',
-				}),
-			]),
-		);
+			}),
+			expect.objectContaining({
+				type: "response.function_call_arguments.delta",
+				item_id: "call_late_name",
+				delta: '{"city":"Beijing"}',
+			}),
+		]);
 
 		const events = mapper.map(
 			testCtx,
@@ -511,7 +506,7 @@ describe("ZhipuStreamMapper", () => {
 						env: { CI: "1" },
 						timeout_ms: 1000,
 					},
-					status: "in_progress",
+					status: "completed",
 				}),
 			}),
 			expect.objectContaining({
@@ -519,7 +514,7 @@ describe("ZhipuStreamMapper", () => {
 					type: "apply_patch_call",
 					call_id: "call_patch",
 					operation: { type: "delete_file", path: "tmp.txt" },
-					status: "in_progress",
+					status: "completed",
 				}),
 			}),
 		]);
