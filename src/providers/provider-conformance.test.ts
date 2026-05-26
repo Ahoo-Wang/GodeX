@@ -1,6 +1,7 @@
 // src/providers/provider-conformance.test.ts
 import { describe, expect, test } from "bun:test";
 import type { ProviderMapper } from "../adapter/provider";
+import { createDeepSeekMapper } from "./deepseek/mapper/factory";
 import { createOpenAIMapper } from "./openai/mapper/factory";
 import { createZhipuMapper } from "./zhipu/mapper/factory";
 
@@ -19,6 +20,7 @@ function validateProviderMapperShape(mapper: AnyProviderMapper): void {
 const providerMappers: [string, () => AnyProviderMapper][] = [
 	["OpenAI", () => createOpenAIMapper() as unknown as AnyProviderMapper],
 	["Zhipu", () => createZhipuMapper() as unknown as AnyProviderMapper],
+	["DeepSeek", () => createDeepSeekMapper() as unknown as AnyProviderMapper],
 ];
 
 describe("ProviderMapper conformance", () => {
