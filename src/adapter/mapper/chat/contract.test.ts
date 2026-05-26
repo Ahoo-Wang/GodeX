@@ -1,18 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import type { ResponsesContext } from "../../../context/responses-context";
-import type { ResponseItem, ResponseUsage } from "../../../protocol/openai/responses";
-import type { ResponseStatusFields } from "./response-object-builder";
-import type {
-	ChatFinishReasonMapper,
-	ChatRequestFactory,
-	ChatToolCallIdentityResolver,
-	CompatibilityNegotiator,
-} from "./contract";
 import type {
 	CompatibilityDecision,
 	CompatibilityPlan,
 	ProviderCapabilities,
 } from "./compatibility-plan";
+import type {
+	ChatFinishReasonMapper,
+	ChatRequestFactory,
+	ChatToolCallIdentityResolver,
+	ChatUsageMapper,
+	CompatibilityNegotiator,
+} from "./contract";
+import type { ResponseStatusFields } from "./response-object-builder";
 
 describe("chat mapper contracts", () => {
 	test("models a provider-agnostic compatibility plan", () => {
@@ -71,25 +71,30 @@ describe("chat mapper contracts", () => {
 		};
 
 		expect(negotiator.negotiate({} as ResponsesContext).tools.size).toBe(0);
-		expect(factory.create({ resolved: { model: "m" } } as ResponsesContext, {} as CompatibilityPlan)).toEqual({ model: "m", messages: [] });
+		expect(
+			factory.create(
+				{ resolved: { model: "m" } } as ResponsesContext,
+				{} as CompatibilityPlan,
+			),
+		).toEqual({ model: "m", messages: [] });
 		expect(finishReason.map("stop").status).toBe("completed");
-		expect(identity.resolve({} as ResponsesContext, "get_weather").name).toBe("get_weather");
+		expect(identity.resolve({} as ResponsesContext, "get_weather").name).toBe(
+			"get_weather",
+		);
 	});
 
 	test("usage mapper source type is independent of response source type", () => {
-		const usage: ResponseUsage = {
-			input_tokens: 1,
-			output_tokens: 2,
-			total_tokens: 3,
+		const usageMapper: ChatUsageMapper<{ custom_usage: { total: number } }> = {
+			map: (source) => ({
+				input_tokens: 0,
+				output_tokens: 0,
+				total_tokens: source.custom_usage.total,
+			}),
 		};
-		const item: ResponseItem = {
-			type: "function_call",
-			call_id: "call_1",
-			name: "tool",
-			arguments: "{}",
-		};
-
-		expect(usage.total_tokens).toBe(3);
-		expect(item.type).toBe("function_call");
+		expect(usageMapper.map({ custom_usage: { total: 5 } })).toEqual({
+			input_tokens: 0,
+			output_tokens: 0,
+			total_tokens: 5,
+		});
 	});
 });
