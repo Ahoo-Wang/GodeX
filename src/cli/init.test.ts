@@ -45,9 +45,14 @@ describe("INIT_PROVIDER_DEFINITIONS", () => {
 
 describe("buildConfigYaml", () => {
 	const baseOpts = {
-		provider: "zhipu",
-		apiKey: "${ZHIPU_API_KEY}",
-		baseUrl: ZHIPU_CODING_PLAN_BASE_URL,
+		defaultProvider: "zhipu",
+		providers: [
+			{
+				id: "zhipu",
+				apiKey: "${ZHIPU_API_KEY}",
+				baseUrl: ZHIPU_CODING_PLAN_BASE_URL,
+			},
+		],
 		port: "5678",
 		sessionBackend: "sqlite" as const,
 		logLevel: "info",
@@ -56,14 +61,56 @@ describe("buildConfigYaml", () => {
 	test("uses coding plan base URL when selected", () => {
 		const yaml = buildConfigYaml({
 			...baseOpts,
-			baseUrl: ZHIPU_CODING_PLAN_BASE_URL,
+			providers: [
+				{
+					id: "zhipu",
+					apiKey: "${ZHIPU_API_KEY}",
+					baseUrl: ZHIPU_CODING_PLAN_BASE_URL,
+				},
+			],
 		});
 		expect(yaml).toContain(`base_url: ${ZHIPU_CODING_PLAN_BASE_URL}`);
 	});
 
 	test("uses standard base URL when selected", () => {
-		const yaml = buildConfigYaml({ ...baseOpts, baseUrl: ZHIPU_BASE_URL });
+		const yaml = buildConfigYaml({
+			...baseOpts,
+			providers: [
+				{
+					id: "zhipu",
+					apiKey: "${ZHIPU_API_KEY}",
+					baseUrl: ZHIPU_BASE_URL,
+				},
+			],
+		});
 		expect(yaml).toContain(`base_url: ${ZHIPU_BASE_URL}`);
+	});
+
+	test("renders multiple providers and selected default provider", () => {
+		const yaml = buildConfigYaml({
+			...baseOpts,
+			defaultProvider: "deepseek",
+			providers: [
+				{
+					id: "deepseek",
+					apiKey: "${DEEPSEEK_API_KEY}",
+					baseUrl: DEFAULT_DEEPSEEK_BASE_URL,
+				},
+				{
+					id: "openai",
+					apiKey: "${OPENAI_API_KEY}",
+					baseUrl: DEFAULT_OPENAI_BASE_URL,
+				},
+			],
+		});
+
+		expect(yaml).toContain("default_provider: deepseek");
+		expect(yaml).toContain("  deepseek:");
+		expect(yaml).toContain("    api_key: ${DEEPSEEK_API_KEY}");
+		expect(yaml).toContain(`    base_url: ${DEFAULT_DEEPSEEK_BASE_URL}`);
+		expect(yaml).toContain("  openai:");
+		expect(yaml).toContain("    api_key: ${OPENAI_API_KEY}");
+		expect(yaml).toContain(`    base_url: ${DEFAULT_OPENAI_BASE_URL}`);
 	});
 
 	test("includes sqlite path for sqlite backend", () => {

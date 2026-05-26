@@ -96,9 +96,14 @@ export async function runInit(opts: InitOptions): Promise<void> {
 	}
 
 	const yaml = buildConfigYaml({
-		provider: provider as string,
-		apiKey: apiKey as string,
-		baseUrl: baseUrl as string,
+		defaultProvider: provider as string,
+		providers: [
+			{
+				id: provider as string,
+				apiKey: apiKey as string,
+				baseUrl: baseUrl as string,
+			},
+		],
 		port: port as string,
 		sessionBackend: sessionBackend as string,
 		logLevel: logLevel as string,
@@ -108,28 +113,37 @@ export async function runInit(opts: InitOptions): Promise<void> {
 	clack.outro(`Created ${opts.configPath}`);
 }
 
-export function buildConfigYaml(opts: {
-	provider: string;
+export interface InitProviderConfig {
+	id: string;
 	apiKey: string;
 	baseUrl: string;
+}
+
+export interface InitConfigYamlOptions {
+	defaultProvider: string;
+	providers: InitProviderConfig[];
 	port: string;
 	sessionBackend: string;
 	logLevel: string;
-}): string {
+}
+
+export function buildConfigYaml(opts: InitConfigYamlOptions): string {
 	const lines = [
 		"server:",
 		`  port: ${opts.port}`,
 		"",
-		`default_provider: ${opts.provider}`,
+		`default_provider: ${opts.defaultProvider}`,
 		"",
 		"providers:",
-		`  ${opts.provider}:`,
-		`    api_key: ${opts.apiKey}`,
-		`    base_url: ${opts.baseUrl}`,
-		"",
-		"session:",
-		`  backend: ${opts.sessionBackend}`,
 	];
+
+	for (const provider of opts.providers) {
+		lines.push(`  ${provider.id}:`);
+		lines.push(`    api_key: ${provider.apiKey}`);
+		lines.push(`    base_url: ${provider.baseUrl}`);
+	}
+
+	lines.push("", "session:", `  backend: ${opts.sessionBackend}`);
 
 	if (opts.sessionBackend === "sqlite") {
 		lines.push("  sqlite:");
