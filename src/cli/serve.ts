@@ -26,18 +26,6 @@ export async function serve(
 		session_backend: config.session.backend,
 	}));
 
-	runtime.stdout?.write(
-		formatStartupBanner({
-			version: GODEX_VERSION,
-			env: EnvVars.current,
-			host: config.server.host,
-			port: config.server.port,
-			configPath,
-			session: config.session,
-			providers: Object.keys(config.providers),
-		}),
-	);
-
 	const runServer = runtime.startServer ?? startServer;
 	let server: CliServerHandle;
 	try {
@@ -57,6 +45,18 @@ export async function serve(
 		}
 		throw err;
 	}
+
+	runtime.stdout?.write(
+		formatStartupBanner({
+			version: GODEX_VERSION,
+			env: EnvVars.current,
+			host: config.server.host,
+			port: config.server.port,
+			configPath,
+			session: config.session,
+			providers: Object.keys(config.providers),
+		}),
+	);
 
 	registerShutdownHandlers(server, () => app.close(), app.logger);
 }

@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+	chmodSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	statSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as clack from "@clack/prompts";
@@ -23,6 +30,8 @@ describe("runInit", () => {
 	test("walks the multi-provider wizard and writes loadable config", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "godex-init-"));
 		const configPath = join(dir, "godex.yaml");
+		writeFileSync(configPath, "old config", { mode: 0o666 });
+		chmodSync(configPath, 0o666);
 		const textAnswers = ["deepseek-key", "openai-key", "6789"];
 		const selectAnswers = [
 			DEFAULT_DEEPSEEK_BASE_URL,
@@ -65,6 +74,7 @@ describe("runInit", () => {
 			);
 			expect(config.session.backend).toBe("memory");
 			expect(config.logging.level).toBe("debug");
+			expect(statSync(configPath).mode & 0o777).toBe(0o600);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

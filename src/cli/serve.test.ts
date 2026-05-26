@@ -242,6 +242,35 @@ describe("serve", () => {
 		}
 	});
 
+	test("does not print startup banner when server startup fails", async () => {
+		const close = ApplicationContext.prototype.close;
+		let output = "";
+		ApplicationContext.prototype.close = async () => {};
+
+		try {
+			await expect(
+				serve(
+					{},
+					{
+						stdout: {
+							write: (message) => {
+								output += message;
+							},
+						},
+						loadConfigFromFile: (path) =>
+							path === "godex.yaml" ? validConfig : null,
+						startServer: () => {
+							throw new Error("listen failed");
+						},
+					},
+				),
+			).rejects.toThrow("listen failed");
+			expect(output).toBe("");
+		} finally {
+			ApplicationContext.prototype.close = close;
+		}
+	});
+
 	test("preserves the original startup error when resource cleanup fails", async () => {
 		const close = ApplicationContext.prototype.close;
 		let closeCount = 0;
