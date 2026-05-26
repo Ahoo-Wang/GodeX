@@ -48,7 +48,13 @@ export async function serve(
 			routes: createBuiltinRoutes(app),
 		});
 	} catch (err) {
-		await app.close();
+		try {
+			await app.close();
+		} catch (closeErr) {
+			app.logger.warn("godex.startup.close.error", () => ({
+				error: String(closeErr),
+			}));
+		}
 		throw err;
 	}
 

@@ -198,4 +198,32 @@ describe("serve", () => {
 			ApplicationContext.prototype.close = close;
 		}
 	});
+
+	test("preserves the original startup error when resource cleanup fails", async () => {
+		const close = ApplicationContext.prototype.close;
+		let closeCount = 0;
+		ApplicationContext.prototype.close = async () => {
+			closeCount++;
+			throw new Error("close failed");
+		};
+
+		try {
+			await expect(
+				serve(
+					{},
+					{
+						stdout: { write: () => {} },
+						loadConfigFromFile: (path) =>
+							path === "godex.yaml" ? validConfig : null,
+						startServer: () => {
+							throw new Error("listen failed");
+						},
+					},
+				),
+			).rejects.toThrow("listen failed");
+			expect(closeCount).toBe(1);
+		} finally {
+			ApplicationContext.prototype.close = close;
+		}
+	});
 });
