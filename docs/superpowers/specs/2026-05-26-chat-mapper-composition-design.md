@@ -113,8 +113,12 @@ export interface ChatToolMapper<TTools> {
 	map(ctx: ResponsesContext, plan: CompatibilityPlan): TTools | undefined;
 }
 
-export interface ChatToolChoiceMapper<TToolChoice> {
-	map(ctx: ResponsesContext, plan: CompatibilityPlan): TToolChoice | undefined;
+export interface ChatToolChoiceMapper<TTools, TToolChoice> {
+	map(
+		ctx: ResponsesContext,
+		plan: CompatibilityPlan,
+		tools: TTools | undefined,
+	): TToolChoice | undefined;
 }
 
 export interface ChatCompletionRequestShape<TMessage, TTools, TToolChoice> {
@@ -204,6 +208,8 @@ Responsibilities:
 - apply provider request options such as stream flags, temperature, top-p, token limit, user identity, reasoning, response format, metadata, store, service tier, and provider-specific fields
 
 `ChatRequestMapper` intentionally knows only the standard Chat Completions request fields `messages`, `tools`, and `tool_choice`. Provider-specific fields such as `stream_options`, `web_search_options`, `thinking`, `response_format`, and token limits stay in `ChatRequestOptionsMapper`.
+
+`ChatRequestMapper` passes the mapped tools result into `ChatToolChoiceMapper`. This lets providers preserve rules where `tool_choice` depends on effective mapped tools, such as Zhipu omitting `tool_choice` when all requested tools were disabled, skipped, or unsupported.
 
 The request skeleton is the minimum valid provider request object before optional mapping. It should include required provider fields such as the upstream model field and any required empty containers such as `messages` when the provider type requires them. Optional parameters such as sampling, streaming, tool choice, response format, metadata, and reasoning belong in `ChatRequestOptionsMapper`, not in the factory.
 
