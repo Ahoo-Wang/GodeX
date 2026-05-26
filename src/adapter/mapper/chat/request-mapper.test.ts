@@ -105,6 +105,25 @@ describe("ChatRequestMapper", () => {
 		expect(negotiateCount).toBe(1);
 	});
 
+	test("errors from negotiator propagate without wrapping", () => {
+		const mapper = new ChatRequestMapper<TestRequest, string, string[], string>(
+			{
+				negotiator: {
+					negotiate: () => {
+						throw new Error("negotiator failure");
+					},
+				},
+				factory: { create: (_ctx, _plan) => ({ model: "m", messages: [] }) },
+				messages: { map: () => [] },
+				tools: { map: () => undefined },
+				toolChoice: { map: () => undefined },
+				options: { apply: () => undefined },
+			},
+		);
+
+		expect(() => mapper.map(ctx())).toThrow("negotiator failure");
+	});
+
 	test("omits tools and tool choice when sub-mappers return undefined", () => {
 		const mapper = new ChatRequestMapper<TestRequest, string, string[], string>(
 			{

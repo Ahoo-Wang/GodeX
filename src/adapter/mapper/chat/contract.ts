@@ -39,6 +39,13 @@ export interface ChatChoiceExtractor<TSource, TChoice> {
 	firstChoice(source: TSource): TChoice | undefined;
 }
 
+/**
+ * Creates the minimum valid provider request skeleton.
+ * The returned {@link messages} value is a placeholder — it will be
+ * overwritten by {@link ChatMessageMapper.map} during composition.
+ * Only required provider fields (model, empty containers) belong here;
+ * optional parameters belong in {@link ChatRequestOptionsMapper}.
+ */
 export interface ChatRequestFactory<TReq> {
 	create(ctx: ResponsesContext, plan: CompatibilityPlan): TReq;
 }
