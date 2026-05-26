@@ -5,6 +5,10 @@ import { StreamResponseState } from "./mapper/chat/stream-response-state";
 /**
  * Wraps a ResponseStreamEvent stream so that read errors trigger a
  * response.failed event before the stream closes.
+ *
+ * If onError itself fails because the stream is already terminal,
+ * the exception is expected and logged at debug level. Unexpected
+ * failures are logged at warn level for diagnostics.
  */
 export function wrapWithErrorHandler(
 	stream: ReadableStream<ResponseStreamEvent>,
@@ -31,9 +35,18 @@ export function wrapWithErrorHandler(
 							controller.enqueue(e);
 						}
 					} catch (e) {
-						ctx.logger.warn("stream.error.handler.failed", () => ({
-							error: String(e),
-						}));
+						const isKnown =
+							e instanceof Error &&
+							e.message.includes("stream response phase is");
+						if (isKnown) {
+							ctx.logger.debug("stream.error.handler.already_terminal", () => ({
+								error: String(e),
+							}));
+						} else {
+							ctx.logger.warn("stream.error.handler.failed", () => ({
+								error: String(e),
+							}));
+						}
 					}
 				}
 				controller.close();
