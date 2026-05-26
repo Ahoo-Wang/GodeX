@@ -50,8 +50,19 @@ export function registerShutdownHandlers(
 	server: { stop(): void } | { port: number },
 	closeResources: () => void | Promise<void>,
 	logger: Logger,
-): void {
-	const shutdown = (signal: string) => {
+): () => void {
+	let shuttingDown = false;
+	const handleSigint = () => shutdown("SIGINT");
+	const handleSigterm = () => shutdown("SIGTERM");
+	const cleanup = () => {
+		process.off("SIGINT", handleSigint);
+		process.off("SIGTERM", handleSigterm);
+	};
+
+	function shutdown(signal: string) {
+		if (shuttingDown) return;
+		shuttingDown = true;
+		cleanup();
 		void (async () => {
 			logger.info("godex.shutting.down", () => ({ signal }));
 			if ("stop" in server && typeof server.stop === "function") {
@@ -66,7 +77,9 @@ export function registerShutdownHandlers(
 			}
 			process.exit(0);
 		})();
-	};
-	process.once("SIGINT", () => shutdown("SIGINT"));
-	process.once("SIGTERM", () => shutdown("SIGTERM"));
+	}
+
+	process.once("SIGINT", handleSigint);
+	process.once("SIGTERM", handleSigterm);
+	return cleanup;
 }

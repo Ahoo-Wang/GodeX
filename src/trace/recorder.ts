@@ -108,7 +108,7 @@ export class AsyncTraceRecorder implements TraceRecorder {
 	private toRow(event: TraceRecordEvent): TraceStoreRow | null {
 		try {
 			if (event.kind === "request") {
-				const payload = this.payload(event.payload?.payload);
+				const payload = this.payload(event.payload?.payload, event.request_id);
 				return {
 					table: "requests",
 					request_id: event.request_id,
@@ -159,7 +159,7 @@ export class AsyncTraceRecorder implements TraceRecorder {
 							: JSON.stringify(event.raw_usage),
 				};
 			}
-			const payload = this.payload(event.payload?.payload);
+			const payload = this.payload(event.payload?.payload, event.request_id);
 			return {
 				table: "events",
 				request_id: event.request_id,
@@ -178,19 +178,22 @@ export class AsyncTraceRecorder implements TraceRecorder {
 		}
 	}
 
-	private payload(payload: unknown) {
+	private payload(payload: unknown, requestId: string) {
 		if (payload === undefined) {
-			return {
-				payload_hash: null,
-				payload_bytes: null,
-				payload_json: null,
-				payload_truncated: false,
-			};
+			return emptyPayload();
 		}
-		return summarizePayload(payload, {
-			capturePayload: this.options.capturePayload,
-			payloadMaxBytes: this.options.payloadMaxBytes,
-		});
+		try {
+			return summarizePayload(payload, {
+				capturePayload: this.options.capturePayload,
+				payloadMaxBytes: this.options.payloadMaxBytes,
+			});
+		} catch (err) {
+			this.warn("trace.payload.serialize.error", {
+				request_id: requestId,
+				error: String(err),
+			});
+			return emptyPayload();
+		}
 	}
 
 	private warn(event: string, attr?: Record<string, unknown>): void {
@@ -200,4 +203,13 @@ export class AsyncTraceRecorder implements TraceRecorder {
 			return;
 		}
 	}
+}
+
+function emptyPayload() {
+	return {
+		payload_hash: null,
+		payload_bytes: null,
+		payload_json: null,
+		payload_truncated: false,
+	};
 }

@@ -3,8 +3,10 @@ import type { Logger } from "../logger";
 import { registerShutdownHandlers } from "./serve";
 
 const originalExit = process.exit;
+const cleanups: Array<() => void> = [];
 
 afterEach(() => {
+	for (const cleanup of cleanups.splice(0)) cleanup();
 	process.exit = originalExit;
 });
 
@@ -30,13 +32,14 @@ describe("registerShutdownHandlers", () => {
 		process.exit = ((code?: string | number | null | undefined) => {
 			exitCode = code;
 		}) as typeof process.exit;
-		registerShutdownHandlers(
+		const cleanup = registerShutdownHandlers(
 			{ stop: () => {} },
 			() => {
 				closed = true;
 			},
 			logger,
 		);
+		cleanups.push(cleanup);
 		process.emit("SIGINT", "SIGINT");
 		await new Promise((resolve) => setTimeout(resolve, 5));
 		expect(closed).toBe(true);
@@ -47,7 +50,7 @@ describe("registerShutdownHandlers", () => {
 		});
 	});
 
-	test("runs shutdown once for repeated signals", async () => {
+	test("runs shutdown once across repeated signals", async () => {
 		const logger: Logger = {
 			level: "info",
 			child: () => logger,
@@ -62,19 +65,47 @@ describe("registerShutdownHandlers", () => {
 		process.exit = (() => {
 			exitCount++;
 		}) as typeof process.exit;
-		registerShutdownHandlers(
+		const cleanup = registerShutdownHandlers(
 			{ stop: () => {} },
 			() => {
 				closeCount++;
 			},
 			logger,
 		);
+		cleanups.push(cleanup);
 
 		process.emit("SIGINT", "SIGINT");
+		process.emit("SIGTERM", "SIGTERM");
 		process.emit("SIGINT", "SIGINT");
 		await new Promise((resolve) => setTimeout(resolve, 5));
 
 		expect(closeCount).toBe(1);
 		expect(exitCount).toBe(1);
+	});
+
+	test("returns cleanup that removes registered signal listeners", () => {
+		const logger: Logger = {
+			level: "info",
+			child: () => logger,
+			trace: () => {},
+			debug: () => {},
+			info: () => {},
+			warn: () => {},
+			error: () => {},
+		};
+		const sigintCount = process.listenerCount("SIGINT");
+		const sigtermCount = process.listenerCount("SIGTERM");
+
+		const cleanup = registerShutdownHandlers(
+			{ stop: () => {} },
+			() => {},
+			logger,
+		);
+
+		expect(process.listenerCount("SIGINT")).toBe(sigintCount + 1);
+		expect(process.listenerCount("SIGTERM")).toBe(sigtermCount + 1);
+		cleanup();
+		expect(process.listenerCount("SIGINT")).toBe(sigintCount);
+		expect(process.listenerCount("SIGTERM")).toBe(sigtermCount);
 	});
 });

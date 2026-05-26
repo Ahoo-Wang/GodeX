@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { AsyncTraceRecorder, NoopTraceRecorder } from "./recorder";
+import type { TraceStoreRow } from "./sqlite";
 import type { TraceRecordEvent } from "./types";
 
-function requestEvent(id = "req_1"): TraceRecordEvent {
+function requestEvent(
+	id = "req_1",
+): Extract<TraceRecordEvent, { kind: "event" }> {
 	return {
 		kind: "event",
 		request_id: id,
@@ -144,5 +147,43 @@ describe("TraceRecorder", () => {
 		expect(() => recorder.record(requestEvent("req_1"))).not.toThrow();
 		await recorder.close();
 		expect(warnings).toContain("trace.flush.error");
+	});
+
+	test("keeps trace row metadata when payload serialization fails", async () => {
+		const warnings: string[] = [];
+		const batches: TraceStoreRow[][] = [];
+		const payload: Record<string, unknown> = {};
+		payload.self = payload;
+		const recorder = new AsyncTraceRecorder({
+			maxQueueSize: 10,
+			batchSize: 1,
+			flushIntervalMs: 60_000,
+			capturePayload: true,
+			payloadMaxBytes: 1024,
+			logger: { warn: (event) => warnings.push(event) },
+			store: {
+				insertBatch: async (rows) => {
+					batches.push(rows);
+				},
+				close: () => {},
+			},
+		});
+
+		recorder.record({
+			...requestEvent("req_circular"),
+			payload: { payload },
+		});
+		await recorder.close();
+
+		expect(batches.flat()).toHaveLength(1);
+		expect(batches.flat()[0]).toMatchObject({
+			table: "events",
+			request_id: "req_circular",
+			payload_hash: null,
+			payload_bytes: null,
+			payload_json: null,
+			payload_truncated: false,
+		});
+		expect(warnings).toContain("trace.payload.serialize.error");
 	});
 });

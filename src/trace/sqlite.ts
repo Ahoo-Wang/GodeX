@@ -220,9 +220,24 @@ export class SQLiteTraceStore {
                     $input_tokens, $output_tokens, $total_tokens, $cached_tokens,
                     $cache_hit_ratio, $cache_creation_input_tokens,
                     $cache_read_input_tokens, $raw_usage_json
-                )`,
+	                )`,
 				)
-				.run(values);
+				.run({
+					request_id: values.request_id,
+					response_id: values.response_id,
+					provider: values.provider,
+					model: values.model,
+					created_at: values.created_at,
+					input_tokens: values.input_tokens ?? null,
+					output_tokens: values.output_tokens ?? null,
+					total_tokens: values.total_tokens ?? null,
+					cached_tokens: values.cached_tokens ?? null,
+					cache_hit_ratio: values.cache_hit_ratio ?? null,
+					cache_creation_input_tokens:
+						values.cache_creation_input_tokens ?? null,
+					cache_read_input_tokens: values.cache_read_input_tokens ?? null,
+					raw_usage_json: values.raw_usage_json ?? null,
+				});
 			return;
 		}
 		const { table: _table, ...values } = row;
@@ -237,7 +252,14 @@ export class SQLiteTraceStore {
             )`,
 			)
 			.run({
-				...values,
+				request_id: values.request_id,
+				response_id: values.response_id,
+				event_name: values.event_name,
+				sequence: values.sequence ?? 0,
+				created_at: values.created_at,
+				payload_hash: values.payload_hash ?? null,
+				payload_bytes: values.payload_bytes ?? null,
+				payload_json: values.payload_json ?? null,
 				payload_truncated: values.payload_truncated ? 1 : 0,
 			});
 	}
