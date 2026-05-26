@@ -23,7 +23,7 @@
         "typescript": "^6",
       },
       "optionalDependencies": {
-        "@ahoo-wang/godex-darwin-arm64": "0.0.2",
+        "@ahoo-wang/godex-darwin-arm64": "0.0.22",
         "@ahoo-wang/godex-darwin-x64": "0.0.2",
         "@ahoo-wang/godex-linux-arm64": "0.0.2",
         "@ahoo-wang/godex-linux-x64": "0.0.2",
@@ -39,7 +39,7 @@
 
     "@ahoo-wang/fetcher-eventstream": ["@ahoo-wang/fetcher-eventstream@3.16.8", "", { "peerDependencies": { "@ahoo-wang/fetcher": "3.16.8" } }, "sha512-+8viS2W7yallSQDlsRylB7LvKocWWfbpDK9Q+7Pq3Je2ZDzYG/c9FeL++JwrbfnGuD+DsGodqkNqM+4AxLdQgQ=="],
 
-    "@ahoo-wang/godex-darwin-arm64": ["@ahoo-wang/godex-darwin-arm64@0.0.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-uvsk29w5VSCjyc7zCqf5IpgmFk7ga6pnvuAj2vTArnqwyNRQ63g+CtrOMNh2CNPSqMrFZaghYPmJlx4HNMZn/g=="],
+    "@ahoo-wang/godex-darwin-arm64": ["@ahoo-wang/godex-darwin-arm64@0.0.22", "", { "os": "darwin", "cpu": "arm64" }, "sha512-mjPNS37lF/raYtXNY0FKwclWK7TenAgZ8U2DDDFtufW4+w1YO6HBX5cS6kvzLCEUCeacXTCsDcbaN48H218dOg=="],
 
     "@ahoo-wang/godex-darwin-x64": ["@ahoo-wang/godex-darwin-x64@0.0.2", "", { "os": "darwin", "cpu": "x64" }, "sha512-pq1SpJS1dEQCbq6cZJjSo7knhslxCA+9eillTIzkPwt7sOsTqxOXOSuMhkLfIzBX7oSgM2SQW1VhDt4a0IQXpg=="],
 
