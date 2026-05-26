@@ -75,7 +75,7 @@ function parseTraceConfig(file: Record<string, unknown>): TraceConfig {
 	const raw = file.trace;
 	if (typeof raw !== "object" || raw === null) {
 		return {
-			enabled: true,
+			enabled: false,
 			path: resolveDefaultTracePath(),
 			max_queue_size: 10000,
 			flush_interval_ms: 1000,

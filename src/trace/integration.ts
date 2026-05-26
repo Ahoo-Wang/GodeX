@@ -100,7 +100,7 @@ export function recordTraceUsage(
 	usage: ResponseUsage | null | undefined,
 	rawUsage?: unknown,
 ): void {
-	if (!(ctx.app as unknown as { traceEnabled?: boolean }).traceEnabled) return;
+	if (!ctx.app.traceEnabled) return;
 	const snapshot = traceUsageFromResponseUsage(usage, rawUsage);
 	if (!snapshot) return;
 	ctx.app.traceRecorder.record({

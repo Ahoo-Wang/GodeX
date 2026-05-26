@@ -36,6 +36,22 @@ function toolName(tool: unknown): string {
 	return typeof tool.name === "string" ? tool.name : "";
 }
 
+function hasCacheControlField(req: Record<string, unknown>): boolean {
+	if ("cache_control" in req) return true;
+	const messages = Array.isArray(req.messages) ? req.messages : [];
+	for (const msg of messages) {
+		if (!isRecord(msg)) continue;
+		if ("cache_control" in msg) return true;
+		const content = msg.content;
+		if (Array.isArray(content)) {
+			for (const part of content) {
+				if (isRecord(part) && "cache_control" in part) return true;
+			}
+		}
+	}
+	return false;
+}
+
 export class ChatCompletionPromptCacheRequestAnalyzer
 	implements ProviderPromptCacheRequestAnalyzer
 {
@@ -98,7 +114,7 @@ export class ChatCompletionPromptCacheRequestAnalyzer
 				typeof req.prompt_cache_retention === "string"
 					? req.prompt_cache_retention
 					: undefined,
-			has_cache_control: stableJson(req).includes('"cache_control"'),
+			has_cache_control: hasCacheControlField(req),
 			prefix_parts: prefixParts,
 			tool_fingerprint:
 				names.length > 0 ? { names, hash: sha256Hex(toolJson) } : undefined,
