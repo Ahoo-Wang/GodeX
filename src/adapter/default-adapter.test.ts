@@ -90,9 +90,61 @@ function createMockCtx(
 		...loggerOverrides,
 	} as ResponsesContext["logger"];
 
+	const traceEvents: unknown[] = [];
+
 	return {
 		provider,
-		app: { sessionStore },
+		app: {
+			sessionStore,
+			traceRecorder: {
+				record: (event: unknown) => {
+					traceEvents.push(event);
+				},
+			},
+			promptCacheRequestAnalyzer: {
+				analyze: (input: {
+					request: unknown;
+					providerRequest: unknown;
+					provider?: string;
+					model?: string;
+				}) => ({
+					provider: input.provider ?? "test",
+					model: input.model ?? "test",
+					requested_prompt_cache_key: (input.request as Record<string, unknown>)
+						?.prompt_cache_key as string | undefined,
+					requested_prompt_cache_retention: (
+						input.request as Record<string, unknown>
+					)?.prompt_cache_retention as string | undefined,
+					prompt_cache_key: (input.providerRequest as Record<string, unknown>)
+						?.prompt_cache_key as string | undefined,
+					prompt_cache_retention: (
+						input.providerRequest as Record<string, unknown>
+					)?.prompt_cache_retention as string | undefined,
+					has_cache_control: false,
+					prefix_parts: [],
+					static_prefix_hash: "hash",
+					static_prefix_bytes: 0,
+					dynamic_text_candidates: [],
+				}),
+			},
+			promptCacheDetector: {
+				detect: () => ({
+					risk_level: "none" as const,
+					reasons: [],
+					prefix_hash: "hash",
+					prefix_bytes: 0,
+					passthrough: {
+						prompt_cache_key: true,
+						prompt_cache_retention: true,
+						cache_control: false,
+					},
+				}),
+			},
+			promptCacheObservationIndex: {
+				get: () => null,
+				remember: () => {},
+			},
+		},
 		logger,
 		request: { store },
 		requestId: "req_test",
@@ -107,6 +159,7 @@ function createMockCtx(
 		},
 		attributes: new Map(),
 		session: null,
+		traceEvents,
 	} as unknown as ResponsesContext;
 }
 
@@ -276,7 +329,7 @@ describe("DefaultAdapter", () => {
 		expect(sessionStore.saved[0]?.id).toBe("resp_123");
 	});
 
-	test("request logs trace for responses request body, upstream request body, and upstream response body", async () => {
+	test("request records trace events for provider request and response", async () => {
 		const responseObject = {
 			id: "resp_trace",
 			object: "response" as const,
@@ -291,24 +344,79 @@ describe("DefaultAdapter", () => {
 		const provider = createMockProvider(responseObject);
 		const sessionStore = createMockSessionStore();
 
-		const traces: Array<{ event: string; attr?: Record<string, unknown> }> = [];
-		const ctx = createMockCtx(provider, sessionStore, true, {
-			trace: (event, attr) => {
-				traces.push({
-					event,
-					attr: typeof attr === "function" ? attr() : attr,
-				});
-			},
-		});
+		const ctx = createMockCtx(
+			provider,
+			sessionStore,
+			true,
+		) as ResponsesContext & {
+			traceEvents: unknown[];
+		};
 
 		const adapter = new DefaultAdapter();
 		await adapter.request(ctx);
 
-		expect(traces).toEqual([
-			{ event: "responses.request.body", attr: { body: ctx.request } },
-			{ event: "upstream.request.body", attr: { body: { model: "test" } } },
-			{ event: "upstream.response.body", attr: { body: responseObject } },
-		]);
+		const kindEvents = ctx.traceEvents.map((e) => (e as { kind: string }).kind);
+		expect(kindEvents).toEqual(["request", "event", "event", "usage"]);
+		const detailEvents = ctx.traceEvents.filter(
+			(e) => (e as { kind: string }).kind === "event",
+		);
+		expect(
+			detailEvents.map((e) => (e as { event_name: string }).event_name),
+		).toEqual(["provider.request.body", "provider.response.body"]);
+	});
+
+	test("request trace does not mutate provider request and records cached usage", async () => {
+		const providerRequest = {
+			model: "test",
+			messages: [{ role: "system", content: "static" }],
+			prompt_cache_key: "cache-key",
+		};
+		const original = structuredClone(providerRequest);
+		const responseObject = {
+			id: "resp_cache",
+			object: "response" as const,
+			status: "completed" as const,
+			model: "test",
+			created_at: 1,
+			completed_at: 1,
+			output: [],
+			output_text: "",
+			usage: {
+				input_tokens: 100,
+				output_tokens: 20,
+				total_tokens: 120,
+				input_tokens_details: { cached_tokens: 40 },
+			},
+		};
+		const provider = createMockProvider(responseObject);
+		provider.mapper.request.map = () => providerRequest;
+		const sessionStore = createMockSessionStore();
+		const ctx = createMockCtx(
+			provider,
+			sessionStore,
+			true,
+		) as ResponsesContext & {
+			traceEvents: unknown[];
+		};
+		await new DefaultAdapter().request(ctx);
+		expect(providerRequest).toEqual(original);
+		expect(ctx.traceEvents).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ kind: "request" }),
+				expect.objectContaining({
+					kind: "event",
+					event_name: "provider.request.body",
+				}),
+				expect.objectContaining({
+					kind: "event",
+					event_name: "provider.response.body",
+				}),
+				expect.objectContaining({
+					kind: "usage",
+					usage: expect.objectContaining({ cached_tokens: 40 }),
+				}),
+			]),
+		);
 	});
 
 	test("stream logs trace for responses request body, upstream request body, and stream events", async () => {

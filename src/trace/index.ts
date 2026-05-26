@@ -1,3 +1,4 @@
+export * from "./integration";
 export * from "./observation";
 export * from "./payload";
 export * from "./prompt-cache-analyzer";
