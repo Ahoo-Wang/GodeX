@@ -43,6 +43,7 @@ export class ApplicationContext {
 	readonly promptCacheRequestAnalyzer: ProviderPromptCacheRequestAnalyzer;
 	readonly promptCacheDetector: PromptCacheDetector;
 	readonly promptCacheObservationIndex: PromptCacheObservationIndex;
+	readonly traceEnabled: boolean;
 
 	constructor(config: GodeXConfig, registrar?: Registrar) {
 		this.config = config;
@@ -55,6 +56,7 @@ export class ApplicationContext {
 		this.registrar.registerProviders(config.providers, this.logger);
 		this.adapter = new DefaultAdapter();
 		this.sessionStore = createSessionStore(config);
+		this.traceEnabled = config.trace.enabled;
 		this.promptCacheRequestAnalyzer =
 			new ChatCompletionPromptCacheRequestAnalyzer();
 		this.promptCacheDetector = new PrefixPromptCacheDetector();

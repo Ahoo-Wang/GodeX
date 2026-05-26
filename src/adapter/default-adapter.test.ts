@@ -96,6 +96,7 @@ function createMockCtx(
 		provider,
 		app: {
 			sessionStore,
+			traceEnabled: true,
 			traceRecorder: {
 				record: (event: unknown) => {
 					traceEvents.push(event);

@@ -17,6 +17,7 @@ export function analyzePromptCache(
 	ctx: ResponsesContext,
 	providerRequest: unknown,
 ): void {
+	if (!ctx.app.traceEnabled) return;
 	try {
 		const current = ctx.app.promptCacheRequestAnalyzer.analyze({
 			provider: ctx.resolved.provider,

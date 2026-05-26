@@ -153,4 +153,3 @@ export interface PromptCacheDetection {
 		cache_control: boolean;
 	};
 }
-
