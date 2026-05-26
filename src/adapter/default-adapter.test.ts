@@ -590,4 +590,66 @@ describe("DefaultAdapter", () => {
 			],
 		});
 	});
+
+	test("request records payload trace without logger trace calls", async () => {
+		const responseObject = {
+			id: "resp_trace",
+			object: "response" as const,
+			status: "completed" as const,
+			model: "test",
+			created_at: 1,
+			completed_at: 1,
+			output: [],
+			output_text: "",
+			usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 },
+		};
+		const provider = createMockProvider(responseObject);
+		const sessionStore = createMockSessionStore();
+		const traces: string[] = [];
+		const ctx = createMockCtx(provider, sessionStore, true, {
+			trace: (event) => traces.push(event),
+		}) as ResponsesContext & { traceEvents: unknown[] };
+		await new DefaultAdapter().request(ctx);
+		expect(traces).toEqual([]);
+		expect(ctx.traceEvents).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ kind: "request" }),
+				expect.objectContaining({ event_name: "provider.request.body" }),
+				expect.objectContaining({ event_name: "provider.response.body" }),
+			]),
+		);
+	});
+
+	test("stream records payload trace without logger trace calls", async () => {
+		const responseObject: ResponseObject = {
+			id: "resp_stream_trace",
+			object: "response",
+			status: "completed",
+			model: "test",
+			created_at: 1,
+			completed_at: 2,
+			output: [],
+			output_text: "",
+			usage: { input_tokens: 5, output_tokens: 10, total_tokens: 15 },
+		};
+		const provider = createMockProvider(
+			responseObject,
+			[{ type: "response.completed", response: responseObject }],
+			[{ event: "chunk", data: { text: "hi" } }],
+		);
+		const sessionStore = createMockSessionStore();
+		const traces: string[] = [];
+		const ctx = createMockCtx(provider, sessionStore, true, {
+			trace: (event) => traces.push(event),
+		}) as ResponsesContext & { traceEvents: unknown[] };
+		const adapter = new DefaultAdapter();
+		await readStream(await adapter.stream(ctx));
+		expect(traces).toEqual([]);
+		expect(ctx.traceEvents).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ kind: "request" }),
+				expect.objectContaining({ kind: "usage" }),
+			]),
+		);
+	});
 });

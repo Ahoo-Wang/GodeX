@@ -73,6 +73,18 @@ session:
     path: ./data/sessions.db         # SQLite 数据库路径 (仅 sqlite 模式)
 
 # ---------------------------------------------------------------------------
+# Trace DB — 请求/响应/流事件与 Prompt Cache 检测，默认关闭
+# ---------------------------------------------------------------------------
+trace:
+  enabled: false                    # true 时启用独立 trace.db
+  path: ./data/trace.db             # SQLite trace 数据库路径
+  max_queue_size: 10000             # 异步队列最大长度，满时丢弃并 warn
+  flush_interval_ms: 1000           # 后台批量 flush 间隔
+  batch_size: 100                   # 单次 flush 最大记录数
+  capture_payload: false            # false 时只记录 payload_hash/payload_bytes
+  payload_max_bytes: 65536          # capture_payload=true 时单条 payload 最大保存字节数
+
+# ---------------------------------------------------------------------------
 # 日志
 # ---------------------------------------------------------------------------
 logging:
