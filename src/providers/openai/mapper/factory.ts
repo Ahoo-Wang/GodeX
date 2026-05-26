@@ -10,6 +10,7 @@ import type {
 	ChatCompletionTool,
 	ChatCompletionToolChoiceOption,
 } from "../../../protocol/openai/completions";
+import { extractResponseOutputText as extractOpenAIOutputText } from "../../shared/response-message-payloads";
 import { OpenAICompatibilityNegotiator } from "./compatibility";
 import { OpenAIFinishReasonMapper } from "./finish-reason";
 import { OpenAIMessageMapper } from "./messages";
@@ -18,7 +19,6 @@ import {
 	OpenAIRequestOptionsMapper,
 } from "./request-options";
 import {
-	extractOpenAIOutputText,
 	OpenAIResponseAccessor,
 	OpenAIResponseOutputMapper,
 } from "./response-output";

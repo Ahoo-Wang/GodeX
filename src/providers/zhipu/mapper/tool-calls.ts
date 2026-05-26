@@ -6,7 +6,7 @@ import type {
 	ChatToolCallMapper,
 } from "../../../adapter/mapper/chat/contract";
 import type { ToolCallSnapshot } from "../../../adapter/mapper/chat/stream-response-state";
-import { isRecord } from "../../../adapter/utils";
+import { isRecord, isStringArray } from "../../../adapter/utils";
 import type { ResponsesContext } from "../../../context/responses-context";
 import type {
 	ApplyPatchOperation,
@@ -204,8 +204,8 @@ function localShellCall(callId: string, args: string): LocalShellCall | null {
 	const parsed = parsedRecord(args);
 	if (!parsed) return null;
 
-	const command = stringArray(parsed.command);
-	if (!command) return null;
+	const command = parsed.command;
+	if (!isStringArray(command)) return null;
 
 	const action: LocalShellCall["action"] = {
 		type: "exec",
@@ -232,9 +232,8 @@ function localShellCall(callId: string, args: string): LocalShellCall | null {
 function shellCall(callId: string, args: string): ShellCall | null {
 	const parsed = parsedRecord(args);
 	if (!parsed) return null;
-
-	const commands = stringArray(parsed.commands);
-	if (!commands) return null;
+	const commands = parsed.commands;
+	if (!isStringArray(commands)) return null;
 
 	const action: ShellCall["action"] = { commands };
 	const timeoutMs = optionalNumber(parsed.timeout_ms);
@@ -311,12 +310,6 @@ function parseJson(value: string): unknown | null {
 	} catch {
 		return null;
 	}
-}
-
-function stringArray(value: unknown): string[] | null {
-	return Array.isArray(value) && value.every((item) => typeof item === "string")
-		? value
-		: null;
 }
 
 function stringRecord(value: unknown): Record<string, string> {

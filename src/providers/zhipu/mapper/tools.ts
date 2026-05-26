@@ -5,7 +5,7 @@ import type {
 	ChatToolChoiceMapper,
 	ChatToolMapper,
 } from "../../../adapter/mapper/chat/contract";
-import { isRecord } from "../../../adapter/utils";
+import { isRecord, isStringArray } from "../../../adapter/utils";
 import type { ResponsesContext } from "../../../context/responses-context";
 import {
 	ADAPTER_REQUEST_UNSUPPORTED_PARAMETER,
@@ -260,12 +260,6 @@ function normalizeMcpAllowedTools(
 	return undefined;
 }
 
-function isStringArray(value: unknown): value is string[] {
-	return (
-		Array.isArray(value) && value.every((item) => typeof item === "string")
-	);
-}
-
 function unsupportedTool(type: string, message: string): AdapterError {
 	return new AdapterError(
 		"adapter.request.unsupported_tool",
@@ -363,9 +357,3 @@ export class ZhipuToolChoiceMapper
 		return mapZhipuToolChoice(requestedToolChoice);
 	}
 }
-
-/** @deprecated Use {@link mapZhipuTools} instead. */
-export const mapTools = mapZhipuTools;
-
-/** @deprecated Use {@link mapZhipuToolChoice} instead. */
-export const mapToolChoice = mapZhipuToolChoice;

@@ -1,11 +1,11 @@
 // src/providers/zhipu/tools.test.ts
 import { describe, expect, test } from "bun:test";
 import { AdapterError } from "../../../error";
-import { mapToolChoice, mapTools } from "./tools";
+import { mapZhipuToolChoice, mapZhipuTools } from "./tools";
 
-describe("mapTools", () => {
+describe("mapZhipuTools", () => {
 	test("maps function tool (internal → external tagging)", () => {
-		const result = mapTools([
+		const result = mapZhipuTools([
 			{
 				type: "function",
 				name: "get_weather",
@@ -36,7 +36,7 @@ describe("mapTools", () => {
 	});
 
 	test("maps web_search tool", () => {
-		const result = mapTools([{ type: "web_search" }]);
+		const result = mapZhipuTools([{ type: "web_search" }]);
 
 		expect(result).toEqual([
 			{
@@ -50,7 +50,7 @@ describe("mapTools", () => {
 	});
 
 	test("maps web_search tool with filters", () => {
-		const result = mapTools([
+		const result = mapZhipuTools([
 			{
 				type: "web_search",
 				search_context_size: "high",
@@ -69,7 +69,7 @@ describe("mapTools", () => {
 	});
 
 	test("maps web_search_preview as a web search downgrade", () => {
-		const result = mapTools([
+		const result = mapZhipuTools([
 			{
 				type: "web_search_preview",
 				search_context_size: "low",
@@ -89,7 +89,7 @@ describe("mapTools", () => {
 	});
 
 	test("maps file_search → retrieval tool", () => {
-		const result = mapTools([
+		const result = mapZhipuTools([
 			{
 				type: "file_search",
 				vector_store_ids: ["vs_abc"],
@@ -105,7 +105,7 @@ describe("mapTools", () => {
 	});
 
 	test("maps mcp tool", () => {
-		const result = mapTools([
+		const result = mapZhipuTools([
 			{
 				type: "mcp",
 				server_label: "my-mcp",
@@ -128,7 +128,7 @@ describe("mapTools", () => {
 	});
 
 	test("downgrades mcp allowed_tools filters to explicit tool names", () => {
-		const result = mapTools([
+		const result = mapZhipuTools([
 			{
 				type: "mcp",
 				server_label: "my-mcp",
@@ -149,7 +149,7 @@ describe("mapTools", () => {
 	});
 
 	test("downgrades Codex client tools to function tools", () => {
-		const result = mapTools([
+		const result = mapZhipuTools([
 			{ type: "local_shell" },
 			{ type: "shell", environment: { type: "local" } },
 			{ type: "apply_patch" },
@@ -208,7 +208,7 @@ describe("mapTools", () => {
 
 	test("rejects function name collisions after Zhipu sanitization", () => {
 		expect(() =>
-			mapTools([
+			mapZhipuTools([
 				{
 					type: "custom",
 					name: "read-file",
@@ -223,7 +223,7 @@ describe("mapTools", () => {
 
 	test("throws for unsupported tools by default", () => {
 		expect(() =>
-			mapTools([
+			mapZhipuTools([
 				{
 					type: "code_interpreter" as const,
 					container: { type: "auto" as const },
@@ -234,7 +234,7 @@ describe("mapTools", () => {
 
 	test("gracefully skips unsupported tools when requested", () => {
 		const skipped: string[] = [];
-		const result = mapTools(
+		const result = mapZhipuTools(
 			[
 				{
 					type: "code_interpreter" as const,
@@ -256,7 +256,7 @@ describe("mapTools", () => {
 
 	test("throws for file_search without vector_store_ids", () => {
 		expect(() =>
-			mapTools([
+			mapZhipuTools([
 				{
 					type: "file_search",
 					vector_store_ids: [],
@@ -266,23 +266,23 @@ describe("mapTools", () => {
 	});
 
 	test("returns empty array for undefined tools", () => {
-		expect(mapTools(undefined)).toEqual([]);
+		expect(mapZhipuTools(undefined)).toEqual([]);
 	});
 });
 
-describe("mapToolChoice", () => {
+describe("mapZhipuToolChoice", () => {
 	test('maps "auto" to "auto"', () => {
-		expect(mapToolChoice("auto")).toBe("auto");
+		expect(mapZhipuToolChoice("auto")).toBe("auto");
 	});
 
 	test('maps "none" to no provider tool_choice', () => {
-		expect(mapToolChoice("none")).toBeUndefined();
+		expect(mapZhipuToolChoice("none")).toBeUndefined();
 	});
 
 	test("downgrades unsupported provider tool choices to auto", () => {
-		expect(mapToolChoice("required")).toBe("auto");
-		expect(mapToolChoice({ type: "function", name: "foo" })).toBe("auto");
-		expect(mapToolChoice({ type: "apply_patch" })).toBe("auto");
-		expect(mapToolChoice({ type: "shell" })).toBe("auto");
+		expect(mapZhipuToolChoice("required")).toBe("auto");
+		expect(mapZhipuToolChoice({ type: "function", name: "foo" })).toBe("auto");
+		expect(mapZhipuToolChoice({ type: "apply_patch" })).toBe("auto");
+		expect(mapZhipuToolChoice({ type: "shell" })).toBe("auto");
 	});
 });

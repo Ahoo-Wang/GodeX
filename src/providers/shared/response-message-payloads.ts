@@ -296,6 +296,28 @@ function providerLabel(options: ResponseMessagePayloadOptions): string {
 	return options.providerLabel ?? options.provider;
 }
 
+export function extractResponseOutputText(output: ResponseItem[]): string {
+	return output
+		.filter(
+			(
+				item,
+			): item is Extract<
+				ResponseItem,
+				{ type: "message"; content: unknown[] }
+			> => item.type === "message" && "content" in item,
+		)
+		.flatMap((item) => item.content as unknown[])
+		.filter(
+			(part): part is { type: "output_text"; text: string } =>
+				typeof part === "object" &&
+				part !== null &&
+				"type" in part &&
+				part.type === "output_text",
+		)
+		.map((part) => part.text)
+		.join("");
+}
+
 function errorContext(options: ResponseMessagePayloadOptions) {
 	return {
 		provider: options.provider,

@@ -2,6 +2,7 @@ import { ChatRequestMapper } from "../../../adapter/mapper/chat/request-mapper";
 import { ChatResponseMapper } from "../../../adapter/mapper/chat/response-mapper";
 import { ChatStreamMapper } from "../../../adapter/mapper/chat/stream-mapper";
 import type { ProviderMapper } from "../../../adapter/provider";
+import { extractResponseOutputText as extractZhipuOutputText } from "../../shared/response-message-payloads";
 import type {
 	ChatCompletionChunk,
 	ChatCompletionResponse,
@@ -18,7 +19,6 @@ import {
 	ZhipuRequestOptionsMapper,
 } from "./request-options";
 import {
-	extractZhipuOutputText,
 	ZhipuResponseAccessor,
 	ZhipuResponseOutputMapper,
 } from "./response-output";

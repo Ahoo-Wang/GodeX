@@ -3,10 +3,7 @@ import type {
 	ChatResponseOutputMapper,
 } from "../../../adapter/mapper/chat/contract";
 import type { ResponsesContext } from "../../../context/responses-context";
-import type {
-	ResponseItem,
-	ResponseOutputMessage,
-} from "../../../protocol/openai/responses";
+import type { ResponseItem } from "../../../protocol/openai/responses";
 import type {
 	ChatCompletionResponse,
 	FinishReason,
@@ -113,23 +110,3 @@ export function buildZhipuOutputItems(
 
 	return output;
 }
-
-export function extractZhipuOutputText(output: ResponseItem[]): string {
-	return output
-		.filter(
-			(item): item is ResponseOutputMessage =>
-				item.type === "message" && "content" in item,
-		)
-		.flatMap((item) => item.content)
-		.filter(
-			(part): part is { type: "output_text"; text: string } =>
-				typeof part === "object" &&
-				part !== null &&
-				"type" in part &&
-				part.type === "output_text",
-		)
-		.map((part) => part.text)
-		.join("");
-}
-
-export { mapZhipuToolCall };
