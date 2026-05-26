@@ -52,8 +52,6 @@ export class ResponseSessionPersistenceTransformer extends SafeTransformer<
 
 		const state = StreamResponseState.get(this.options.ctx);
 		if (!state) return;
-		// Flush any pending deferred terminal event
-		state.finalize();
 		if (
 			state.phase !== StreamResponsePhase.COMPLETED &&
 			state.phase !== StreamResponsePhase.INCOMPLETE &&

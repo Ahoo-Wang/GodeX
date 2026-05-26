@@ -63,8 +63,6 @@ export type StreamResponseTerminalStatus = Pick<
 
 export interface StreamResponseStateOptions {
 	toolCallOutputItemMapper: ToolCallOutputItemMapper;
-	/** When true, onFinish defers the terminal event until onUsage or finalize() is called. */
-	deferTerminal?: boolean;
 	nowSeconds?: () => number;
 }
 
@@ -81,7 +79,6 @@ export class StreamResponseState {
 	private activeRefusal?: MessageBlock;
 	private activeReasoning?: ReasoningBlock;
 	private outputText = "";
-	private pendingTerminal?: StreamResponseTerminalStatus;
 
 	private constructor(
 		ctx: ResponsesContext,
@@ -89,7 +86,6 @@ export class StreamResponseState {
 	) {
 		this.ctx = ctx;
 		this.options = {
-			deferTerminal: false,
 			...options,
 			nowSeconds: options.nowSeconds ?? (() => Math.floor(Date.now() / 1000)),
 		};
@@ -159,7 +155,7 @@ export class StreamResponseState {
 	}
 
 	onTextDelta(delta: string): ResponseStreamEvent[] {
-		this.assertActive("onTextDelta");
+		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onTextDelta");
 		if (!delta) return [];
 		const events: ResponseStreamEvent[] = [];
 
@@ -208,7 +204,7 @@ export class StreamResponseState {
 	}
 
 	onTextDone(): ResponseStreamEvent[] {
-		this.assertActive("onTextDone");
+		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onTextDone");
 		if (!this.activeText) {
 			throw streamStateError(
 				this.ctx,
@@ -222,7 +218,7 @@ export class StreamResponseState {
 	}
 
 	onReasoningTextDelta(delta: string): ResponseStreamEvent[] {
-		this.assertActive("onReasoningTextDelta");
+		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onReasoningTextDelta");
 		if (!delta) return [];
 		const events: ResponseStreamEvent[] = [];
 
@@ -273,7 +269,7 @@ export class StreamResponseState {
 	}
 
 	onReasoningTextDone(): ResponseStreamEvent[] {
-		this.assertActive("onReasoningTextDone");
+		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onReasoningTextDone");
 		if (!this.activeReasoning) {
 			throw streamStateError(
 				this.ctx,
@@ -287,7 +283,7 @@ export class StreamResponseState {
 	}
 
 	onRefusalDelta(delta: string): ResponseStreamEvent[] {
-		this.assertActive("onRefusalDelta");
+		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onRefusalDelta");
 		if (!delta) return [];
 		const events: ResponseStreamEvent[] = [];
 
@@ -335,7 +331,7 @@ export class StreamResponseState {
 	}
 
 	onRefusalDone(): ResponseStreamEvent[] {
-		this.assertActive("onRefusalDone");
+		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onRefusalDone");
 		if (!this.activeRefusal) {
 			throw streamStateError(
 				this.ctx,
@@ -349,7 +345,7 @@ export class StreamResponseState {
 	}
 
 	onFunctionCallDelta(delta: FunctionCallDelta): ResponseStreamEvent[] {
-		this.assertActive("onFunctionCallDelta");
+		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFunctionCallDelta");
 		const events: ResponseStreamEvent[] = [];
 
 		// Reject deltas for closed calls before mutating accumulator
@@ -394,7 +390,10 @@ export class StreamResponseState {
 					output_index: output.index,
 					delta: call.arguments,
 				});
-				this.output.update(call.outputIndex, this.toolCalls.item(call));
+				this.output.update(
+					call.outputIndex,
+					normalizeItemStatus(this.toolCalls.item(call), "in_progress"),
+				);
 			}
 
 			this.refreshSnapshot();
@@ -413,13 +412,16 @@ export class StreamResponseState {
 			});
 		}
 
-		this.output.update(outputIdx, this.toolCalls.item(call));
+		this.output.update(
+			outputIdx,
+			normalizeItemStatus(this.toolCalls.item(call), "in_progress"),
+		);
 		this.refreshSnapshot();
 		return events;
 	}
 
 	onFunctionCallDone(index: number): ResponseStreamEvent[] {
-		this.assertActive("onFunctionCallDone");
+		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFunctionCallDone");
 		const call = this.toolCalls.get(index);
 		if (call?.done) {
 			throw streamStateError(
@@ -468,37 +470,22 @@ export class StreamResponseState {
 
 	onFinish(status: StreamResponseTerminalStatus): ResponseStreamEvent[] {
 		this.assertPhase(StreamResponsePhase.IN_PROGRESS, "onFinish");
-		if (this.pendingTerminal) {
-			throw streamStateError(
-				this.ctx,
-				ADAPTER_STREAM_INVALID_TRANSITION,
-				"finish already requested for this stream response.",
-			);
-		}
 		const closeEvents = this.closeAllActiveBlocks();
-		if (!this.options.deferTerminal) {
-			this.currentPhase = terminalPhase(status.status);
-			this.refreshSnapshot();
-			this.currentSnapshot = {
-				...this.currentSnapshot,
-				...status,
-				completed_at: this.options.nowSeconds(),
-			};
-			return [
-				...closeEvents,
-				{ type: terminalEventType(status.status), response: this.snapshot },
-			];
-		}
-		this.pendingTerminal = status;
-		// Usage already set (called before onFinish) — flush immediately
-		if (this.currentSnapshot.usage) {
-			return [...closeEvents, ...this.flushPendingTerminal()];
-		}
-		return closeEvents;
+		this.currentPhase = terminalPhase(status.status);
+		this.refreshSnapshot();
+		this.currentSnapshot = {
+			...this.currentSnapshot,
+			...status,
+			completed_at: this.options.nowSeconds(),
+		};
+		return [
+			...closeEvents,
+			{ type: terminalEventType(status.status), response: this.snapshot },
+		];
 	}
 
 	onError(error: ResponseError): ResponseStreamEvent[] {
-		if (isTerminalPhase(this.currentPhase) || this.pendingTerminal) {
+		if (isTerminalPhase(this.currentPhase)) {
 			throw streamStateError(
 				this.ctx,
 				ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
@@ -525,32 +512,12 @@ export class StreamResponseState {
 
 	onUsage(usage: ResponseUsage): ResponseStreamEvent[] {
 		this.currentSnapshot = { ...this.currentSnapshot, usage };
-		if (this.pendingTerminal) {
-			return this.flushPendingTerminal();
+		if (isTerminalPhase(this.currentPhase)) {
+			const s = this.currentSnapshot
+				.status as StreamResponseTerminalStatus["status"];
+			return [{ type: terminalEventType(s), response: this.snapshot }];
 		}
 		return [];
-	}
-
-	finalize(): ResponseStreamEvent[] {
-		if (this.pendingTerminal) {
-			return this.flushPendingTerminal();
-		}
-		return [];
-	}
-
-	private flushPendingTerminal(): ResponseStreamEvent[] {
-		const status = this.pendingTerminal!;
-		this.currentPhase = terminalPhase(status.status);
-		this.pendingTerminal = undefined;
-		this.refreshSnapshot();
-		this.currentSnapshot = {
-			...this.currentSnapshot,
-			...status,
-			completed_at: this.options.nowSeconds(),
-		};
-		return [
-			{ type: terminalEventType(status.status), response: this.snapshot },
-		];
 	}
 
 	private closeAllActiveBlocks(): ResponseStreamEvent[] {
@@ -731,17 +698,6 @@ export class StreamResponseState {
 			);
 		}
 	}
-
-	private assertActive(action: string): void {
-		this.assertPhase(StreamResponsePhase.IN_PROGRESS, action);
-		if (this.pendingTerminal) {
-			throw streamStateError(
-				this.ctx,
-				ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
-				`${action} cannot run after finish has been requested.`,
-			);
-		}
-	}
 }
 
 export function streamStateError(
@@ -757,11 +713,27 @@ export function streamStateError(
 	});
 }
 
+const ITEM_TYPES_WITH_STATUS = new Set([
+	"function_call",
+	"local_shell_call",
+	"shell_call",
+	"apply_patch_call",
+	"tool_search_call",
+	"custom_tool_call",
+	"web_search_call",
+	"file_search_call",
+	"code_interpreter_call",
+	"image_generation_call",
+	"computer_call",
+	"message",
+	"reasoning",
+]);
+
 function normalizeItemStatus(
 	item: ResponseItem,
 	status: "in_progress" | "completed",
 ): ResponseItem {
-	if ("status" in item) {
+	if (item.type && ITEM_TYPES_WITH_STATUS.has(item.type)) {
 		return { ...item, status } as ResponseItem;
 	}
 	return item;

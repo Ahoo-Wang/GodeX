@@ -314,6 +314,7 @@ describe("StreamResponseState tool calls", () => {
 					call_id: "call_1",
 					name: "tool",
 					arguments: "",
+					status: "in_progress",
 				},
 			}),
 			expect.objectContaining({
@@ -354,6 +355,7 @@ describe("StreamResponseState tool calls", () => {
 					call_id: "call_1",
 					name: "tool",
 					arguments: "{}",
+					status: "completed",
 				},
 			}),
 		]);
@@ -362,6 +364,7 @@ describe("StreamResponseState tool calls", () => {
 			call_id: "call_1",
 			name: "tool",
 			arguments: "{}",
+			status: "completed",
 		});
 	});
 

@@ -36,8 +36,6 @@ export abstract class ChatCompletionStreamMapper<
 	TFinishReason extends string,
 > implements StreamMapper<TChunk>
 {
-	protected deferTerminal = false;
-
 	map(
 		ctx: ResponsesContext,
 		event: JsonServerSentEvent<TChunk>,
@@ -46,7 +44,6 @@ export abstract class ChatCompletionStreamMapper<
 			StreamResponseState.get(ctx) ??
 			StreamResponseState.create(ctx, {
 				toolCallOutputItemMapper: (call) => this.mapToolCall(ctx, call),
-				deferTerminal: this.deferTerminal,
 			});
 		const choice = this.extractChoice(event.data);
 		if (!choice) {
