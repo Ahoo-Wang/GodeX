@@ -4,12 +4,15 @@ import type { Logger } from "../logger";
 import { createBuiltinRegistrar } from "../providers/builtin";
 import { createBuiltinRoutes, startServer } from "../server";
 import { GODEX_VERSION } from "../version";
-import type { CliRuntime } from ".";
 import { formatStartupBanner } from "./banner";
-import type { CliOptions } from "./config";
-import { assertConfigReady, loadRuntimeConfig } from "./config";
+import type { CliRuntime } from "./runtime";
+import type { CliOptions } from "./runtime-config";
+import { assertConfigReady, loadRuntimeConfig } from "./runtime-config";
 
-export function serve(opts: CliOptions, runtime: CliRuntime): void {
+export async function serve(
+	opts: CliOptions,
+	runtime: CliRuntime,
+): Promise<void> {
 	const { config, path: configPath } = loadRuntimeConfig(opts, runtime);
 	const registrar = createBuiltinRegistrar();
 	assertConfigReady(config, registrar);
@@ -36,12 +39,18 @@ export function serve(opts: CliOptions, runtime: CliRuntime): void {
 	);
 
 	const runServer = runtime.startServer ?? startServer;
-	const server = runServer({
-		config,
-		configPath,
-		logger: app.logger,
-		routes: createBuiltinRoutes(app),
-	});
+	let server: { stop(): void } | { port: number };
+	try {
+		server = runServer({
+			config,
+			configPath,
+			logger: app.logger,
+			routes: createBuiltinRoutes(app),
+		});
+	} catch (err) {
+		await app.close();
+		throw err;
+	}
 
 	registerShutdownHandlers(server, () => app.close(), app.logger);
 }

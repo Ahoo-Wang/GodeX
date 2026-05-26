@@ -1,9 +1,23 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { ApplicationContext } from "../context/application-context";
 import type { Logger } from "../logger";
-import { registerShutdownHandlers } from "./serve";
+import { registerShutdownHandlers, serve } from "./serve";
 
 const originalExit = process.exit;
 const cleanups: Array<() => void> = [];
+
+const validConfig = {
+	server: { port: 3000 },
+	default_provider: "zhipu",
+	providers: {
+		zhipu: {
+			api_key: "secret-key",
+			base_url: "https://example.test/api",
+		},
+	},
+	session: { backend: "memory" },
+	logging: { level: "error" },
+};
 
 afterEach(() => {
 	for (const cleanup of cleanups.splice(0)) cleanup();
@@ -154,5 +168,34 @@ describe("registerShutdownHandlers", () => {
 		cleanup();
 		expect(process.listenerCount("SIGINT")).toBe(sigintCount);
 		expect(process.listenerCount("SIGTERM")).toBe(sigtermCount);
+	});
+});
+
+describe("serve", () => {
+	test("closes application resources when server startup fails", async () => {
+		const close = ApplicationContext.prototype.close;
+		let closeCount = 0;
+		ApplicationContext.prototype.close = async () => {
+			closeCount++;
+		};
+
+		try {
+			await expect(
+				serve(
+					{},
+					{
+						stdout: { write: () => {} },
+						loadConfigFromFile: (path) =>
+							path === "godex.yaml" ? validConfig : null,
+						startServer: () => {
+							throw new Error("listen failed");
+						},
+					},
+				),
+			).rejects.toThrow("listen failed");
+			expect(closeCount).toBe(1);
+		} finally {
+			ApplicationContext.prototype.close = close;
+		}
 	});
 });

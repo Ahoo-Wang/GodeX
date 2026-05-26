@@ -1,69 +1,9 @@
-import type { GodeXConfig } from "../config";
-import {
-	buildConfig,
-	loadConfigFromFile,
-	resolveDefaultConfigPath,
-	resolveDefaultSqlitePath,
-} from "../config";
-
-export interface CliOptions {
-	config?: string;
-	port?: string;
-	host?: string;
-	logLevel?: string;
-}
-
-export interface LoadedConfig {
-	path: string;
-	config: GodeXConfig;
-}
+import type { GodeXConfig } from "../../config";
+import { CliError } from "../errors";
 
 export interface ConfigDiagnostic {
 	message: string;
 	fix?: string;
-}
-
-export class CliError extends Error {
-	constructor(message: string) {
-		super(message);
-		this.name = "CliError";
-	}
-}
-
-export function loadRuntimeConfig(
-	opts: CliOptions,
-	runtime: {
-		loadConfigFromFile?: (path: string) => Record<string, unknown> | null;
-	},
-): LoadedConfig {
-	const configPath = opts.config ?? resolveDefaultConfigPath();
-	const fileConfig = (runtime.loadConfigFromFile ?? loadConfigFromFile)(
-		configPath,
-	);
-	if (!fileConfig) {
-		throw new CliError(
-			`Config file not found: ${configPath}\nFix: pass --config <path> or run \`godex init\` to create one.`,
-		);
-	}
-
-	const port = parsePort(opts.port);
-	return {
-		path: configPath,
-		config: buildConfig(fileConfig, {
-			port,
-			host: opts.host,
-			logLevel: opts.logLevel,
-		}),
-	};
-}
-
-export function parsePort(value: string | undefined): number | undefined {
-	if (value === undefined) return undefined;
-	const port = Number(value);
-	if (!Number.isInteger(port) || port < 1 || port > 65_535) {
-		throw new CliError(`Invalid port: ${value}`);
-	}
-	return port;
 }
 
 export function assertConfigReady(
@@ -142,32 +82,6 @@ export function collectConfigDiagnostics(
 	}
 
 	return diagnostics;
-}
-
-export function formatConfigSummary(loaded: LoadedConfig): string {
-	const config = loaded.config;
-	const session =
-		config.session.backend === "sqlite"
-			? `sqlite (${config.session.sqlite?.path ?? resolveDefaultSqlitePath()})`
-			: "memory";
-	return [
-		`Config OK: ${loaded.path}`,
-		`server: http://${config.server.host}:${config.server.port}`,
-		`default provider: ${config.default_provider}`,
-		`providers: ${Object.keys(config.providers).join(", ")}`,
-		`session: ${session}`,
-		"",
-	].join("\n");
-}
-
-export function redactConfig(config: GodeXConfig): GodeXConfig {
-	const redacted = structuredClone(config);
-	for (const provider of Object.values(redacted.providers)) {
-		if (provider.api_key) {
-			provider.api_key = "<redacted>";
-		}
-	}
-	return redacted;
 }
 
 function unresolvedEnvVars(value: string): string[] {
