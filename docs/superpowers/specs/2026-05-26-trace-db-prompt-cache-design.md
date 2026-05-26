@@ -1,0 +1,406 @@
+# Trace DB and Prompt Cache Detection Design
+
+## Goal
+
+Add a disabled-by-default trace database and prompt cache detection capability to GodeX so operators can observe and verify that GodeX does not break provider prompt cache strategies.
+
+The feature must not block `/v1/responses`, must not change provider request semantics, and must not expose any new HTTP API.
+
+## Current Evidence
+
+- `DefaultAdapter` currently writes payload-level trace data through `ctx.logger.trace(...)` for Responses requests, mapped upstream requests, upstream responses, and stream events.
+- `TraceTransformer` currently observes stream chunks and must continue to pass every chunk through unchanged.
+- `ResponseUsage` already supports OpenAI-style `input_tokens_details.cached_tokens`.
+- OpenAI provider request mapping already forwards `prompt_cache_key`, `prompt_cache_retention`, and `safety_identifier`.
+- Session persistence already uses `bun:sqlite`, but trace data needs its own SQLite database and schema.
+
+## Non-Goals
+
+- Do not add `/v1/godex/*` or any other internal HTTP route.
+- Do not auto-generate `prompt_cache_key`.
+- Do not add Anthropic `cache_control`.
+- Do not inject trace IDs, request IDs, timestamps, or metadata into prompts, messages, tools, or provider requests.
+- Do not reorder messages, tools, system/developer content, or provider request fields.
+- Do not change Provider, ProviderMapper, RequestMapper, ResponseMapper, or StreamMapper public contracts.
+- Do not make trace durability part of request success semantics.
+
+## Configuration
+
+Add a `trace` config section:
+
+```yaml
+trace:
+  enabled: false
+  path: ./data/trace.db
+  max_queue_size: 10000
+  flush_interval_ms: 1000
+  batch_size: 100
+  capture_payload: false
+  payload_max_bytes: 65536
+```
+
+Defaults:
+
+- `enabled`: `false`
+- `path`: `./data/trace.db` in development, `~/.godex/data/trace.db` outside development
+- `max_queue_size`: `10000`
+- `flush_interval_ms`: `1000`
+- `batch_size`: `100`
+- `capture_payload`: `false`
+- `payload_max_bytes`: `65536`
+
+When trace is disabled, `ApplicationContext` uses `NoopTraceRecorder`. When trace is enabled, it creates a separate `SQLiteTraceStore`, `AsyncTraceRecorder`, `ChatCompletionPromptCacheRequestAnalyzer`, and `PrefixPromptCacheDetector`.
+
+## Architecture
+
+### Trace Recorder
+
+`TraceRecorder` is the only recording API used by adapter code.
+
+```ts
+export interface TraceRecorder {
+	record(event: TraceRecordEvent): void;
+	close?(): void;
+}
+```
+
+`record()` must:
+
+- return synchronously
+- never be awaited by callers
+- never throw
+- avoid SQLite writes in the request path
+- warn and drop records when the queue is full
+- warn and drop records when payload serialization fails
+
+`AsyncTraceRecorder` owns an in-memory bounded queue and flushes batches to `SQLiteTraceStore` on a timer or when the queue reaches `batch_size`. SQLite failures are caught and logged as warnings without retrying inside the request path.
+
+`NoopTraceRecorder` implements the same interface and drops all events.
+
+### SQLite Trace Store
+
+`SQLiteTraceStore` uses `bun:sqlite` and is independent from the session SQLite store. It owns migration and batch insert behavior for:
+
+- `trace_requests`
+- `trace_usage`
+- `trace_events`
+
+It may share implementation style with `SQLiteResponseSessionStore`, but it must not reuse session tables.
+
+### Prompt Cache Analysis
+
+Split provider request parsing from cache risk detection.
+
+```ts
+export interface ProviderPromptCacheRequestAnalyzer<TProviderRequest = unknown> {
+	analyze(input: {
+		provider: string;
+		model: string;
+		request: ResponseCreateRequest;
+		providerRequest: TProviderRequest;
+	}): PromptCacheAnalysisInput;
+}
+```
+
+`ProviderPromptCacheRequestAnalyzer` extracts provider-neutral cache analysis data from the mapped provider request. The default implementation is `ChatCompletionPromptCacheRequestAnalyzer`, because current providers map Responses requests to Chat Completions-shaped provider requests.
+
+`PromptCacheDetector` consumes analyzer output and prior observations only.
+
+```ts
+export interface PromptCacheDetector {
+	detect(input: {
+		current: PromptCacheAnalysisInput;
+		previous?: PromptCacheObservation | null;
+	}): PromptCacheDetection;
+}
+```
+
+This keeps provider request shape knowledge out of the detector.
+
+## Prompt Cache Analysis Data
+
+`PromptCacheAnalysisInput` contains only detection inputs:
+
+```ts
+export interface PromptCacheAnalysisInput {
+	provider: string;
+	model: string;
+	prompt_cache_key?: string;
+	prompt_cache_retention?: string;
+	has_cache_control?: boolean;
+	prefix_parts: Array<{
+		kind: "instruction" | "system" | "developer" | "message" | "tool";
+		role?: string;
+		name?: string;
+		bytes: number;
+		hash: string;
+	}>;
+	tool_fingerprint?: {
+		names: string[];
+		hash: string;
+	};
+	static_prefix_hash: string;
+	static_prefix_bytes: number;
+	dynamic_text_candidates: Array<{
+		source: "instructions" | "message";
+		role?: string;
+		text: string;
+	}>;
+}
+```
+
+The analyzer must preserve original provider request order. It may hash and summarize request parts, but it must not normalize by sorting or otherwise hide ordering changes that can affect prompt cache behavior.
+
+## Prefix Prompt Cache Detector
+
+`PrefixPromptCacheDetector` is the default detector. It produces:
+
+```ts
+export interface PromptCacheDetection {
+	risk_level: "none" | "low" | "medium" | "high";
+	reasons: string[];
+	prefix_hash: string;
+	prefix_bytes: number;
+	tool_fingerprint?: {
+		names: string[];
+		hash: string;
+	};
+	passthrough: {
+		prompt_cache_key: boolean;
+		prompt_cache_retention: boolean;
+		cache_control: boolean;
+	};
+}
+```
+
+Detection rules:
+
+- high risk when the same `provider + model + prompt_cache_key` has a different `static_prefix_hash` from the previous observation
+- medium or high risk when tool names, count, or order changes for the same cache key
+- medium risk when `instructions`, system, or developer content appears to contain dynamic request IDs, response IDs, UUIDs, nanoid-like values, ISO timestamps, Unix timestamps, current-time phrases, or other obvious runtime values
+- medium risk when the provider request does not preserve `prompt_cache_key` or `prompt_cache_retention` where the Responses request provided them
+- low or informational risk when Anthropic-style `cache_control` is present or absent, because GodeX records this but does not add or remove it
+- risk evidence is recorded only to trace DB and never fed back into request mapping
+
+The detector receives the previous observation from an in-memory observation index keyed by `provider + model + prompt_cache_key`. The index is updated after detection and does not read SQLite in the request path. If the previous observation is unavailable, detection still records the current prefix hash and uses risk rules that do not require history.
+
+## Payload Capture
+
+`capture_payload=false` is the default. In this mode, payload-level records include:
+
+- `payload_hash`
+- `payload_bytes`
+- `payload_truncated=false`
+- no payload JSON
+
+`capture_payload=true` enables full request, mapped provider request, response, raw stream event, and transformed stream event capture. If serialized payload size exceeds `payload_max_bytes`, the trace record stores the hash, full byte count, a truncated payload preview, and `payload_truncated=true`.
+
+This replaces the old payload-level trace logger role while keeping payload capture explicit and opt-in.
+
+## SQLite Schema
+
+### `trace_requests`
+
+Stores request-level cache analysis and detection:
+
+- `id INTEGER PRIMARY KEY AUTOINCREMENT`
+- `request_id TEXT NOT NULL`
+- `response_id TEXT NOT NULL`
+- `provider TEXT NOT NULL`
+- `model TEXT NOT NULL`
+- `stream INTEGER NOT NULL`
+- `created_at INTEGER NOT NULL`
+- `prompt_cache_key TEXT NULL`
+- `prompt_cache_retention TEXT NULL`
+- `prefix_hash TEXT NULL`
+- `prefix_bytes INTEGER NULL`
+- `cache_risk_level TEXT NULL`
+- `cache_risk_reasons_json TEXT NULL`
+- `tool_fingerprint_json TEXT NULL`
+- `passthrough_json TEXT NULL`
+- `payload_hash TEXT NULL`
+- `payload_bytes INTEGER NULL`
+- `payload_json TEXT NULL`
+- `payload_truncated INTEGER NOT NULL DEFAULT 0`
+
+Indexes:
+
+- `idx_trace_requests_request_id`
+- `idx_trace_requests_cache_identity` on `(provider, model, prompt_cache_key, created_at)`
+
+### `trace_usage`
+
+Stores usage and cache accounting:
+
+- `id INTEGER PRIMARY KEY AUTOINCREMENT`
+- `request_id TEXT NOT NULL`
+- `response_id TEXT NOT NULL`
+- `provider TEXT NOT NULL`
+- `model TEXT NOT NULL`
+- `created_at INTEGER NOT NULL`
+- `input_tokens INTEGER NULL`
+- `output_tokens INTEGER NULL`
+- `total_tokens INTEGER NULL`
+- `cached_tokens INTEGER NULL`
+- `cache_hit_ratio REAL NULL`
+- `cache_creation_input_tokens INTEGER NULL`
+- `cache_read_input_tokens INTEGER NULL`
+- `raw_usage_json TEXT NULL`
+
+`cached_tokens` comes from OpenAI-style `input_tokens_details.cached_tokens` when available. `cache_creation_input_tokens` and `cache_read_input_tokens` support Anthropic-style usage payloads. `cache_hit_ratio` is `cached_tokens / input_tokens` when both values are present and `input_tokens > 0`; otherwise it is null.
+
+Indexes:
+
+- `idx_trace_usage_request_id`
+- `idx_trace_usage_response_id`
+
+### `trace_events`
+
+Stores event-level traces:
+
+- `id INTEGER PRIMARY KEY AUTOINCREMENT`
+- `request_id TEXT NOT NULL`
+- `response_id TEXT NOT NULL`
+- `event_name TEXT NOT NULL`
+- `sequence INTEGER NOT NULL`
+- `created_at INTEGER NOT NULL`
+- `payload_hash TEXT NULL`
+- `payload_bytes INTEGER NULL`
+- `payload_json TEXT NULL`
+- `payload_truncated INTEGER NOT NULL DEFAULT 0`
+
+Indexes:
+
+- `idx_trace_events_request_id_sequence`
+- `idx_trace_events_event_name`
+
+## Adapter Integration
+
+### Non-Streaming
+
+`DefaultAdapter.request(ctx)` flow:
+
+1. Record Responses request summary and optional payload.
+2. Run `mapper.request.map(ctx)` to produce the provider request.
+3. Analyze the provider request through `ProviderPromptCacheRequestAnalyzer`.
+4. Detect cache risk through `PromptCacheDetector`.
+5. Record provider request summary, prefix hash, and detection result.
+6. Call `client.request(providerRequest)`.
+7. Record provider response summary and optional payload.
+8. Map the response as before.
+9. Record response usage to `trace_usage`.
+10. Preserve existing diagnostics, session persistence, and completion logging behavior.
+
+All trace operations use `record()` and are not awaited.
+
+### Streaming
+
+`DefaultAdapter.stream(ctx)` flow:
+
+1. Record Responses request summary and optional payload.
+2. Run `mapper.request.map(ctx)` to produce the provider request.
+3. Analyze and detect prompt cache risk.
+4. Record provider request summary, prefix hash, and detection result.
+5. Call `client.stream(providerRequest)`.
+6. `TraceTransformer("upstream.stream.event.raw")` records raw provider SSE chunks.
+7. `ProviderEventToResponseTransformer` maps provider chunks.
+8. `TraceTransformer("upstream.stream.event.transformed")` records transformed Responses events.
+9. Terminal response events trigger usage recording to `trace_usage`.
+10. SSE output is never delayed by trace flushing.
+
+`TraceTransformer` must enqueue each chunk unchanged. Trace recording is a side effect after pass-through and must not change stream output if recording fails.
+
+## Replacing Existing Trace Logs
+
+Payload-level trace logging moves from `ctx.logger.trace(...)` to `app.traceRecorder.record(...)`.
+
+The following logger trace payloads are replaced:
+
+- `responses.request.body`
+- `upstream.request.body`
+- `upstream.response.body`
+- `upstream.stream.event.raw`
+- `upstream.stream.event.transformed`
+
+Operational logs such as request completion, diagnostics, session save warnings, provider send/receive debug logs, and trace recorder warnings remain logger-based.
+
+When `trace.enabled=false`, payload-level trace records are dropped by `NoopTraceRecorder`; GodeX no longer emits the old payload-level trace logger entries.
+
+## Preserving Provider Cache Strategy
+
+The feature observes provider cache behavior but never changes it.
+
+Implementation must preserve these invariants:
+
+- OpenAI provider continues to pass through `prompt_cache_key`, `prompt_cache_retention`, and `safety_identifier`.
+- GodeX never generates `prompt_cache_key`.
+- GodeX never adds or removes Anthropic `cache_control`.
+- GodeX never mutates `metadata`, `prompt_cache_key`, `prompt_cache_retention`, messages, tools, system/developer content, or provider requests for trace purposes.
+- GodeX never injects trace IDs, request IDs, timestamps, or random IDs into prompts or provider requests.
+- GodeX never reorders static prefixes, messages, tools, or system/developer content.
+- Cache detection findings are recorded only to `trace.db`.
+
+Adapter tests must deep-compare the mapped provider request before and after trace recording to verify this invariant.
+
+## Error Handling
+
+Trace errors are observability failures, not API failures.
+
+- Queue full: drop the record and `warn`.
+- Payload serialization failure: drop payload for that record, keep a warning, and continue.
+- SQLite migration failure during startup: if trace is enabled, fail startup because the configured trace store cannot be created.
+- SQLite flush failure after startup: `warn`, drop that batch, and continue.
+- Timer flush errors: caught inside recorder.
+- `close()` errors during shutdown: `warn` and continue shutdown.
+
+## Testing
+
+Add focused tests:
+
+- Trace recorder unit tests:
+  - `record()` returns synchronously and does not throw
+  - queue full drops records and warns
+  - flush writes batches
+  - SQLite write failure warns and does not throw to callers
+- SQLite migration tests:
+  - creates `trace_requests`, `trace_usage`, and `trace_events`
+  - creates key indexes
+  - writes and reads usage with `cached_tokens`, `cache_creation_input_tokens`, and `cache_read_input_tokens`
+- `ChatCompletionPromptCacheRequestAnalyzer` tests:
+  - preserves message order
+  - preserves tool order
+  - extracts `prompt_cache_key` and `prompt_cache_retention`
+  - reports `cache_control` presence without modifying it
+- `PrefixPromptCacheDetector` tests:
+  - same cache key with changed prefix hash is high risk
+  - changed tools order is detected
+  - dynamic values in instructions/system/developer content are detected
+  - missing passthrough fields are detected
+- Adapter tests:
+  - trace recording does not mutate provider request (`deepEqual`)
+  - non-stream response usage records `cached_tokens`
+  - trace failures do not reject the request
+- Stream tests:
+  - `TraceTransformer` passes chunks through unchanged
+  - raw and transformed stream event records contain hash/size
+  - terminal response event records usage
+- No route tests for `/v1/godex/*`, because this design adds no HTTP API.
+
+Verification commands:
+
+```bash
+bun run typecheck
+bun run lint
+bun test
+```
+
+## Success Criteria
+
+- Trace DB is disabled by default.
+- Enabling trace creates a separate SQLite trace database with the required tables.
+- Payload-level trace logging no longer writes request/response/stream bodies to `logger.trace`.
+- Configurable payload capture can store full request and response payloads in trace DB.
+- Trace recording never blocks `/v1/responses` or SSE output.
+- Prompt cache detection records prefix hash, risk level, reasons, passthrough status, and usage cache metrics.
+- Provider request semantics are unchanged, verified by deep equality tests.
+- `bun run typecheck`, `bun run lint`, and `bun test` pass before implementation is considered complete.
