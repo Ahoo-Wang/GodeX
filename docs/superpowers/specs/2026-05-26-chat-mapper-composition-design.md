@@ -51,7 +51,7 @@ src/adapter/mapper/
 ├── contract.ts
 └── chat/
     ├── contract.ts
-    ├── compatibility.ts
+    ├── compatibility-plan.ts
     ├── request-mapper.ts
     ├── response-mapper.ts
     ├── stream-mapper.ts
@@ -90,6 +90,8 @@ src/providers/zhipu/mapper/
 
 `src/adapter/mapper/chat` contains reusable chat mapper composition. It must not import OpenAI or Zhipu provider modules.
 
+`src/adapter/mapper/chat/compatibility-plan.ts` contains only provider-agnostic capability, decision, and plan types. It does not implement negotiation. Concrete compatibility negotiators live in `src/providers/*/mapper/compatibility.ts` because negotiation policy is provider-specific.
+
 `src/providers/*/mapper` contains provider-specific protocol field names, capability rules, tool name policies, finish reason mapping, and upstream response extraction.
 
 Old modules such as `src/providers/openai/request.ts`, `src/providers/zhipu/response.ts`, and `src/providers/zhipu/tools.ts` should be removed or replaced by the new focused modules as part of the refactor. They should not remain as parallel APIs after the migration is complete.
@@ -115,6 +117,10 @@ export interface ChatToolChoiceMapper<TToolChoice> {
 	map(ctx: ResponsesContext, plan: CompatibilityPlan): TToolChoice | undefined;
 }
 
+export interface ChatChoiceExtractor<TSource, TChoice> {
+	firstChoice(source: TSource): TChoice | undefined;
+}
+
 export interface ChatRequestFactory<TReq> {
 	create(ctx: ResponsesContext, plan: CompatibilityPlan): TReq;
 }
@@ -123,8 +129,9 @@ export interface ChatRequestOptionsMapper<TReq> {
 	apply(ctx: ResponsesContext, plan: CompatibilityPlan, request: TReq): void;
 }
 
-export interface ChatResponseAccessor<TRes, TChoice, TFinishReason> {
-	firstChoice(result: TRes): TChoice | undefined;
+export interface ChatResponseAccessor<TRes, TChoice, TFinishReason>
+	extends ChatChoiceExtractor<TRes, TChoice>
+{
 	finishReason(choice: TChoice | undefined): TFinishReason | string | null | undefined;
 }
 
@@ -149,12 +156,30 @@ export interface ChatStreamDeltaMapper<TChunk, TDelta, TFinishReason> {
 	extractUsage(chunk: TChunk): ResponseUsage | undefined;
 }
 
+export interface ChatToolCallIdentity {
+	upstreamName: string;
+	name: string;
+	namespace?: string;
+}
+
+export interface ChatToolCallIdentityResolver {
+	resolve(ctx: ResponsesContext, upstreamName: string): ChatToolCallIdentity;
+}
+
 export interface ChatToolCallMapper {
-	map(ctx: ResponsesContext, call: ToolCallSnapshot): ResponseItem;
+	map(
+		ctx: ResponsesContext,
+		call: ToolCallSnapshot,
+		identity: ChatToolCallIdentity,
+	): ResponseItem;
 }
 ```
 
 Provider implementations may use classes or plain objects. The important boundary is the interface, not inheritance.
+
+`ChatResponseAccessor` and `ChatStreamDeltaMapper` share the same provider-specific concept of choice extraction, but they operate on different source shapes. `ChatResponseAccessor` extracts a final choice from a complete non-stream response. `ChatStreamDeltaMapper` extracts one incremental choice from an SSE chunk, where keepalive chunks, usage-only chunks, and partial deltas are valid. They remain separate interfaces while sharing the `ChatChoiceExtractor` vocabulary for non-stream sources.
+
+`ChatToolCallIdentityResolver` maps upstream function/tool names back to Responses identity, including namespace restoration when request tools make that possible. `ChatToolCallMapper` receives both the raw upstream snapshot and resolved identity, so it does not need to rediscover namespace or built-in tool identity on its own.
 
 ## Complete Mapper Composition
 
@@ -172,6 +197,8 @@ Responsibilities:
 - apply provider request options such as stream flags, temperature, top-p, token limit, user identity, reasoning, response format, metadata, store, service tier, and provider-specific fields
 
 It should not know provider-specific field names beyond the request factory and assignment hooks supplied by provider modules.
+
+The request skeleton is the minimum valid provider request object before optional mapping. It should include required provider fields such as the upstream model field and any required empty containers such as `messages` when the provider type requires them. Optional parameters such as sampling, streaming, tool choice, response format, metadata, and reasoning belong in `ChatRequestOptionsMapper`, not in the factory.
 
 ### Response
 
@@ -221,6 +248,7 @@ export interface CompatibilityPlan {
 	capabilities: ProviderCapabilities;
 	diagnostics: CompatibilityDiagnostic[];
 	parameters: Record<string, CompatibilityDecision>;
+	// Keyed by canonical Responses tool type, such as "function", "web_search", or "mcp"; not by tool name.
 	tools: Map<string, CompatibilityDecision>;
 	toolChoice?: CompatibilityDecision;
 	responseFormat?: CompatibilityDecision;
@@ -333,7 +361,7 @@ The test suite should be reorganized around the new responsibilities and should 
 
 ## Migration Plan
 
-1. Add `src/adapter/mapper/chat` contracts and shared composition mappers.
+1. Add `src/adapter/mapper/chat` contracts, compatibility plan types, and shared composition mappers.
 2. Move `StreamResponseState` and related stream output helpers under `src/adapter/mapper/chat`.
 3. Implement provider capability and compatibility modules for OpenAI and Zhipu.
 4. Implement OpenAI mapper submodules and `createOpenAIMapper()`.
