@@ -8,6 +8,7 @@ import type {
 	ChatCompletionStreamDelta,
 	FinishReason,
 } from "../protocol/completions";
+import { mapDeepSeekUsage } from "./usage";
 
 export class DeepSeekStreamDeltaMapper
 	implements
@@ -17,16 +18,26 @@ export class DeepSeekStreamDeltaMapper
 			FinishReason
 		>
 {
-	extractChoice(_chunk: ChatCompletionChunk): null {
-		return null;
+	extractChoice(chunk: ChatCompletionChunk): {
+		delta: ChatCompletionStreamDelta;
+		finishReason?: FinishReason | null;
+	} | null {
+		const choice = chunk.choices?.[0];
+		if (!choice) return null;
+		return {
+			delta: choice.delta ?? {},
+			finishReason: choice.finish_reason,
+		};
 	}
 
-	extractText(_delta: ChatCompletionStreamDelta): string {
-		return "";
+	extractText(delta: ChatCompletionStreamDelta): string {
+		return delta.content != null ? String(delta.content) : "";
 	}
 
-	extractReasoningText(_delta: ChatCompletionStreamDelta): string {
-		return "";
+	extractReasoningText(delta: ChatCompletionStreamDelta): string {
+		return delta.reasoning_content != null
+			? String(delta.reasoning_content)
+			: "";
 	}
 
 	extractRefusalText(_delta: ChatCompletionStreamDelta): string {
@@ -34,12 +45,12 @@ export class DeepSeekStreamDeltaMapper
 	}
 
 	extractToolCalls(
-		_delta: ChatCompletionStreamDelta,
+		delta: ChatCompletionStreamDelta,
 	): ChatStreamToolCallDelta[] {
-		return [];
+		return delta.tool_calls ?? [];
 	}
 
-	extractUsage(_chunk: ChatCompletionChunk): ResponseUsage | undefined {
-		return undefined;
+	extractUsage(chunk: ChatCompletionChunk): ResponseUsage | undefined {
+		return mapDeepSeekUsage(chunk.usage ?? undefined);
 	}
 }
