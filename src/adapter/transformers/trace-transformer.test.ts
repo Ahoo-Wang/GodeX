@@ -28,6 +28,7 @@ function createTestContext(logger: Logger): ResponsesContext {
 		attributes: new Map(),
 		app: {
 			traceRecorder: { record: () => {} },
+			traceEnabled: true,
 		},
 	} as unknown as ResponsesContext;
 }
@@ -49,6 +50,7 @@ describe("TraceTransformer", () => {
 			requestId: "req_trace",
 			responseId: "resp_trace",
 			app: {
+				traceEnabled: true,
 				traceRecorder: { record: (event: unknown) => records.push(event) },
 			},
 		} as unknown as ResponsesContext;

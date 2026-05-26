@@ -241,6 +241,7 @@ describe("ResponseLogTransformer", () => {
 			requestId: "req_usage",
 			responseId: "resp_usage",
 			app: {
+				traceEnabled: true,
 				traceRecorder: { record: (event: unknown) => records.push(event) },
 			},
 		} as unknown as ResponsesContext;

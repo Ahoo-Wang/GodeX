@@ -9,6 +9,7 @@ describe("recordTraceUsage", () => {
 			responseId: "resp_1",
 			resolved: { provider: "openai", model: "gpt-test" },
 			app: {
+				traceEnabled: true,
 				traceRecorder: { record: (event: unknown) => events.push(event) },
 			},
 		};

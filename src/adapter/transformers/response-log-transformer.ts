@@ -83,6 +83,7 @@ export class ResponseLogTransformer extends SafeTransformer<
 
 	private recordUsage(response: ResponseObject): void {
 		if (this.usageRecorded) return;
+		if (!response.usage) return;
 		recordTraceUsage(this.ctx, response.usage);
 		this.usageRecorded = true;
 	}

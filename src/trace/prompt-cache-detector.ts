@@ -35,8 +35,11 @@ function toolsChanged(
 	current: PromptCacheAnalysisInput,
 	previous?: PromptCacheObservation | null,
 ): boolean {
-	if (!previous?.tool_fingerprint || !current.tool_fingerprint) return false;
-	return previous.tool_fingerprint.hash !== current.tool_fingerprint.hash;
+	const prev = previous?.tool_fingerprint;
+	const curr = current.tool_fingerprint;
+	if (!prev && !curr) return false;
+	if (!prev || !curr) return true;
+	return prev.hash !== curr.hash;
 }
 
 export class PrefixPromptCacheDetector implements PromptCacheDetector {
