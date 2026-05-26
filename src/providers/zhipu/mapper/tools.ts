@@ -9,6 +9,7 @@ import { isRecord, isStringArray } from "../../../adapter/utils";
 import type { ResponsesContext } from "../../../context/responses-context";
 import {
 	ADAPTER_REQUEST_UNSUPPORTED_PARAMETER,
+	ADAPTER_REQUEST_UNSUPPORTED_TOOL,
 	AdapterError,
 } from "../../../error";
 import type {
@@ -262,7 +263,7 @@ function normalizeMcpAllowedTools(
 
 function unsupportedTool(type: string, message: string): AdapterError {
 	return new AdapterError(
-		"adapter.request.unsupported_tool",
+		ADAPTER_REQUEST_UNSUPPORTED_TOOL,
 		`Unsupported Responses tool for Zhipu: ${type}. ${message}`,
 		{ provider: ZHIPU_PROVIDER_NAME, model: "unknown" },
 	);
