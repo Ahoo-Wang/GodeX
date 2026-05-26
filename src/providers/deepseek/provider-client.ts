@@ -1,9 +1,9 @@
+import { ChatProviderClient } from "../shared/chat-provider-client";
 import type {
 	ChatCompletion,
 	ChatCompletionChunk,
 	ChatCompletionRequest,
 } from "./protocol/completions";
-import { ChatProviderClient } from "../shared/chat-provider-client";
 import { DEEPSEEK_PROVIDER_NAME } from "./provider";
 
 export class DeepSeekClient extends ChatProviderClient<

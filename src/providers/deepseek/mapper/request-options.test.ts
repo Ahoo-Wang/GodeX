@@ -107,12 +107,12 @@ describe("DeepSeek request mapping", () => {
 
 	test("rejects unsupported hard parameters", () => {
 		expect(() => mapRequest(ctx({ background: true }))).toThrow(AdapterError);
-		expect(() =>
-			mapRequest(ctx({ conversation: "conv_1" })),
-		).toThrow(AdapterError);
-		expect(() =>
-			mapRequest(ctx({ prompt: { id: "pmpt_1" } })),
-		).toThrow(AdapterError);
+		expect(() => mapRequest(ctx({ conversation: "conv_1" }))).toThrow(
+			AdapterError,
+		);
+		expect(() => mapRequest(ctx({ prompt: { id: "pmpt_1" } }))).toThrow(
+			AdapterError,
+		);
 	});
 
 	test("warns and ignores unsupported soft parameters", () => {

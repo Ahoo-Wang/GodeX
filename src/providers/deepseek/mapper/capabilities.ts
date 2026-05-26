@@ -28,7 +28,9 @@ export const DEEPSEEK_CAPABILITIES: ProviderCapabilities = {
 		maxTools: DEEPSEEK_MAX_TOOLS,
 	},
 	toolChoice: { supported: new Set(["auto", "none", "required", "function"]) },
-	responseFormats: { supported: new Set(["text", "json_object", "json_schema"]) },
+	responseFormats: {
+		supported: new Set(["text", "json_object", "json_schema"]),
+	},
 	reasoning: { effort: "native" },
 	streaming: { usage: true },
 };

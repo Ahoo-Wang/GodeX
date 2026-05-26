@@ -20,7 +20,9 @@ import type {
 } from "../protocol/completions";
 import { DEEPSEEK_PROVIDER_NAME } from "../provider";
 
-export class DeepSeekMessageMapper implements ChatMessageMapper<DeepSeekMessage> {
+export class DeepSeekMessageMapper
+	implements ChatMessageMapper<DeepSeekMessage>
+{
 	map(ctx: ResponsesContext, _plan: CompatibilityPlan): DeepSeekMessage[] {
 		return buildDeepSeekMessages(ctx.request, ctx.session);
 	}

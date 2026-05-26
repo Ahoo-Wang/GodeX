@@ -33,8 +33,11 @@ function ctx(partial: Partial<ResponseCreateRequest> = {}): ResponsesContext {
 	} as unknown as ResponsesContext;
 }
 
-function mapResponse(c: ResponsesContext, response: ChatCompletion): ResponseObject {
-	return createDeepSeekMapper().response.map(c, response);
+function mapResponse(
+	c: ResponsesContext,
+	response: ChatCompletion,
+): ResponseObject {
+	return createDeepSeekMapper().response.map(c, response) as ResponseObject;
 }
 
 function completion(finishReason: FinishReason): ChatCompletion {

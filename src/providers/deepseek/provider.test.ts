@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
-	DEFAULT_DEEPSEEK_BASE_URL,
 	DEEPSEEK_PROVIDER_NAME,
+	DEFAULT_DEEPSEEK_BASE_URL,
 	DeepSeekProvider,
 } from "./provider";
 

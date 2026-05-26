@@ -9,7 +9,11 @@ import { mapDeepSeekToolCall } from "./tool-calls";
 
 export class DeepSeekResponseAccessor
 	implements
-		ChatResponseAccessor<ChatCompletion, ChatCompletion["choices"][0], FinishReason>
+		ChatResponseAccessor<
+			ChatCompletion,
+			ChatCompletion["choices"][0],
+			FinishReason
+		>
 {
 	firstChoice(
 		source: ChatCompletion,
