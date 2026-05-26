@@ -4,12 +4,15 @@ import type { Logger } from "../logger";
 import { createBuiltinRegistrar } from "../providers/builtin";
 import { createBuiltinRoutes, startServer } from "../server";
 import { GODEX_VERSION } from "../version";
-import type { CliRuntime } from ".";
 import { formatStartupBanner } from "./banner";
-import type { CliOptions } from "./config";
-import { assertConfigReady, loadRuntimeConfig } from "./config";
+import type { CliRuntime, CliServerHandle } from "./runtime";
+import type { CliOptions } from "./runtime-config";
+import { assertConfigReady, loadRuntimeConfig } from "./runtime-config";
 
-export function serve(opts: CliOptions, runtime: CliRuntime): void {
+export async function serve(
+	opts: CliOptions,
+	runtime: CliRuntime,
+): Promise<void> {
 	const { config, path: configPath } = loadRuntimeConfig(opts, runtime);
 	const registrar = createBuiltinRegistrar();
 	assertConfigReady(config, registrar);
@@ -23,6 +26,26 @@ export function serve(opts: CliOptions, runtime: CliRuntime): void {
 		session_backend: config.session.backend,
 	}));
 
+	const runServer = runtime.startServer ?? startServer;
+	let server: CliServerHandle;
+	try {
+		server = runServer({
+			config,
+			configPath,
+			logger: app.logger,
+			routes: createBuiltinRoutes(app),
+		});
+	} catch (err) {
+		try {
+			await app.close();
+		} catch (closeErr) {
+			app.logger.warn("godex.startup.close.error", () => ({
+				error: String(closeErr),
+			}));
+		}
+		throw err;
+	}
+
 	runtime.stdout?.write(
 		formatStartupBanner({
 			version: GODEX_VERSION,
@@ -35,19 +58,11 @@ export function serve(opts: CliOptions, runtime: CliRuntime): void {
 		}),
 	);
 
-	const runServer = runtime.startServer ?? startServer;
-	const server = runServer({
-		config,
-		configPath,
-		logger: app.logger,
-		routes: createBuiltinRoutes(app),
-	});
-
 	registerShutdownHandlers(server, () => app.close(), app.logger);
 }
 
 export function registerShutdownHandlers(
-	server: { stop(): void } | { port: number },
+	server: CliServerHandle,
 	closeResources: () => void | Promise<void>,
 	logger: Logger,
 ): () => void {
@@ -66,7 +81,7 @@ export function registerShutdownHandlers(
 		void (async () => {
 			logger.info("godex.shutting.down", () => ({ signal }));
 			try {
-				if ("stop" in server && typeof server.stop === "function") {
+				if (typeof server.stop === "function") {
 					server.stop();
 				}
 			} catch (err) {

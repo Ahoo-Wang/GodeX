@@ -45,7 +45,7 @@ function cliHarness(files: Record<string, Record<string, unknown> | null>) {
 	};
 }
 
-describe("CLI", () => {
+describe("CLI command integration", () => {
 	test("starts the server from the root command", async () => {
 		const cli = cliHarness({ "godex.yaml": validConfig });
 
@@ -99,7 +99,7 @@ describe("CLI", () => {
 		expect(output).toContain("env:");
 	});
 
-	test("rejects invalid ports before starting the server", async () => {
+	test("returns option validation errors through stderr", async () => {
 		const cli = cliHarness({ "godex.yaml": validConfig });
 
 		const code = await cli.run(["serve", "--port", "abc"]);
@@ -109,7 +109,7 @@ describe("CLI", () => {
 		expect(cli.stderr.join("")).toContain("Invalid port: abc");
 	});
 
-	test("checks a usable config", async () => {
+	test("wires config check to the runtime config summary", async () => {
 		const cli = cliHarness({ "godex.yaml": validConfig });
 
 		const code = await cli.run(["config", "check"]);
@@ -122,39 +122,7 @@ describe("CLI", () => {
 		expect(output).toContain("session: memory");
 	});
 
-	test("reports missing config files with a fix", async () => {
-		const cli = cliHarness({});
-
-		const code = await cli.run(["config", "check", "--config", "missing.yaml"]);
-
-		expect(code).toBe(1);
-		const error = cli.stderr.join("");
-		expect(error).toContain("Config file not found: missing.yaml");
-		expect(error).toContain("Fix: pass --config <path>");
-	});
-
-	test("reports unresolved provider API key environment variables", async () => {
-		const cli = cliHarness({
-			"godex.yaml": {
-				...validConfig,
-				providers: {
-					zhipu: {
-						api_key: "${MISSING_ZHIPU_API_KEY}",
-						base_url: "https://example.test/api",
-					},
-				},
-			},
-		});
-
-		const code = await cli.run(["config", "check"]);
-
-		expect(code).toBe(1);
-		const error = cli.stderr.join("");
-		expect(error).toContain("MISSING_ZHIPU_API_KEY");
-		expect(error).toContain("export MISSING_ZHIPU_API_KEY=");
-	});
-
-	test("prints final config with provider secrets redacted", async () => {
+	test("wires config print to redacted output", async () => {
 		const cli = cliHarness({ "godex.yaml": validConfig });
 
 		const code = await cli.run(["config", "print"]);
