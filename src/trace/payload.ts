@@ -3,7 +3,7 @@ import type { TracePayloadOptions, TracePayloadSummary } from "./types";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-function sha256Hex(value: string): string {
+export function sha256Hex(value: string): string {
 	return new Bun.CryptoHasher("sha256").update(value).digest("hex");
 }
 

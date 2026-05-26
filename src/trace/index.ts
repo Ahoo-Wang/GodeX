@@ -1,5 +1,7 @@
 export * from "./observation";
 export * from "./payload";
+export * from "./prompt-cache-analyzer";
+export * from "./prompt-cache-detector";
 export * from "./recorder";
 export * from "./sqlite";
 export * from "./types";
