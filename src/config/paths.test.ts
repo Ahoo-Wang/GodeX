@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	resolveDefaultConfigPath,
@@ -60,5 +60,25 @@ describe("config paths", () => {
 	test("uses local sqlite defaults in dev builds", () => {
 		expect(resolveDefaultSqlitePath()).toBe("./data/sessions.db");
 		expect(resolveDefaultTracePath()).toBe("./data/trace.db");
+	});
+
+	test("uses home data defaults in prod builds", () => {
+		const buildEnv = globalThis as { GODEX_BUILD_ENV?: string };
+		const originalBuildEnv = buildEnv.GODEX_BUILD_ENV;
+		buildEnv.GODEX_BUILD_ENV = "prod";
+		try {
+			expect(resolveDefaultSqlitePath()).toBe(
+				join(homedir(), ".godex", "data", "sessions.db"),
+			);
+			expect(resolveDefaultTracePath()).toBe(
+				join(homedir(), ".godex", "data", "trace.db"),
+			);
+		} finally {
+			if (originalBuildEnv === undefined) {
+				delete buildEnv.GODEX_BUILD_ENV;
+			} else {
+				buildEnv.GODEX_BUILD_ENV = originalBuildEnv;
+			}
+		}
 	});
 });
