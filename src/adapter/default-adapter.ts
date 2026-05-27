@@ -3,13 +3,10 @@ import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../protocol/openai/responses";
-import {
-	analyzePromptCache,
-	recordTraceEvent,
-	recordTraceUsage,
-} from "../trace";
+import { recordTraceUsage } from "../trace";
 import type { Adapter } from "./adapter";
 import { logDiagnostics } from "./compatibility";
+import { ProviderExchange } from "./provider-exchange";
 import { saveResponseSession } from "./response-session-persistence";
 import { wrapWithErrorHandler } from "./stream-error-handler";
 import { CompatibilityLogTransformer } from "./transformers/compatibility-log-transformer";
@@ -23,26 +20,16 @@ import {
 import { TraceTransformer } from "./transformers/trace-transformer";
 
 export class DefaultAdapter implements Adapter {
+	private readonly exchange = new ProviderExchange();
+
 	async request(ctx: ResponsesContext): Promise<ResponseObject> {
-		const { mapper, client } = ctx.provider;
-		const req = await mapper.request.map(ctx);
-		analyzePromptCache(ctx, req);
-		recordTraceEvent(ctx, "provider.request.body", req);
-		ctx.logger.debug("provider.request.sending", () => ({
-			provider: ctx.resolved.provider,
-			model: ctx.resolved.model,
-			stream: false,
-		}));
-		const upstreamStart = Date.now();
-		const res = await client.request(req);
-		recordTraceEvent(ctx, "provider.response.body", res);
-		ctx.logger.debug("provider.response.received", () => ({
-			provider: ctx.resolved.provider,
-			model: ctx.resolved.model,
-			upstreamDurationMillis: Date.now() - upstreamStart,
-		}));
-		const response = await mapper.response.map(ctx, res);
-		recordTraceUsage(ctx, response.usage, (res as { usage?: unknown })?.usage);
+		const { providerResponse } = await this.exchange.request(ctx);
+		const response = await ctx.provider.mapper.response.map(ctx, providerResponse);
+		recordTraceUsage(
+			ctx,
+			response.usage,
+			(providerResponse as { usage?: unknown })?.usage,
+		);
 		ctx.logger.info("responses.request.completed", () => ({
 			status: response.status,
 			model: response.model,
@@ -68,27 +55,12 @@ export class DefaultAdapter implements Adapter {
 	async stream(
 		ctx: ResponsesContext,
 	): Promise<ReadableStream<ResponseStreamEvent>> {
-		const { mapper, client } = ctx.provider;
-		const req = await mapper.request.map(ctx);
-		analyzePromptCache(ctx, req);
-		recordTraceEvent(ctx, "provider.request.body", req);
-		ctx.logger.debug("provider.request.sending", () => ({
-			provider: ctx.resolved.provider,
-			model: ctx.resolved.model,
-			stream: true,
-		}));
-		const upstreamStart = Date.now();
-		const events = await client.stream(req);
-		const upstreamLatencyMillis = Date.now() - upstreamStart;
-		ctx.logger.debug("provider.stream.connected", () => ({
-			provider: ctx.resolved.provider,
-			model: ctx.resolved.model,
-			upstreamLatencyMillis,
-		}));
+		const { mapper, providerStream, upstreamLatencyMillis } =
+			await this.exchange.stream(ctx);
 		ctx.attributes.set(ATTR_UPSTREAM_LATENCY_MILLIS, upstreamLatencyMillis);
 
 		const traceRawStream = pipeTransform(
-			events,
+			providerStream,
 			new TraceTransformer("upstream.stream.event.raw", ctx),
 		);
 
