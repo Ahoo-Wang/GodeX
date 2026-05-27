@@ -39,8 +39,7 @@ export function createTraceServices(
 					payloadMaxBytes: config.payload_max_bytes,
 				})
 			: new NoopTraceRecorder(),
-		promptCacheRequestAnalyzer:
-			new ChatCompletionPromptCacheRequestAnalyzer(),
+		promptCacheRequestAnalyzer: new ChatCompletionPromptCacheRequestAnalyzer(),
 		promptCacheDetector: new PrefixPromptCacheDetector(),
 		promptCacheObservationIndex: new LruPromptCacheObservationIndex(
 			Math.max(1000, config.max_queue_size),

@@ -1,5 +1,5 @@
 import type { ApplicationContext } from "../../../context/application-context";
-import { ResponsesContext } from "../../../context/responses-context";
+import { createResponsesContext } from "../../../context/responses-context-factory";
 import { responseRouteErrorToResponse } from "./error-handler";
 import { responseRequestLogEntry } from "./request-log";
 import { parseResponseRequest } from "./request-parser";
@@ -17,7 +17,7 @@ export async function handleResponses(
 	let requestId: string | undefined;
 	try {
 		const { body } = parsed;
-		const ctx = await ResponsesContext.create(app, body);
+		const ctx = await createResponsesContext(app, body);
 		requestId = ctx.requestId;
 
 		ctx.logger.debug("responses.request.received", () =>

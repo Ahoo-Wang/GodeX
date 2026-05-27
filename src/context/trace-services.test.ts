@@ -71,8 +71,7 @@ describe("createTraceServices", () => {
 		try {
 			const services = createTraceServices(traceConfig, logger);
 			traceRecorder = services.traceRecorder;
-			const recorder =
-				services.traceRecorder as unknown as RecorderWithOptions;
+			const recorder = services.traceRecorder as unknown as RecorderWithOptions;
 
 			expect(services.traceEnabled).toBe(true);
 			expect(services.traceRecorder).not.toBeInstanceOf(NoopTraceRecorder);
@@ -82,9 +81,7 @@ describe("createTraceServices", () => {
 				traceConfig.flush_interval_ms,
 			);
 			expect(recorder.options.batchSize).toBe(traceConfig.batch_size);
-			expect(recorder.options.capturePayload).toBe(
-				traceConfig.capture_payload,
-			);
+			expect(recorder.options.capturePayload).toBe(traceConfig.capture_payload);
 			expect(recorder.options.payloadMaxBytes).toBe(
 				traceConfig.payload_max_bytes,
 			);

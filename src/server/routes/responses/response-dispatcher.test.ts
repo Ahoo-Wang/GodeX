@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { ResponsesContext } from "../../../context/responses-context";
+import { createResponsesContext } from "../../../context/responses-context-factory";
 import type { ResponseStreamEvent } from "../../../protocol/openai/responses";
 import { dispatchResponseRequest } from "./response-dispatcher";
 import { basicRequest, createTestApp, responseObject } from "./test-fixtures";
@@ -7,7 +7,7 @@ import { basicRequest, createTestApp, responseObject } from "./test-fixtures";
 describe("dispatchResponseRequest", () => {
 	test("dispatches non-stream requests through adapter.request", async () => {
 		const app = createTestApp();
-		const ctx = await ResponsesContext.create(app, basicRequest);
+		const ctx = await createResponsesContext(app, basicRequest);
 		let requestCalls = 0;
 		let streamCalls = 0;
 		Object.defineProperty(app, "adapter", {
@@ -34,7 +34,7 @@ describe("dispatchResponseRequest", () => {
 
 	test("dispatches stream requests through adapter.stream and encodes SSE", async () => {
 		const app = createTestApp();
-		const ctx = await ResponsesContext.create(app, {
+		const ctx = await createResponsesContext(app, {
 			...basicRequest,
 			stream: true,
 		});

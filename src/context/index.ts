@@ -3,5 +3,7 @@ export * from "./application-services";
 export * from "./provider-bootstrap";
 export * from "./request-identity";
 export * from "./responses-context";
+export * from "./responses-context-factory";
+export * from "./responses-session";
 export * from "./session-store-factory";
 export * from "./trace-services";

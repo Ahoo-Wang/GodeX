@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { ResponsesContext } from "../../../context/responses-context";
+import { createResponsesContext } from "../../../context/responses-context-factory";
 import { basicRequest, createTestApp, FakeMapper } from "./test-fixtures";
 
 describe("responses route test fixtures", () => {
 	test("FakeMapper default stream mapper returns no events", async () => {
 		const app = createTestApp();
-		const ctx = await ResponsesContext.create(app, basicRequest);
+		const ctx = await createResponsesContext(app, basicRequest);
 		const events = new FakeMapper().stream.map(ctx, {
 			event: "message",
 			data: {},
