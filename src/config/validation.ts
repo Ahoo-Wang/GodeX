@@ -15,6 +15,13 @@ export function positiveInteger(value: unknown, field: string): number {
 	return value;
 }
 
+export function nonNegativeInteger(value: unknown, field: string): number {
+	if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+		throw new Error(`${field} must be a non-negative integer`);
+	}
+	return value;
+}
+
 export function validatePort(value: unknown): number {
 	const port =
 		typeof value === "number"
@@ -34,7 +41,7 @@ export function validateHost(value: unknown): string {
 	}
 	const host = value.trim();
 	if (host === "") {
-		throw new Error(`Invalid server host: ${String(value)}`);
+		throw new Error("Invalid server host: must be a non-empty string");
 	}
 	return host;
 }

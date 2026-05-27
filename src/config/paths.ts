@@ -4,10 +4,10 @@ import { join, resolve } from "node:path";
 import { EnvVars } from "./env";
 
 /** Config file search paths, in priority order. */
-export const CONFIG_SEARCH_PATHS = [
+export const CONFIG_SEARCH_PATHS = Object.freeze([
 	"godex.yaml",
 	join(homedir(), ".godex", "config.yaml"),
-];
+] as const);
 
 export function resolveDefaultConfigPath(
 	searchPaths: readonly string[] = CONFIG_SEARCH_PATHS,
@@ -15,7 +15,7 @@ export function resolveDefaultConfigPath(
 	for (const candidate of searchPaths) {
 		if (existsSync(resolve(candidate))) return candidate;
 	}
-	return searchPaths[0] ?? (CONFIG_SEARCH_PATHS[0] as string);
+	return searchPaths[0] ?? CONFIG_SEARCH_PATHS[0];
 }
 
 export function resolveDefaultSqlitePath(): string {

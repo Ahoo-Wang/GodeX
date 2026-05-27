@@ -1,6 +1,6 @@
 import { asConfigObject } from "../raw";
 import type { ServerConfig } from "../schema";
-import { validateHost, validatePort } from "../validation";
+import { nonNegativeInteger, validateHost, validatePort } from "../validation";
 
 export interface ServerConfigOverrides {
 	port?: number;
@@ -29,7 +29,9 @@ export function parseServerConfig(
 					? validateHost(process.env.GODEX_HOST)
 					: "0.0.0.0";
 	const idleTimeout =
-		typeof server.idle_timeout === "number" ? server.idle_timeout : 0;
+		server.idle_timeout !== undefined
+			? nonNegativeInteger(server.idle_timeout, "server.idle_timeout")
+			: 0;
 
 	return { port, host, idle_timeout: idleTimeout };
 }

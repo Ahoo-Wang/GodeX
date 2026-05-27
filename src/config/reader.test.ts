@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfigFromFile } from "./reader";
@@ -61,6 +61,34 @@ describe("loadConfigFromFile", () => {
 			writeFileSync(configPath, "- zhipu\n");
 
 			expect(loadConfigFromFile(configPath)).toEqual({});
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	test("reports file read failures with the config path", () => {
+		const dir = mkdtempSync(join(tmpdir(), "godex-config-reader-"));
+		try {
+			const configPath = join(dir, "godex.yaml");
+			mkdirSync(configPath);
+
+			expect(() => loadConfigFromFile(configPath)).toThrow(
+				`Failed to read config file: ${configPath}`,
+			);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	test("reports YAML parse failures with the config path", () => {
+		const dir = mkdtempSync(join(tmpdir(), "godex-config-reader-"));
+		try {
+			const configPath = join(dir, "godex.yaml");
+			writeFileSync(configPath, "providers:\n  - :\n");
+
+			expect(() => loadConfigFromFile(configPath)).toThrow(
+				`Failed to parse config file: ${configPath}`,
+			);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

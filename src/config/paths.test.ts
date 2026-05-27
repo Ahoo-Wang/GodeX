@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+	CONFIG_SEARCH_PATHS,
 	resolveDefaultConfigPath,
 	resolveDefaultSqlitePath,
 	resolveDefaultTracePath,
@@ -55,6 +56,14 @@ describe("config paths", () => {
 
 	test("falls back to the default search path when candidates are empty", () => {
 		expect(resolveDefaultConfigPath([])).toBe("godex.yaml");
+	});
+
+	test("exposes immutable config search paths", () => {
+		expect(Object.isFrozen(CONFIG_SEARCH_PATHS)).toBe(true);
+		expect(CONFIG_SEARCH_PATHS).toEqual([
+			"godex.yaml",
+			join(homedir(), ".godex", "config.yaml"),
+		]);
 	});
 
 	test("uses local sqlite defaults in dev builds", () => {

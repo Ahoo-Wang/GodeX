@@ -56,7 +56,10 @@ describe("parseServerConfig", () => {
 
 	test("rejects empty hosts", () => {
 		expect(() => parseServerConfig({ host: "" }, {})).toThrow(
-			"Invalid server host",
+			"Invalid server host: must be a non-empty string",
+		);
+		expect(() => parseServerConfig({ host: "   " }, {})).toThrow(
+			"Invalid server host: must be a non-empty string",
 		);
 	});
 
@@ -70,5 +73,13 @@ describe("parseServerConfig", () => {
 		expect(parseServerConfig({ host: " localhost " }, {}).host).toBe(
 			"localhost",
 		);
+	});
+
+	test("rejects invalid idle timeout values", () => {
+		for (const idle_timeout of [-1, Number.NaN, 1.5]) {
+			expect(() => parseServerConfig({ idle_timeout }, {})).toThrow(
+				"server.idle_timeout must be a non-negative integer",
+			);
+		}
 	});
 });
