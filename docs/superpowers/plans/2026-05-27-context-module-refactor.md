@@ -193,7 +193,6 @@ const provider = {
 		response: { map: () => ({}) as never },
 		stream: {
 			map: () => [] as never[],
-			buildResponseObject: () => ({}) as never,
 		},
 	},
 	client: {
@@ -690,7 +689,6 @@ describe("createConfiguredRegistrar", () => {
 					response: { map: () => ({}) as never },
 					stream: {
 						map: () => [] as never[],
-						buildResponseObject: () => ({}) as never,
 					},
 				},
 				client: {
@@ -823,7 +821,6 @@ describe("createApplicationServices", () => {
 				response: { map: () => ({}) as never },
 				stream: {
 					map: () => [] as never[],
-					buildResponseObject: () => ({}) as never,
 				},
 			},
 			client: {
@@ -1163,7 +1160,6 @@ export function createRegistrar(): Registrar {
 			response: { map: () => ({}) as never },
 			stream: {
 				map: () => [] as never[],
-				buildResponseObject: () => ({}) as never,
 			},
 		},
 		client: {

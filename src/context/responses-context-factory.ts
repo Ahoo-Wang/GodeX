@@ -17,6 +17,7 @@ export async function createResponsesContext(
 	const identity = createRequestIdentity(app.logger);
 	const resolved = resolveModel(app, request);
 	identity.logger.debug("model.resolved", () => ({
+		selector: request.model,
 		provider: resolved.provider,
 		model: resolved.model,
 	}));

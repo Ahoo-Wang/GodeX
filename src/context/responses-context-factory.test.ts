@@ -85,6 +85,7 @@ describe("createResponsesContext", () => {
 			level: "debug",
 			event: "model.resolved",
 			attr: {
+				selector: "openai/gpt-4.1-mini",
 				provider: "openai",
 				model: "gpt-4.1-mini",
 			},
