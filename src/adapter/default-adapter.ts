@@ -8,7 +8,7 @@ import {
 	analyzePromptCache,
 	recordTraceEvent,
 	recordTraceUsage,
-} from "../trace/integration";
+} from "../trace";
 import type { Adapter } from "./adapter";
 import { logDiagnostics } from "./compatibility";
 import { wrapWithErrorHandler } from "./stream-error-handler";

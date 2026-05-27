@@ -1,18 +1,10 @@
 import type { ResponsesContext } from "../context/responses-context";
-import type { ResponseUsage } from "../protocol/openai";
+import { nowTraceMillis } from "./time";
 import type {
 	PromptCacheAnalysisInput,
 	PromptCacheDetection,
-	TraceEventRecordEvent,
 	TraceRequestRecordEvent,
 } from "./types";
-import { traceUsageFromResponseUsage } from "./usage";
-
-type TraceEventName = TraceEventRecordEvent["event_name"];
-
-export function nowTraceMillis(): number {
-	return Date.now();
-}
 
 export function cacheIdentityKey(input: {
 	requested_prompt_cache_key?: string;
@@ -98,44 +90,4 @@ function recordTraceRequest(
 		record.cache_detection = detection;
 	}
 	ctx.app.traceRecorder.record(record);
-}
-
-export function recordTraceEvent(
-	ctx: ResponsesContext,
-	eventName: TraceEventName,
-	payload: unknown,
-	sequence?: number,
-): void {
-	if (!ctx.app.traceEnabled) return;
-	ctx.app.traceRecorder.record({
-		kind: "event",
-		request_id: ctx.requestId,
-		response_id: ctx.responseId,
-		provider: ctx.resolved.provider,
-		model: ctx.resolved.model,
-		created_at: nowTraceMillis(),
-		event_name: eventName,
-		sequence,
-		payload: { payload },
-	});
-}
-
-export function recordTraceUsage(
-	ctx: Pick<ResponsesContext, "requestId" | "responseId" | "resolved" | "app">,
-	usage: ResponseUsage | null | undefined,
-	rawUsage?: unknown,
-): void {
-	if (!ctx.app.traceEnabled) return;
-	const snapshot = traceUsageFromResponseUsage(usage, rawUsage);
-	if (!snapshot) return;
-	ctx.app.traceRecorder.record({
-		kind: "usage",
-		request_id: ctx.requestId,
-		response_id: ctx.responseId,
-		provider: ctx.resolved.provider,
-		model: ctx.resolved.model,
-		created_at: nowTraceMillis(),
-		usage: snapshot,
-		raw_usage: rawUsage,
-	});
 }
