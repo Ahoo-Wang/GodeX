@@ -106,8 +106,43 @@ describe("handleResponses", () => {
 		);
 
 		expect(res.status).toBe(429);
+		expect(res.headers.get("x-request-id")).toMatch(/^req_/);
 		const body = (await res.json()) as { error: { code: string } };
 		expect(body.error.code).toBe("rate_limit_exceeded");
+	});
+
+	test("maps sync provider errors with request id header", async () => {
+		const logs: CapturedLog[] = [];
+		const app = createTestApp(new FakeMapper(), {
+			async request(): Promise<Record<string, unknown>> {
+				throw new ProviderError(
+					"provider.upstream.timeout",
+					"Request timed out",
+					{
+						provider: "zhipu",
+						model: "glm-4",
+						upstreamStatus: 408,
+					},
+				);
+			},
+			async stream() {
+				return new ReadableStream({
+					start(controller) {
+						controller.close();
+					},
+				});
+			},
+		});
+		Object.defineProperty(app, "logger", {
+			value: createCapturingLogger(logs),
+		});
+
+		const res = await handleResponses(jsonRequest(basicBody()), app);
+
+		expect(res.status).toBe(408);
+		expect(res.headers.get("x-request-id")).toMatch(/^req_/);
+		const body = (await res.json()) as { error: { code: string } };
+		expect(body.error.code).toBe("request_timeout");
 	});
 
 	test("returns empty body on stream setup errors", async () => {

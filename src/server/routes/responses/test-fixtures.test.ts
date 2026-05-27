@@ -21,5 +21,13 @@ describe("responses route test fixtures", () => {
 		await expect(provider.client.request({})).resolves.toEqual({});
 		const stream = await provider.client.stream({});
 		expect(stream).toBeInstanceOf(ReadableStream);
+
+		const reader = stream.getReader();
+		try {
+			const result = await reader.read();
+			expect(result.done).toBe(true);
+		} finally {
+			reader.releaseLock();
+		}
 	});
 });

@@ -71,7 +71,11 @@ export function createTestApp(
 			return {};
 		},
 		async stream() {
-			return new ReadableStream();
+			return new ReadableStream({
+				start(controller) {
+					controller.close();
+				},
+			});
 		},
 	},
 ): ApplicationContext {
