@@ -8,5 +8,8 @@ export function loadConfigFromFile(
 	const absolute = resolve(configPath);
 	if (!existsSync(absolute)) return null;
 	const raw = readFileSync(absolute, "utf-8");
-	return yaml.load(raw) as Record<string, unknown>;
+	const parsed = yaml.load(raw);
+	return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+		? (parsed as Record<string, unknown>)
+		: {};
 }

@@ -29,10 +29,14 @@ export function validatePort(value: unknown): number {
 }
 
 export function validateHost(value: unknown): string {
-	if (typeof value !== "string" || value.trim() === "") {
+	if (typeof value !== "string") {
 		throw new Error(`Invalid server host: ${String(value)}`);
 	}
-	return value;
+	const host = value.trim();
+	if (host === "") {
+		throw new Error(`Invalid server host: ${String(value)}`);
+	}
+	return host;
 }
 
 export function validateLogLevel(value: unknown, label: string): LogLevel {

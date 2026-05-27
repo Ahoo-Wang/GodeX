@@ -13,6 +13,18 @@ describe("parseSessionConfig", () => {
 		});
 	});
 
+	test("uses the default sqlite path when sqlite path is blank", () => {
+		expect(
+			parseSessionConfig({
+				backend: "sqlite",
+				sqlite: { path: "   " },
+			}),
+		).toEqual({
+			backend: "sqlite",
+			sqlite: { path: "./data/sessions.db" },
+		});
+	});
+
 	test("rejects unknown backends", () => {
 		expect(() => parseSessionConfig({ backend: "redis" })).toThrow(
 			"Invalid session backend: redis",

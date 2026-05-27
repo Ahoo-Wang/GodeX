@@ -26,6 +26,14 @@ describe("parseProvidersConfig", () => {
 		).toBe("");
 	});
 
+	test("trims base_url before storing it", () => {
+		expect(
+			parseProvidersConfig({
+				zhipu: { base_url: " https://example.test/api " },
+			}).zhipu?.base_url,
+		).toBe("https://example.test/api");
+	});
+
 	test("rejects provider entries that are not objects", () => {
 		expect(() =>
 			parseProvidersConfig({ zhipu: "https://example.test/api" }),
@@ -36,5 +44,11 @@ describe("parseProvidersConfig", () => {
 		expect(() =>
 			parseProvidersConfig({ zhipu: { api_key: "test-key" } }),
 		).toThrow("Provider zhipu is missing required field: base_url");
+	});
+
+	test("rejects providers with whitespace-only base_url", () => {
+		expect(() => parseProvidersConfig({ zhipu: { base_url: "   " } })).toThrow(
+			"Provider zhipu is missing required field: base_url",
+		);
 	});
 });

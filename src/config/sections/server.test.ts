@@ -59,4 +59,10 @@ describe("parseServerConfig", () => {
 			"Invalid server host",
 		);
 	});
+
+	test("trims server host values", () => {
+		expect(parseServerConfig({ host: " localhost " }, {}).host).toBe(
+			"localhost",
+		);
+	});
 });

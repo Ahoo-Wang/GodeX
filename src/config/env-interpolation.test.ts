@@ -42,4 +42,23 @@ describe("resolveEnvVars", () => {
 			delete process.env.PORT;
 		}
 	});
+
+	test("resolves strings inside arrays", () => {
+		process.env.FIRST = "one";
+		try {
+			expect(resolveEnvVarsDeep(["${FIRST}", 2, false])).toEqual([
+				"one",
+				2,
+				false,
+			]);
+		} finally {
+			delete process.env.FIRST;
+		}
+	});
+
+	test("returns primitive values unchanged", () => {
+		expect(resolveEnvVarsDeep(null)).toBeNull();
+		expect(resolveEnvVarsDeep(42)).toBe(42);
+		expect(resolveEnvVarsDeep(true)).toBe(true);
+	});
 });

@@ -13,6 +13,11 @@ describe("parseModelsConfig", () => {
 		});
 	});
 
+	test("returns undefined when aliases are not configured", () => {
+		expect(parseModelsConfig(undefined, new Set(["zhipu"]))).toBeUndefined();
+		expect(parseModelsConfig({}, new Set(["zhipu"]))).toBeUndefined();
+	});
+
 	test("rejects alias keys that contain provider separators", () => {
 		expect(() =>
 			parseModelsConfig(

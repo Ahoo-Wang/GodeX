@@ -14,8 +14,8 @@ export function parseSessionConfig(raw: unknown): SessionConfig {
 
 	const sqliteConf = asConfigObject(session.sqlite);
 	const sqlitePath =
-		typeof sqliteConf.path === "string"
-			? sqliteConf.path
+		typeof sqliteConf.path === "string" && sqliteConf.path.trim() !== ""
+			? sqliteConf.path.trim()
 			: sessionBackend === "sqlite"
 				? resolveDefaultSqlitePath()
 				: undefined;

@@ -27,6 +27,17 @@ describe("config paths", () => {
 		}
 	});
 
+	test("returns an existing search path when local config is absent", () => {
+		const dir = mkdtempSync(join(tmpdir(), "godex-config-path-"));
+		try {
+			process.chdir(dir);
+
+			expect(resolveDefaultConfigPath()).toBeString();
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	test("uses local sqlite defaults in dev builds", () => {
 		expect(resolveDefaultSqlitePath()).toBe("./data/sessions.db");
 		expect(resolveDefaultTracePath()).toBe("./data/trace.db");

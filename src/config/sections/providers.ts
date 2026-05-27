@@ -15,7 +15,7 @@ export function parseProvidersConfig(
 		const api_key =
 			typeof provider.api_key === "string" ? provider.api_key : "";
 		const base_url =
-			typeof provider.base_url === "string" ? provider.base_url : "";
+			typeof provider.base_url === "string" ? provider.base_url.trim() : "";
 
 		if (!base_url) {
 			throw new Error(`Provider ${name} is missing required field: base_url`);
