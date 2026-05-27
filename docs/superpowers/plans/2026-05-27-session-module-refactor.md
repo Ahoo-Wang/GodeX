@@ -17,7 +17,7 @@
 - Create: `src/session/save-policy.test.ts`
 - Create: `src/session/save-policy.ts`
 
-- [ ] **Step 1: Create shared session fixtures**
+- [x] **Step 1: Create shared session fixtures**
 
 Create `src/session/test-fixtures.ts`:
 
@@ -99,7 +99,7 @@ export function cycleTurns(): [StoredResponseSession, StoredResponseSession] {
 }
 ```
 
-- [ ] **Step 2: Write failing save policy tests**
+- [x] **Step 2: Write failing save policy tests**
 
 Create `src/session/save-policy.test.ts`:
 
@@ -186,7 +186,7 @@ describe("assertCanSaveSession", () => {
 });
 ```
 
-- [ ] **Step 3: Run save policy tests to verify red**
+- [x] **Step 3: Run save policy tests to verify red**
 
 Run:
 
@@ -196,7 +196,7 @@ bun test src/session/save-policy.test.ts
 
 Expected: FAIL because `src/session/save-policy.ts` does not exist.
 
-- [ ] **Step 4: Implement shared save policy**
+- [x] **Step 4: Implement shared save policy**
 
 Create `src/session/save-policy.ts`:
 
@@ -239,7 +239,7 @@ export function assertCanSaveSession(input: SaveSessionPolicyInput): void {
 }
 ```
 
-- [ ] **Step 5: Run save policy tests to verify green**
+- [x] **Step 5: Run save policy tests to verify green**
 
 Run:
 
@@ -249,7 +249,7 @@ bun test src/session/save-policy.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
@@ -266,7 +266,7 @@ git commit -m "refactor: extract session save policy"
 - Modify: `src/session/memory.ts`
 - Modify: `src/session/memory.test.ts`
 
-- [ ] **Step 1: Write failing snapshot clone tests**
+- [x] **Step 1: Write failing snapshot clone tests**
 
 Create `src/session/snapshot-clone.test.ts`:
 
@@ -289,7 +289,7 @@ describe("cloneStoredResponseSession", () => {
 });
 ```
 
-- [ ] **Step 2: Run snapshot clone tests to verify red**
+- [x] **Step 2: Run snapshot clone tests to verify red**
 
 Run:
 
@@ -299,7 +299,7 @@ bun test src/session/snapshot-clone.test.ts
 
 Expected: FAIL because `src/session/snapshot-clone.ts` does not exist.
 
-- [ ] **Step 3: Implement snapshot clone helper**
+- [x] **Step 3: Implement snapshot clone helper**
 
 Create `src/session/snapshot-clone.ts`:
 
@@ -313,7 +313,7 @@ export function cloneStoredResponseSession(
 }
 ```
 
-- [ ] **Step 4: Refactor memory store to use save policy and clone helper**
+- [x] **Step 4: Refactor memory store to use save policy and clone helper**
 
 Update `src/session/memory.ts` to this content:
 
@@ -386,7 +386,7 @@ export class MemoryResponseSessionStore implements ResponseSessionStore {
 }
 ```
 
-- [ ] **Step 5: Narrow memory-specific tests**
+- [x] **Step 5: Narrow memory-specific tests**
 
 Replace `src/session/memory.test.ts` with:
 
@@ -439,7 +439,7 @@ describe("MemoryResponseSessionStore", () => {
 });
 ```
 
-- [ ] **Step 6: Run focused memory tests**
+- [x] **Step 6: Run focused memory tests**
 
 Run:
 
@@ -449,7 +449,7 @@ bun test src/session/snapshot-clone.test.ts src/session/memory.test.ts src/sessi
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -466,7 +466,7 @@ git commit -m "refactor: isolate memory session cloning"
 - Create: `src/session/sqlite-row-mapper.ts`
 - Modify: `src/session/sqlite.ts`
 
-- [ ] **Step 1: Write failing SQLite row mapper tests**
+- [x] **Step 1: Write failing SQLite row mapper tests**
 
 Create `src/session/sqlite-row-mapper.test.ts`:
 
@@ -520,7 +520,7 @@ describe("SQLite session row mapper", () => {
 });
 ```
 
-- [ ] **Step 2: Run SQLite row mapper tests to verify red**
+- [x] **Step 2: Run SQLite row mapper tests to verify red**
 
 Run:
 
@@ -530,7 +530,7 @@ bun test src/session/sqlite-row-mapper.test.ts
 
 Expected: FAIL because `src/session/sqlite-row-mapper.ts` does not exist.
 
-- [ ] **Step 3: Implement SQLite schema module**
+- [x] **Step 3: Implement SQLite schema module**
 
 Create `src/session/sqlite-schema.ts`:
 
@@ -560,7 +560,7 @@ export function migrateResponseSessionSchema(db: Database): void {
 }
 ```
 
-- [ ] **Step 4: Implement SQLite row mapper**
+- [x] **Step 4: Implement SQLite row mapper**
 
 Create `src/session/sqlite-row-mapper.ts`:
 
@@ -625,7 +625,7 @@ export function sqliteRowToSession(
 }
 ```
 
-- [ ] **Step 5: Refactor SQLite store to delegate schema, policy, and mapping**
+- [x] **Step 5: Refactor SQLite store to delegate schema, policy, and mapping**
 
 Update `src/session/sqlite.ts` to this content:
 
@@ -772,7 +772,7 @@ export class SQLiteResponseSessionStore implements ResponseSessionStore {
 }
 ```
 
-- [ ] **Step 6: Run SQLite mapper and store tests**
+- [x] **Step 6: Run SQLite mapper and store tests**
 
 Run:
 
@@ -782,7 +782,7 @@ bun test src/session/sqlite-row-mapper.test.ts src/session/sqlite.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -800,7 +800,7 @@ git commit -m "refactor: isolate sqlite session persistence"
 - Modify: `src/session/memory.test.ts`
 - Modify: `src/session/contract.test.ts`
 
-- [ ] **Step 1: Create shared store contract tests**
+- [x] **Step 1: Create shared store contract tests**
 
 Create `src/session/store-contract.test.ts`:
 
@@ -946,7 +946,7 @@ for (const storeCase of storeCases) {
 }
 ```
 
-- [ ] **Step 2: Run shared store contract tests**
+- [x] **Step 2: Run shared store contract tests**
 
 Run:
 
@@ -956,7 +956,7 @@ bun test src/session/store-contract.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 3: Replace chain tests with fixture-based coverage**
+- [x] **Step 3: Replace chain tests with fixture-based coverage**
 
 Replace `src/session/chain.test.ts` with:
 
@@ -1061,7 +1061,7 @@ describe("resolveResponseSessionChain", () => {
 });
 ```
 
-- [ ] **Step 4: Narrow SQLite-specific tests**
+- [x] **Step 4: Narrow SQLite-specific tests**
 
 Replace `src/session/sqlite.test.ts` with:
 
@@ -1144,7 +1144,7 @@ describe("SQLiteResponseSessionStore", () => {
 });
 ```
 
-- [ ] **Step 5: Keep memory-specific tests narrow**
+- [x] **Step 5: Keep memory-specific tests narrow**
 
 Verify `src/session/memory.test.ts` contains exactly these three test names:
 
@@ -1160,7 +1160,7 @@ test("returns cloned sessions so callers cannot mutate stored state"
 test("clears stored sessions"
 ```
 
-- [ ] **Step 6: Keep contract interface test focused**
+- [x] **Step 6: Keep contract interface test focused**
 
 Verify `src/session/contract.test.ts` remains an interface-shape test and does not import concrete stores:
 
@@ -1170,7 +1170,7 @@ rg -n "MemoryResponseSessionStore|SQLiteResponseSessionStore" src/session/contra
 
 Expected: no matches.
 
-- [ ] **Step 7: Run all session tests**
+- [x] **Step 7: Run all session tests**
 
 Run:
 
@@ -1180,7 +1180,7 @@ bun test src/session
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 Run:
 
@@ -1194,7 +1194,7 @@ git commit -m "test: share session store contract coverage"
 **Files:**
 - Modify: `docs/superpowers/plans/2026-05-27-session-module-refactor.md`
 
-- [ ] **Step 1: Run module tests**
+- [x] **Step 1: Run module tests**
 
 Run:
 
@@ -1204,7 +1204,7 @@ bun test src/session
 
 Expected: PASS.
 
-- [ ] **Step 2: Run repository check**
+- [x] **Step 2: Run repository check**
 
 Run:
 
@@ -1214,11 +1214,11 @@ bun run check
 
 Expected: PASS.
 
-- [ ] **Step 3: Mark plan steps complete**
+- [x] **Step 3: Mark plan steps complete**
 
 Update this plan checklist so every completed implementation step is marked `[x]`.
 
-- [ ] **Step 4: Commit completed plan**
+- [x] **Step 4: Commit completed plan**
 
 Run:
 
