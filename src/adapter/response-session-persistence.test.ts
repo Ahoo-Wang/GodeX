@@ -44,7 +44,9 @@ function createMockCtx(
 			input: [{ type: "message", role: "user", content: "hello" }],
 			instructions: "Be concise",
 			model: "mock/gpt-test",
-			tools: [{ type: "function", name: "lookup", parameters: {} }],
+			tools: [
+				{ type: "function", name: "lookup", parameters: {}, strict: true },
+			],
 			tool_choice: "auto",
 			parallel_tool_calls: true,
 			truncation: "auto",
@@ -93,7 +95,9 @@ describe("saveResponseSession", () => {
 					input: [{ type: "message", role: "user", content: "hello" }],
 					instructions: "Be concise",
 					model: "mock/gpt-test",
-					tools: [{ type: "function", name: "lookup", parameters: {} }],
+					tools: [
+						{ type: "function", name: "lookup", parameters: {}, strict: true },
+					],
 					tool_choice: "auto",
 					parallel_tool_calls: true,
 					truncation: "auto",

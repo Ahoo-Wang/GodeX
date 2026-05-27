@@ -245,7 +245,7 @@ describe("ProviderExchange", () => {
 
 		expect(responseMapCalls).toBe(0);
 		expect(result.mapper).toBe(provider.mapper);
-		expect(result.providerStream).toBe(providerStream);
+		expect(providerStream).toBe(result.providerStream);
 		expect(result.upstreamLatencyMillis).toEqual(expect.any(Number));
 		expect(traceEventNames(ctx)).toEqual(["provider.request.body"]);
 		expect(debugLogs).toEqual([
