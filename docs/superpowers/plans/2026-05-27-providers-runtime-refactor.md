@@ -137,11 +137,11 @@ Each provider factory should create mapper and client locally and return:
 return createProviderBundle({
 	name: PROVIDER_NAME,
 	mapper,
-	client: new ProviderClient(baseURL, config.api_key, config.timeout),
+	client: new ProviderClient(baseURL, config.api_key, options.timeout),
 });
 ```
 
-Provider classes can be removed from production paths. If live tests still need direct constructors, replace those uses with factory helpers and explicit `ProviderConfig` objects.
+Provider classes can be removed from production paths. `ProviderConfig` currently contains only `api_key` and `base_url`; call-site-only timeout needs should use factory creation options rather than adding timeout to the config schema.
 
 - [ ] **Step 4: Verify GREEN**
 

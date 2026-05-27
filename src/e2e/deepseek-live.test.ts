@@ -52,10 +52,13 @@ beforeAll(async () => {
 	const config = createLiveConfig(await getLoopbackPort());
 	const registrar = new Registrar();
 	registrar.registerFactory("deepseek", () =>
-		createDeepSeekProvider({
-			api_key: apiKey,
-			base_url: deepSeekBaseUrl,
-		}),
+		createDeepSeekProvider(
+			{
+				api_key: apiKey,
+				base_url: deepSeekBaseUrl,
+			},
+			{ timeout: 120_000 },
+		),
 	);
 
 	const app = new ApplicationContext(config, registrar);

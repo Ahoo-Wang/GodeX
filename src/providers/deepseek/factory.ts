@@ -1,5 +1,6 @@
 import type { Provider } from "../../adapter/provider";
 import type { ProviderConfig } from "../../config";
+import type { ProviderFactoryOptions } from "../factory-options";
 import { createProviderBundle } from "../provider-bundle";
 import { createDeepSeekMapper } from "./mapper";
 import type {
@@ -12,6 +13,7 @@ import { DeepSeekClient } from "./provider-client";
 
 export function createDeepSeekProvider(
 	config: ProviderConfig,
+	options: ProviderFactoryOptions = {},
 ): Provider<ChatCompletionRequest, ChatCompletion, ChatCompletionChunk> {
 	const mapper = createDeepSeekMapper();
 	return createProviderBundle({
@@ -20,6 +22,7 @@ export function createDeepSeekProvider(
 		client: new DeepSeekClient(
 			config.base_url || DEFAULT_DEEPSEEK_BASE_URL,
 			config.api_key,
+			options.timeout,
 		),
 	});
 }

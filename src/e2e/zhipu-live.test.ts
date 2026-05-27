@@ -61,10 +61,13 @@ beforeAll(async () => {
 	const config = createLiveConfig(await getLoopbackPort());
 	const registrar = new Registrar();
 	registrar.registerFactory("zhipu", () =>
-		createZhipuProvider({
-			api_key: apiKey,
-			base_url: zhipuBaseUrl,
-		}),
+		createZhipuProvider(
+			{
+				api_key: apiKey,
+				base_url: zhipuBaseUrl,
+			},
+			{ timeout: 120_000 },
+		),
 	);
 
 	const app = new ApplicationContext(config, registrar);

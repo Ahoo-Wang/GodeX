@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Provider } from "../adapter/provider";
+import type { LogAttr, Logger } from "../logger";
 import type { ProviderDefinition } from "./definition";
 import { Registrar } from "./registrar";
 
@@ -27,6 +28,29 @@ function stubDefinition(name: string): ProviderDefinition {
 	};
 }
 
+function readAttr(attr: LogAttr | undefined): Record<string, unknown> {
+	if (!attr) return {};
+	return typeof attr === "function" ? attr() : attr;
+}
+
+function captureLogger(
+	events: Array<{ level: string; payload: unknown }>,
+): Logger {
+	return {
+		level: "debug",
+		child: () => captureLogger(events),
+		trace: () => {},
+		debug: (_event, attr) => {
+			events.push({ level: "debug", payload: readAttr(attr) });
+		},
+		info: (_event, attr) => {
+			events.push({ level: "info", payload: readAttr(attr) });
+		},
+		warn: () => {},
+		error: () => {},
+	};
+}
+
 const originalWarn = console.warn;
 
 afterEach(() => {
@@ -43,6 +67,35 @@ describe("Registrar", () => {
 		});
 
 		expect(registrar.resolve("zhipu")).toBe(provider);
+	});
+
+	test("reports whether a provider factory is registered", () => {
+		const registrar = new Registrar();
+
+		expect(registrar.hasFactory("zhipu")).toBeFalse();
+		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
+
+		expect(registrar.hasFactory("zhipu")).toBeTrue();
+	});
+
+	test("logs successful registration at debug level", () => {
+		const events: Array<{ level: string; payload: unknown }> = [];
+		const registrar = new Registrar();
+		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
+
+		registrar.registerProviders(
+			{
+				zhipu: { api_key: "test", base_url: "http://test" },
+			},
+			captureLogger(events),
+		);
+
+		expect(events).toEqual([
+			{
+				level: "debug",
+				payload: { registered: ["zhipu"], skipped: [] },
+			},
+		]);
 	});
 
 	test("registers a single provider definition", () => {

@@ -1,5 +1,6 @@
 import type { Provider } from "../../adapter/provider";
 import type { ProviderConfig } from "../../config";
+import type { ProviderFactoryOptions } from "../factory-options";
 import { createProviderBundle } from "../provider-bundle";
 import { createZhipuMapper } from "./mapper";
 import type {
@@ -12,6 +13,7 @@ import { ZhipuClient } from "./provider-client";
 
 export function createZhipuProvider(
 	config: ProviderConfig,
+	options: ProviderFactoryOptions = {},
 ): Provider<
 	ChatCompletionTextRequest,
 	ChatCompletionResponse,
@@ -24,6 +26,7 @@ export function createZhipuProvider(
 		client: new ZhipuClient(
 			config.base_url || DEFAULT_ZHIPU_BASE_URL,
 			config.api_key,
+			options.timeout,
 		),
 	});
 }

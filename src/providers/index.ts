@@ -5,6 +5,7 @@ export {
 	DEFAULT_DEEPSEEK_BASE_URL,
 } from "./deepseek/provider";
 export * from "./definition";
+export * from "./factory-options";
 export * from "./openai";
 export * from "./provider-bundle";
 export * from "./registrar";
