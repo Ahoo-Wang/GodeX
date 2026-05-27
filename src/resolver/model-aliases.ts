@@ -14,7 +14,10 @@ export class ModelAliasCatalog {
 	private readonly aliases: Record<string, string>;
 
 	constructor(aliases?: Record<string, string>) {
-		this.aliases = aliases ?? {};
+		this.aliases = Object.create(null) as Record<string, string>;
+		for (const [alias, target] of Object.entries(aliases ?? {})) {
+			this.aliases[alias] = target;
+		}
 	}
 
 	resolveBareModel(model: string): ResolvedModel | undefined {
@@ -42,8 +45,8 @@ export class ModelAliasCatalog {
 		return this.parseTarget(this.aliases[WILDCARD_ALIAS]);
 	}
 
-	private parseTarget(target: string | undefined): ResolvedModel | undefined {
-		if (!target) return undefined;
+	private parseTarget(target: unknown): ResolvedModel | undefined {
+		if (typeof target !== "string") return undefined;
 		return parseProviderModelReference(target);
 	}
 }
