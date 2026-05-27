@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 import { resolveResponseSessionChain } from "./chain";
 import { assertCanSaveSession } from "./save-policy";
 import {
+	type SQLiteResponseSessionParams,
 	type SQLiteResponseSessionRow,
 	sessionToSQLiteParams,
 	sqliteRowToSession,
@@ -17,6 +18,14 @@ import type {
 	SaveResponseSessionOptions,
 	StoredResponseSession,
 } from "./types";
+
+type SQLiteNamedBindings = Record<string, string | number | null>;
+
+function toSQLiteNamedBindings(
+	params: SQLiteResponseSessionParams,
+): SQLiteNamedBindings {
+	return params as unknown as SQLiteNamedBindings;
+}
 
 /**
  * SQLite-backed session store for Responses `previous_response_id` chains.
@@ -92,7 +101,7 @@ export class SQLiteResponseSessionStore implements ResponseSessionStore {
           response_json = excluded.response_json,
           metadata_json = excluded.metadata_json`,
 			)
-			.run(sessionToSQLiteParams(session));
+			.run(toSQLiteNamedBindings(sessionToSQLiteParams(session)));
 	}
 
 	async resolveChain(

@@ -17,8 +17,7 @@ export interface SQLiteResponseSessionRow {
 	metadata_json: string | null;
 }
 
-export type SQLiteResponseSessionParams = SQLiteResponseSessionRow &
-	Record<string, string | number | null>;
+export type SQLiteResponseSessionParams = SQLiteResponseSessionRow;
 
 export function sessionToSQLiteParams(
 	session: StoredResponseSession,
