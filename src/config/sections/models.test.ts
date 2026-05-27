@@ -58,4 +58,21 @@ describe("parseModelsConfig", () => {
 			),
 		).toThrow('models.aliases.gpt-5: provider "unknown" is not configured');
 	});
+
+	test("uses a null-prototype alias map", () => {
+		const protoKey = "__proto__";
+		const constructorKey = "constructor";
+		const aliases = Object.create(null) as Record<string, unknown>;
+		aliases[protoKey] = "openai/gpt-5";
+		aliases[constructorKey] = "openai/gpt-4.1";
+
+		const models = parseModelsConfig({ aliases }, new Set(["openai"]));
+		const aliasMap = models?.aliases;
+
+		expect(aliasMap).toBeDefined();
+		expect(Object.getPrototypeOf(aliasMap)).toBeNull();
+		expect(Object.hasOwn(aliasMap ?? {}, protoKey)).toBe(true);
+		expect(aliasMap?.[protoKey]).toBe("openai/gpt-5");
+		expect(aliasMap?.[constructorKey]).toBe("openai/gpt-4.1");
+	});
 });

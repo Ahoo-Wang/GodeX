@@ -1,4 +1,4 @@
-import { asConfigObject } from "../raw";
+import { asConfigObject, createConfigMap } from "../raw";
 import type { ModelsConfig } from "../schema";
 
 export function parseModelsConfig(
@@ -24,7 +24,7 @@ function validateModelAliases(
 	rawAliases: Record<string, unknown>,
 	providerNames: Set<string>,
 ): Record<string, string> {
-	const aliases: Record<string, string> = {};
+	const aliases = createConfigMap<string>();
 	for (const [alias, target] of Object.entries(rawAliases)) {
 		if (alias !== "*" && alias.includes("/")) {
 			throw new Error(

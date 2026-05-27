@@ -1,4 +1,4 @@
-import { asConfigObject } from "../raw";
+import { asConfigObject, createConfigMap } from "../raw";
 import type { ProviderConfig } from "../schema";
 
 export function parseProvidersConfig(
@@ -6,7 +6,7 @@ export function parseProvidersConfig(
 ): Record<string, ProviderConfig> {
 	if (typeof raw !== "object" || raw === null) return {};
 
-	const result: Record<string, ProviderConfig> = {};
+	const result = createConfigMap<ProviderConfig>();
 	for (const [name, value] of Object.entries(raw)) {
 		if (typeof value !== "object" || value === null) {
 			throw new Error(`Provider ${name} must be an object`);

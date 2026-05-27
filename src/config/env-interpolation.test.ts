@@ -61,4 +61,26 @@ describe("resolveEnvVars", () => {
 		expect(resolveEnvVarsDeep(42)).toBe(42);
 		expect(resolveEnvVarsDeep(true)).toBe(true);
 	});
+
+	test("uses null-prototype maps for resolved objects", () => {
+		const protoKey = "__proto__";
+		const constructorKey = "constructor";
+		process.env.PROVIDER_URL = "https://example.test/api";
+		const source = Object.create(null) as Record<string, unknown>;
+		source[protoKey] = { base_url: "${PROVIDER_URL}" };
+		source[constructorKey] = "${PROVIDER_URL}";
+
+		try {
+			const resolved = resolveEnvVarsDeep(source) as Record<string, unknown>;
+
+			expect(Object.getPrototypeOf(resolved)).toBeNull();
+			expect(Object.hasOwn(resolved, protoKey)).toBe(true);
+			expect((resolved[protoKey] as Record<string, unknown>).base_url).toBe(
+				"https://example.test/api",
+			);
+			expect(resolved[constructorKey]).toBe("https://example.test/api");
+		} finally {
+			delete process.env.PROVIDER_URL;
+		}
+	});
 });

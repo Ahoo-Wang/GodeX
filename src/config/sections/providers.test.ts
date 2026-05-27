@@ -51,4 +51,25 @@ describe("parseProvidersConfig", () => {
 			"Provider zhipu is missing required field: base_url",
 		);
 	});
+
+	test("uses a null-prototype provider map", () => {
+		const protoKey = "__proto__";
+		const constructorKey = "constructor";
+		const raw = Object.create(null) as Record<string, unknown>;
+		raw[protoKey] = { base_url: "https://proto.example.test/api" };
+		raw[constructorKey] = {
+			base_url: "https://constructor.example.test/api",
+		};
+
+		const providers = parseProvidersConfig(raw);
+
+		expect(Object.getPrototypeOf(providers)).toBeNull();
+		expect(Object.hasOwn(providers, protoKey)).toBe(true);
+		expect(providers[protoKey]?.base_url).toBe(
+			"https://proto.example.test/api",
+		);
+		expect(providers[constructorKey]?.base_url).toBe(
+			"https://constructor.example.test/api",
+		);
+	});
 });
