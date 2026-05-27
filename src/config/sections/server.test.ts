@@ -60,6 +60,12 @@ describe("parseServerConfig", () => {
 		);
 	});
 
+	test("rejects non-string hosts", () => {
+		expect(() => parseServerConfig({ host: 42 }, {})).toThrow(
+			"Invalid server host: 42",
+		);
+	});
+
 	test("trims server host values", () => {
 		expect(parseServerConfig({ host: " localhost " }, {}).host).toBe(
 			"localhost",

@@ -27,15 +27,34 @@ describe("config paths", () => {
 		}
 	});
 
-	test("returns an existing search path when local config is absent", () => {
+	test("returns the first existing search path", () => {
 		const dir = mkdtempSync(join(tmpdir(), "godex-config-path-"));
 		try {
-			process.chdir(dir);
+			const missingPath = join(dir, "missing.yaml");
+			const existingPath = join(dir, "config.yaml");
+			writeFileSync(existingPath, "providers: {}\n");
 
-			expect(resolveDefaultConfigPath()).toBeString();
+			expect(resolveDefaultConfigPath([missingPath, existingPath])).toBe(
+				existingPath,
+			);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}
+	});
+
+	test("falls back to the first search path when none exist", () => {
+		const dir = mkdtempSync(join(tmpdir(), "godex-config-path-"));
+		try {
+			const preferredPath = join(dir, "preferred.yaml");
+
+			expect(resolveDefaultConfigPath([preferredPath])).toBe(preferredPath);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	test("falls back to the default search path when candidates are empty", () => {
+		expect(resolveDefaultConfigPath([])).toBe("godex.yaml");
 	});
 
 	test("uses local sqlite defaults in dev builds", () => {
