@@ -1,5 +1,23 @@
 import { describe, expect, test } from "bun:test";
 import { analyzePromptCache } from "./prompt-cache-recorder";
+import type { PromptCacheDetection, PromptCacheObservation } from "./types";
+
+function promptCacheDetection(
+	overrides: Partial<PromptCacheDetection> = {},
+): PromptCacheDetection {
+	return {
+		risk_level: "none",
+		reasons: [],
+		prefix_hash: "hash-1",
+		prefix_bytes: 10,
+		passthrough: {
+			prompt_cache_key: true,
+			prompt_cache_retention: true,
+			cache_control: false,
+		},
+		...overrides,
+	};
+}
 
 describe("analyzePromptCache", () => {
 	test("does nothing when tracing is disabled", () => {
@@ -162,16 +180,33 @@ describe("analyzePromptCache", () => {
 					}),
 				},
 				promptCacheObservationIndex: {
-					get: () => ({ prefix_hash: "old-hash" }),
+					get: (): PromptCacheObservation => ({
+						provider: "openai",
+						model: "gpt-test",
+						cache_identity_key: "requested-key",
+						prefix_hash: "old-hash",
+						prefix_bytes: 10,
+						created_at: 1,
+						request_id: "req_previous",
+					}),
 					remember: (observation: unknown) => observations.push(observation),
 				},
 				promptCacheDetector: {
-					detect: () => ({
-						prefix_hash: "hash-2",
-						prefix_bytes: 20,
-						tool_fingerprint: "tools-1",
-						risk: "low",
-					}),
+					detect: () =>
+						promptCacheDetection({
+							risk_level: "medium",
+							reasons: [
+								"prompt_cache_key was not preserved in provider request",
+							],
+							prefix_hash: "hash-2",
+							prefix_bytes: 20,
+							tool_fingerprint: { names: ["lookup"], hash: "tools-1" },
+							passthrough: {
+								prompt_cache_key: false,
+								prompt_cache_retention: true,
+								cache_control: false,
+							},
+						}),
 				},
 			},
 		};
@@ -184,8 +219,15 @@ describe("analyzePromptCache", () => {
 				requested_prompt_cache_key: "requested-key",
 				prompt_cache_key: "provider-key",
 				cache_detection: expect.objectContaining({
+					risk_level: "medium",
+					reasons: ["prompt_cache_key was not preserved in provider request"],
 					prefix_hash: "hash-2",
-					tool_fingerprint: "tools-1",
+					tool_fingerprint: { names: ["lookup"], hash: "tools-1" },
+					passthrough: {
+						prompt_cache_key: false,
+						prompt_cache_retention: true,
+						cache_control: false,
+					},
 				}),
 			}),
 		]);
@@ -196,7 +238,7 @@ describe("analyzePromptCache", () => {
 				cache_identity_key: "requested-key",
 				prefix_hash: "hash-2",
 				prefix_bytes: 20,
-				tool_fingerprint: "tools-1",
+				tool_fingerprint: { names: ["lookup"], hash: "tools-1" },
 				request_id: "req_1",
 			}),
 		]);
@@ -231,7 +273,18 @@ describe("analyzePromptCache", () => {
 				},
 				promptCacheObservationIndex: { get: () => null, remember: () => {} },
 				promptCacheDetector: {
-					detect: () => ({ prefix_hash: "hash-1", prefix_bytes: 10 }),
+					detect: () =>
+						promptCacheDetection({
+							risk_level: "medium",
+							reasons: [
+								"prompt_cache_retention was not preserved in provider request",
+							],
+							passthrough: {
+								prompt_cache_key: true,
+								prompt_cache_retention: false,
+								cache_control: false,
+							},
+						}),
 				},
 			},
 		};
@@ -243,6 +296,17 @@ describe("analyzePromptCache", () => {
 				kind: "request",
 				requested_prompt_cache_retention: "24h",
 				prompt_cache_retention: "ephemeral",
+				cache_detection: expect.objectContaining({
+					risk_level: "medium",
+					reasons: [
+						"prompt_cache_retention was not preserved in provider request",
+					],
+					passthrough: {
+						prompt_cache_key: true,
+						prompt_cache_retention: false,
+						cache_control: false,
+					},
+				}),
 			}),
 		]);
 	});
