@@ -1,5 +1,6 @@
-import { SESSION_CONFLICT, SessionError } from "../error";
 import { resolveResponseSessionChain } from "./chain";
+import { assertCanSaveSession } from "./save-policy";
+import { cloneStoredResponseSession } from "./snapshot-clone";
 import type {
 	ResolveResponseSessionOptions,
 	ResponseId,
@@ -20,47 +21,26 @@ export class MemoryResponseSessionStore implements ResponseSessionStore {
 
 	constructor(sessions: StoredResponseSession[] = []) {
 		for (const session of sessions) {
-			this.sessions.set(session.id, cloneSession(session));
+			this.sessions.set(session.id, cloneStoredResponseSession(session));
 		}
 	}
 
 	async get(responseId: ResponseId): Promise<StoredResponseSession | null> {
 		const session = this.sessions.get(responseId);
-		return session ? cloneSession(session) : null;
+		return session ? cloneStoredResponseSession(session) : null;
 	}
 
 	async save(
 		session: StoredResponseSession,
 		options?: SaveResponseSessionOptions,
 	): Promise<void> {
-		const previousResponseId = session.previous_response_id ?? null;
+		assertCanSaveSession({
+			session,
+			existing: this.sessions.get(session.id) ?? null,
+			options,
+		});
 
-		if (
-			options?.expected_previous_response_id !== undefined &&
-			options.expected_previous_response_id !== previousResponseId
-		) {
-			throw new SessionError(
-				SESSION_CONFLICT,
-				"Response session parent did not match expected previous response ID.",
-				{
-					responseId: session.id,
-					previousResponseId: previousResponseId ?? undefined,
-				},
-			);
-		}
-
-		if (this.sessions.has(session.id) && !options?.overwrite) {
-			throw new SessionError(
-				SESSION_CONFLICT,
-				"Response session already exists.",
-				{
-					responseId: session.id,
-					previousResponseId: previousResponseId ?? undefined,
-				},
-			);
-		}
-
-		this.sessions.set(session.id, cloneSession(session));
+		this.sessions.set(session.id, cloneStoredResponseSession(session));
 	}
 
 	async resolveChain(
@@ -71,7 +51,7 @@ export class MemoryResponseSessionStore implements ResponseSessionStore {
 			...options,
 			get: (responseId) => {
 				const session = this.sessions.get(responseId);
-				return session ? cloneSession(session) : null;
+				return session ? cloneStoredResponseSession(session) : null;
 			},
 		});
 	}
@@ -83,8 +63,4 @@ export class MemoryResponseSessionStore implements ResponseSessionStore {
 	clear(): void {
 		this.sessions.clear();
 	}
-}
-
-function cloneSession(session: StoredResponseSession): StoredResponseSession {
-	return structuredClone(session);
 }
