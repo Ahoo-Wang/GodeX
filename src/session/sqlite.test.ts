@@ -37,16 +37,20 @@ describe("SQLiteResponseSessionStore", () => {
 		const dir = mkdtempSync(join(tmpdir(), "godex-session-"));
 		const dbPath = join(dir, "sessions.sqlite");
 		const first = completedTurn("resp_file", null, undefined, "sqlite-test");
+		let writer: SQLiteResponseSessionStore | undefined;
+		let reader: SQLiteResponseSessionStore | undefined;
 
 		try {
-			const writer = new SQLiteResponseSessionStore(dbPath);
+			writer = new SQLiteResponseSessionStore(dbPath);
 			await writer.save(first);
 			writer.close();
+			writer = undefined;
 
-			const reader = new SQLiteResponseSessionStore(dbPath);
+			reader = new SQLiteResponseSessionStore(dbPath);
 			await expect(reader.get("resp_file")).resolves.toEqual(first);
-			reader.close();
 		} finally {
+			reader?.close();
+			writer?.close();
 			rmSync(dir, { recursive: true, force: true });
 		}
 	});

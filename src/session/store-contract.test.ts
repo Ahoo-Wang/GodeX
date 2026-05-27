@@ -9,7 +9,7 @@ import {
 	secondInput,
 	userInput,
 } from "./test-fixtures";
-import type { ResponseSessionStore } from "./types";
+import type { ResponseSessionStore, StoredResponseSession } from "./types";
 
 interface StoreCase {
 	name: string;
@@ -28,6 +28,31 @@ const storeCases: StoreCase[] = [
 		close: (store) => store.close?.(),
 	},
 ];
+
+function firstTextContent(items: Array<{ content: Array<{ text: string }> }>): {
+	text: string;
+} {
+	const item = items.at(0);
+	if (!item) throw new Error("Expected test session item");
+	const content = item.content.at(0);
+	if (!content) throw new Error("Expected test session content");
+	return content;
+}
+
+function mutateNestedSessionState(session: StoredResponseSession): void {
+	const requestInput = session.request.input as Array<{
+		content: Array<{ text: string }>;
+	}>;
+	firstTextContent(requestInput).text = "mutated request input";
+
+	const responseOutput = session.response.output as Array<{
+		content: Array<{ text: string }>;
+	}>;
+	firstTextContent(responseOutput).text = "mutated response output";
+
+	const metadata = session.metadata as { nested: { marker: string } };
+	metadata.nested.marker = "mutated metadata";
+}
 
 for (const storeCase of storeCases) {
 	describe(`${storeCase.name} ResponseSessionStore behavior`, () => {
@@ -56,6 +81,43 @@ for (const storeCase of storeCases) {
 
 				await store.delete("resp_1");
 				await expect(store.get("resp_1")).resolves.toBeNull();
+			} finally {
+				storeCase.close?.(store);
+			}
+		});
+
+		test("isolates stored sessions from caller mutations", async () => {
+			const store = storeCase.create();
+			try {
+				const first = {
+					...completedTurn(
+						"resp_isolation",
+						null,
+						{
+							type: "message",
+							role: "user",
+							content: [{ type: "input_text", text: "original request" }],
+						},
+						storeCase.name,
+					),
+					metadata: {
+						provider: storeCase.name,
+						nested: { marker: "original metadata" },
+					},
+				} satisfies StoredResponseSession;
+				const expected = structuredClone(first);
+
+				await store.save(first);
+				mutateNestedSessionState(first);
+
+				await expect(store.get("resp_isolation")).resolves.toEqual(expected);
+
+				const read = await store.get("resp_isolation");
+				expect(read).not.toBeNull();
+				if (!read) throw new Error("Expected stored response");
+				mutateNestedSessionState(read);
+
+				await expect(store.get("resp_isolation")).resolves.toEqual(expected);
 			} finally {
 				storeCase.close?.(store);
 			}
