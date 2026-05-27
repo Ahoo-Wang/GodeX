@@ -4,7 +4,7 @@
 
 Refactor the server `responses` route so request handling responsibilities are explicit, tests are easier to navigate, and future route behavior can be extended without growing a monolithic handler.
 
-The external HTTP API remains stable. This is an internal cleanup focused on readability, cohesion, low coupling, and test clarity.
+The refactor keeps the external HTTP API stable except for one intentional request-validation hardening found during review: valid JSON bodies that are not objects now return a controlled `server.request.invalid_parameter` response instead of falling through to later context creation or throwing an unhandled error. The main work remains an internal cleanup focused on readability, cohesion, low coupling, and test clarity.
 
 ## Current State
 
@@ -33,7 +33,7 @@ This improves navigation but does not remove the real production boundary proble
 
 Keep `handleResponses(req, app)` as the public route entrypoint, then extract focused helpers for request parsing, request logging, response dispatch, and route error handling.
 
-This directly addresses the current debt without changing server contracts or adapter behavior. It also keeps the refactor local to `src/server/routes/responses`.
+This directly addresses the current debt without changing server contracts or adapter behavior. The only observable route change is the explicit malformed-body validation described above. It also keeps the refactor local to `src/server/routes/responses`.
 
 ### 3. Broad Server Framework Abstraction
 
@@ -73,6 +73,7 @@ It should:
 
 - parse JSON into `ResponseCreateRequest`
 - log invalid JSON as `responses.request.invalid_json`
+- reject valid JSON bodies that are not objects before context creation
 - reject `previous_response_id` plus `conversation` before session resolution
 - return either a valid body or a ready HTTP error `Response`
 
@@ -175,6 +176,7 @@ This helper is route-test-local and is not exported from the public server barre
 `request-parser.test.ts`:
 
 - invalid JSON returns `server.request.invalid_json`
+- non-object JSON bodies return `server.request.invalid_parameter`
 - `previous_response_id` plus `conversation` returns `server.request.invalid_parameter`
 - valid JSON returns the parsed body
 
@@ -204,7 +206,7 @@ This helper is route-test-local and is not exported from the public server barre
 
 ## Out Of Scope
 
-- Changing `/v1/responses` request or response behavior
+- Changing `/v1/responses` request or response behavior beyond the explicit non-object JSON body validation hardening
 - Changing `ResponsesContext`
 - Changing `ApplicationContext`
 - Changing adapter stream transformers or stream terminal semantics
@@ -217,5 +219,5 @@ This helper is route-test-local and is not exported from the public server barre
 - `handler.ts` is a small route orchestration function with no low-level SSE or HTTP error mapping details.
 - Request parsing, request logging, dispatch, and error mapping each have focused tests.
 - The large `responses.test.ts` is removed or reduced to orchestration-level coverage.
-- Existing route behavior remains covered, including invalid JSON, parameter conflict, invalid model selectors, stream setup behavior, and provider error mapping.
+- Existing route behavior remains covered, including invalid JSON, malformed non-object JSON bodies, parameter conflict, invalid model selectors, stream setup behavior, and provider error mapping.
 - `bun run check` passes.

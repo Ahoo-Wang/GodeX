@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Split the `/v1/responses` route into focused server units while preserving external behavior.
+**Goal:** Split the `/v1/responses` route into focused server units while preserving external behavior except for an intentional malformed-body validation hardening found during review.
 
 **Architecture:** Keep `handleResponses(req, app)` as the public route entrypoint. Extract request parsing, request log metadata, sync/stream dispatch, and route error handling into route-local modules with focused tests.
 
@@ -36,6 +36,7 @@
 Cover:
 
 - invalid JSON returns a 400 `server.request.invalid_json` response
+- valid JSON bodies that are not objects return a 400 `server.request.invalid_parameter` response
 - conflicting `previous_response_id` and `conversation` returns a 400 `server.request.invalid_parameter` response
 - valid JSON returns the parsed `ResponseCreateRequest`
 
