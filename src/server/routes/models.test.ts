@@ -7,7 +7,12 @@ import { handleModels } from "./models";
 const config: GodeXConfig = {
 	server: { port: 0, host: "127.0.0.1" },
 	default_provider: "zhipu",
-	models: { aliases: { "gpt-5": "zhipu/glm-5.1" } },
+	models: {
+		aliases: {
+			"*": "zhipu/glm-4",
+			"gpt-5": "zhipu/glm-5.1",
+		},
+	},
 	providers: {
 		zhipu: {
 			api_key: "test-key",
@@ -66,6 +71,7 @@ describe("GET /v1/models", () => {
 		expect(body.data).toEqual([
 			{ id: "gpt-5", object: "model", owned_by: "zhipu" },
 		]);
+		expect(body.data.some((model) => model.id === "*")).toBe(false);
 	});
 
 	test("omits aliases pointing to unregistered providers", async () => {

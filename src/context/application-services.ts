@@ -33,10 +33,10 @@ export function createApplicationServices(
 	registrar?: Registrar,
 ): ApplicationServices {
 	const logger = createLogger(config.logging);
-	const resolver = new ModelResolver(
-		config.default_provider,
-		config.models?.aliases,
-	);
+	const resolver = new ModelResolver({
+		defaultProvider: config.default_provider,
+		aliases: config.models?.aliases,
+	});
 	const configuredRegistrar = createConfiguredRegistrar(
 		config.providers,
 		logger,
