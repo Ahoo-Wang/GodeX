@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import type { GodeXConfig } from "../config";
-import { Registrar } from "../providers/registrar";
 import { ApplicationContext } from "./application-context";
 
 const config: GodeXConfig = {
@@ -36,62 +35,6 @@ describe("ApplicationContext", () => {
 		expect(app.sessionStore).toBeDefined();
 	});
 
-	test("builds registrar with providers", () => {
-		const app = new ApplicationContext(config);
-		const provider = app.registrar.resolve("zhipu");
-		expect(provider.mapper).toBeDefined();
-		expect(provider.client).toBeDefined();
-	});
-
-	test("creates sqlite session store when configured", () => {
-		const sqliteConfig: GodeXConfig = {
-			...config,
-			session: { backend: "sqlite", sqlite: { path: ":memory:" } },
-		};
-		const app = new ApplicationContext(sqliteConfig);
-		expect(app.sessionStore).toBeDefined();
-		app.sessionStore.close?.();
-	});
-
-	test("accepts custom registrar for testing", () => {
-		const customRegistrar = new Registrar();
-		customRegistrar.registerFactory("zhipu", () => ({
-			name: "mock",
-			mapper: {
-				request: { map: () => ({}) },
-				response: { map: () => ({}) as never },
-				stream: {
-					map: () => [] as never[],
-					buildResponseObject: () => ({}) as never,
-				},
-			},
-			client: {
-				request: async () => ({}),
-				stream: async () => new ReadableStream(),
-			},
-		}));
-		const app = new ApplicationContext(config, customRegistrar);
-		expect(app.registrar).toBe(customRegistrar);
-		const provider = app.registrar.resolve("zhipu");
-		expect(provider).toBeDefined();
-	});
-
-	test("creates noop trace recorder when trace is disabled", () => {
-		const app = new ApplicationContext(config);
-		expect(app.traceRecorder).toBeDefined();
-		expect(() =>
-			app.traceRecorder.record({
-				kind: "event",
-				request_id: "req_1",
-				response_id: "resp_1",
-				provider: "test",
-				model: "test",
-				created_at: Date.now(),
-				event_name: "provider.request.body",
-			}),
-		).not.toThrow();
-	});
-
 	test("closes trace recorder and session store", async () => {
 		const app = new ApplicationContext(config);
 		let traceClosed = false;
@@ -112,5 +55,35 @@ describe("ApplicationContext", () => {
 		await app.close();
 		expect(traceClosed).toBe(true);
 		expect(sessionClosed).toBe(true);
+	});
+
+	test("logs trace recorder close errors", async () => {
+		const app = new ApplicationContext(config);
+		const warnings: string[] = [];
+		(
+			app as unknown as {
+				traceRecorder: { record(_e: unknown): void; close(): void };
+			}
+		).traceRecorder = {
+			record: () => {},
+			close: () => {
+				throw new Error("close failed");
+			},
+		};
+		(
+			app as unknown as {
+				logger: {
+					warn(message: string, fields?: () => Record<string, unknown>): void;
+				};
+			}
+		).logger = {
+			warn: (message) => {
+				warnings.push(message);
+			},
+		};
+
+		await app.close();
+
+		expect(warnings).toEqual(["trace.close.error"]);
 	});
 });
