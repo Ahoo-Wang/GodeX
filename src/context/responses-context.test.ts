@@ -1,252 +1,96 @@
 import { describe, expect, test } from "bun:test";
-import type { GodeXConfig } from "../config";
-import {
-	SERVER_PROVIDER_NOT_REGISTERED,
-	SERVER_REQUEST_INVALID_PARAMETER,
-	SERVER_REQUEST_MISSING_MODEL,
-	SESSION_CHAIN_NOT_FOUND,
-	ServerError,
-	SessionError,
-} from "../error";
-import { Registrar } from "../providers/registrar";
-import type { StoredResponseSession } from "../session";
-import { ApplicationContext } from "./application-context";
+import type { CompatibilityDiagnostic } from "../adapter/compatibility";
+import type { Provider } from "../adapter/provider";
+import type { Logger } from "../logger";
+import type { ResponseCreateRequest } from "../protocol/openai/responses";
+import type { ResolvedModel } from "../resolver";
+import type { ResponseSessionSnapshot } from "../session";
+import type { ApplicationContext } from "./application-context";
 import { ResponsesContext } from "./responses-context";
 
-const config: GodeXConfig = {
-	server: { port: 0, host: "127.0.0.1" },
-	default_provider: "zhipu",
-	providers: {
-		zhipu: {
-			api_key: "test-key",
-			base_url: "http://127.0.0.1:1",
-		},
-	},
-	session: { backend: "memory" },
-	logging: { level: "info" },
-	trace: {
-		enabled: false,
-		path: "./data/trace.db",
-		max_queue_size: 10000,
-		flush_interval_ms: 1000,
-		batch_size: 100,
-		capture_payload: false,
-		payload_max_bytes: 65536,
-	},
+const logger: Logger = {
+	level: "info",
+	child: () => logger,
+	trace: () => {},
+	debug: () => {},
+	info: () => {},
+	warn: () => {},
+	error: () => {},
 };
 
-function createTestApp(): ApplicationContext {
-	const registrar = new Registrar();
-	registrar.registerFactory("zhipu", () => ({
-		name: "mock",
-		mapper: {
-			request: { map: () => ({}) },
-			response: { map: () => ({}) as never },
-			stream: {
-				map: () => [] as never[],
-				buildResponseObject: () => ({}) as never,
-			},
+const provider = {
+	name: "mock",
+	mapper: {
+		request: { map: () => ({}) },
+		response: { map: () => ({}) as never },
+		stream: {
+			map: () => [] as never[],
 		},
-		client: {
-			request: async () => ({}),
-			stream: async () => new ReadableStream(),
-		},
-	}));
-	return new ApplicationContext(config, registrar);
+	},
+	client: {
+		request: async () => ({}),
+		stream: async () => new ReadableStream(),
+	},
+} satisfies Provider<unknown, unknown, unknown>;
+
+function createContext(
+	overrides: Partial<ConstructorParameters<typeof ResponsesContext>[0]> = {},
+): ResponsesContext {
+	return new ResponsesContext({
+		app: {} as ApplicationContext,
+		request: { model: "zhipu/glm-5.1", input: "hi" } as ResponseCreateRequest,
+		session: null as ResponseSessionSnapshot | null,
+		resolved: { provider: "zhipu", model: "glm-5.1" } as ResolvedModel,
+		provider,
+		requestId: "req_test",
+		responseId: "resp_test",
+		createdAt: 123,
+		logger,
+		...overrides,
+	});
 }
 
 describe("ResponsesContext", () => {
-	test("auto-generates IDs via create", async () => {
-		const app = createTestApp();
-		const ctx = await ResponsesContext.create(app, {
-			model: "glm-5.1",
-			input: "hi",
-		});
+	test("stores request-scoped dependencies from init object", () => {
+		const request = {
+			model: "zhipu/glm-5.1",
+			input: "hello",
+		} as ResponseCreateRequest;
+		const resolved = { provider: "zhipu", model: "glm-5.1" };
 
-		expect(ctx.responseId).toMatch(/^resp_/);
-		expect(ctx.requestId).toMatch(/^req_/);
-		expect(ctx.createdAt).toBeGreaterThan(0);
+		const ctx = createContext({ request, resolved });
+
+		expect(ctx.app).toBeDefined();
+		expect(ctx.request).toBe(request);
+		expect(ctx.session).toBeNull();
+		expect(ctx.resolved).toEqual(resolved);
+		expect(ctx.provider).toBe(provider);
+		expect(ctx.requestId).toBe("req_test");
+		expect(ctx.responseId).toBe("resp_test");
+		expect(ctx.createdAt).toBe(123);
+		expect(ctx.logger).toBe(logger);
 	});
 
-	test("creates child logger with requestId and responseId", async () => {
-		const app = createTestApp();
-		const ctx = await ResponsesContext.create(app, {
-			model: "glm-5.1",
-			input: "hi",
-		});
+	test("starts with empty diagnostics and supports addDiagnostic", () => {
+		const ctx = createContext();
+		const diagnostic: CompatibilityDiagnostic = {
+			severity: "warn",
+			code: "provider.unsupported_parameter",
+			action: "ignored",
+			message: "unsupported",
+		};
 
-		expect(ctx.logger).not.toBe(app.logger);
-		expect(ctx.logger.level).toBe("info");
+		ctx.addDiagnostic(diagnostic);
+
+		expect(ctx.diagnostics).toEqual([diagnostic]);
 	});
 
-	test("passes session through", async () => {
-		const app = createTestApp();
-		const responseId = "resp_prev";
-		const now = Math.floor(Date.now() / 1000);
-
-		await app.sessionStore.save({
-			id: responseId,
-			created_at: now,
-			status: "completed",
-			request: { input: "hello" },
-			response: { id: responseId, output: [] },
-		} as StoredResponseSession);
-
-		const ctx = await ResponsesContext.create(app, {
-			model: "glm-5.1",
-			input: "hi",
-			previous_response_id: responseId,
-		});
-
-		expect(ctx.session).not.toBeNull();
-		expect(ctx.session?.previous_response_id).toBe(responseId);
-	});
-
-	test("attributes is an empty mutable map", async () => {
-		const app = createTestApp();
-		const ctx = await ResponsesContext.create(app, {
-			model: "glm-5.1",
-			input: "hi",
-		});
-
-		expect(ctx.attributes.size).toBe(0);
+	test("starts with an empty mutable attributes map", () => {
+		const ctx = createContext();
 
 		ctx.attributes.set("traceId", "trace_123");
-		ctx.attributes.set("userId", "user_456");
+
+		expect(ctx.attributes.size).toBe(1);
 		expect(ctx.attributes.get("traceId")).toBe("trace_123");
-		expect(ctx.attributes.get("userId")).toBe("user_456");
-		expect(ctx.attributes.size).toBe(2);
-	});
-
-	test("stores app, request, resolved, provider", async () => {
-		const app = createTestApp();
-		const ctx = await ResponsesContext.create(app, {
-			model: "zhipu/glm-5.1",
-			input: "hi",
-		});
-
-		expect(ctx.app).toBe(app);
-		expect(ctx.resolved.provider).toBe("zhipu");
-		expect(ctx.resolved.model).toBe("glm-5.1");
-		expect(ctx.provider).toBeDefined();
-	});
-});
-
-describe("ResponsesContext.create", () => {
-	test("resolves model and provider, creates context", async () => {
-		const app = createTestApp();
-		const ctx = await ResponsesContext.create(app, {
-			model: "zhipu/glm-5.1",
-			input: "hi",
-		});
-
-		expect(ctx.resolved).toEqual({ provider: "zhipu", model: "glm-5.1" });
-		expect(ctx.provider).toBeDefined();
-		expect(ctx.provider.name).toBe("mock");
-		expect(ctx.session).toBeNull();
-		expect(ctx.responseId).toMatch(/^resp_/);
-	});
-
-	test("uses default_provider when model has no slash", async () => {
-		const app = createTestApp();
-		const ctx = await ResponsesContext.create(app, {
-			model: "glm-5.1",
-			input: "hi",
-		});
-
-		expect(ctx.resolved.provider).toBe("zhipu");
-		expect(ctx.resolved.model).toBe("glm-5.1");
-	});
-
-	test("throws ServerError for missing model", async () => {
-		const app = createTestApp();
-		const err = await ResponsesContext.create(app, {
-			model: undefined as never,
-			input: "hi",
-		}).catch((e) => e);
-		expect(err instanceof ServerError).toBe(true);
-		expect((err as ServerError).code).toBe(SERVER_REQUEST_MISSING_MODEL);
-	});
-
-	test("throws ServerError for invalid model selector", async () => {
-		const app = createTestApp();
-		const err = await ResponsesContext.create(app, {
-			model: " /glm-5.1",
-			input: "hi",
-		}).catch((e) => e);
-		expect(err instanceof ServerError).toBe(true);
-		expect((err as ServerError).code).toBe(SERVER_REQUEST_INVALID_PARAMETER);
-	});
-
-	test("throws ServerError when provider is not in config", async () => {
-		const app = createTestApp();
-		const err = await ResponsesContext.create(app, {
-			model: "openai/gpt-4",
-			input: "hi",
-		}).catch((e) => e);
-		expect(err instanceof ServerError).toBe(true);
-		expect((err as ServerError).code).toBe(SERVER_REQUEST_INVALID_PARAMETER);
-		expect((err as ServerError).message).toInclude("Unknown provider");
-	});
-
-	test("throws ServerError when provider is not registered", async () => {
-		const registrar = new Registrar();
-		const app = new ApplicationContext(config, registrar);
-		const err = await ResponsesContext.create(app, {
-			model: "zhipu/glm-5.1",
-			input: "hi",
-		}).catch((e) => e);
-		expect(err instanceof ServerError).toBe(true);
-		expect((err as ServerError).code).toBe(SERVER_PROVIDER_NOT_REGISTERED);
-		expect((err as ServerError).message).toInclude(
-			"Provider is not registered",
-		);
-	});
-
-	test("resolves session chain when previous_response_id is set", async () => {
-		const app = createTestApp();
-		const responseId = "resp_prev";
-		const now = Math.floor(Date.now() / 1000);
-
-		await app.sessionStore.save({
-			id: responseId,
-			created_at: now,
-			status: "completed",
-			request: { input: "hello" },
-			response: { id: responseId, output: [] },
-		} as StoredResponseSession);
-
-		const ctx = await ResponsesContext.create(app, {
-			model: "zhipu/glm-5.1",
-			input: "hi",
-			previous_response_id: responseId,
-		});
-
-		expect(ctx.session).not.toBeNull();
-		expect(ctx.session?.previous_response_id).toBe(responseId);
-		expect(ctx.session?.turns).toHaveLength(1);
-		expect(ctx.session?.turns[0]?.id).toBe(responseId);
-	});
-
-	test("throws SessionError when previous_response_id chain not found", async () => {
-		const app = createTestApp();
-		const err = await ResponsesContext.create(app, {
-			model: "zhipu/glm-5.1",
-			input: "hi",
-			previous_response_id: "resp_missing",
-		}).catch((e) => e);
-		expect(err instanceof SessionError).toBe(true);
-		expect((err as SessionError).code).toBe(SESSION_CHAIN_NOT_FOUND);
-	});
-
-	test("null previous_response_id still works", async () => {
-		const app = createTestApp();
-		const ctx = await ResponsesContext.create(app, {
-			model: "zhipu/glm-5.1",
-			input: "hi",
-			previous_response_id: undefined,
-		});
-
-		expect(ctx.session).toBeNull();
 	});
 });
