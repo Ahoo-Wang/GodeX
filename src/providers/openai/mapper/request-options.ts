@@ -5,7 +5,7 @@ import type {
 } from "../../../adapter/mapper/chat/contract";
 import type { ResponsesContext } from "../../../context/responses-context";
 import type { ChatCompletionCreateRequest } from "../../../protocol/openai/completions";
-import { mapOpenAITools } from "./tools";
+import { getOpenAIMappedTools } from "./tools";
 
 export class OpenAIRequestFactory
 	implements ChatRequestFactory<ChatCompletionCreateRequest>
@@ -74,7 +74,7 @@ export class OpenAIRequestOptionsMapper
 			request.verbosity = req.text.verbosity;
 
 		if (req.tools && req.tools.length > 0) {
-			const mapped = mapOpenAITools(req.tools);
+			const mapped = getOpenAIMappedTools(ctx);
 			if (mapped.webSearchOptions)
 				request.web_search_options = mapped.webSearchOptions;
 		}

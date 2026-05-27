@@ -23,6 +23,7 @@ function ctx(partial: Record<string, unknown> = {}): ResponsesContext {
 			mapper: {} as never,
 			client: {} as never,
 		},
+		attributes: new Map(),
 	} as unknown as ResponsesContext;
 }
 
@@ -179,6 +180,29 @@ describe("buildOpenAIRequest", () => {
 			search_context_size: "high",
 		});
 		expect(result.tools).toBeUndefined();
+	});
+
+	test("maps OpenAI tools once while applying tool sidecar options", () => {
+		let typeReads = 0;
+		const tool = new Proxy(
+			{
+				type: "web_search",
+				search_context_size: "high",
+			},
+			{
+				get(target, property, receiver) {
+					if (property === "type") typeReads += 1;
+					return Reflect.get(target, property, receiver);
+				},
+			},
+		);
+
+		const result = mapRequest(ctx({ input: "Hi", tools: [tool] }));
+
+		expect(result.web_search_options).toEqual({
+			search_context_size: "high",
+		});
+		expect(typeReads).toBe(1);
 	});
 
 	test("sets stream flag with stream_options.include_usage", () => {

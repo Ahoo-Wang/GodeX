@@ -26,6 +26,17 @@ export interface OpenAIMappedTools {
 	webSearchOptions: ChatCompletionWebSearchOptions | undefined;
 }
 
+const OPENAI_MAPPED_TOOLS_ATTRIBUTE = "openai.mapped-tools";
+
+export function getOpenAIMappedTools(ctx: ResponsesContext): OpenAIMappedTools {
+	const cached = ctx.attributes.get(OPENAI_MAPPED_TOOLS_ATTRIBUTE);
+	if (cached) return cached as OpenAIMappedTools;
+
+	const mapped = mapOpenAITools(ctx.request.tools);
+	ctx.attributes.set(OPENAI_MAPPED_TOOLS_ATTRIBUTE, mapped);
+	return mapped;
+}
+
 export function mapOpenAITools(
 	tools: ResponseTool[] | undefined,
 ): OpenAIMappedTools {
@@ -257,7 +268,7 @@ export class OpenAIToolMapper implements ChatToolMapper<ChatCompletionTool[]> {
 		_ctx: ResponsesContext,
 		_plan: CompatibilityPlan,
 	): ChatCompletionTool[] | undefined {
-		const mapped = mapOpenAITools(_ctx.request.tools).tools;
+		const mapped = getOpenAIMappedTools(_ctx).tools;
 		return mapped.length > 0 ? mapped : undefined;
 	}
 }
