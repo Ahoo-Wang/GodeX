@@ -3,6 +3,8 @@ import { resolveDefaultSqlitePath } from "../../config";
 import type { InitConfigYamlOptions } from "./model";
 
 export function buildConfigYaml(opts: InitConfigYamlOptions): string {
+	assertDefaultProviderRendered(opts);
+
 	const providers: Record<string, { api_key: string; base_url: string }> = {};
 	for (const provider of opts.providers) {
 		providers[provider.id] = {
@@ -29,4 +31,13 @@ export function buildConfigYaml(opts: InitConfigYamlOptions): string {
 	};
 
 	return yaml.dump(config, { lineWidth: -1, noRefs: true });
+}
+
+function assertDefaultProviderRendered(opts: InitConfigYamlOptions): void {
+	if (opts.providers.some((provider) => provider.id === opts.defaultProvider)) {
+		return;
+	}
+	throw new Error(
+		`Default provider "${opts.defaultProvider}" is not configured`,
+	);
 }

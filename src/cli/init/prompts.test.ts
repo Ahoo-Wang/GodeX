@@ -33,15 +33,78 @@ describe("promptInitConfig", () => {
 		spyOn(clack, "multiselect").mockResolvedValue(
 			(opts.selectedProviders ?? [DEEPSEEK_PROVIDER_NAME]) as never,
 		);
-		spyOn(clack, "text").mockImplementation(
+		const text = spyOn(clack, "text").mockImplementation(
 			async () => (textAnswers.shift() ?? "") as never,
 		);
-		spyOn(clack, "select").mockImplementation(
+		const select = spyOn(clack, "select").mockImplementation(
 			async () => (selectAnswers.shift() ?? "") as never,
 		);
 
-		return { cancel };
+		return { cancel, select, text };
 	}
+
+	test("returns config for one provider without prompting for default provider", async () => {
+		const { select } = stubPromptFlow({
+			selectedProviders: [DEEPSEEK_PROVIDER_NAME],
+			textAnswers: ["deepseek-key", "5678"],
+			selectAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "memory", "info"],
+		});
+
+		const config = await promptInitConfig();
+
+		expect(config).toEqual({
+			defaultProvider: DEEPSEEK_PROVIDER_NAME,
+			providers: [
+				{
+					id: DEEPSEEK_PROVIDER_NAME,
+					apiKey: "deepseek-key",
+					baseUrl: DEFAULT_DEEPSEEK_BASE_URL,
+				},
+			],
+			port: 5678,
+			sessionBackend: "memory",
+			logLevel: "info",
+		});
+		const selectMessages = select.mock.calls.map(
+			([options]) => (options as { message?: string }).message,
+		);
+		expect(selectMessages).not.toContain("Default provider:");
+	});
+
+	test("returns config for multiple providers with the selected default provider", async () => {
+		stubPromptFlow({
+			selectedProviders: [DEEPSEEK_PROVIDER_NAME, OPENAI_PROVIDER_NAME],
+			textAnswers: ["deepseek-key", "openai-key", "6789"],
+			selectAnswers: [
+				DEFAULT_DEEPSEEK_BASE_URL,
+				DEFAULT_OPENAI_BASE_URL,
+				OPENAI_PROVIDER_NAME,
+				"memory",
+				"debug",
+			],
+		});
+
+		const config = await promptInitConfig();
+
+		expect(config).toEqual({
+			defaultProvider: OPENAI_PROVIDER_NAME,
+			providers: [
+				{
+					id: DEEPSEEK_PROVIDER_NAME,
+					apiKey: "deepseek-key",
+					baseUrl: DEFAULT_DEEPSEEK_BASE_URL,
+				},
+				{
+					id: OPENAI_PROVIDER_NAME,
+					apiKey: "openai-key",
+					baseUrl: DEFAULT_OPENAI_BASE_URL,
+				},
+			],
+			port: 6789,
+			sessionBackend: "memory",
+			logLevel: "debug",
+		});
+	});
 
 	test("returns null when provider selection is cancelled", async () => {
 		const cancelToken = Symbol("cancel");

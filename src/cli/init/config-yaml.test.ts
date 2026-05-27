@@ -122,6 +122,15 @@ describe("buildConfigYaml", () => {
 		expect(config.logging.level).toBe("warn");
 	});
 
+	test("rejects a default provider that is not rendered", () => {
+		expect(() =>
+			buildConfigYaml({
+				...baseOpts,
+				defaultProvider: OPENAI_PROVIDER_NAME,
+			}),
+		).toThrow('Default provider "openai" is not configured');
+	});
+
 	test("quotes provider values so YAML syntax does not alter secrets", () => {
 		const rawYaml = buildConfigYaml({
 			...baseOpts,
