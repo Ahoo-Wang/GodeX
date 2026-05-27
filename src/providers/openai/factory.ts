@@ -5,13 +5,21 @@ import type {
 	ChatCompletionChunk,
 	ChatCompletionCreateRequest,
 } from "../../protocol/openai/completions";
-import { DEFAULT_OPENAI_BASE_URL, OpenAIProvider } from "./provider";
+import { createProviderBundle } from "../provider-bundle";
+import { createOpenAIMapper } from "./mapper";
+import { DEFAULT_OPENAI_BASE_URL, OPENAI_PROVIDER_NAME } from "./provider";
+import { OpenAIClient } from "./provider-client";
 
 export function createOpenAIProvider(
 	config: ProviderConfig,
 ): Provider<ChatCompletionCreateRequest, ChatCompletion, ChatCompletionChunk> {
-	return new OpenAIProvider(
-		config.base_url ?? DEFAULT_OPENAI_BASE_URL,
-		config.api_key,
-	);
+	const mapper = createOpenAIMapper();
+	return createProviderBundle({
+		name: OPENAI_PROVIDER_NAME,
+		mapper,
+		client: new OpenAIClient(
+			config.base_url || DEFAULT_OPENAI_BASE_URL,
+			config.api_key,
+		),
+	});
 }

@@ -2,10 +2,16 @@ import type { Provider } from "../adapter/provider";
 import type { ProviderConfig } from "../config";
 import { SERVER_PROVIDER_NOT_REGISTERED, ServerError } from "../error";
 import type { Logger } from "../logger";
+import type { ProviderDefinition } from "./definition";
 
 export type ProviderFactory = (
 	config: ProviderConfig,
 ) => Provider<unknown, unknown, unknown>;
+
+export interface ProviderRegistrationResult {
+	registered: string[];
+	unsupported: string[];
+}
 
 export class Registrar {
 	private readonly factories = new Map<string, ProviderFactory>();
@@ -16,6 +22,16 @@ export class Registrar {
 		this.factories.set(name, factory);
 	}
 
+	registerDefinition(definition: ProviderDefinition): void {
+		this.registerFactory(definition.name, definition.create);
+	}
+
+	registerDefinitions(definitions: Iterable<ProviderDefinition>): void {
+		for (const definition of definitions) {
+			this.registerDefinition(definition);
+		}
+	}
+
 	hasFactory(name: string): boolean {
 		return this.factories.has(name);
 	}
@@ -23,25 +39,36 @@ export class Registrar {
 	registerProviders(
 		providers: Record<string, ProviderConfig>,
 		logger?: Logger,
-	): void {
-		this.unsupportedProviders = [];
+	): ProviderRegistrationResult {
+		const registeredProviders = new Map<
+			string,
+			Provider<unknown, unknown, unknown>
+		>();
+		const unsupportedProviders: string[] = [];
 		for (const [name, config] of Object.entries(providers)) {
 			const factory = this.factories.get(name);
 			if (!factory) {
-				this.unsupportedProviders.push(name);
+				unsupportedProviders.push(name);
 				continue;
 			}
-			this.providers.set(name, factory(config));
+			registeredProviders.set(name, factory(config));
 		}
-		const getPayload = () => ({
+		this.providers = registeredProviders;
+		this.unsupportedProviders = unsupportedProviders;
+		const result = {
 			registered: [...this.providers.keys()],
-			skipped: this.unsupportedProviders,
+			unsupported: [...this.unsupportedProviders],
+		} satisfies ProviderRegistrationResult;
+		const getPayload = () => ({
+			registered: result.registered,
+			skipped: result.unsupported,
 		});
 		if (this.unsupportedProviders.length > 0) {
 			logger?.info("providers.built", getPayload);
-			return;
+			return result;
 		}
 		logger?.debug("providers.built", getPayload);
+		return result;
 	}
 
 	resolve(name: string): Provider<unknown, unknown, unknown> {
