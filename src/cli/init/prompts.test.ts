@@ -65,7 +65,10 @@ describe("promptInitConfig", () => {
 			sessionBackend: "memory",
 			logLevel: "info",
 		});
-		expect(select).toHaveBeenCalledTimes(3);
+		const selectMessages = select.mock.calls.map(
+			([options]) => (options as { message?: string }).message,
+		);
+		expect(selectMessages).not.toContain("Default provider:");
 	});
 
 	test("returns config for multiple providers with the selected default provider", async () => {
