@@ -184,9 +184,9 @@ describe("ProviderExchange", () => {
 
 		await new ProviderExchange().request(ctx);
 
-		expect(ctx.traceEvents.map((event) => (event as { kind: string }).kind)).toEqual(
-			["request", "event", "event"],
-		);
+		expect(
+			ctx.traceEvents.map((event) => (event as { kind: string }).kind),
+		).toEqual(["request", "event", "event"]);
 		expect(traceEventNames(ctx)).toEqual([
 			"provider.request.body",
 			"provider.response.body",
@@ -217,7 +217,9 @@ describe("ProviderExchange", () => {
 			responseMapCalls++;
 			throw new Error("response mapper must not be called");
 		};
-		let providerStream: ReadableStream<JsonServerSentEvent<unknown>> | undefined;
+		let providerStream:
+			| ReadableStream<JsonServerSentEvent<unknown>>
+			| undefined;
 		provider.client.stream = async (body) => {
 			expect(body).toBe(providerRequest);
 			providerStream = new ReadableStream({

@@ -3,12 +3,11 @@ import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../protocol/openai/responses";
-import { recordTraceUsage } from "../trace";
 import type { Adapter } from "./adapter";
-import { logDiagnostics } from "./compatibility";
 import { ProviderExchange } from "./provider-exchange";
 import { saveResponseSession } from "./response-session-persistence";
 import { wrapWithErrorHandler } from "./stream-error-handler";
+import { SyncRequestPipeline } from "./sync-request-pipeline";
 import { CompatibilityLogTransformer } from "./transformers/compatibility-log-transformer";
 import { ProviderEventToResponseTransformer } from "./transformers/provider-event-to-response-transformer";
 import { ResponseLogTransformer } from "./transformers/response-log-transformer";
@@ -21,35 +20,10 @@ import { TraceTransformer } from "./transformers/trace-transformer";
 
 export class DefaultAdapter implements Adapter {
 	private readonly exchange = new ProviderExchange();
+	private readonly syncPipeline = new SyncRequestPipeline(this.exchange);
 
 	async request(ctx: ResponsesContext): Promise<ResponseObject> {
-		const { providerResponse } = await this.exchange.request(ctx);
-		const response = await ctx.provider.mapper.response.map(ctx, providerResponse);
-		recordTraceUsage(
-			ctx,
-			response.usage,
-			(providerResponse as { usage?: unknown })?.usage,
-		);
-		ctx.logger.info("responses.request.completed", () => ({
-			status: response.status,
-			model: response.model,
-			outputCount: response.output.length,
-			durationMillis: Date.now() - ctx.createdAt * 1000,
-			usage: response.usage,
-		}));
-		logDiagnostics(ctx, {
-			durationMillis: Date.now() - ctx.createdAt * 1000,
-		});
-		try {
-			await saveResponseSession(ctx.app.sessionStore, response, ctx);
-		} catch (err) {
-			ctx.logger.warn("session.save.error", () => ({
-				request_id: ctx.requestId,
-				response_id: response.id,
-				error: String(err),
-			}));
-		}
-		return response;
+		return this.syncPipeline.request(ctx);
 	}
 
 	async stream(
@@ -84,7 +58,7 @@ export class DefaultAdapter implements Adapter {
 		const sessionStream =
 			ctx.request.store === false
 				? logStream
-					: pipeTransform(
+				: pipeTransform(
 						logStream,
 						new ResponseSessionPersistenceTransformer({
 							ctx,
