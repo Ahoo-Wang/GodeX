@@ -3,7 +3,6 @@ import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../protocol/openai/responses";
-import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import {
 	analyzePromptCache,
 	recordTraceEvent,
@@ -11,6 +10,7 @@ import {
 } from "../trace";
 import type { Adapter } from "./adapter";
 import { logDiagnostics } from "./compatibility";
+import { saveResponseSession } from "./response-session-persistence";
 import { wrapWithErrorHandler } from "./stream-error-handler";
 import { CompatibilityLogTransformer } from "./transformers/compatibility-log-transformer";
 import { ProviderEventToResponseTransformer } from "./transformers/provider-event-to-response-transformer";
@@ -54,7 +54,7 @@ export class DefaultAdapter implements Adapter {
 			durationMillis: Date.now() - ctx.createdAt * 1000,
 		});
 		try {
-			await saveSession(ctx.app.sessionStore, response, ctx);
+			await saveResponseSession(ctx.app.sessionStore, response, ctx);
 		} catch (err) {
 			ctx.logger.warn("session.save.error", () => ({
 				request_id: ctx.requestId,
@@ -112,50 +112,14 @@ export class DefaultAdapter implements Adapter {
 		const sessionStream =
 			ctx.request.store === false
 				? logStream
-				: pipeTransform(
+					: pipeTransform(
 						logStream,
 						new ResponseSessionPersistenceTransformer({
 							ctx,
-							saveSession,
+							saveSession: saveResponseSession,
 						}),
 					);
 
 		return pipeTransform(sessionStream, new CompatibilityLogTransformer(ctx));
 	}
-}
-
-async function saveSession(
-	store: ResponseSessionStore,
-	responseObject: ResponseObject,
-	ctx: ResponsesContext,
-): Promise<void> {
-	if (ctx.request.store === false) return;
-
-	const session: StoredResponseSession = {
-		id: responseObject.id,
-		previous_response_id: ctx.request.previous_response_id ?? null,
-		created_at: responseObject.created_at,
-		completed_at: responseObject.completed_at ?? null,
-		status: responseObject.status,
-		request: {
-			input: ctx.request.input,
-			instructions: ctx.request.instructions,
-			model: ctx.request.model,
-			tools: ctx.request.tools,
-			tool_choice: ctx.request.tool_choice,
-			parallel_tool_calls: ctx.request.parallel_tool_calls,
-			truncation: ctx.request.truncation,
-		},
-		response: {
-			id: responseObject.id,
-			output: responseObject.output,
-			output_text: responseObject.output_text,
-			usage: responseObject.usage,
-			error: responseObject.error,
-			incomplete_details: responseObject.incomplete_details,
-		},
-	};
-
-	await store.save(session);
-	ctx.logger.debug("session.saved", () => ({ response_id: responseObject.id }));
 }
