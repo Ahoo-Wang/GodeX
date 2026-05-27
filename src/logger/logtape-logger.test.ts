@@ -74,6 +74,24 @@ describe("wrapLogTape", () => {
 		expect(rec.level).toBe("info");
 	});
 
+	test("forwards trace debug and error levels", () => {
+		const { logger, records } = createCapturingLogger("trace");
+		logger.trace("trace.event");
+		logger.debug("debug.event");
+		logger.error("error.event");
+
+		expect(records.map((record) => record.level)).toEqual([
+			"trace",
+			"debug",
+			"error",
+		]);
+		expect(records.map((record) => String(record.message[0]))).toEqual([
+			"trace.event",
+			"debug.event",
+			"error.event",
+		]);
+	});
+
 	test("does not let attrs override the event name", () => {
 		const { logger, records } = createCapturingLogger();
 		logger.info("test.event", { event: "spoofed.event", key: "value" });

@@ -3,6 +3,14 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { expandHomeDir } from "./paths";
 
+function restoreHome(originalHome: string | undefined): void {
+	if (originalHome === undefined) {
+		delete process.env.HOME;
+		return;
+	}
+	process.env.HOME = originalHome;
+}
+
 describe("logger path helpers", () => {
 	test("expands leading ~/ with HOME", () => {
 		const originalHome = process.env.HOME;
@@ -12,7 +20,7 @@ describe("logger path helpers", () => {
 				path.join("/tmp/godex-home", "logs"),
 			);
 		} finally {
-			process.env.HOME = originalHome;
+			restoreHome(originalHome);
 		}
 	});
 
@@ -22,7 +30,7 @@ describe("logger path helpers", () => {
 		try {
 			expect(expandHomeDir("~/logs")).toBe(path.join(homedir(), "logs"));
 		} finally {
-			process.env.HOME = originalHome;
+			restoreHome(originalHome);
 		}
 	});
 
