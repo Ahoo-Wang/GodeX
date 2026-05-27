@@ -90,4 +90,24 @@ describe("parseLoggingConfig", () => {
 			}),
 		).toThrow("logging.file.filename is required when file logging is enabled");
 	});
+
+	test("trims file logging paths before storing them", () => {
+		expect(
+			parseLoggingConfig({
+				level: "info",
+				file: {
+					enabled: true,
+					dir: " /var/log/godex ",
+					filename: " godex.log ",
+				},
+			}).file,
+		).toEqual({
+			enabled: true,
+			level: undefined,
+			dir: "/var/log/godex",
+			filename: "godex.log",
+			max_size: undefined,
+			max_files: undefined,
+		});
+	});
 });

@@ -41,4 +41,10 @@ describe("parseTraceConfig", () => {
 			"trace.max_queue_size must be a positive integer",
 		);
 	});
+
+	test("trims trace path before storing it", () => {
+		expect(parseTraceConfig({ path: " ./tmp/trace.sqlite " }).path).toBe(
+			"./tmp/trace.sqlite",
+		);
+	});
 });

@@ -53,12 +53,14 @@ function parseFileLoggingConfig(
 			"logging.file.filename is required when file logging is enabled",
 		);
 	}
+	const dir = f.dir.trim();
+	const filename = f.filename.trim();
 	return {
 		enabled: true,
 		level:
 			f.level !== undefined ? validateLogLevel(f.level, "file log") : undefined,
-		dir: f.dir,
-		filename: f.filename,
+		dir,
+		filename,
 		max_size: typeof f.max_size === "number" ? f.max_size : undefined,
 		max_files: typeof f.max_files === "number" ? f.max_files : undefined,
 	};

@@ -14,7 +14,7 @@ export function parseTraceConfig(raw: unknown): TraceConfig {
 		enabled,
 		path:
 			typeof trace.path === "string" && trace.path.trim() !== ""
-				? trace.path
+				? trace.path.trim()
 				: resolveDefaultTracePath(),
 		max_queue_size:
 			trace.max_queue_size !== undefined
