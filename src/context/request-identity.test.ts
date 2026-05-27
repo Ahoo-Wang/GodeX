@@ -36,11 +36,14 @@ describe("createRequestIdentity", () => {
 	test("creates request and response IDs, timestamp, and scoped logger", () => {
 		const logger = createCapturingLogger();
 
+		const before = Math.floor(Date.now() / 1000);
 		const identity = createRequestIdentity(logger);
+		const after = Math.floor(Date.now() / 1000);
 
 		expect(identity.requestId).toMatch(/^req_/);
 		expect(identity.responseId).toMatch(/^resp_/);
-		expect(identity.createdAt).toBeGreaterThan(0);
+		expect(identity.createdAt).toBeGreaterThanOrEqual(before);
+		expect(identity.createdAt).toBeLessThanOrEqual(after);
 		expect(identity.logger).toBe(logger.childLogger as Logger);
 		expect(logger.childBindings).toEqual({
 			request_id: identity.requestId,
