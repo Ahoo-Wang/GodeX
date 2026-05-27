@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { SERVER_REQUEST_INVALID_JSON } from "../../../error";
+import {
+	SERVER_REQUEST_INVALID_JSON,
+	SERVER_REQUEST_INVALID_PARAMETER,
+} from "../../../error";
 import { parseResponseRequest } from "./request-parser";
 import {
 	type CapturedLog,
@@ -53,6 +56,26 @@ describe("parseResponseRequest", () => {
 		expect(body.error.code).toBe("server.request.invalid_parameter");
 		expect(body.error.message).toContain("previous_response_id");
 		expect(body.error.message).toContain("conversation");
+	});
+
+	test("rejects non-object JSON bodies before context creation", async () => {
+		for (const body of [null, [], "hi"]) {
+			const result = await parseResponseRequest(
+				jsonRequest(body),
+				createCapturingLogger([]),
+			);
+
+			expect(result.ok).toBe(false);
+			if (result.ok) return;
+			expect(result.response.status).toBe(400);
+			const errorBody = (await result.response.json()) as {
+				error: { code: string; message: string };
+			};
+			expect(errorBody.error.code).toBe(SERVER_REQUEST_INVALID_PARAMETER);
+			expect(errorBody.error.message).toBe(
+				"Request body must be a JSON object.",
+			);
+		}
 	});
 
 	test("returns parsed response request for valid JSON", async () => {

@@ -14,9 +14,9 @@ export async function parseResponseRequest(
 	req: Request,
 	logger: Logger,
 ): Promise<ParseResponseRequestResult> {
-	let body: ResponseCreateRequest;
+	let parsedBody: unknown;
 	try {
-		body = (await req.json()) as ResponseCreateRequest;
+		parsedBody = await req.json();
 	} catch (err) {
 		logger.debug("responses.request.invalid_json", () => ({
 			error: String(err),
@@ -31,6 +31,26 @@ export async function parseResponseRequest(
 		};
 	}
 
+	if (
+		parsedBody === null ||
+		typeof parsedBody !== "object" ||
+		Array.isArray(parsedBody)
+	) {
+		logger.debug("responses.request.invalid_body", () => ({
+			body_type: parsedBody === null ? "null" : typeof parsedBody,
+			array: Array.isArray(parsedBody),
+		}));
+		return {
+			ok: false,
+			response: jsonError(
+				400,
+				SERVER_REQUEST_INVALID_PARAMETER,
+				"Request body must be a JSON object.",
+			),
+		};
+	}
+
+	const body = parsedBody as ResponseCreateRequest;
 	if (body.previous_response_id && body.conversation) {
 		logger.debug("responses.request.parameter.conflict", () => ({
 			previous_response_id: body.previous_response_id,
