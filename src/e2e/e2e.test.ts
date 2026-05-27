@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { GodeXConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
 import { Registrar } from "../providers/registrar";
-import { ZhipuProvider } from "../providers/zhipu/provider";
+import { createZhipuProvider } from "../providers/zhipu/factory";
 import { createBuiltinRoutes, startServer } from "../server";
 import { getLoopbackPort } from "./ports";
 
@@ -214,9 +214,11 @@ beforeAll(async () => {
 	};
 
 	const registrar = new Registrar();
-	registrar.registerFactory(
-		"zhipu",
-		() => new ZhipuProvider(mockUpstreamBase, "test-key"),
+	registrar.registerFactory("zhipu", () =>
+		createZhipuProvider({
+			api_key: "test-key",
+			base_url: mockUpstreamBase,
+		}),
 	);
 
 	const app = new ApplicationContext(config, registrar);

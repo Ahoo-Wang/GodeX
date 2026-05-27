@@ -6,7 +6,7 @@ import { join } from "node:path";
 import type { GodeXConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
 import { Registrar } from "../providers/registrar";
-import { ZhipuProvider } from "../providers/zhipu/provider";
+import { createZhipuProvider } from "../providers/zhipu/factory";
 import { createBuiltinRoutes, startServer } from "../server";
 import { getLoopbackPort } from "./ports";
 
@@ -394,9 +394,11 @@ async function startGodex(
 		},
 	};
 	const registrar = new Registrar();
-	registrar.registerFactory(
-		"zhipu",
-		() => new ZhipuProvider(mockBase, "test-key"),
+	registrar.registerFactory("zhipu", () =>
+		createZhipuProvider({
+			api_key: "test-key",
+			base_url: mockBase,
+		}),
 	);
 	app = new ApplicationContext(config, registrar);
 	godexServer = startServer({

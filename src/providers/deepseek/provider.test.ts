@@ -1,22 +1,24 @@
 import { describe, expect, test } from "bun:test";
 import { createDeepSeekProvider } from "./factory";
-import {
-	DEEPSEEK_PROVIDER_NAME,
-	DEFAULT_DEEPSEEK_BASE_URL,
-	DeepSeekProvider,
-} from "./provider";
+import { DEEPSEEK_PROVIDER_NAME, DEFAULT_DEEPSEEK_BASE_URL } from "./provider";
 
-describe("DeepSeekProvider", () => {
+describe("DeepSeek provider", () => {
 	test("uses the DeepSeek provider name and default base URL constant", () => {
 		expect(DEEPSEEK_PROVIDER_NAME).toBe("deepseek");
 		expect(DEFAULT_DEEPSEEK_BASE_URL).toBe("https://api.deepseek.com");
 	});
 
-	test("composes client and mapper responsibilities", () => {
-		const provider = new DeepSeekProvider("https://example.test", "test-key");
+	test("factory composes a plain provider contract", () => {
+		const provider = createDeepSeekProvider({
+			api_key: "test-key",
+			base_url: "https://example.test",
+		});
 
 		expect(provider.name).toBe("deepseek");
+		expect(Object.getPrototypeOf(provider)).toBe(Object.prototype);
 		expect(provider.client).toBeDefined();
+		expect(provider.client.request).toBeFunction();
+		expect(provider.client.stream).toBeFunction();
 		expect(provider.mapper.request.map).toBeFunction();
 		expect(provider.mapper.response.map).toBeFunction();
 		expect(provider.mapper.stream.map).toBeFunction();

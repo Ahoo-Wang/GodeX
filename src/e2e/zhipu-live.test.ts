@@ -7,10 +7,8 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { GodeXConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
 import { Registrar } from "../providers/registrar";
-import {
-	DEFAULT_ZHIPU_BASE_URL,
-	ZhipuProvider,
-} from "../providers/zhipu/provider";
+import { createZhipuProvider } from "../providers/zhipu/factory";
+import { DEFAULT_ZHIPU_BASE_URL } from "../providers/zhipu/provider";
 import { createBuiltinRoutes, startServer } from "../server";
 import { getLoopbackPort } from "./ports";
 
@@ -62,9 +60,14 @@ beforeAll(async () => {
 
 	const config = createLiveConfig(await getLoopbackPort());
 	const registrar = new Registrar();
-	registrar.registerFactory(
-		"zhipu",
-		() => new ZhipuProvider(zhipuBaseUrl, apiKey, 120_000),
+	registrar.registerFactory("zhipu", () =>
+		createZhipuProvider(
+			{
+				api_key: apiKey,
+				base_url: zhipuBaseUrl,
+			},
+			{ timeout: 120_000 },
+		),
 	);
 
 	const app = new ApplicationContext(config, registrar);

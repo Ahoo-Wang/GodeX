@@ -1,6 +1,7 @@
 // src/providers/provider-conformance.test.ts
 import { describe, expect, test } from "bun:test";
 import type { ProviderMapper } from "../adapter/provider";
+import { BUILTIN_PROVIDER_DEFINITIONS } from "./builtin";
 import { createDeepSeekMapper } from "./deepseek/mapper/factory";
 import { createOpenAIMapper } from "./openai/mapper/factory";
 import { createZhipuMapper } from "./zhipu/mapper/factory";
@@ -61,6 +62,35 @@ describe("ProviderMapper conformance", () => {
 				const mapper = factory();
 				expect(typeof mapper.stream.map).toBe("function");
 			});
+		});
+	}
+});
+
+describe("Provider runtime conformance", () => {
+	test("built-in provider definitions have unique names", () => {
+		const names = BUILTIN_PROVIDER_DEFINITIONS.map(
+			(definition) => definition.name,
+		);
+
+		expect(new Set(names).size).toBe(names.length);
+	});
+
+	for (const definition of BUILTIN_PROVIDER_DEFINITIONS) {
+		test(`${definition.name} definition creates fresh provider contracts`, () => {
+			const config = {
+				api_key: `${definition.name}-key`,
+				base_url: `https://${definition.name}.example.test`,
+			};
+
+			const first = definition.create(config);
+			const second = definition.create(config);
+
+			expect(first.name).toBe(definition.name);
+			expect(first).not.toBe(second);
+			validateProviderMapperShape(first.mapper);
+			validateProviderMapperShape(second.mapper);
+			expect(first.client.request).toBeFunction();
+			expect(first.client.stream).toBeFunction();
 		});
 	}
 });

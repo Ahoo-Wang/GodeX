@@ -1,10 +1,8 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { GodeXConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
-import {
-	DEFAULT_DEEPSEEK_BASE_URL,
-	DeepSeekProvider,
-} from "../providers/deepseek/provider";
+import { createDeepSeekProvider } from "../providers/deepseek/factory";
+import { DEFAULT_DEEPSEEK_BASE_URL } from "../providers/deepseek/provider";
 import { Registrar } from "../providers/registrar";
 import { createBuiltinRoutes, startServer } from "../server";
 import { getLoopbackPort } from "./ports";
@@ -53,9 +51,14 @@ beforeAll(async () => {
 
 	const config = createLiveConfig(await getLoopbackPort());
 	const registrar = new Registrar();
-	registrar.registerFactory(
-		"deepseek",
-		() => new DeepSeekProvider(deepSeekBaseUrl, apiKey, 120_000),
+	registrar.registerFactory("deepseek", () =>
+		createDeepSeekProvider(
+			{
+				api_key: apiKey,
+				base_url: deepSeekBaseUrl,
+			},
+			{ timeout: 120_000 },
+		),
 	);
 
 	const app = new ApplicationContext(config, registrar);
