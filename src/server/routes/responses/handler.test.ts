@@ -74,6 +74,40 @@ describe("handleResponses", () => {
 		}
 	});
 
+	test("does not include request id header for model context failures", async () => {
+		const app = createTestApp();
+
+		const res = await handleResponses(
+			jsonRequest({
+				model: "zhipu/",
+				input: "hi",
+			}),
+			app,
+		);
+
+		expect(res.status).toBe(400);
+		expect(res.headers.get("x-request-id")).toBeNull();
+		const body = (await res.json()) as { error: { code: string } };
+		expect(body.error.code).toBe("server.request.invalid_parameter");
+	});
+
+	test("does not include request id header for session-chain context failures", async () => {
+		const app = createTestApp();
+
+		const res = await handleResponses(
+			jsonRequest({
+				...basicBody(),
+				previous_response_id: "resp_missing",
+			}),
+			app,
+		);
+
+		expect(res.status).toBe(400);
+		expect(res.headers.get("x-request-id")).toBeNull();
+		const body = (await res.json()) as { error: { code: string } };
+		expect(body.error.code).toBe("session.chain.not_found");
+	});
+
 	test("returns provider errors as HTTP status before SSE starts", async () => {
 		const logs: CapturedLog[] = [];
 		const app = createTestApp(new FakeMapper(), {
