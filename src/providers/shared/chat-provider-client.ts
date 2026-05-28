@@ -2,6 +2,8 @@ import { ExchangeError } from "@ahoo-wang/fetcher";
 import type { ProviderClient } from "../../adapter/provider";
 import {
 	PROVIDER_UPSTREAM_ERROR,
+	PROVIDER_UPSTREAM_RATE_LIMIT,
+	PROVIDER_UPSTREAM_SERVER_ERROR,
 	PROVIDER_UPSTREAM_TIMEOUT,
 	ProviderError,
 } from "../../error";
@@ -62,21 +64,45 @@ async function wrapProviderError(
 
 	if (err instanceof ExchangeError) {
 		const { exchange } = err;
+		const hasResponse = exchange.response !== undefined;
 		const status = exchange.response?.status ?? 502;
 		const body = await safeResponseJson(exchange.response);
 		const message =
 			typeof body === "object" && body !== null && "error" in body
 				? extractErrorMessage((body as { error: unknown }).error)
-				: `Upstream returned ${status}`;
-		return new ProviderError(PROVIDER_UPSTREAM_ERROR, message, {
-			provider,
-			model: "unknown",
-			upstreamStatus: status,
-			upstreamBody: body,
-		});
+				: hasResponse
+					? `Upstream returned ${status}`
+					: "Upstream request failed";
+		return new ProviderError(
+			hasResponse ? providerErrorCode(status) : PROVIDER_UPSTREAM_ERROR,
+			message,
+			{
+				provider,
+				model: "unknown",
+				upstreamStatus: status,
+				upstreamBody: body,
+			},
+		);
 	}
 
-	return err;
+	const message = err instanceof Error ? err.message : String(err);
+	return new ProviderError(
+		PROVIDER_UPSTREAM_ERROR,
+		message || "Upstream request failed",
+		{
+			provider,
+			model: "unknown",
+			upstreamStatus: 502,
+		},
+		err instanceof Error ? { cause: err } : undefined,
+	);
+}
+
+function providerErrorCode(status: number): string {
+	if (status === 408) return PROVIDER_UPSTREAM_TIMEOUT;
+	if (status === 429) return PROVIDER_UPSTREAM_RATE_LIMIT;
+	if (status >= 500) return PROVIDER_UPSTREAM_SERVER_ERROR;
+	return PROVIDER_UPSTREAM_ERROR;
 }
 
 function extractErrorMessage(error: unknown): string {
