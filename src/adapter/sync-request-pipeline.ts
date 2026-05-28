@@ -4,7 +4,7 @@ import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore } from "../session";
 import { cacheHitRatioFromResponseUsage, recordTraceUsage } from "../trace";
 import { logDiagnostics } from "./compatibility";
-import { ensureOutputFormatContractSlot } from "./mapper/chat/output-format-contract";
+import { ensureOutputContractSlot } from "./output-contract";
 import {
 	ProviderExchange,
 	type ProviderRequestExchangeResult,
@@ -45,7 +45,7 @@ export class SyncRequestPipeline {
 		});
 		validateResponseOutputContract(
 			ctx,
-			ensureOutputFormatContractSlot(ctx).current(),
+			ensureOutputContractSlot(ctx).current(),
 			response,
 		);
 		recordTraceUsage(ctx, response.usage);

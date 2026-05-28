@@ -5,7 +5,6 @@ import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../../protocol/openai";
-import { StreamResponseState } from "../mapper/chat/stream-response-state";
 import { ResponseLogTransformer } from "./response-log-transformer";
 import { pipeTransform } from "./stream-utils";
 
@@ -57,16 +56,6 @@ function terminalEvent(
 				input_tokens_details: { cached_tokens: 2 },
 			},
 		} as ResponseObject,
-	};
-}
-
-function toolCallMapper(call: { id: string; name: string; arguments: string }) {
-	return {
-		type: "function_call" as const,
-		id: call.id,
-		call_id: call.id,
-		name: call.name,
-		arguments: call.arguments,
 	};
 }
 
@@ -187,50 +176,6 @@ describe("ResponseLogTransformer", () => {
 		expect(output).toEqual(events);
 	});
 
-	test("logs via onFlush when stream ends without terminal event but state is terminal", async () => {
-		const infos: Array<{ event: string; attr?: Record<string, unknown> }> = [];
-		const logger: Logger = {
-			level: "info",
-			child: () => logger,
-			trace: () => {},
-			debug: () => {},
-			info: (event, attr) => {
-				infos.push({
-					event,
-					attr: typeof attr === "function" ? attr() : attr,
-				});
-			},
-			warn: () => {},
-			error: () => {},
-		};
-		const ctx = createTestContext(logger);
-		const state = StreamResponseState.create(ctx, {
-			toolCallOutputItemMapper: toolCallMapper,
-		});
-		state.start();
-		state.onFinish({ status: "completed" });
-
-		const stream = new ReadableStream<ResponseStreamEvent>({
-			start(controller) {
-				controller.enqueue({
-					type: "response.output_text.delta",
-					delta: "x",
-				} as ResponseStreamEvent);
-				controller.close();
-			},
-		});
-
-		await drain(pipeTransform(stream, new ResponseLogTransformer(ctx)));
-
-		expect(infos).toHaveLength(1);
-		expect(infos[0]?.event).toBe("responses.stream.completed");
-		expect(infos[0]?.attr).toMatchObject({
-			status: "completed",
-			outputCount: 0,
-			streamEventCount: 1,
-		});
-	});
-
 	test("records terminal usage exactly once", async () => {
 		const records: unknown[] = [];
 		const logger: Logger = {
@@ -266,7 +211,7 @@ describe("ResponseLogTransformer", () => {
 		]);
 	});
 
-	test("does not log when stream ends without terminal event and phase is not terminal", async () => {
+	test("does not log when stream ends without terminal event", async () => {
 		const infos: Array<{ event: string; attr?: Record<string, unknown> }> = [];
 		const logger: Logger = {
 			level: "info",
@@ -283,9 +228,6 @@ describe("ResponseLogTransformer", () => {
 			error: () => {},
 		};
 		const ctx = createTestContext(logger);
-		StreamResponseState.create(ctx, {
-			toolCallOutputItemMapper: toolCallMapper,
-		}).start();
 
 		const stream = new ReadableStream<ResponseStreamEvent>({
 			start(controller) {

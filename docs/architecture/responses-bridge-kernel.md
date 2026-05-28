@@ -11,27 +11,27 @@ flowchart TB
   Context --> Resolver["ModelResolver"]
   Context --> Session["ResponseSessionStore\nprevious_response_id chains"]
   Context --> Registrar["Registrar\nprovider factory resolution"]
-  Registrar --> Provider["Bridge Provider\nmapper + client"]
+  Registrar --> Provider["ProviderEdge\nProviderSpec + request/stream"]
 
   Provider --> Adapter["DefaultAdapter"]
   Adapter --> RequestPipeline["SyncRequestPipeline"]
   Adapter --> StreamPipeline["StreamPipeline"]
 
-  RequestPipeline --> RequestMapper["ChatRequestMapper"]
-  StreamPipeline --> RequestMapper
+  RequestPipeline --> Exchange["ProviderExchange\nbuild + trace + call"]
+  StreamPipeline --> Exchange
 
-  RequestMapper --> Compatibility["bridge/compatibility\nCompatibilityPlan"]
-  RequestMapper --> ToolPlan["bridge/tools\nBridgeToolPlan"]
-  RequestMapper --> OutputContract["bridge/output\nOutputFormatContract"]
-  RequestMapper --> ProviderRender["Provider mapper modules\nmessages, tools, options"]
-  ProviderRender --> ClientHttp["ChatProviderClient"]
+  Exchange --> RequestBuilder["bridge/request\nbuildChatCompletionRequest"]
+  RequestBuilder --> Compatibility["bridge/compatibility\nCompatibilityPlan"]
+  RequestBuilder --> ToolPlan["bridge/tools\nToolPlan + identities"]
+  RequestBuilder --> OutputContract["bridge/output\nOutputContractPlan"]
+  RequestBuilder --> ClientHttp["ChatProviderClient"]
   ClientHttp --> Upstream["Chat Completions upstream\nZhipu, DeepSeek, custom"]
 
-  Upstream --> ResponseMapper["ChatResponseMapper"]
-  Upstream --> StreamMapper["ChatStreamMapper"]
+  Upstream --> ResponseRecon["bridge/response\nreconstructResponseObject"]
+  Upstream --> StreamDeltas["ProviderSpec.stream.deltas"]
 
-  ResponseMapper --> OutputValidation["bridge/output validator"]
-  StreamMapper --> StreamState["StreamResponseState"]
+  ResponseRecon --> OutputValidation["bridge/output validator"]
+  StreamDeltas --> StreamState["bridge/stream\nResponseStreamStateMachine"]
   StreamState --> StreamValidation["ResponseOutputContractValidationTransformer"]
 
   OutputValidation --> Response["ResponseObject JSON"]
@@ -48,16 +48,16 @@ Tool support is intentionally planned before provider rendering.
 sequenceDiagram
   participant Req as Responses request
   participant Caps as ProviderCapabilities
-  participant Planner as planBridgeTools
-  participant Mapper as Provider tools mapper
+  participant Planner as planTools
+  participant Renderer as renderProviderToolDeclarations
   participant Upstream as Chat Completions upstream
   participant Restorer as Tool call restorer
 
   Req->>Planner: tools + tool_choice
   Caps->>Planner: native, degraded, supported tool_choice
-  Planner-->>Mapper: supported/degraded entries
+  Planner-->>Renderer: supported/degraded entries
   Planner-->>Req: diagnostics for ignored/degraded/rejected decisions
-  Mapper->>Upstream: provider-specific tool declarations
+  Renderer->>Upstream: provider-compatible tool declarations
   Upstream-->>Restorer: provider tool calls
   Restorer-->>Req: Responses tool call items with original identities
 ```
@@ -67,7 +67,7 @@ Rules:
 - `tool_choice: "none"` disables declarations.
 - Explicit `tool_choice` for a tool that cannot be declared is rejected.
 - Built-in Codex tools, custom tools, `tool_search`, and namespace tools may downgrade to function tools when the provider supports that loss.
-- Provider modules render already-planned decisions; they should not silently re-decide compatibility.
+- Provider hooks expose protocol differences; shared support/degrade/reject policy stays in `bridge/tools`.
 
 ## Output Format Contract
 
@@ -76,7 +76,7 @@ Rules:
 ```mermaid
 flowchart LR
   Request["text.format json_schema strict=true"] --> Plan["CompatibilityPlan\njson_schema -> json_object"]
-  Plan --> Contract["OutputFormatContract\nrequiresValidJson=true"]
+  Plan --> Contract["OutputContractPlan\nrequiresValidJson=true"]
   Contract --> Sync["Sync response validation"]
   Contract --> Stream["Stream terminal validation"]
   Sync -->|invalid JSON| SyncError["AdapterError\nadapter.response.invalid_output_format"]
@@ -89,18 +89,18 @@ The validator checks JSON syntax, not full JSON Schema conformance. The schema i
 
 A new provider should add only provider-specific rendering and transport:
 
-- `provider.ts`, `provider-client.ts`, `factory.ts`, `index.ts`
+- `spec.ts`, `client.ts`, `hooks.ts`, `index.ts`
 - `protocol/` types if the upstream is not OpenAI Chat Completions compatible
-- `mapper/capabilities.ts`
-- `mapper/compatibility.ts` using `planBridgeCompatibility`
-- `mapper/tools.ts` using `planBridgeTools`
-- `mapper/messages.ts`, `request-options.ts`, `response-output.ts`, `usage.ts`, `finish-reason.ts`, `stream-delta.ts`, `tool-calls.ts`
+- `ProviderSpec.capabilities` for supported/degraded parameters, tools, tool_choice, response formats, reasoning, and streaming usage
+- response accessors for first choice, finish reason, output text, and usage
+- stream delta extractor that emits bridge `ProviderStreamDelta` values
+- optional request/response/chunk hooks for real provider quirks
 
 Shared policy belongs in `src/bridge/`. Shared protocol plumbing belongs in `src/providers/shared/`. Provider folders should not duplicate compatibility policy between providers.
 
 ## Verification Surface
 
 - Unit tests protect bridge single-responsibility modules: compatibility planning, tool planning, and output validation.
-- Provider conformance tests prove every built-in provider mapper still satisfies the structural contract.
+- Provider conformance tests prove every built-in provider exposes a valid `ProviderSpec` and `ProviderEdge`.
 - Mocked E2E tests prove the real route, context, resolver, session, adapter, provider client, stream pipeline, diagnostics, and mock upstream work together.
 - Live provider tests remain opt-in through environment gates.

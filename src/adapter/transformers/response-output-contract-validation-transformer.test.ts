@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { planOutputContract } from "../../bridge/output";
 import type { ResponsesContext } from "../../context/responses-context";
 import { ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT } from "../../error";
 import type {
@@ -6,11 +7,7 @@ import type {
 	ResponseStreamEvent,
 } from "../../protocol/openai/responses";
 import type { CompatibilityDiagnostic } from "../compatibility";
-import type { CompatibilityPlan } from "../mapper/chat/compatibility-plan";
-import {
-	ensureOutputFormatContractSlot,
-	OutputFormatContract,
-} from "../mapper/chat/output-format-contract";
+import { ensureOutputContractSlot } from "../output-contract";
 import { ResponseOutputContractValidationTransformer } from "./response-output-contract-validation-transformer";
 import { pipeTransform } from "./stream-utils";
 
@@ -19,7 +16,7 @@ const degradedJsonSchemaPlan = {
 		action: "degraded",
 		effectiveValue: { type: "json_object" },
 	},
-} as CompatibilityPlan;
+} as const;
 
 async function drain<T>(stream: ReadableStream<T>): Promise<T[]> {
 	const reader = stream.getReader();
@@ -48,16 +45,16 @@ function createContext(): ResponsesContext & {
 	} as unknown as ResponsesContext & {
 		diagnostics: CompatibilityDiagnostic[];
 	};
-	ensureOutputFormatContractSlot(ctx).set(
-		OutputFormatContract.fromRequestFormat(
-			{
+	ensureOutputContractSlot(ctx).set(
+		planOutputContract({
+			format: {
 				type: "json_schema",
 				name: "payload",
 				schema: { type: "object" },
 				strict: true,
 			},
-			degradedJsonSchemaPlan,
-		),
+			responseFormatDecision: degradedJsonSchemaPlan.responseFormat,
+		}),
 	);
 	return ctx;
 }

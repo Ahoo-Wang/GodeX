@@ -15,13 +15,20 @@ export function buildToolCatalog(
 		}
 		return tool.tools.map((nested) => ({
 			type: nested.type,
-			name: `${tool.name}__${nested.name}`,
+			name: flattenToolName({ namespace: tool.name, name: nested.name }),
 			tool: {
 				...nested,
-				name: `${tool.name}__${nested.name}`,
+				name: flattenToolName({ namespace: tool.name, name: nested.name }),
 			} as ResponseTool,
 		}));
 	});
+}
+
+export function flattenToolName(tool: {
+	readonly namespace?: string;
+	readonly name: string;
+}): string {
+	return tool.namespace ? `${tool.namespace}__${tool.name}` : tool.name;
 }
 
 function toolName(tool: ResponseTool, index: number): string {

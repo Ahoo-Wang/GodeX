@@ -1,3 +1,8 @@
+import {
+	type ProviderStreamError,
+	ResponseStreamPhase,
+	type ResponseStreamStateMachine,
+} from "../bridge/stream";
 import type { ResponsesContext } from "../context/responses-context";
 import {
 	ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
@@ -8,7 +13,6 @@ import {
 } from "../error/codes";
 import { GodeXError } from "../error/godex-error";
 import type { ResponseStreamEvent } from "../protocol/openai/responses";
-import { StreamResponseState } from "./mapper/chat/stream-response-state";
 
 const KNOWN_STREAM_CODES = new Set([
 	ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
@@ -28,6 +32,7 @@ const KNOWN_STREAM_CODES = new Set([
  */
 export function wrapWithErrorHandler(
 	stream: ReadableStream<ResponseStreamEvent>,
+	machine: ResponseStreamStateMachine,
 	ctx: ResponsesContext,
 ): ReadableStream<ResponseStreamEvent> {
 	return new ReadableStream<ResponseStreamEvent>({
@@ -41,13 +46,9 @@ export function wrapWithErrorHandler(
 				}
 				controller.close();
 			} catch (err) {
-				const state = StreamResponseState.get(ctx);
-				if (state) {
+				if (machine.phase === ResponseStreamPhase.IN_PROGRESS) {
 					try {
-						for (const e of state.onError({
-							code: "server_error",
-							message: String(err),
-						})) {
+						for (const e of machine.fail(providerStreamError(err))) {
 							controller.enqueue(e);
 						}
 					} catch (e) {
@@ -67,4 +68,11 @@ export function wrapWithErrorHandler(
 			}
 		},
 	});
+}
+
+function providerStreamError(err: unknown): ProviderStreamError {
+	return {
+		code: "server_error",
+		message: String(err),
+	};
 }

@@ -17,10 +17,7 @@ import {
 	type TestChatResponse,
 } from "../testing/provider-edge";
 import type { CompatibilityDiagnostic } from "./compatibility";
-import {
-	ensureOutputFormatContractSlot,
-	OutputFormatContract,
-} from "./mapper/chat/output-format-contract";
+import { ensureOutputContractSlot } from "./output-contract";
 import type { ProviderRequestExchangeResult } from "./provider-exchange";
 import { SyncRequestPipeline } from "./sync-request-pipeline";
 
@@ -104,9 +101,7 @@ function createExchangeResult(
 	providerResponse: TestChatResponse = completedTextResponse(),
 ): ProviderRequestExchangeResult {
 	const built = buildRequest(ctx);
-	ensureOutputFormatContractSlot(ctx).set(
-		new OutputFormatContract(built.output),
-	);
+	ensureOutputContractSlot(ctx).set(built.output);
 	return { providerResponse, built };
 }
 

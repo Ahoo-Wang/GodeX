@@ -1,5 +1,5 @@
-import { flattenToolName } from "../../adapter/mapper/chat/tool-index";
 import { isRecord } from "../../adapter/utils";
+import { flattenToolName } from "../../bridge/tools";
 import {
 	ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 	ADAPTER_REQUEST_UNSUPPORTED_INPUT_ITEM,

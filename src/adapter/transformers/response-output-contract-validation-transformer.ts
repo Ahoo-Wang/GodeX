@@ -4,7 +4,7 @@ import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../../protocol/openai/responses";
-import { ensureOutputFormatContractSlot } from "../mapper/chat/output-format-contract";
+import { ensureOutputContractSlot } from "../output-contract";
 import {
 	invalidOutputFormatMessage,
 	validateResponseOutputContract,
@@ -36,7 +36,7 @@ export class ResponseOutputContractValidationTransformer extends SafeTransformer
 		try {
 			validateResponseOutputContract(
 				this.ctx,
-				ensureOutputFormatContractSlot(this.ctx).current(),
+				ensureOutputContractSlot(this.ctx).current(),
 				response,
 			);
 			this.enqueue(controller, chunk);

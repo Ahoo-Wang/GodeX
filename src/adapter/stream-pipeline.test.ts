@@ -1,16 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
+import { planOutputContract } from "../bridge/output";
 import type { ProviderEdge } from "../bridge/provider-spec";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import { createTestProviderEdge } from "../testing/provider-edge";
 import type { CompatibilityDiagnostic } from "./compatibility";
-import type { CompatibilityPlan } from "./mapper/chat/compatibility-plan";
-import {
-	ensureOutputFormatContractSlot,
-	OutputFormatContract,
-} from "./mapper/chat/output-format-contract";
+import { ensureOutputContractSlot } from "./output-contract";
 import type { ProviderStreamExchangeResult } from "./provider-exchange";
 import { StreamPipeline } from "./stream-pipeline";
 import { ATTR_UPSTREAM_LATENCY_MILLIS } from "./transformers/stream-utils";
@@ -40,19 +37,19 @@ const degradedJsonSchemaPlan = {
 		action: "degraded",
 		effectiveValue: { type: "json_object" },
 	},
-} as CompatibilityPlan;
+} as const;
 
 function requireStrictJsonOutput(ctx: ResponsesContext): void {
-	ensureOutputFormatContractSlot(ctx).set(
-		OutputFormatContract.fromRequestFormat(
-			{
+	ensureOutputContractSlot(ctx).set(
+		planOutputContract({
+			format: {
 				type: "json_schema",
 				name: "payload",
 				schema: { type: "object" },
 				strict: true,
 			},
-			degradedJsonSchemaPlan,
-		),
+			responseFormatDecision: degradedJsonSchemaPlan.responseFormat,
+		}),
 	);
 }
 

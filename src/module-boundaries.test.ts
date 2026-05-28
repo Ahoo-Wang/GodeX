@@ -145,6 +145,16 @@ describe("src module boundaries", () => {
 		expect(offenders).toEqual([]);
 	});
 
+	test("legacy adapter mapper and provider wrapper modules stay removed", () => {
+		const forbidden = [
+			"adapter/mapper",
+			"adapter/provider.ts",
+			"adapter/transformers/provider-event-to-response-transformer.ts",
+		].filter((path) => existsSync(join(SRC_ROOT, path)));
+
+		expect(forbidden).toEqual([]);
+	});
+
 	test("the root src/index.ts stays an executable entrypoint", () => {
 		expect(basename(ROOT_INDEX)).toBe("index.ts");
 		expect(existsSync(ROOT_INDEX)).toBe(true);

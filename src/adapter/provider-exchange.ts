@@ -6,10 +6,7 @@ import {
 import type { ToolPlanningProfile } from "../bridge/tools";
 import type { ResponsesContext } from "../context/responses-context";
 import { recordTraceEvent, recordTraceRequest } from "../trace";
-import {
-	ensureOutputFormatContractSlot,
-	OutputFormatContract,
-} from "./mapper/chat/output-format-contract";
+import { ensureOutputContractSlot } from "./output-contract";
 
 export interface ProviderRequestExchangeResult<ProviderResponse = unknown> {
 	providerResponse: ProviderResponse;
@@ -84,9 +81,7 @@ function buildProviderRequest(
 	for (const diagnostic of built.compatibility.diagnostics) {
 		ctx.addDiagnostic(diagnostic);
 	}
-	ensureOutputFormatContractSlot(ctx).set(
-		new OutputFormatContract(built.output),
-	);
+	ensureOutputContractSlot(ctx).set(built.output);
 	return built;
 }
 

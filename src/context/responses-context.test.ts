@@ -81,12 +81,9 @@ describe("ResponsesContext", () => {
 		expect(ctx.attributes.get("traceId")).toBe("trace_123");
 	});
 
-	test("starts with empty request-scoped mapping contracts", () => {
+	test("starts with an empty request-scoped output contract", () => {
 		const ctx = createContext();
 
-		expect(ctx.toolIndex.current()).toBeUndefined();
-		expect(
-			ctx.outputFormatContract.current().syntheticInstruction(),
-		).toBeUndefined();
+		expect(ctx.outputContract.current().syntheticInstruction).toBeUndefined();
 	});
 });

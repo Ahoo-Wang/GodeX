@@ -1,9 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { type OutputContractPlan, planOutputContract } from "../bridge/output";
 import type { ResponsesContext } from "../context/responses-context";
 import { ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT, GodeXError } from "../error";
 import type { ResponseObject } from "../protocol/openai/responses";
-import type { CompatibilityPlan } from "./mapper/chat/compatibility-plan";
-import { OutputFormatContract } from "./mapper/chat/output-format-contract";
 import { validateResponseOutputContract } from "./response-output-contract-validation";
 
 const degradedJsonSchemaPlan = {
@@ -11,7 +10,7 @@ const degradedJsonSchemaPlan = {
 		action: "degraded",
 		effectiveValue: { type: "json_object" },
 	},
-} as CompatibilityPlan;
+} as const;
 
 function response(outputText: string): ResponseObject {
 	return {
@@ -33,16 +32,20 @@ function response(outputText: string): ResponseObject {
 	};
 }
 
-function strictDegradedContract(): OutputFormatContract {
-	return OutputFormatContract.fromRequestFormat(
-		{
+function degradedContract(strict: boolean): OutputContractPlan {
+	return planOutputContract({
+		format: {
 			type: "json_schema",
 			name: "payload",
 			schema: { type: "object" },
-			strict: true,
+			strict,
 		},
-		degradedJsonSchemaPlan,
-	);
+		responseFormatDecision: degradedJsonSchemaPlan.responseFormat,
+	});
+}
+
+function strictDegradedContract(): OutputContractPlan {
+	return degradedContract(true);
 }
 
 const ctx = {
@@ -53,7 +56,7 @@ describe("validateResponseOutputContract", () => {
 	test("rejects invalid JSON when strict json_schema was degraded to json_object", () => {
 		const contract = strictDegradedContract();
 
-		expect(contract.requiresValidJson()).toBe(true);
+		expect(contract.requiresValidJson).toBe(true);
 		expect(() =>
 			validateResponseOutputContract(ctx, contract, response("not json")),
 		).toThrow(GodeXError);
@@ -79,17 +82,9 @@ describe("validateResponseOutputContract", () => {
 	});
 
 	test("does not validate non-strict degraded json_schema output", () => {
-		const contract = OutputFormatContract.fromRequestFormat(
-			{
-				type: "json_schema",
-				name: "payload",
-				schema: { type: "object" },
-				strict: false,
-			},
-			degradedJsonSchemaPlan,
-		);
+		const contract = degradedContract(false);
 
-		expect(contract.requiresValidJson()).toBe(false);
+		expect(contract.requiresValidJson).toBe(false);
 		expect(() =>
 			validateResponseOutputContract(ctx, contract, response("not json")),
 		).not.toThrow();

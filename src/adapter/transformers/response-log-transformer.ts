@@ -6,10 +6,6 @@ import type {
 } from "../../protocol/openai/responses";
 import { cacheHitRatioFromResponseUsage, recordTraceUsage } from "../../trace";
 import {
-	StreamResponsePhase,
-	StreamResponseState,
-} from "../mapper/chat/stream-response-state";
-import {
 	ATTR_UPSTREAM_LATENCY_MILLIS,
 	responseFromTerminalEvent,
 } from "./stream-utils";
@@ -33,35 +29,6 @@ export class ResponseLogTransformer extends SafeTransformer<
 		this.eventCount++;
 		this.enqueue(controller, chunk);
 		this.logCompletion(chunk);
-	}
-
-	protected override async onFlush(): Promise<void> {
-		if (this.logged) return;
-		const state = StreamResponseState.get(this.ctx);
-
-		if (!state) return;
-		if (
-			state.phase !== StreamResponsePhase.COMPLETED &&
-			state.phase !== StreamResponsePhase.INCOMPLETE &&
-			state.phase !== StreamResponsePhase.FAILED
-		) {
-			return;
-		}
-		this.recordUsage(state.snapshot);
-		const outputCount = state.snapshot.output.length;
-		this.ctx.logger.info("responses.stream.completed", () => ({
-			status: state.snapshot.status,
-			model: this.ctx.resolved.model,
-			outputCount,
-			durationMillis: Date.now() - this.ctx.createdAt * 1000,
-			usage: state.snapshot.usage,
-			cacheHitRatio: cacheHitRatioFromResponseUsage(state.snapshot.usage),
-			upstreamLatencyMillis: this.ctx.attributes.get(
-				ATTR_UPSTREAM_LATENCY_MILLIS,
-			),
-			streamEventCount: this.eventCount,
-		}));
-		this.logged = true;
 	}
 
 	private logCompletion(chunk: ResponseStreamEvent): void {

@@ -1,8 +1,8 @@
+import type { OutputContractPlan } from "../bridge/output";
 import { validateResponseOutputContract as validateBridgeResponseOutputContract } from "../bridge/output/validator";
 import type { ResponsesContext } from "../context/responses-context";
 import { ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT, AdapterError } from "../error";
 import type { ResponseObject } from "../protocol/openai/responses";
-import type { OutputFormatContract } from "./mapper/chat/output-format-contract";
 
 export function invalidOutputFormatMessage(err: unknown): string {
 	if (err instanceof AdapterError) {
@@ -13,12 +13,12 @@ export function invalidOutputFormatMessage(err: unknown): string {
 
 export function validateResponseOutputContract(
 	ctx: ResponsesContext,
-	contract: OutputFormatContract,
+	contract: OutputContractPlan,
 	response: ResponseObject,
 ): void {
 	try {
 		validateBridgeResponseOutputContract({
-			requiresValidJson: contract.requiresValidJson(),
+			requiresValidJson: contract.requiresValidJson,
 			response,
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,

@@ -44,12 +44,14 @@ export class StreamPipeline {
 			new TraceTransformer("upstream.stream.event.raw", ctx),
 		);
 
-		const eventStream = pipeTransform(
-			traceRawStream,
-			new ProviderEventToResponseTransformer(ctx),
-		);
+		const eventTransformer = new ProviderEventToResponseTransformer(ctx);
+		const eventStream = pipeTransform(traceRawStream, eventTransformer);
 
-		const errorSafeStream = wrapWithErrorHandler(eventStream, ctx);
+		const errorSafeStream = wrapWithErrorHandler(
+			eventStream,
+			eventTransformer.machine,
+			ctx,
+		);
 
 		const validatedStream = pipeTransform(
 			errorSafeStream,
@@ -84,7 +86,7 @@ export class StreamPipeline {
 class ProviderEventToResponseTransformer
 	implements Transformer<JsonServerSentEvent<unknown>, ResponseStreamEvent>
 {
-	private readonly machine: ResponseStreamStateMachine;
+	readonly machine: ResponseStreamStateMachine;
 
 	constructor(private readonly ctx: ResponsesContext) {
 		this.machine = new ResponseStreamStateMachine({

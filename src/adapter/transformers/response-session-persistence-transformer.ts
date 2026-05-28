@@ -5,10 +5,6 @@ import type {
 	ResponseStreamEvent,
 } from "../../protocol/openai/responses";
 import type { ResponseSessionStore } from "../../session";
-import {
-	StreamResponsePhase,
-	StreamResponseState,
-} from "../mapper/chat/stream-response-state";
 import { responseFromTerminalEvent } from "./stream-utils";
 
 export interface ResponseSessionPersistenceTransformerOptions {
@@ -24,7 +20,6 @@ export class ResponseSessionPersistenceTransformer extends SafeTransformer<
 	ResponseStreamEvent,
 	ResponseStreamEvent
 > {
-	private completedResponse?: ResponseObject;
 	private persistenceAttempted = false;
 
 	constructor(
@@ -38,28 +33,10 @@ export class ResponseSessionPersistenceTransformer extends SafeTransformer<
 		controller: TransformStreamDefaultController<ResponseStreamEvent>,
 	): Promise<void> {
 		const terminalResponse = responseFromTerminalEvent(chunk);
-		if (terminalResponse) {
-			this.completedResponse = terminalResponse;
-		}
 		this.enqueue(controller, chunk);
 		if (terminalResponse) {
 			await this.persist(terminalResponse);
 		}
-	}
-
-	protected override async onFlush(): Promise<void> {
-		if (this.completedResponse) return;
-
-		const state = StreamResponseState.get(this.options.ctx);
-		if (!state) return;
-		if (
-			state.phase !== StreamResponsePhase.COMPLETED &&
-			state.phase !== StreamResponsePhase.INCOMPLETE &&
-			state.phase !== StreamResponsePhase.FAILED
-		) {
-			return;
-		}
-		await this.persist(state.snapshot);
 	}
 
 	private async persist(responseObject: ResponseObject): Promise<void> {

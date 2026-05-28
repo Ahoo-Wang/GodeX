@@ -43,18 +43,14 @@ src/
 ├── bridge/           Provider-agnostic Responses→Chat bridge planning
 │   ├── compatibility/  CompatibilityPlan diagnostics and response-format planning
 │   ├── tools/          Tool/tool_choice support, downgrade, and rejection planning
-│   └── output/         Output-format contract and strict JSON validation
+│   ├── output/         Output-format contract and strict JSON validation
+│   ├── request/        Responses/session input → Chat Completions request
+│   ├── response/       Chat Completions response → ResponseObject
+│   └── stream/         Provider delta → Responses SSE state machine
 ├── adapter/          Adapter interface, DefaultAdapter, stream transformers
-│   ├── mapper/       Stable public mapper contracts (RequestMapper, ResponseMapper, StreamMapper)
-│   │   └── chat/     Shared chat mapper infrastructure
-│   │       ├── contract.ts       Sub-responsibility interfaces (ChatRequestFactory, ChatMessageMapper, etc.)
-│   │       ├── compatibility-plan.ts  ProviderCapabilities, CompatibilityDecision, CompatibilityPlan
-│   │       ├── request-mapper.ts      ChatRequestMapper composition class
-│   │       ├── response-mapper.ts     ChatResponseMapper composition class
-│   │       ├── response-object-builder.ts  Shared ResponseObject envelope builder
-│   │       ├── stream-mapper.ts       ChatStreamMapper composition class
-│   │       ├── stream-response-state.ts   Stream SSE lifecycle state machine
-│   │       └── stream-response-*.ts   Stream output/tool-call/message helpers
+│   ├── provider-exchange.ts  Builds provider requests and calls ProviderEdge
+│   ├── sync-request-pipeline.ts  Sync orchestration, validation, session save
+│   ├── stream-pipeline.ts  Stream orchestration and state machine wiring
 │   └── transformers/ ProviderEvent→Response→SSE encode pipeline
 ├── providers/        Provider registry + factories
 │   ├── registrar.ts  Registrar (factory registration + provider resolution)
@@ -64,10 +60,8 @@ src/
 │   │   ├── chat-api.ts               Fetcher-based ChatApi factory
 │   │   ├── response-message-payloads.ts  Input item → message conversion, shared responseItemToMessage
 │   │   └── stream-result-extractor.ts    SSE JSON parsing
-│   ├── deepseek/     DeepSeek Chat Completions bridge provider
-│   └── zhipu/        Zhipu provider
-│       ├── protocol/    Zhipu-specific Chat Completions types
-│       └── mapper/      Zhipu-specific mapper modules (capabilities, compatibility, messages, tools, etc.)
+│   ├── deepseek/     ProviderSpec + client + hooks + protocol types
+│   └── zhipu/        ProviderSpec + client + hooks + protocol types
 ├── resolver/         ModelResolver (model selector → provider + model)
 ├── server/           Bun HTTP server, routes (/v1/responses, /health, /v1/models)
 ├── session/          ResponseSessionStore (Memory + SQLite), chain resolution
@@ -92,46 +86,33 @@ src/
 
 GodeX translates OpenAI Responses API requests into upstream Chat Completions API calls. If an upstream already supports the Responses API natively, it should not be configured as a GodeX provider.
 
-Request flow: CLI → ApplicationContext → Bun HTTP server → POST /v1/responses → ResponsesContext.create() → ModelResolver → Session chain → Registrar → DefaultAdapter → ProviderMapper → ChatClient → Upstream
+Request flow: CLI → ApplicationContext → Bun HTTP server → POST /v1/responses → ResponsesContext.create() → ModelResolver → Session chain → Registrar → DefaultAdapter → ProviderExchange → ProviderEdge → Upstream
 
 ### Key Abstractions
 
-- **`Provider`** (`src/adapter/provider.ts`): Bundles a `ProviderMapper` (request/response/stream mapping), a `ProviderClient` (HTTP calls).
-- **`ProviderMapper`** (`src/adapter/mapper/contract.ts`): Three stable public contracts — `RequestMapper`, `ResponseMapper`, `StreamMapper`. Internally composed from sub-responsibility interfaces.
-- **`ChatClient`** / **`ProviderClient`** (`src/adapter/provider.ts`): Generic interface for `request()` and `stream()` — the HTTP boundary to upstream providers.
-- **`Adapter`** (`src/adapter/adapter.ts`): Orchestrates mapper + client calls, session persistence, and stream pipeline assembly.
+- **`ProviderSpec`** (`src/bridge/provider-spec/contract.ts`): Declarative provider capability, endpoint, tool-name codec, response accessor, stream delta accessor, and optional hooks.
+- **`ProviderEdge`** (`src/bridge/provider-spec/contract.ts`): Runtime edge with `request()` and `stream()` for one provider.
+- **`ChatProviderClient`** (`src/providers/shared/chat-provider-client.ts`): Fetcher-based HTTP boundary to upstream Chat Completions APIs.
+- **`Adapter`** (`src/adapter/adapter.ts`): Orchestrates sync/stream pipelines, session persistence, and stream transforms.
 - **`ModelResolver`** (`src/resolver/index.ts`): Parses `model` selectors (`"provider/model"` or bare `"model"` using default_provider) and applies per-provider model name mappings.
 - **`Registrar`** (`src/providers/registrar.ts`): Registry of `ProviderFactory` functions. Built once, resolves provider instances for each request.
 - **`ResponsesContext`** (`src/context/responses-context.ts`): Per-request context carrying the parsed body, resolved model, selected provider, session snapshot, and a scoped logger.
 - **`bridge/*`** (`src/bridge/`): Provider-agnostic planning kernel for compatibility diagnostics, tool/tool_choice downgrade decisions, and output-format validation.
 
-### Mapper Composition Architecture
+### Bridge Kernel Architecture
 
-The `ProviderMapper` is assembled from focused sub-responsibility interfaces defined in `src/adapter/mapper/chat/contract.ts`:
+The adapter no longer exposes mapper wrapper contracts. Shared behavior is centralized in focused bridge modules:
 
-**Request side:**
-- `CompatibilityNegotiator` — centralized compatibility decision per request, normally backed by `planBridgeCompatibility()`, produces a `CompatibilityPlan`
-- `ChatRequestFactory` — creates the minimum valid upstream request skeleton (model + empty containers)
-- `ChatMessageMapper` — converts Responses input items + instructions into upstream messages
-- `ChatToolMapper` / `ChatToolChoiceMapper` — renders tool declarations and tool_choice after `planBridgeTools()` has decided support, downgrade, or rejection
-- `ChatRequestOptionsMapper` — applies optional parameters (temperature, top_p, reasoning, response_format, etc.)
-
-**Response side:**
-- `ChatResponseAccessor` — extracts the first choice and finish reason from an upstream response
-- `ChatResponseOutputMapper` — builds output items from the upstream response
-- `ChatUsageMapper` — maps upstream usage to Responses `ResponseUsage`
-- `ChatFinishReasonMapper` — maps upstream finish reasons to Responses status/error/incomplete_details
-- `ChatToolCallMapper` / `ChatToolCallIdentityResolver` — maps tool calls back to Responses items with namespace restoration
-
-**Stream side:**
-- `ChatStreamDeltaMapper` — extracts choice, text, reasoning, refusal, tool calls, and usage from SSE chunks
-- `StreamResponseState` — provider-agnostic SSE lifecycle state machine (IDLE → IN_PROGRESS → COMPLETED/INCOMPLETE/FAILED)
-
-These are composed by `ChatRequestMapper`, `ChatResponseMapper`, and `ChatStreamMapper` in `src/adapter/mapper/chat/`.
+- `bridge/compatibility` plans supported, degraded, ignored, or rejected request capabilities.
+- `bridge/tools` plans tool declarations, `tool_choice`, degradation, identity mapping, and call restoration.
+- `bridge/output` owns output-format contracts, including strict downgraded JSON validation.
+- `bridge/request` assembles Chat Completions requests from current input plus GodeX-owned session history.
+- `bridge/response` reconstructs sync `ResponseObject` results from provider accessors.
+- `bridge/stream` owns the Responses SSE lifecycle state machine.
 
 ### Compatibility Negotiation
 
-Each provider declares a `ProviderCapabilities` (supported parameters, tools, tool choices, response formats, reasoning mode, streaming features). The bridge layer turns those capabilities into a `CompatibilityPlan`, `BridgeToolPlan`, output-format contract, and diagnostics. Provider mappers should render already-planned decisions rather than re-deciding support locally.
+Each provider declares a `ProviderCapabilities` (supported parameters, tools, tool choices, response formats, reasoning mode, streaming features). The bridge layer turns those capabilities into a `CompatibilityPlan`, `ToolPlan`, output-format contract, and diagnostics. Provider hooks/accessors expose raw protocol differences; they should not silently re-decide shared compatibility policy.
 
 ### Provider Implementation Pattern
 
@@ -139,33 +120,21 @@ Each provider follows this structure under `src/providers/<name>/`:
 
 ```
 provider/
-├── provider.ts         # Provider class (assembles mapper + client)
-├── provider-client.ts  # ChatProviderClient subclass (base URL, auth)
-├── factory.ts          # createXxxProvider(config) factory
+├── spec.ts             # ProviderSpec: capabilities, endpoint, accessors, hooks
+├── client.ts           # createXxxProviderEdge(config) using ChatProviderClient
+├── hooks.ts            # Provider-specific accessors, usage, stream deltas, patches
 ├── index.ts            # Barrel re-export
-├── protocol/           # Provider-specific type definitions (Zhipu only)
-└── mapper/
-    ├── index.ts        # createXxxMapper() + barrel exports
-    ├── capabilities.ts # ProviderCapabilities declaration
-    ├── compatibility.ts# CompatibilityNegotiator implementation
-    ├── messages.ts     # ChatMessageMapper implementation
-    ├── tools.ts        # ChatToolMapper + ChatToolChoiceMapper implementations
-    ├── request-options.ts  # ChatRequestFactory + ChatRequestOptionsMapper
-    ├── response-output.ts  # ChatResponseAccessor + ChatResponseOutputMapper
-    ├── usage.ts        # ChatUsageMapper
-    ├── finish-reason.ts# ChatFinishReasonMapper
-    ├── stream-delta.ts # ChatStreamDeltaMapper
-    └── tool-calls.ts   # ChatToolCallMapper + ChatToolCallIdentityResolver
+└── protocol/           # Provider-specific Chat Completions types when needed
 ```
 
 ### Stream Pipeline
 
 Streams use `TransformStream` via `pipeTransform()` (`src/adapter/transformers/stream-utils.ts`):
 
-1. **`ProviderEventToResponseTransformer`** — per-event translation via StreamMapper.map()
+1. **Provider event translation in `StreamPipeline`** — provider SSE data → bridge stream deltas → Responses SSE state machine
 2. **`ResponseOutputContractValidationTransformer`** — validates terminal output contracts and rewrites invalid strict downgraded JSON to `response.failed`
 3. **`ResponseLogTransformer`** — records usage and completion diagnostics
-4. **`ResponseSessionPersistenceTransformer`** — intercepts terminal events, builds final ResponseObject from accumulated StreamState, saves session
+4. **`ResponseSessionPersistenceTransformer`** — intercepts terminal events and saves session
 5. **`CompatibilityLogTransformer`** — emits compatibility diagnostics once per stream
 6. **`ResponseSseEncodeTransformer`** — serializes ResponseStreamEvent to SSE byte stream
 
@@ -193,7 +162,7 @@ Sessions track `previous_response_id` chains for multi-turn conversations. Chain
 
 Tests use Bun's built-in test runner. E2E tests in `src/e2e/` mock upstream via Fetcher's decorator-based HTTP client pattern. Live Zhipu tests require `ZHIPU_API_KEY` and are gated behind `ZHIPU_LIVE_TESTS=1`. CI only runs live Zhipu tests on push to main (not PRs).
 
-Provider conformance tests in `src/providers/provider-conformance.test.ts` validate that every provider mapper satisfies the structural contract (fresh instances, all mappers present and callable).
+Provider conformance tests in `src/providers/provider-conformance.test.ts` validate that every built-in provider exposes a valid `ProviderSpec` and `ProviderEdge`.
 
 ## Git Workflow
 
@@ -209,11 +178,11 @@ Provider conformance tests in `src/providers/provider-conformance.test.ts` valid
 - Follow the existing error hierarchy pattern — use domain error codes from `src/error/codes.ts`
 - Write tests for new functionality
 - Use the `@ahoo-wang/fetcher` ecosystem for HTTP clients
-- Implement mapper sub-responsibility interfaces when adding provider-specific logic
+- Keep shared Responses→Chat policy in `src/bridge/`
 
 ⚠️ Ask first:
 - Adding new provider implementations
-- Modifying the Adapter, Provider, or stable mapper contract interfaces
+- Modifying the Adapter, `ProviderSpec`, or `ProviderEdge` contracts
 - Changing the config schema
 - Modifying stream pipeline transformers
 
@@ -221,5 +190,5 @@ Provider conformance tests in `src/providers/provider-conformance.test.ts` valid
 - Bypass the GodeXError hierarchy with raw `Error` throws in adapter/provider code
 - Use Node.js-specific APIs when Bun equivalents exist
 - Add external test frameworks (use Bun's built-in test runner)
-- Import from `providers/*/` inside `adapter/mapper/chat/` (strict layer boundary)
+- Recreate `src/adapter/mapper/` or `src/adapter/provider.ts`
 - Duplicate bridge decisions between providers without extracting to `src/bridge/`
