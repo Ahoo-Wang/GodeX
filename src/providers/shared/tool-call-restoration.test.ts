@@ -8,6 +8,12 @@ import {
 const encodeName = (name: string) => name.replaceAll(".", "_");
 
 const tools: ResponseTool[] = [
+	{
+		type: "function",
+		name: "weather.now",
+		parameters: { type: "object" },
+		strict: true,
+	},
 	{ type: "local_shell" },
 	{ type: "shell" },
 	{ type: "apply_patch" },
@@ -17,7 +23,10 @@ const tools: ResponseTool[] = [
 		type: "namespace",
 		name: "workspace",
 		description: "Workspace tools",
-		tools: [{ type: "function", name: "list-files" }],
+		tools: [
+			{ type: "function", name: "list-files" },
+			{ type: "custom", name: "raw" },
+		],
 	},
 ];
 
@@ -77,6 +86,13 @@ describe("tool call restoration", () => {
 	});
 
 	test("restores tool_search, custom tools, and namespace function calls", () => {
+		expect(restore("weather_now", '{"city":"Beijing"}')).toEqual({
+			type: "function_call",
+			call_id: "call_weather_now",
+			name: "weather.now",
+			arguments: '{"city":"Beijing"}',
+		});
+
 		expect(restore("tool_search", '{"query":"provider"}')).toEqual({
 			type: "tool_search_call",
 			call_id: "call_tool_search",
@@ -98,6 +114,14 @@ describe("tool call restoration", () => {
 			namespace: "workspace",
 			name: "list-files",
 			arguments: "{}",
+		});
+
+		expect(restore("workspace__raw", '{"input":"select 1"}')).toEqual({
+			type: "custom_tool_call",
+			call_id: "call_workspace__raw",
+			namespace: "workspace",
+			name: "raw",
+			input: "select 1",
 		});
 	});
 

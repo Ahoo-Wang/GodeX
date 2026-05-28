@@ -233,6 +233,11 @@ function toolCallMessage(
 function customToolCallMessage(
 	item: CustomToolCall,
 ): ChatCompletionAssistantMessageParam {
+	if (item.namespace) {
+		return toolCallMessage(item.call_id, `${item.namespace}__${item.name}`, {
+			input: item.input,
+		});
+	}
 	return {
 		role: "assistant",
 		content: "",

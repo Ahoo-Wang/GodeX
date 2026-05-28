@@ -77,7 +77,7 @@ function mapTool(
 			return {
 				type: "function",
 				function: {
-					name: tool.name,
+					name: toZhipuFunctionName(tool.name),
 					parameters: { type: "object" as const, ...tool.parameters },
 					description: tool.description ?? "",
 				},

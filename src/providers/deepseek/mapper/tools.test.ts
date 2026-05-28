@@ -250,10 +250,38 @@ describe("DeepSeek tools", () => {
 		});
 	});
 
-	test("degrades unsupported non-thinking tool choices to auto", () => {
+	test("degrades custom tool choice to named function choice", () => {
 		const c = ctx({
 			tool_choice: { type: "custom", name: "read.file" },
 			tools: [{ type: "custom", name: "read.file" }],
+		});
+
+		const result = mapRequest(c);
+
+		expect(result.tool_choice).toEqual({
+			type: "function",
+			function: { name: "read_file" },
+		});
+		expect(c.diagnostics).toContainEqual(
+			expect.objectContaining({
+				code: "adapter.param.unsupported",
+				path: "tool_choice",
+				action: "degraded",
+			}),
+		);
+	});
+
+	test("degrades unsupported non-thinking tool choices to auto", () => {
+		const c = ctx({
+			tool_choice: { type: "mcp", server_label: "remote", name: "lookup" },
+			tools: [
+				{
+					type: "function",
+					name: "get_weather",
+					parameters: { type: "object" },
+					strict: true,
+				},
+			],
 		});
 
 		const result = mapRequest(c);

@@ -113,10 +113,15 @@ describe("mapOpenAITools", () => {
 				type: "function",
 				function: {
 					name: "mcp__demo____raw",
-					description: "Raw input",
+					description: expect.stringContaining("Input format: text."),
 					parameters: {
 						type: "object",
-						properties: { input: { type: "string" } },
+						properties: {
+							input: {
+								type: "string",
+								description: expect.stringContaining("Input format: text."),
+							},
+						},
 						required: ["input"],
 					},
 				},
@@ -219,6 +224,17 @@ describe("mapOpenAIToolChoice", () => {
 		expect(result).toEqual({
 			type: "custom",
 			custom: { name: "read-file" },
+		});
+	});
+
+	test("maps downgraded built-in tool choices to named function choices", () => {
+		expect(mapOpenAIToolChoice({ type: "shell" })).toEqual({
+			type: "function",
+			function: { name: "shell" },
+		});
+		expect(mapOpenAIToolChoice({ type: "apply_patch" })).toEqual({
+			type: "function",
+			function: { name: "apply_patch" },
 		});
 	});
 

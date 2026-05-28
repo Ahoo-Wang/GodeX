@@ -4,11 +4,11 @@ import { AdapterError } from "../../../error";
 import { mapZhipuToolChoice, mapZhipuTools } from "./tools";
 
 describe("mapZhipuTools", () => {
-	test("maps function tool (internal → external tagging)", () => {
+	test("maps function tool names to provider-compatible names", () => {
 		const result = mapZhipuTools([
 			{
 				type: "function",
-				name: "get_weather",
+				name: "weather.now",
 				parameters: {
 					type: "object",
 					properties: { city: { type: "string" } },
@@ -23,7 +23,7 @@ describe("mapZhipuTools", () => {
 			{
 				type: "function",
 				function: {
-					name: "get_weather",
+					name: "weather_now",
 					parameters: {
 						type: "object",
 						properties: { city: { type: "string" } },

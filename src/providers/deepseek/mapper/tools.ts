@@ -254,6 +254,18 @@ export function mapDeepSeekToolChoice(
 			function: { name: toDeepSeekFunctionName(choice.name) },
 		};
 	}
+	if (typeof choice === "object" && choice.type === "custom") {
+		return {
+			type: "function",
+			function: { name: toDeepSeekFunctionName(choice.name) },
+		};
+	}
+	if (typeof choice === "object" && choice.type === "shell") {
+		return { type: "function", function: { name: "shell" } };
+	}
+	if (typeof choice === "object" && choice.type === "apply_patch") {
+		return { type: "function", function: { name: "apply_patch" } };
+	}
 	return "auto";
 }
 
@@ -333,7 +345,7 @@ export class DeepSeekToolChoiceMapper
 				path: "tool_choice",
 				action: "degraded",
 				message:
-					"DeepSeek Chat Completions does not support this Responses tool_choice; downgraded to auto.",
+					"DeepSeek Chat Completions does not support this Responses tool_choice directly; downgraded to a provider-compatible tool_choice.",
 				metadata: {
 					parameter: "tool_choice",
 					value: requestedToolChoice,

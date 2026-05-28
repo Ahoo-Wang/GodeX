@@ -5,6 +5,7 @@ import {
 	downgradedResponseToolCallPayload,
 	downgradedResponseToolOutputPayload,
 	extractResponseText,
+	responseFunctionCallPayload,
 	responseFunctionOutputPayload,
 } from "./response-message-payloads";
 
@@ -34,6 +35,38 @@ describe("response message payload helpers", () => {
 				timeout_ms: 0,
 				max_output_length: 0,
 			},
+		});
+	});
+
+	test("flattens namespace function call names for provider history replay", () => {
+		const payload = responseFunctionCallPayload({
+			type: "function_call",
+			call_id: "call_list",
+			namespace: "workspace",
+			name: "list-files",
+			arguments: "{}",
+		});
+
+		expect(payload).toEqual({
+			callId: "call_list",
+			name: "workspace__list-files",
+			argumentsValue: "{}",
+		});
+	});
+
+	test("flattens namespace custom tool call names for downgraded history replay", () => {
+		const payload = downgradedResponseToolCallPayload({
+			type: "custom_tool_call",
+			call_id: "call_raw",
+			namespace: "workspace",
+			name: "raw",
+			input: "select 1",
+		} as ResponseItem);
+
+		expect(payload).toEqual({
+			callId: "call_raw",
+			name: "workspace__raw",
+			argumentsValue: { input: "select 1" },
 		});
 	});
 

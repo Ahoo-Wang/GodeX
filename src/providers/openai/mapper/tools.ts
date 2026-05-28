@@ -20,6 +20,10 @@ import type {
 } from "../../../protocol/openai/responses";
 import type { SearchContextSize } from "../../../protocol/openai/shared";
 import { getBuiltinFunctionToolDefinition } from "../../../tools";
+import {
+	degradedCustomToolDescription,
+	degradedCustomToolParameters,
+} from "../../shared/custom-tool-degradation";
 
 export interface OpenAIMappedTools {
 	tools: ChatCompletionTool[];
@@ -98,6 +102,7 @@ export function mapOpenAITools(
 			continue;
 		}
 		const degradedTarget = options.degradedToolTypes?.get(type);
+		const reportedDegradation = degradedTarget !== undefined;
 		if (degradedTarget) options.onDegraded?.(type, degradedTarget);
 		switch (type) {
 			case "function": {
@@ -139,13 +144,13 @@ export function mapOpenAITools(
 			case "web_search":
 			case "web_search_2025_08_26": {
 				webSearchOptions = mapWebSearchOptionsFromTool(tool);
-				options.onDegraded?.(type);
+				if (!reportedDegradation) options.onDegraded?.(type);
 				break;
 			}
 			case "web_search_preview":
 			case "web_search_preview_2025_03_11": {
 				webSearchOptions = mapWebSearchOptionsFromTool(tool);
-				options.onDegraded?.(type);
+				if (!reportedDegradation) options.onDegraded?.(type);
 				break;
 			}
 			case "local_shell":
@@ -190,18 +195,18 @@ export function mapOpenAITools(
 							},
 						});
 					} else if (nestedTool.type === "custom") {
+						const fallbackDescription =
+							nestedTool.description ??
+							`${tool.description} (${nestedTool.name})`;
 						mappedTools.push({
 							type: "function",
 							function: {
 								name: `${tool.name}__${nestedTool.name}`,
-								description:
-									nestedTool.description ??
-									`${tool.description} (${nestedTool.name})`,
-								parameters: {
-									type: "object",
-									properties: { input: { type: "string" } },
-									required: ["input"],
-								},
+								description: degradedCustomToolDescription(
+									nestedTool,
+									fallbackDescription,
+								),
+								parameters: degradedCustomToolParameters(nestedTool),
 							},
 						});
 					}
@@ -300,6 +305,18 @@ export function mapOpenAIToolChoice(
 				custom: { name: choice.name },
 			} satisfies ChatCompletionNamedToolChoiceCustom;
 		}
+		if (choice.type === "shell") {
+			return {
+				type: "function",
+				function: { name: "shell" },
+			} satisfies ChatCompletionNamedToolChoice;
+		}
+		if (choice.type === "apply_patch") {
+			return {
+				type: "function",
+				function: { name: "apply_patch" },
+			} satisfies ChatCompletionNamedToolChoice;
+		}
 		if (
 			choice.type === "allowed_tools" &&
 			"mode" in choice &&
@@ -366,7 +383,7 @@ export class OpenAIToolChoiceMapper
 				path: "tool_choice",
 				action: "degraded",
 				message:
-					"OpenAI Chat Completions does not support this Responses tool_choice shape; downgraded to auto.",
+					"OpenAI Chat Completions does not support this Responses tool_choice shape directly; downgraded to a provider-compatible tool_choice.",
 				metadata: {
 					parameter: "tool_choice",
 					value: ctx.request.tool_choice,

@@ -35,6 +35,10 @@ export const OPENAI_CAPABILITIES: ProviderCapabilities = {
 			"namespace",
 		]),
 		degraded: new Map([
+			["web_search", "web_search_options"],
+			["web_search_2025_08_26", "web_search_options"],
+			["web_search_preview", "web_search_options"],
+			["web_search_preview_2025_03_11", "web_search_options"],
 			["local_shell", "function"],
 			["shell", "function"],
 			["apply_patch", "function"],

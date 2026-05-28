@@ -144,6 +144,38 @@ describe("buildOpenAIMessages", () => {
 		});
 	});
 
+	test("maps namespaced custom tool call history to flattened function tool call", () => {
+		const messages = buildOpenAIMessages(
+			req({
+				input: [
+					{
+						type: "custom_tool_call",
+						call_id: "call_custom",
+						namespace: "workspace",
+						name: "raw",
+						input: "select 1",
+					},
+				],
+			}),
+			null,
+		);
+
+		expect(messages[0]).toEqual({
+			role: "assistant",
+			content: "",
+			tool_calls: [
+				{
+					type: "function",
+					id: "call_custom",
+					function: {
+						name: "workspace__raw",
+						arguments: '{"input":"select 1"}',
+					},
+				},
+			],
+		});
+	});
+
 	test("maps multimodal user content (input_text + input_image) to content parts", () => {
 		const messages = buildOpenAIMessages(
 			req({
