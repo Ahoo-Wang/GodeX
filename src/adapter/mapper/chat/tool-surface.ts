@@ -454,11 +454,13 @@ function optionalNumber(value: unknown): number | undefined {
 
 function isApplyPatchOperation(value: unknown): value is ApplyPatchOperation {
 	if (!isRecord(value) || typeof value.type !== "string") return false;
+	if (typeof value.path !== "string") return false;
 	switch (value.type) {
-		case "add_file":
-		case "delete_file":
 		case "update_file":
-			return typeof value.path === "string";
+		case "create_file":
+			return typeof value.diff === "string";
+		case "delete_file":
+			return true;
 		default:
 			return false;
 	}

@@ -93,4 +93,76 @@ describe("ProviderToolSurface", () => {
 			name: "raw",
 		});
 	});
+
+	test("restores apply_patch calls using the protocol operation shapes", () => {
+		const surface = new ProviderToolSurface({
+			declarations: [],
+			identityCatalog: ToolIdentityCatalog.fromTools([{ type: "apply_patch" }]),
+		});
+		const route = surface.resolveProviderCall("apply_patch");
+
+		expect(
+			route?.restore(
+				"call_create",
+				JSON.stringify({
+					operation: {
+						type: "create_file",
+						path: "README.md",
+						diff: "@@\n+hello\n",
+					},
+				}),
+			),
+		).toEqual({
+			type: "apply_patch_call",
+			call_id: "call_create",
+			operation: {
+				type: "create_file",
+				path: "README.md",
+				diff: "@@\n+hello\n",
+			},
+			status: "in_progress",
+		});
+		expect(
+			route?.restore(
+				"call_delete",
+				JSON.stringify({
+					operation: { type: "delete_file", path: "tmp.txt" },
+				}),
+			),
+		).toEqual({
+			type: "apply_patch_call",
+			call_id: "call_delete",
+			operation: { type: "delete_file", path: "tmp.txt" },
+			status: "in_progress",
+		});
+	});
+
+	test("rejects apply_patch operations that do not match the protocol", () => {
+		const surface = new ProviderToolSurface({
+			declarations: [],
+			identityCatalog: ToolIdentityCatalog.fromTools([{ type: "apply_patch" }]),
+		});
+		const route = surface.resolveProviderCall("apply_patch");
+
+		expect(
+			route?.restore(
+				"call_legacy",
+				JSON.stringify({
+					operation: {
+						type: "add_file",
+						path: "README.md",
+						diff: "@@\n+hello\n",
+					},
+				}),
+			),
+		).toBeNull();
+		expect(
+			route?.restore(
+				"call_missing_diff",
+				JSON.stringify({
+					operation: { type: "update_file", path: "README.md" },
+				}),
+			),
+		).toBeNull();
+	});
 });
