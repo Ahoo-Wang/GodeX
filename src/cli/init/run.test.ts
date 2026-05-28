@@ -15,11 +15,11 @@ import { buildConfig } from "../../config";
 import {
 	DEEPSEEK_PROVIDER_NAME,
 	DEFAULT_DEEPSEEK_BASE_URL,
-} from "../../providers/deepseek/provider";
+} from "../../providers/deepseek";
 import {
-	DEFAULT_OPENAI_BASE_URL,
-	OPENAI_PROVIDER_NAME,
-} from "../../providers/openai/provider";
+	ZHIPU_CODING_PLAN_BASE_URL,
+	ZHIPU_PROVIDER_NAME,
+} from "../../providers/zhipu";
 import { runInit } from "./run";
 
 afterEach(() => {
@@ -32,11 +32,11 @@ describe("runInit", () => {
 		const configPath = join(dir, "godex.yaml");
 		writeFileSync(configPath, "old config", { mode: 0o666 });
 		chmodSync(configPath, 0o666);
-		const textAnswers = ["deepseek-key", "openai-key", "6789"];
+		const textAnswers = ["deepseek-key", "zhipu-key", "6789"];
 		const selectAnswers = [
 			DEFAULT_DEEPSEEK_BASE_URL,
-			DEFAULT_OPENAI_BASE_URL,
-			OPENAI_PROVIDER_NAME,
+			ZHIPU_CODING_PLAN_BASE_URL,
+			ZHIPU_PROVIDER_NAME,
 			"memory",
 			"debug",
 		];
@@ -48,7 +48,7 @@ describe("runInit", () => {
 		);
 		spyOn(clack, "multiselect").mockResolvedValue([
 			DEEPSEEK_PROVIDER_NAME,
-			OPENAI_PROVIDER_NAME,
+			ZHIPU_PROVIDER_NAME,
 		]);
 		spyOn(clack, "text").mockImplementation(
 			async () => textAnswers.shift() ?? "",
@@ -65,12 +65,12 @@ describe("runInit", () => {
 				{},
 			);
 			expect(config.server.port).toBe(6789);
-			expect(config.default_provider).toBe(OPENAI_PROVIDER_NAME);
-			expect(config.providers[DEEPSEEK_PROVIDER_NAME]?.api_key).toBe(
-				"deepseek-key",
-			);
-			expect(config.providers[OPENAI_PROVIDER_NAME]?.api_key).toBe(
-				"openai-key",
+			expect(config.default_provider).toBe(ZHIPU_PROVIDER_NAME);
+			expect(
+				config.providers[DEEPSEEK_PROVIDER_NAME]?.credentials.api_key,
+			).toBe("deepseek-key");
+			expect(config.providers[ZHIPU_PROVIDER_NAME]?.credentials.api_key).toBe(
+				"zhipu-key",
 			);
 			expect(config.session.backend).toBe("memory");
 			expect(config.logging.level).toBe("debug");

@@ -14,12 +14,12 @@ describe("formatStartupBanner", () => {
 				backend: "sqlite",
 				sqlite: { path: "./data/sessions.db" },
 			},
-			providers: ["deepseek", "openai"],
+			providers: ["deepseek", "zhipu"],
 		});
 
 		expect(banner).toContain(`${GODEX_BRAND_NAME} v0.0.0-test`);
 		expect(banner).toContain("address:   http://127.0.0.1:13145");
-		expect(banner).toContain("providers: deepseek, openai");
+		expect(banner).toContain("providers: deepseek, zhipu");
 		expect(banner).toContain("session:   sqlite (./data/sessions.db)");
 	});
 });

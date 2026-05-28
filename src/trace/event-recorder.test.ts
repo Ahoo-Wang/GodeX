@@ -7,14 +7,14 @@ describe("recordTraceEvent", () => {
 		const ctx = {
 			requestId: "req_1",
 			responseId: "resp_1",
-			resolved: { provider: "openai", model: "gpt-test" },
+			resolved: { provider: "zhipu", model: "glm-test" },
 			app: {
 				traceEnabled: false,
 				traceRecorder: { record: (event: unknown) => events.push(event) },
 			},
 		};
 
-		recordTraceEvent(ctx, "provider.request.body", { model: "gpt-test" });
+		recordTraceEvent(ctx, "provider.request.body", { model: "glm-test" });
 
 		expect(events).toEqual([]);
 	});
@@ -24,7 +24,7 @@ describe("recordTraceEvent", () => {
 		const ctx = {
 			requestId: "req_1",
 			responseId: "resp_1",
-			resolved: { provider: "openai", model: "gpt-test" },
+			resolved: { provider: "zhipu", model: "glm-test" },
 			app: {
 				traceEnabled: true,
 				traceRecorder: { record: (event: unknown) => events.push(event) },
@@ -38,8 +38,8 @@ describe("recordTraceEvent", () => {
 				kind: "event",
 				request_id: "req_1",
 				response_id: "resp_1",
-				provider: "openai",
-				model: "gpt-test",
+				provider: "zhipu",
+				model: "glm-test",
 				event_name: "upstream.stream.event.raw",
 				sequence: 7,
 				payload: { payload: { chunk: true } },

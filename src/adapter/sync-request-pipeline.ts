@@ -1,13 +1,17 @@
+import { reconstructResponseObject } from "../bridge/response";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore } from "../session";
 import { cacheHitRatioFromResponseUsage, recordTraceUsage } from "../trace";
 import { logDiagnostics } from "./compatibility";
+import { ensureOutputFormatContractSlot } from "./mapper/chat/output-format-contract";
 import {
 	ProviderExchange,
 	type ProviderRequestExchangeResult,
 } from "./provider-exchange";
+import { validateResponseOutputContract } from "./response-output-contract-validation";
 import { saveResponseSession } from "./response-session-persistence";
+import { responseRequestEchoFields } from "./response-utils";
 
 export interface SyncProviderExchange {
 	request(ctx: ResponsesContext): Promise<ProviderRequestExchangeResult>;
@@ -26,10 +30,23 @@ export class SyncRequestPipeline {
 	) {}
 
 	async request(ctx: ResponsesContext): Promise<ResponseObject> {
-		const { providerResponse } = await this.exchange.request(ctx);
-		const response = await ctx.provider.mapper.response.map(
-			ctx,
+		const { providerResponse, built } = await this.exchange.request(ctx);
+		const response = reconstructResponseObject({
+			requestId: ctx.requestId,
+			responseId: ctx.responseId,
+			createdAt: ctx.createdAt,
+			provider: ctx.provider.name,
+			model: ctx.resolved.model,
 			providerResponse,
+			accessor: ctx.provider.spec.response,
+			toolIdentity: built.tools,
+			outputContract: built.output,
+			echo: responseRequestEchoFields(ctx),
+		});
+		validateResponseOutputContract(
+			ctx,
+			ensureOutputFormatContractSlot(ctx).current(),
+			response,
 		);
 		recordTraceUsage(ctx, response.usage);
 		ctx.logger.info("responses.request.completed", () => ({

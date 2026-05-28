@@ -1,57 +1,26 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
+import type { ProviderEdge } from "../bridge/provider-spec";
 import type { ResponsesContext } from "../context/responses-context";
 import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
+import {
+	completedTextResponse,
+	createTestProviderEdge,
+} from "../testing/provider-edge";
 import { DefaultAdapter } from "./default-adapter";
-import type { Provider } from "./provider";
-
-function createResponseObject(id = "resp_123"): ResponseObject {
-	return {
-		id,
-		object: "response",
-		status: "completed",
-		model: "test",
-		created_at: 1,
-		completed_at: 2,
-		output: [],
-		output_text: "",
-		usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 },
-	};
-}
 
 function createMockProvider(
-	responseObject: ResponseObject,
-	streamEvents: ResponseStreamEvent[] = [],
-	providerStreamEvents: JsonServerSentEvent<unknown>[] = [],
-): Provider<unknown, unknown, unknown> {
-	return {
+	text = "",
+	streamEvents: Array<{ event: string; data: unknown }> = [],
+): ProviderEdge<unknown, unknown, unknown> {
+	return createTestProviderEdge({
 		name: "mock",
-		mapper: {
-			request: { map: () => ({ model: "test" }) },
-			response: {
-				map: () => responseObject,
-			},
-			stream: {
-				map: () => streamEvents,
-			},
-		},
-		client: {
-			request: async () => responseObject,
-			stream: async () =>
-				new ReadableStream({
-					start(controller) {
-						for (const event of providerStreamEvents) {
-							controller.enqueue(event);
-						}
-						controller.close();
-					},
-				}),
-		},
-	};
+		response: completedTextResponse(text),
+		streamEvents,
+	});
 }
 
 function createMockSessionStore(): ResponseSessionStore & {
@@ -75,7 +44,7 @@ function createMockSessionStore(): ResponseSessionStore & {
 }
 
 function createMockCtx(
-	provider: Provider<unknown, unknown, unknown>,
+	provider: ProviderEdge<unknown, unknown, unknown>,
 	sessionStore: ResponseSessionStore,
 ): ResponsesContext {
 	return {
@@ -120,38 +89,46 @@ async function readStream<T>(stream: ReadableStream<T>): Promise<T[]> {
 
 describe("DefaultAdapter", () => {
 	test("default construction wires a working sync pipeline", async () => {
-		const responseObject = createResponseObject("resp_sync");
-		const provider = createMockProvider(responseObject);
+		const provider = createMockProvider("sync text");
 		const sessionStore = createMockSessionStore();
 		const ctx = createMockCtx(provider, sessionStore);
 
 		const result = await new DefaultAdapter().request(ctx);
 
-		expect(result).toBe(responseObject);
-		expect(sessionStore.saved[0]?.id).toBe("resp_sync");
+		expect(result).toMatchObject({
+			id: "resp_123",
+			status: "completed",
+			output_text: "sync text",
+		});
+		expect(sessionStore.saved[0]?.id).toBe("resp_123");
 	});
 
 	test("default construction wires a working stream pipeline", async () => {
-		const responseObject = createResponseObject("resp_stream");
-		const provider = createMockProvider(
-			responseObject,
-			[{ type: "response.completed", response: responseObject }],
-			[{ event: "chunk", data: {} }],
-		);
+		const provider = createMockProvider("", [
+			{ event: "chunk", data: { text: "stream text", finishReason: "stop" } },
+		]);
 		const sessionStore = createMockSessionStore();
 		const ctx = createMockCtx(provider, sessionStore);
 
 		const events = await readStream(await new DefaultAdapter().stream(ctx));
 
-		expect(events).toEqual([
-			{ type: "response.completed", response: responseObject },
-		]);
-		expect(sessionStore.saved[0]?.id).toBe("resp_stream");
+		expect(events.at(-1)).toMatchObject({
+			type: "response.completed",
+			response: { id: "resp_123", output_text: "stream text" },
+		});
+		expect(sessionStore.saved[0]?.id).toBe("resp_123");
 	});
 
 	test("delegates request and stream to injected pipelines", async () => {
 		const ctx = {} as ResponsesContext;
-		const responseObject = createResponseObject("resp_injected");
+		const responseObject = {
+			id: "resp_injected",
+			object: "response",
+			status: "completed",
+			model: "test",
+			created_at: 1,
+			output: [],
+		} as ResponseObject;
 		const stream = new ReadableStream<ResponseStreamEvent>();
 		const calls: Array<{ pipeline: string; ctx: ResponsesContext }> = [];
 		const adapter = new DefaultAdapter(

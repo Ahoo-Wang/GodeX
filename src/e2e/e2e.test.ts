@@ -8,9 +8,18 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { GodeXConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
+import type {
+	ResponseCreateRequest,
+	ResponseStreamEvent,
+} from "../protocol/openai/responses";
 import { Registrar } from "../providers/registrar";
-import { createZhipuProvider } from "../providers/zhipu/factory";
+import { createZhipuProvider } from "../providers/zhipu";
 import { createBuiltinRoutes, startServer } from "../server";
+import {
+	collectGodexStreamEvents,
+	type GodeXClient,
+	godexClient,
+} from "./godex-client";
 import { getLoopbackPort } from "./ports";
 
 // ---------------------------------------------------------------------------
@@ -20,6 +29,7 @@ import { getLoopbackPort } from "./ports";
 let mockServer: ReturnType<typeof Bun.serve> | null = null;
 let godexServer: ReturnType<typeof Bun.serve> | null = null;
 let godexBase = "";
+let client: GodeXClient;
 let mockUpstreamBase = "";
 const upstreamRequests: Record<string, unknown>[] = [];
 
@@ -192,12 +202,14 @@ beforeAll(async () => {
 		models: { aliases: { "gpt-5": "zhipu/glm-5.1" } },
 		providers: {
 			zhipu: {
-				api_key: "test-key",
-				base_url: mockUpstreamBase,
+				spec: "builtin:zhipu",
+				credentials: { api_key: "test-key" },
+				endpoint: { base_url: mockUpstreamBase },
 			},
 			unregistered: {
-				api_key: "test-key",
-				base_url: "http://127.0.0.1:1",
+				spec: "builtin:unregistered",
+				credentials: { api_key: "test-key" },
+				endpoint: { base_url: "http://127.0.0.1:1" },
 			},
 		},
 		session: { backend: "memory" },
@@ -216,8 +228,9 @@ beforeAll(async () => {
 	const registrar = new Registrar();
 	registrar.registerFactory("zhipu", () =>
 		createZhipuProvider({
-			api_key: "test-key",
-			base_url: mockUpstreamBase,
+			spec: "builtin:zhipu",
+			credentials: { api_key: "test-key" },
+			endpoint: { base_url: mockUpstreamBase },
 		}),
 	);
 
@@ -230,6 +243,7 @@ beforeAll(async () => {
 		routes: createBuiltinRoutes(app),
 	});
 	godexBase = `http://127.0.0.1:${godexServer.port}`;
+	client = godexClient({ baseURL: godexBase, apiKey: "test-key" });
 });
 
 afterAll(() => {
@@ -242,11 +256,16 @@ afterAll(() => {
 // ---------------------------------------------------------------------------
 
 async function postResponses(body: Record<string, unknown>): Promise<Response> {
-	return fetch(`${godexBase}/v1/responses`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(body),
-	});
+	return client.responses.createRaw(body as unknown as ResponseCreateRequest);
+}
+
+async function streamResponses(
+	body: Record<string, unknown>,
+): Promise<ResponseStreamEvent[]> {
+	const stream = await client.responses.stream(
+		body as unknown as ResponseCreateRequest,
+	);
+	return collectGodexStreamEvents(stream);
 }
 
 function resetUpstreamRequests(): void {
@@ -275,32 +294,13 @@ function upstreamMessages(): Array<{
 	}>;
 }
 
-async function collectSSEEvents(
-	res: Response,
-): Promise<Record<string, unknown>[]> {
-	const text = await res.text();
-	const events: Record<string, unknown>[] = [];
-	for (const line of text.split("\n")) {
-		if (line.startsWith("data: ") && line !== "data: [DONE]") {
-			try {
-				events.push(JSON.parse(line.slice(6)) as Record<string, unknown>);
-			} catch {
-				// skip
-			}
-		}
-	}
-	return events;
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe("E2E: health check", () => {
 	test("GET /health returns ok", async () => {
-		const res = await fetch(`${godexBase}/health`);
-		expect(res.status).toBe(200);
-		const body = (await res.json()) as Record<string, unknown>;
+		const body = await client.health.get();
 		expect(body.status).toBe("ok");
 		expect(typeof body.timestamp).toBe("number");
 	});
@@ -308,12 +308,7 @@ describe("E2E: health check", () => {
 
 describe("E2E: models list", () => {
 	test("GET /v1/models returns configured models", async () => {
-		const res = await fetch(`${godexBase}/v1/models`);
-		expect(res.status).toBe(200);
-		const body = (await res.json()) as {
-			object: string;
-			data: { id: string; object: string; owned_by: string }[];
-		};
+		const body = await client.models.list();
 		expect(body.object).toBe("list");
 		expect(body.data.length).toBeGreaterThan(0);
 		expect(body.data.some((m) => m.id === "gpt-5")).toBe(true);
@@ -491,7 +486,7 @@ describe("E2E: sync response", () => {
 			{ role: "system", content: "Return JSON only." },
 			{ role: "user", content: "Jane, 54 years old" },
 			{
-				role: "user",
+				role: "system",
 				content: expect.stringContaining(
 					"Return only JSON that conforms to the JSON Schema below.",
 				),
@@ -501,6 +496,32 @@ describe("E2E: sync response", () => {
 			expect.stringContaining('"required":["name","age"]'),
 		);
 		expect(upstream.response_format).toEqual({ type: "json_object" });
+	});
+
+	test("rejects invalid strict json_schema output after json_object downgrade", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "gpt-5",
+			input: "Return a strict JSON object.",
+			text: {
+				format: {
+					type: "json_schema",
+					name: "payload",
+					schema: { type: "object" },
+					strict: true,
+				},
+			},
+		});
+
+		expect(res.status).toBe(400);
+		const body = (await res.json()) as {
+			error: { code: string; message: string };
+		};
+		expect(body.error.code).toBe("adapter.response.invalid_output_format");
+		expect(body.error.message).toContain("not valid JSON");
+		expect(lastUpstreamRequest().response_format).toEqual({
+			type: "json_object",
+		});
 	});
 
 	test("maps Responses function call items and text-array tool output", async () => {
@@ -630,6 +651,43 @@ describe("E2E: sync response", () => {
 		]);
 	});
 
+	test("treats tool_choice none as an explicit no-tools request", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "gpt-5",
+			input: "Do not call tools.",
+			tool_choice: "none",
+			tools: [{ type: "local_shell" }, { type: "apply_patch" }],
+		});
+
+		expect(res.status).toBe(200);
+		expect(lastUpstreamRequest()).not.toHaveProperty("tools");
+		expect(lastUpstreamRequest()).not.toHaveProperty("tool_choice");
+	});
+
+	test("rejects explicit tool_choice when the selected tool cannot be declared", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "gpt-5",
+			input: "Try to force an unavailable tool.",
+			tools: [
+				{
+					type: "code_interpreter",
+					container: { type: "auto" },
+				},
+			],
+			tool_choice: { type: "code_interpreter" },
+		});
+
+		expect(res.status).toBe(400);
+		const body = (await res.json()) as {
+			error: { code: string; message: string };
+		};
+		expect(body.error.code).toBe("adapter.request.unsupported_parameter");
+		expect(body.error.message).toContain("tool_choice");
+		expect(upstreamRequests).toHaveLength(0);
+	});
+
 	test("restores downgraded upstream tool calls to Codex built-in output items", async () => {
 		resetUpstreamRequests();
 		const res = await postResponses({
@@ -666,31 +724,31 @@ describe("E2E: sync response", () => {
 describe("E2E: stream response", () => {
 	test("streams SSE events through the full lifecycle", async () => {
 		resetUpstreamRequests();
-		const res = await postResponses({
+		const events = await streamResponses({
 			model: "gpt-5",
 			input: "Hello!",
 			stream: true,
 		});
-		expect(res.status).toBe(200);
-		expect(res.headers.get("Content-Type")).toBe("text/event-stream");
 
-		const text = await res.text();
-
-		// Should contain key lifecycle events
-		expect(text).toContain("response.created");
-		expect(text).toContain("response.in_progress");
-		expect(text).toContain("response.completed");
+		expect(events.some((event) => event.type === "response.created")).toBe(
+			true,
+		);
+		expect(events.some((event) => event.type === "response.in_progress")).toBe(
+			true,
+		);
+		expect(events.some((event) => event.type === "response.completed")).toBe(
+			true,
+		);
 		expect(lastUpstreamRequest().stream).toBe(true);
 	});
 
 	test("streams text deltas", async () => {
-		const res = await postResponses({
+		const events = await streamResponses({
 			model: "gpt-5",
 			input: "Hello!",
 			stream: true,
 		});
 
-		const events = await collectSSEEvents(res);
 		const deltas = events
 			.filter((e) => e.type === "response.output_text.delta")
 			.map((e) => e.delta as string);
@@ -703,6 +761,37 @@ describe("E2E: stream response", () => {
 			| undefined;
 		expect(completed?.response?.output_text).toBe("Hello from mock!");
 		expect(completed?.response?.output).toBeArray();
+	});
+
+	test("streams failed event for invalid strict json_schema output after downgrade", async () => {
+		resetUpstreamRequests();
+		const events = await streamResponses({
+			model: "gpt-5",
+			input: "Return a strict JSON object.",
+			stream: true,
+			text: {
+				format: {
+					type: "json_schema",
+					name: "payload",
+					schema: { type: "object" },
+					strict: true,
+				},
+			},
+		});
+
+		expect(events.some((event) => event.type === "response.completed")).toBe(
+			false,
+		);
+		const failed = events.find((event) => event.type === "response.failed") as
+			| { response?: { status?: string; error?: { message?: string } } }
+			| undefined;
+		expect(failed?.response?.status).toBe("failed");
+		expect(failed?.response?.error?.message).toContain(
+			"adapter.response.invalid_output_format",
+		);
+		expect(lastUpstreamRequest().response_format).toEqual({
+			type: "json_object",
+		});
 	});
 });
 
@@ -735,6 +824,7 @@ describe("E2E: session chain via previous_response_id", () => {
 			{ role: "assistant", content: "Hello from mock!" },
 			{ role: "user", content: "And its population?" },
 		]);
+		expect(lastUpstreamRequest()).not.toHaveProperty("previous_response_id");
 	});
 
 	test("rejects nonexistent previous_response_id", async () => {
@@ -786,35 +876,12 @@ describe("E2E: session chain via previous_response_id", () => {
 	test("stream turn can be referenced in next sync turn", async () => {
 		resetUpstreamRequests();
 		// Turn 1: streaming
-		const res1 = await postResponses({
+		const events1 = await streamResponses({
 			model: "gpt-5",
 			input: "Stream question",
 			stream: true,
 			store: true,
 		});
-		expect(res1.status).toBe(200);
-		const text1 = await res1.text();
-		expect(text1).toContain("response.completed");
-
-		// Extract response ID from the completed event
-		const events1 = await (() => {
-			const result: { type: string; response?: { id: string } }[] = [];
-			for (const line of text1.split("\n")) {
-				if (line.startsWith("data: ") && line !== "data: [DONE]") {
-					try {
-						result.push(
-							JSON.parse(line.slice(6)) as {
-								type: string;
-								response?: { id: string };
-							},
-						);
-					} catch {
-						/* skip */
-					}
-				}
-			}
-			return result;
-		})();
 		const completedEvent = events1.find((e) => e.type === "response.completed");
 		const responseId1 = completedEvent?.response?.id;
 		expect(responseId1).toMatch(/^resp_/);

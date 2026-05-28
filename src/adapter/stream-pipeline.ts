@@ -1,3 +1,9 @@
+import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
+import {
+	mapProviderDeltasToEvents,
+	ResponseStreamPhase,
+	ResponseStreamStateMachine,
+} from "../bridge/stream";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseStreamEvent } from "../protocol/openai/responses";
 import {
@@ -7,8 +13,8 @@ import {
 import { saveResponseSession } from "./response-session-persistence";
 import { wrapWithErrorHandler } from "./stream-error-handler";
 import { CompatibilityLogTransformer } from "./transformers/compatibility-log-transformer";
-import { ProviderEventToResponseTransformer } from "./transformers/provider-event-to-response-transformer";
 import { ResponseLogTransformer } from "./transformers/response-log-transformer";
+import { ResponseOutputContractValidationTransformer } from "./transformers/response-output-contract-validation-transformer";
 import { ResponseSessionPersistenceTransformer } from "./transformers/response-session-persistence-transformer";
 import {
 	ATTR_UPSTREAM_LATENCY_MILLIS,
@@ -29,7 +35,7 @@ export class StreamPipeline {
 	async stream(
 		ctx: ResponsesContext,
 	): Promise<ReadableStream<ResponseStreamEvent>> {
-		const { mapper, providerStream, upstreamLatencyMillis } =
+		const { providerStream, upstreamLatencyMillis } =
 			await this.exchange.stream(ctx);
 		ctx.attributes.set(ATTR_UPSTREAM_LATENCY_MILLIS, upstreamLatencyMillis);
 
@@ -40,13 +46,18 @@ export class StreamPipeline {
 
 		const eventStream = pipeTransform(
 			traceRawStream,
-			new ProviderEventToResponseTransformer(mapper.stream, ctx),
+			new ProviderEventToResponseTransformer(ctx),
 		);
 
 		const errorSafeStream = wrapWithErrorHandler(eventStream, ctx);
 
-		const traceTransformedStream = pipeTransform(
+		const validatedStream = pipeTransform(
 			errorSafeStream,
+			new ResponseOutputContractValidationTransformer(ctx),
+		);
+
+		const traceTransformedStream = pipeTransform(
+			validatedStream,
 			new TraceTransformer("upstream.stream.event.transformed", ctx),
 		);
 
@@ -67,5 +78,45 @@ export class StreamPipeline {
 					);
 
 		return pipeTransform(sessionStream, new CompatibilityLogTransformer(ctx));
+	}
+}
+
+class ProviderEventToResponseTransformer
+	implements Transformer<JsonServerSentEvent<unknown>, ResponseStreamEvent>
+{
+	private readonly machine: ResponseStreamStateMachine;
+
+	constructor(private readonly ctx: ResponsesContext) {
+		this.machine = new ResponseStreamStateMachine({
+			responseId: ctx.responseId,
+			createdAt: ctx.createdAt,
+			model: ctx.resolved.model,
+			provider: ctx.provider.name,
+		});
+	}
+
+	transform(
+		event: JsonServerSentEvent<unknown>,
+		controller: TransformStreamDefaultController<ResponseStreamEvent>,
+	): void {
+		const deltas = this.ctx.provider.spec.stream.deltas(event.data);
+		for (const responseEvent of mapProviderDeltasToEvents({
+			machine: this.machine,
+			deltas,
+			deferTerminal: true,
+		})) {
+			controller.enqueue(responseEvent);
+		}
+	}
+
+	flush(
+		controller: TransformStreamDefaultController<ResponseStreamEvent>,
+	): void {
+		if (this.machine.phase !== ResponseStreamPhase.IN_PROGRESS) return;
+		for (const responseEvent of this.machine.finish(
+			this.machine.deferredFinishReason,
+		)) {
+			controller.enqueue(responseEvent);
+		}
 	}
 }

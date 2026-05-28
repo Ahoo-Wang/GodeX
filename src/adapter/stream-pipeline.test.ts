@@ -1,13 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
+import type { ProviderEdge } from "../bridge/provider-spec";
 import type { ResponsesContext } from "../context/responses-context";
-import type {
-	ResponseObject,
-	ResponseStreamEvent,
-} from "../protocol/openai/responses";
+import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
+import { createTestProviderEdge } from "../testing/provider-edge";
 import type { CompatibilityDiagnostic } from "./compatibility";
-import type { Provider } from "./provider";
+import type { CompatibilityPlan } from "./mapper/chat/compatibility-plan";
+import {
+	ensureOutputFormatContractSlot,
+	OutputFormatContract,
+} from "./mapper/chat/output-format-contract";
 import type { ProviderStreamExchangeResult } from "./provider-exchange";
 import { StreamPipeline } from "./stream-pipeline";
 import { ATTR_UPSTREAM_LATENCY_MILLIS } from "./transformers/stream-utils";
@@ -32,39 +35,33 @@ function createMockSessionStore(): ResponseSessionStore & {
 	};
 }
 
-function createResponseObject(id = "resp_stream"): ResponseObject {
-	return {
-		id,
-		object: "response",
-		status: "completed",
-		model: "test",
-		created_at: 1,
-		completed_at: 2,
-		output: [],
-		output_text: "",
-		usage: { input_tokens: 4, output_tokens: 2, total_tokens: 6 },
-	};
+const degradedJsonSchemaPlan = {
+	responseFormat: {
+		action: "degraded",
+		effectiveValue: { type: "json_object" },
+	},
+} as CompatibilityPlan;
+
+function requireStrictJsonOutput(ctx: ResponsesContext): void {
+	ensureOutputFormatContractSlot(ctx).set(
+		OutputFormatContract.fromRequestFormat(
+			{
+				type: "json_schema",
+				name: "payload",
+				schema: { type: "object" },
+				strict: true,
+			},
+			degradedJsonSchemaPlan,
+		),
+	);
 }
 
-function createMockProvider(
-	streamEvents: ResponseStreamEvent[],
-): Provider<unknown, unknown, unknown> {
-	return {
-		name: "mock",
-		mapper: {
-			request: { map: () => ({ model: "test" }) },
-			response: { map: () => createResponseObject() },
-			stream: { map: () => streamEvents },
-		},
-		client: {
-			request: async () => ({}),
-			stream: async () => new ReadableStream(),
-		},
-	};
+function createMockProvider(): ProviderEdge<unknown, unknown, unknown> {
+	return createTestProviderEdge({ name: "mock" });
 }
 
 function createMockCtx(
-	provider: Provider<unknown, unknown, unknown>,
+	provider: ProviderEdge<unknown, unknown, unknown>,
 	store = true,
 	loggerOverrides: Partial<ResponsesContext["logger"]> = {},
 ): ResponsesContext & { traceEvents: unknown[] } {
@@ -120,22 +117,6 @@ function createStream(
 	});
 }
 
-function createErrorAfterFirstChunkStream(): ReadableStream<
-	JsonServerSentEvent<unknown>
-> {
-	let sentFirst = false;
-	return new ReadableStream({
-		pull(controller) {
-			if (sentFirst) {
-				controller.error(new Error("upstream failed after terminal event"));
-				return;
-			}
-			sentFirst = true;
-			controller.enqueue({ event: "chunk", data: { text: "done" } });
-		},
-	});
-}
-
 function createFailingStream(): ReadableStream<JsonServerSentEvent<unknown>> {
 	return new ReadableStream({
 		start(controller) {
@@ -150,9 +131,8 @@ function createExchange(
 ) {
 	return {
 		stream: async (
-			ctx: ResponsesContext,
+			_ctx: ResponsesContext,
 		): Promise<ProviderStreamExchangeResult> => ({
-			mapper: ctx.provider.mapper,
 			providerStream,
 			upstreamLatencyMillis,
 		}),
@@ -181,11 +161,8 @@ function traceEventNames(ctx: { traceEvents: unknown[] }): string[] {
 
 describe("StreamPipeline", () => {
 	test("builds the stream chain, records traces, logs completion, and saves terminal response", async () => {
-		const responseObject = createResponseObject();
-		const streamEvents: ResponseStreamEvent[] = [
-			{ type: "response.completed", response: responseObject },
-		];
-		const provider = createMockProvider(streamEvents);
+		const usage = { input_tokens: 4, output_tokens: 2, total_tokens: 6 };
+		const provider = createMockProvider();
 		const infoLogs: Array<{ event: string; attr: Record<string, unknown> }> =
 			[];
 		const ctx = createMockCtx(provider, true, {
@@ -199,7 +176,12 @@ describe("StreamPipeline", () => {
 		const saved: ResponseObject[] = [];
 		const pipeline = new StreamPipeline(
 			createExchange(
-				createStream([{ event: "chunk", data: { text: "done" } }]),
+				createStream([
+					{
+						event: "chunk",
+						data: { text: "done", usage, finishReason: "stop" },
+					},
+				]),
 			),
 			async (_store, response) => {
 				saved.push(response);
@@ -208,37 +190,54 @@ describe("StreamPipeline", () => {
 
 		const events = await readStream(await pipeline.stream(ctx));
 
-		expect(events).toEqual(streamEvents);
-		expect(ctx.attributes.get(ATTR_UPSTREAM_LATENCY_MILLIS)).toBe(17);
-		expect(traceEventNames(ctx)).toEqual([
-			"upstream.stream.event.raw",
-			"upstream.stream.event.transformed",
+		expect(events.map((event) => event.type)).toEqual([
+			"response.created",
+			"response.in_progress",
+			"response.output_item.added",
+			"response.content_part.added",
+			"response.output_text.delta",
+			"response.output_text.done",
+			"response.content_part.done",
+			"response.output_item.done",
+			"response.completed",
 		]);
-		expect(saved).toEqual([responseObject]);
+		expect(ctx.attributes.get(ATTR_UPSTREAM_LATENCY_MILLIS)).toBe(17);
+		expect(traceEventNames(ctx)[0]).toBe("upstream.stream.event.raw");
+		expect(
+			traceEventNames(ctx).filter(
+				(event) => event === "upstream.stream.event.transformed",
+			),
+		).toHaveLength(events.length);
+		expect(saved).toHaveLength(1);
+		expect(saved[0]).toMatchObject({
+			id: "resp_stream",
+			status: "completed",
+			output_text: "done",
+			usage,
+		});
 		expect(infoLogs).toEqual([
 			{
 				event: "responses.stream.completed",
 				attr: expect.objectContaining({
 					status: "completed",
 					model: "test",
-					outputCount: 0,
-					usage: responseObject.usage,
+					outputCount: 1,
+					usage,
 					upstreamLatencyMillis: 17,
-					streamEventCount: 1,
+					streamEventCount: events.length,
 				}) as Record<string, unknown>,
 			},
 		]);
 	});
 
 	test("skips session persistence when response storage is disabled", async () => {
-		const responseObject = createResponseObject("resp_no_store");
-		const provider = createMockProvider([
-			{ type: "response.completed", response: responseObject },
-		]);
+		const provider = createMockProvider();
 		const ctx = createMockCtx(provider, false);
 		let saveCalls = 0;
 		const pipeline = new StreamPipeline(
-			createExchange(createStream([{ event: "chunk", data: {} }])),
+			createExchange(
+				createStream([{ event: "chunk", data: { finishReason: "stop" } }]),
+			),
 			async () => {
 				saveCalls++;
 			},
@@ -250,7 +249,7 @@ describe("StreamPipeline", () => {
 	});
 
 	test("closes cleanly when provider stream errors before any chunk", async () => {
-		const provider = createMockProvider([]);
+		const provider = createMockProvider();
 		const ctx = createMockCtx(provider);
 		const events = await readStream(
 			await new StreamPipeline(createExchange(createFailingStream())).stream(
@@ -261,25 +260,77 @@ describe("StreamPipeline", () => {
 		expect(events).toEqual([]);
 	});
 
-	test("persists terminal response before a subsequent upstream read error", async () => {
-		const responseObject = createResponseObject("resp_before_error");
-		const provider = createMockProvider([
-			{ type: "response.completed", response: responseObject },
-		]);
+	test("persists terminal response from a completed provider stream", async () => {
+		const provider = createMockProvider();
 		const ctx = createMockCtx(provider);
 		const saved: ResponseObject[] = [];
 		const events = await readStream(
 			await new StreamPipeline(
-				createExchange(createErrorAfterFirstChunkStream()),
+				createExchange(
+					createStream([
+						{
+							event: "chunk",
+							data: { text: "done", finishReason: "stop" },
+						},
+					]),
+				),
 				async (_store, response) => {
 					saved.push(response);
 				},
 			).stream(ctx),
 		);
 
-		expect(events).toEqual([
-			expect.objectContaining({ type: "response.completed" }),
-		]);
-		expect(saved).toEqual([responseObject]);
+		expect(events.at(-1)).toMatchObject({ type: "response.completed" });
+		expect(saved).toHaveLength(1);
+		expect(saved[0]).toMatchObject({
+			id: "resp_stream",
+			status: "completed",
+			output_text: "done",
+		});
+	});
+
+	test("rewrites invalid strict JSON stream terminal responses before logging and saving", async () => {
+		const provider = createMockProvider();
+		const ctx = createMockCtx(provider);
+		requireStrictJsonOutput(ctx);
+		const saved: ResponseObject[] = [];
+		const events = await readStream(
+			await new StreamPipeline(
+				createExchange(
+					createStream([
+						{
+							event: "chunk",
+							data: { text: "not json", finishReason: "stop" },
+						},
+					]),
+				),
+				async (_store, response) => {
+					saved.push(response);
+				},
+			).stream(ctx),
+		);
+
+		const terminalEvents = events.filter(
+			(event) =>
+				event.type === "response.completed" ||
+				event.type === "response.incomplete" ||
+				event.type === "response.failed",
+		);
+		expect(terminalEvents).toHaveLength(1);
+		expect(terminalEvents[0]).toMatchObject({
+			type: "response.failed",
+			response: { id: "resp_stream", status: "failed" },
+		});
+		expect(saved).toHaveLength(1);
+		expect(saved[0]).toMatchObject({
+			id: "resp_stream",
+			status: "failed",
+		});
+		expect(ctx.diagnostics).toContainEqual(
+			expect.objectContaining({
+				code: "adapter.response.invalid_output_format",
+				action: "rejected",
+			}),
+		);
 	});
 });

@@ -1,13 +1,15 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { GodeXConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
+import type { ResponseCreateRequest } from "../protocol/openai/responses";
 import { createBuiltinRegistrar } from "../providers";
 import { createBuiltinRoutes, startServer } from "../server";
+import { type GodeXClient, godexClient } from "./godex-client";
 import { getLoopbackPort } from "./ports";
 
 let mockServer: ReturnType<typeof Bun.serve> | null = null;
 let godexServer: ReturnType<typeof Bun.serve> | null = null;
-let godexBase = "";
+let client: GodeXClient;
 let mockUpstreamBase = "";
 const upstreamRequests: Record<string, unknown>[] = [];
 
@@ -124,8 +126,9 @@ beforeAll(async () => {
 		models: { aliases: { "gpt-5": "deepseek/deepseek-v4-flash" } },
 		providers: {
 			deepseek: {
-				api_key: "test-key",
-				base_url: mockUpstreamBase,
+				spec: "builtin:deepseek",
+				credentials: { api_key: "test-key" },
+				endpoint: { base_url: mockUpstreamBase },
 			},
 		},
 		session: { backend: "memory" },
@@ -149,7 +152,10 @@ beforeAll(async () => {
 		logger: app.logger,
 		routes: createBuiltinRoutes(app),
 	});
-	godexBase = `http://127.0.0.1:${godexServer.port}`;
+	client = godexClient({
+		baseURL: `http://127.0.0.1:${godexServer.port}`,
+		apiKey: "test-key",
+	});
 });
 
 afterAll(() => {
@@ -158,11 +164,7 @@ afterAll(() => {
 });
 
 async function postResponses(body: Record<string, unknown>): Promise<Response> {
-	return fetch(`${godexBase}/v1/responses`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(body),
-	});
+	return client.responses.createRaw(body as unknown as ResponseCreateRequest);
 }
 
 function resetUpstreamRequests(): void {

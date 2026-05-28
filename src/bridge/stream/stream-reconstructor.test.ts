@@ -1,0 +1,334 @@
+import { describe, expect, test } from "bun:test";
+import { ADAPTER_STREAM_INVALID_TRANSITION, AdapterError } from "../../error";
+import type { ResponseUsage } from "../../protocol/openai/responses";
+import { ResponseStreamStateMachine } from "./response-stream-state-machine";
+import { mapProviderDeltasToEvents } from "./stream-reconstructor";
+
+const usage: ResponseUsage = {
+	input_tokens: 1,
+	output_tokens: 2,
+	total_tokens: 3,
+};
+
+function machine(): ResponseStreamStateMachine {
+	return new ResponseStreamStateMachine({
+		responseId: "resp_test",
+		createdAt: 1_764_000_000,
+		model: "resolved-model",
+		provider: "deepseek",
+		nowSeconds: () => 1_764_000_010,
+	});
+}
+
+describe("mapProviderDeltasToEvents", () => {
+	test("maps deltas in order and stops after terminal finish", () => {
+		const events = mapProviderDeltasToEvents({
+			machine: machine(),
+			deltas: [
+				{ text: "Hel" },
+				{ text: "lo" },
+				{ usage },
+				{ finishReason: "stop" },
+				{ text: "ignored" },
+			],
+		});
+
+		expect(events.map((event) => event.type)).toEqual([
+			"response.created",
+			"response.in_progress",
+			"response.output_item.added",
+			"response.content_part.added",
+			"response.output_text.delta",
+			"response.output_text.delta",
+			"response.output_text.done",
+			"response.content_part.done",
+			"response.output_item.done",
+			"response.completed",
+		]);
+		expect(events.at(-1)?.response).toMatchObject({
+			status: "completed",
+			output_text: "Hello",
+			usage,
+		});
+	});
+
+	test("routes provider error delta to failed event and ignores later deltas", () => {
+		const events = mapProviderDeltasToEvents({
+			machine: machine(),
+			deltas: [
+				{ text: "before" },
+				{ error: { code: "upstream_error", message: "bad chunk" } },
+				{ text: "ignored" },
+				{ finishReason: "stop" },
+			],
+		});
+
+		expect(events.map((event) => event.type)).toEqual([
+			"response.created",
+			"response.in_progress",
+			"response.output_item.added",
+			"response.content_part.added",
+			"response.output_text.delta",
+			"response.output_text.done",
+			"response.content_part.done",
+			"response.output_item.done",
+			"response.failed",
+		]);
+		expect(events.at(-1)?.response).toMatchObject({
+			status: "failed",
+			error: { code: "server_error", message: "bad chunk" },
+			output_text: "before",
+		});
+	});
+
+	test("starts before failing when first provider delta is error", () => {
+		const events = mapProviderDeltasToEvents({
+			machine: machine(),
+			deltas: [
+				{ error: { code: "upstream_error", message: "bad first chunk" } },
+				{ text: "ignored" },
+			],
+		});
+
+		expect(events.map((event) => event.type)).toEqual([
+			"response.created",
+			"response.in_progress",
+			"response.failed",
+		]);
+		expect(events.at(-1)?.response).toMatchObject({
+			status: "failed",
+			error: { code: "server_error", message: "bad first chunk" },
+			output: [],
+		});
+	});
+
+	test("rejects empty provider deltas without starting", () => {
+		const state = machine();
+
+		expect(() =>
+			mapProviderDeltasToEvents({
+				machine: state,
+				deltas: [{}],
+			}),
+		).toThrow(AdapterError);
+		expect(state.snapshot.status).toBe("queued");
+		expect(state.snapshot.output).toEqual([]);
+	});
+
+	test("rejects unknown provider delta fields without starting", () => {
+		const state = machine();
+
+		expect(() =>
+			mapProviderDeltasToEvents({
+				machine: state,
+				deltas: [{ foo: "bar" }],
+			}),
+		).toThrow(AdapterError);
+		expect(state.snapshot.status).toBe("queued");
+		expect(state.snapshot.output).toEqual([]);
+	});
+
+	test("rejects non-string text without appending output", () => {
+		const state = machine();
+
+		expect(() =>
+			mapProviderDeltasToEvents({
+				machine: state,
+				deltas: [{ text: 1 } as never],
+			}),
+		).toThrow(AdapterError);
+		expect(state.snapshot.output).toEqual([]);
+		expect(state.snapshot.output_text).toBe("");
+		expect(state.snapshot.status).toBe("queued");
+	});
+
+	test("rejects usage with missing token fields without starting", () => {
+		const state = machine();
+
+		expect(() =>
+			mapProviderDeltasToEvents({
+				machine: state,
+				deltas: [{ usage: {} }],
+			}),
+		).toThrow(AdapterError);
+		expect(state.snapshot.status).toBe("queued");
+		expect(state.snapshot.usage).toBeNull();
+	});
+
+	test("rejects usage with non-finite token fields", () => {
+		const state = machine();
+
+		expect(() =>
+			mapProviderDeltasToEvents({
+				machine: state,
+				deltas: [
+					{
+						usage: {
+							input_tokens: 1,
+							output_tokens: 2,
+							total_tokens: Number.NaN,
+						},
+					},
+				],
+			}),
+		).toThrow(AdapterError);
+		expect(state.snapshot.status).toBe("queued");
+		expect(state.snapshot.usage).toBeNull();
+	});
+
+	test("rejects malformed usage token details", () => {
+		const state = machine();
+
+		expect(() =>
+			mapProviderDeltasToEvents({
+				machine: state,
+				deltas: [
+					{
+						usage: {
+							input_tokens: 1,
+							output_tokens: 2,
+							total_tokens: 3,
+							input_tokens_details: "bad",
+						},
+					},
+				],
+			}),
+		).toThrow(AdapterError);
+		expect(state.snapshot.status).toBe("queued");
+		expect(state.snapshot.usage).toBeNull();
+	});
+
+	test("rejects malformed usage output token details", () => {
+		const state = machine();
+
+		expect(() =>
+			mapProviderDeltasToEvents({
+				machine: state,
+				deltas: [
+					{
+						usage: {
+							input_tokens: 1,
+							output_tokens: 2,
+							total_tokens: 3,
+							output_tokens_details: { reasoning_tokens: "x" },
+						},
+					},
+				],
+			}),
+		).toThrow(AdapterError);
+		expect(state.snapshot.status).toBe("queued");
+		expect(state.snapshot.usage).toBeNull();
+	});
+
+	test("sanitizes unknown usage detail fields", () => {
+		const events = mapProviderDeltasToEvents({
+			machine: machine(),
+			deltas: [
+				{
+					usage: {
+						input_tokens: 1,
+						output_tokens: 2,
+						total_tokens: 3,
+						input_tokens_details: {
+							cached_tokens: 1,
+							ignored: 99,
+						},
+						output_tokens_details: {
+							reasoning_tokens: 2,
+							ignored: 88,
+						},
+						ignored: 77,
+					},
+				},
+				{ finishReason: "stop" },
+			],
+		});
+
+		expect(events.at(-1)?.response?.usage).toEqual({
+			input_tokens: 1,
+			output_tokens: 2,
+			total_tokens: 3,
+			input_tokens_details: { cached_tokens: 1 },
+			output_tokens_details: { reasoning_tokens: 2 },
+		});
+	});
+
+	test("can defer terminal finish so later usage chunks reach completed response", () => {
+		const state = machine();
+		const firstEvents = mapProviderDeltasToEvents({
+			machine: state,
+			deferTerminal: true,
+			deltas: [{ text: "Hello" }, { finishReason: "stop" }],
+		});
+		const usageEvents = mapProviderDeltasToEvents({
+			machine: state,
+			deferTerminal: true,
+			deltas: [{ usage }],
+		});
+		const terminalEvents = state.finish(state.deferredFinishReason);
+
+		expect(firstEvents.map((event) => event.type)).not.toContain(
+			"response.completed",
+		);
+		expect(usageEvents).toEqual([]);
+		expect(terminalEvents.at(-1)?.response).toMatchObject({
+			status: "completed",
+			output_text: "Hello",
+			usage,
+		});
+	});
+
+	test("rejects unsupported tool call deltas at the sandbox boundary", () => {
+		expect(() =>
+			mapProviderDeltasToEvents({
+				machine: machine(),
+				deltas: [{ toolCall: { index: 0, name: "lookup" } }],
+			}),
+		).toThrow(AdapterError);
+
+		try {
+			mapProviderDeltasToEvents({
+				machine: machine(),
+				deltas: [{ toolCall: { index: 0, name: "lookup" } }],
+			});
+		} catch (err) {
+			expect(err).toBeInstanceOf(AdapterError);
+			expect((err as AdapterError).code).toBe(
+				ADAPTER_STREAM_INVALID_TRANSITION,
+			);
+		}
+	});
+
+	test("rejects null tool call deltas at the sandbox boundary", () => {
+		expect(() =>
+			mapProviderDeltasToEvents({
+				machine: machine(),
+				deltas: [{ toolCall: null } as never],
+			}),
+		).toThrow(AdapterError);
+	});
+
+	test("maps reasoning deltas into reasoning output items", () => {
+		const state = machine();
+
+		const events = mapProviderDeltasToEvents({
+			machine: state,
+			deltas: [{ reasoning: "think" }, { text: "answer" }],
+		});
+
+		expect(events).toContainEqual(
+			expect.objectContaining({
+				type: "response.reasoning_text.delta",
+				delta: "think",
+			}),
+		);
+		expect(state.snapshot.output).toEqual([
+			expect.objectContaining({
+				type: "reasoning",
+				status: "in_progress",
+			}),
+			expect.objectContaining({ type: "message" }),
+		]);
+		expect(state.snapshot.output_text).toBe("answer");
+	});
+});

@@ -43,5 +43,19 @@ describe("OutputFormatContract", () => {
 		} as CompatibilityPlan);
 
 		expect(contract.syntheticInstruction()).toBeUndefined();
+		expect(contract.requiresValidJson()).toBe(false);
+	});
+
+	test("exposes bridge output plan validation requirement through the legacy wrapper", () => {
+		const contract = OutputFormatContract.fromRequestFormat(jsonSchemaFormat, {
+			responseFormat: {
+				action: "degraded",
+				effectiveValue: { type: "json_object" },
+			},
+		} as CompatibilityPlan);
+
+		expect(contract.requested).toBe(jsonSchemaFormat);
+		expect(contract.syntheticInstruction()).toContain("Return only JSON");
+		expect(contract.requiresValidJson()).toBe(true);
 	});
 });

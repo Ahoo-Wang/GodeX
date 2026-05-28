@@ -1,39 +1,24 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
+import type { ProviderEdge } from "../bridge/provider-spec";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
-import type { Provider } from "./provider";
+import { createTestProviderEdge } from "../testing/provider-edge";
 import { ProviderExchange } from "./provider-exchange";
 
 function createMockProvider(
-	providerRequest: unknown,
 	providerResponse: unknown,
 	providerStreamEvents: JsonServerSentEvent<unknown>[] = [],
-): Provider<unknown, unknown, unknown> {
-	return {
+	onRequest?: (body: unknown) => void,
+	onStream?: (body: unknown) => void,
+): ProviderEdge<unknown, unknown, unknown> {
+	return createTestProviderEdge({
 		name: "mock",
-		mapper: {
-			request: { map: () => providerRequest },
-			response: {
-				map: () => {
-					throw new Error("response mapper must not be called");
-				},
-			},
-			stream: { map: () => [] },
-		},
-		client: {
-			request: async () => providerResponse,
-			stream: async () =>
-				new ReadableStream({
-					start(controller) {
-						for (const event of providerStreamEvents) {
-							controller.enqueue(event);
-						}
-						controller.close();
-					},
-				}),
-		},
-	};
+		response: providerResponse as never,
+		streamEvents: providerStreamEvents,
+		onRequest,
+		onStream,
+	});
 }
 
 function createMockSessionStore(): ResponseSessionStore & {
@@ -57,7 +42,7 @@ function createMockSessionStore(): ResponseSessionStore & {
 }
 
 function createMockCtx(
-	provider: Provider<unknown, unknown, unknown>,
+	provider: ProviderEdge<unknown, unknown, unknown>,
 	loggerOverrides: Partial<ResponsesContext["logger"]> = {},
 ): ResponsesContext & { traceEvents: unknown[] } {
 	const logger: ResponsesContext["logger"] = {
@@ -102,32 +87,28 @@ function traceEventNames(ctx: { traceEvents: unknown[] }): string[] {
 }
 
 describe("ProviderExchange", () => {
-	test("maps the provider request before calling the sync client", async () => {
-		const providerRequest = { model: "test" };
-		const providerResponse = { id: "upstream" };
-		const provider = createMockProvider(providerRequest, providerResponse);
-		const calls: string[] = [];
-		provider.mapper.request.map = () => {
-			calls.push("map");
-			return providerRequest;
-		};
-		provider.client.request = async (body) => {
-			calls.push("client");
-			expect(body).toBe(providerRequest);
-			return providerResponse;
-		};
+	test("builds the provider request before calling the sync edge", async () => {
+		const providerResponse = { choices: [{ finish_reason: "stop" }] };
+		const calls: unknown[] = [];
+		const provider = createMockProvider(providerResponse, [], (body) => {
+			calls.push(body);
+		});
 		const ctx = createMockCtx(provider);
 
 		const result = await new ProviderExchange().request(ctx);
 
-		expect(calls).toEqual(["map", "client"]);
+		expect(calls).toEqual([
+			{
+				model: "test",
+				messages: [{ role: "user", content: "hello" }],
+			},
+		]);
 		expect(result.providerResponse).toBe(providerResponse);
 	});
 
 	test("records provider request and response payload events", async () => {
-		const providerRequest = { model: "test", prompt_cache_key: "cache" };
-		const providerResponse = { id: "upstream", usage: { prompt_tokens: 1 } };
-		const provider = createMockProvider(providerRequest, providerResponse);
+		const providerResponse = { choices: [{ finish_reason: "stop" }] };
+		const provider = createMockProvider(providerResponse);
 		const debugLogs: Array<{ event: string; attr: Record<string, unknown> }> =
 			[];
 		const ctx = createMockCtx(provider, {
@@ -165,28 +146,23 @@ describe("ProviderExchange", () => {
 	});
 
 	test("opens stream exchange without mapping Responses output", async () => {
-		const providerRequest = { model: "test" };
-		const provider = createMockProvider(providerRequest, {}, [
-			{ event: "chunk", data: { text: "hi" } },
-		]);
-		let responseMapCalls = 0;
-		provider.mapper.response.map = () => {
-			responseMapCalls++;
-			throw new Error("response mapper must not be called");
-		};
 		let providerStream:
 			| ReadableStream<JsonServerSentEvent<unknown>>
 			| undefined;
-		provider.client.stream = async (body) => {
-			expect(body).toBe(providerRequest);
-			providerStream = new ReadableStream({
-				start(controller) {
-					controller.enqueue({ event: "chunk", data: { text: "hi" } });
-					controller.close();
-				},
-			});
-			return providerStream;
-		};
+		const streamBodies: unknown[] = [];
+		const provider = createTestProviderEdge({
+			name: "mock",
+			async stream(body) {
+				streamBodies.push(body);
+				providerStream = new ReadableStream({
+					start(controller) {
+						controller.enqueue({ event: "chunk", data: { text: "hi" } });
+						controller.close();
+					},
+				});
+				return providerStream;
+			},
+		});
 		const debugLogs: Array<{ event: string; attr: Record<string, unknown> }> =
 			[];
 		const ctx = createMockCtx(provider, {
@@ -200,8 +176,14 @@ describe("ProviderExchange", () => {
 
 		const result = await new ProviderExchange().stream(ctx);
 
-		expect(responseMapCalls).toBe(0);
-		expect(result.mapper).toBe(provider.mapper);
+		expect(streamBodies).toEqual([
+			{
+				model: "test",
+				messages: [{ role: "user", content: "hello" }],
+				stream: true,
+				stream_options: { include_usage: true },
+			},
+		]);
 		expect(providerStream).toBe(result.providerStream);
 		expect(result.upstreamLatencyMillis).toEqual(expect.any(Number));
 		expect(traceEventNames(ctx)).toEqual(["provider.request.body"]);

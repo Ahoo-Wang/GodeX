@@ -12,16 +12,29 @@ export function parseProvidersConfig(
 			throw new Error(`Provider ${name} must be an object`);
 		}
 		const provider = asConfigObject(value);
-		const api_key =
-			typeof provider.api_key === "string" ? provider.api_key : "";
-		const base_url =
-			typeof provider.base_url === "string" ? provider.base_url.trim() : "";
+		const spec = typeof provider.spec === "string" ? provider.spec.trim() : "";
 
-		if (!base_url) {
-			throw new Error(`Provider ${name} is missing required field: base_url`);
+		if (!spec) {
+			throw new Error(
+				`Legacy provider config is no longer supported: providers.${name} must declare "spec".`,
+			);
 		}
 
-		result[name] = { api_key, base_url };
+		const credentials = asConfigObject(provider.credentials);
+		const api_key =
+			typeof credentials.api_key === "string" ? credentials.api_key : "";
+		const endpoint = asConfigObject(provider.endpoint);
+		const base_url =
+			typeof endpoint.base_url === "string" ? endpoint.base_url.trim() : "";
+		const timeout_ms =
+			typeof provider.timeout_ms === "number" ? provider.timeout_ms : undefined;
+
+		result[name] = {
+			spec,
+			credentials: { api_key },
+			...(base_url ? { endpoint: { base_url } } : {}),
+			...(timeout_ms === undefined ? {} : { timeout_ms }),
+		};
 	}
 	return result;
 }

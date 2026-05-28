@@ -26,3 +26,12 @@ export class AdapterError extends GodeXError {
 		});
 	}
 }
+
+export function createAdapterFailure(
+	code: string,
+	message: string,
+	context: AdapterErrorContext,
+	options?: { status?: number; cause?: Error },
+): AdapterError {
+	return new AdapterError(code, message, context, options);
+}

@@ -1,7 +1,7 @@
 import type { CompatibilityDiagnostic } from "../adapter/compatibility";
 import { OutputFormatContractSlot } from "../adapter/mapper/chat/output-format-contract";
 import { ToolIndexSlot } from "../adapter/mapper/chat/tool-index";
-import type { Provider } from "../adapter/provider";
+import type { ProviderEdge } from "../bridge/provider-spec";
 import type { Logger } from "../logger";
 import type { ResponseCreateRequest } from "../protocol/openai/responses";
 import type { ResolvedModel } from "../resolver";
@@ -13,7 +13,7 @@ export interface ResponsesContextInit {
 	request: ResponseCreateRequest;
 	session: ResponseSessionSnapshot | null;
 	resolved: ResolvedModel;
-	provider: Provider<unknown, unknown, unknown>;
+	provider: ProviderEdge<unknown, unknown, unknown>;
 	requestId: string;
 	responseId: string;
 	createdAt: number;
@@ -25,7 +25,7 @@ export class ResponsesContext {
 	readonly request: ResponseCreateRequest;
 	readonly session: ResponseSessionSnapshot | null;
 	readonly resolved: ResolvedModel;
-	readonly provider: Provider<unknown, unknown, unknown>;
+	readonly provider: ProviderEdge<unknown, unknown, unknown>;
 	readonly requestId: string;
 	readonly responseId: string;
 	readonly createdAt: number;

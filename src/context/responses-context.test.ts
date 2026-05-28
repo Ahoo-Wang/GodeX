@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { CompatibilityDiagnostic } from "../adapter/compatibility";
-import type { Provider } from "../adapter/provider";
 import type { Logger } from "../logger";
 import type { ResponseCreateRequest } from "../protocol/openai/responses";
 import type { ResolvedModel } from "../resolver";
 import type { ResponseSessionSnapshot } from "../session";
+import { createTestProviderEdge } from "../testing/provider-edge";
 import type { ApplicationContext } from "./application-context";
 import { ResponsesContext } from "./responses-context";
 
@@ -18,20 +18,7 @@ const logger: Logger = {
 	error: () => {},
 };
 
-const provider = {
-	name: "mock",
-	mapper: {
-		request: { map: () => ({}) },
-		response: { map: () => ({}) as never },
-		stream: {
-			map: () => [] as never[],
-		},
-	},
-	client: {
-		request: async () => ({}),
-		stream: async () => new ReadableStream(),
-	},
-} satisfies Provider<unknown, unknown, unknown>;
+const provider = createTestProviderEdge({ name: "mock" });
 
 function createContext(
 	overrides: Partial<ConstructorParameters<typeof ResponsesContext>[0]> = {},

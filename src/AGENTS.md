@@ -19,6 +19,7 @@ bun run test:e2e                      # E2E with mocked upstream
 CLI → ApplicationContext → Bun HTTP server
   → POST /v1/responses → ResponsesContext
     → ModelResolver → Session chain → Registrar → DefaultAdapter
+      → bridge compatibility/tool/output planners produce request contracts
       → CompatibilityNegotiator produces CompatibilityPlan
       → ChatRequestMapper assembles upstream request from sub-mappers
       → ProviderClient calls upstream
@@ -48,10 +49,16 @@ Shared provider utilities (`providers/shared/`):
 - `chat-api.ts` — Fetcher-based `ChatApi` factory
 - `stream-result-extractor.ts` — SSE JSON parsing
 
+Provider-agnostic bridge decisions live in `bridge/`:
+- `compatibility/` — ignored parameter diagnostics and response-format planning
+- `tools/` — tool/tool_choice support, downgrade, and rejection planning
+- `output/` — output-format contracts and strict downgraded JSON validation
+
 ### Key rules
 
 - `adapter/mapper/chat/` must never import from `providers/` — it defines contracts, providers implement them
-- Shared logic between providers goes in `providers/shared/`, never duplicated
+- Shared protocol plumbing between providers goes in `providers/shared/`
+- Shared bridge decisions between providers go in `bridge/`, never duplicated
 - All errors use `GodeXError` hierarchy (`src/error/`) with domain codes from `error/codes.ts`
 - `CompatibilityNegotiator.negotiate()` is called once per request; `CompatibilityPlan` drives all downstream mapper decisions
 
@@ -69,7 +76,8 @@ Shared provider utilities (`providers/shared/`):
 - Implement sub-responsibility interfaces when adding provider logic
 - Run `bun run check` before committing
 - Use domain error codes from `error/codes.ts`
-- Extract shared logic to `providers/shared/` before duplicating across providers
+- Extract shared bridge decisions to `bridge/` before duplicating across providers
+- Extract shared provider protocol plumbing to `providers/shared/`
 
 ⚠️ Ask first:
 - Modifying interfaces in `adapter/mapper/chat/contract.ts` (affects all providers)
@@ -79,7 +87,7 @@ Shared provider utilities (`providers/shared/`):
 
 🚫 Never:
 - Import from `providers/*/` inside `adapter/mapper/chat/` (layer boundary)
-- Duplicate mapper logic between providers without extracting to `providers/shared/`
+- Duplicate bridge decisions between providers without extracting to `bridge/`
 - Throw raw `Error` in adapter/provider code — use the GodeXError hierarchy
 - Use Node.js APIs when Bun equivalents exist
 - Use external test frameworks (Bun's built-in runner only)

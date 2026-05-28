@@ -40,6 +40,10 @@ src/
 ├── cli/              Commander CLI (serve, config, init)
 ├── config/           godex.yaml schema, env interpolation, defaults
 ├── context/          ApplicationContext (DI), ResponsesContext (per-request)
+├── bridge/           Provider-agnostic Responses→Chat bridge planning
+│   ├── compatibility/  CompatibilityPlan diagnostics and response-format planning
+│   ├── tools/          Tool/tool_choice support, downgrade, and rejection planning
+│   └── output/         Output-format contract and strict JSON validation
 ├── adapter/          Adapter interface, DefaultAdapter, stream transformers
 │   ├── mapper/       Stable public mapper contracts (RequestMapper, ResponseMapper, StreamMapper)
 │   │   └── chat/     Shared chat mapper infrastructure
@@ -55,14 +59,12 @@ src/
 ├── providers/        Provider registry + factories
 │   ├── registrar.ts  Registrar (factory registration + provider resolution)
 │   ├── builtin.ts    createBuiltinRegistrar() wiring
-│   ├── shared/       Shared provider utilities
+│   ├── shared/       Shared provider protocol utilities
 │   │   ├── chat-provider-client.ts    ChatProviderClient (HTTP boundary)
 │   │   ├── chat-api.ts               Fetcher-based ChatApi factory
 │   │   ├── response-message-payloads.ts  Input item → message conversion, shared responseItemToMessage
-│   │   ├── stream-result-extractor.ts    SSE JSON parsing
-│   │   └── tool-name-mapping.ts          Namespace tool resolution
-│   ├── openai/       OpenAI provider
-│   │   └── mapper/   OpenAI-specific mapper modules (capabilities, compatibility, messages, tools, etc.)
+│   │   └── stream-result-extractor.ts    SSE JSON parsing
+│   ├── deepseek/     DeepSeek Chat Completions bridge provider
 │   └── zhipu/        Zhipu provider
 │       ├── protocol/    Zhipu-specific Chat Completions types
 │       └── mapper/      Zhipu-specific mapper modules (capabilities, compatibility, messages, tools, etc.)
@@ -88,7 +90,7 @@ src/
 
 ## Architecture
 
-GodeX translates OpenAI Responses API requests into upstream Chat Completions API calls.
+GodeX translates OpenAI Responses API requests into upstream Chat Completions API calls. If an upstream already supports the Responses API natively, it should not be configured as a GodeX provider.
 
 Request flow: CLI → ApplicationContext → Bun HTTP server → POST /v1/responses → ResponsesContext.create() → ModelResolver → Session chain → Registrar → DefaultAdapter → ProviderMapper → ChatClient → Upstream
 
@@ -101,16 +103,17 @@ Request flow: CLI → ApplicationContext → Bun HTTP server → POST /v1/respon
 - **`ModelResolver`** (`src/resolver/index.ts`): Parses `model` selectors (`"provider/model"` or bare `"model"` using default_provider) and applies per-provider model name mappings.
 - **`Registrar`** (`src/providers/registrar.ts`): Registry of `ProviderFactory` functions. Built once, resolves provider instances for each request.
 - **`ResponsesContext`** (`src/context/responses-context.ts`): Per-request context carrying the parsed body, resolved model, selected provider, session snapshot, and a scoped logger.
+- **`bridge/*`** (`src/bridge/`): Provider-agnostic planning kernel for compatibility diagnostics, tool/tool_choice downgrade decisions, and output-format validation.
 
 ### Mapper Composition Architecture
 
 The `ProviderMapper` is assembled from focused sub-responsibility interfaces defined in `src/adapter/mapper/chat/contract.ts`:
 
 **Request side:**
-- `CompatibilityNegotiator` — centralized compatibility decision per request, produces a `CompatibilityPlan`
+- `CompatibilityNegotiator` — centralized compatibility decision per request, normally backed by `planBridgeCompatibility()`, produces a `CompatibilityPlan`
 - `ChatRequestFactory` — creates the minimum valid upstream request skeleton (model + empty containers)
 - `ChatMessageMapper` — converts Responses input items + instructions into upstream messages
-- `ChatToolMapper` / `ChatToolChoiceMapper` — maps Responses tools/tool_choice to upstream format
+- `ChatToolMapper` / `ChatToolChoiceMapper` — renders tool declarations and tool_choice after `planBridgeTools()` has decided support, downgrade, or rejection
 - `ChatRequestOptionsMapper` — applies optional parameters (temperature, top_p, reasoning, response_format, etc.)
 
 **Response side:**
@@ -128,7 +131,7 @@ These are composed by `ChatRequestMapper`, `ChatResponseMapper`, and `ChatStream
 
 ### Compatibility Negotiation
 
-Each provider declares a `ProviderCapabilities` (supported parameters, tools, tool choices, response formats, reasoning mode, streaming features). The `CompatibilityNegotiator` produces a `CompatibilityPlan` per request, driving downstream mapper decisions. Unsupported parameters are rejected or degraded with diagnostics. The plan is a snapshot — diagnostics flow through `ResponsesContext` to the existing compatibility logging path.
+Each provider declares a `ProviderCapabilities` (supported parameters, tools, tool choices, response formats, reasoning mode, streaming features). The bridge layer turns those capabilities into a `CompatibilityPlan`, `BridgeToolPlan`, output-format contract, and diagnostics. Provider mappers should render already-planned decisions rather than re-deciding support locally.
 
 ### Provider Implementation Pattern
 
@@ -160,8 +163,11 @@ provider/
 Streams use `TransformStream` via `pipeTransform()` (`src/adapter/transformers/stream-utils.ts`):
 
 1. **`ProviderEventToResponseTransformer`** — per-event translation via StreamMapper.map()
-2. **`ResponseSessionPersistenceTransformer`** — intercepts terminal events, builds final ResponseObject from accumulated StreamState, saves session
-3. **`ResponseSseEncodeTransformer`** — serializes ResponseStreamEvent to SSE byte stream
+2. **`ResponseOutputContractValidationTransformer`** — validates terminal output contracts and rewrites invalid strict downgraded JSON to `response.failed`
+3. **`ResponseLogTransformer`** — records usage and completion diagnostics
+4. **`ResponseSessionPersistenceTransformer`** — intercepts terminal events, builds final ResponseObject from accumulated StreamState, saves session
+5. **`CompatibilityLogTransformer`** — emits compatibility diagnostics once per stream
+6. **`ResponseSseEncodeTransformer`** — serializes ResponseStreamEvent to SSE byte stream
 
 ### Session Storage
 
@@ -206,7 +212,7 @@ Provider conformance tests in `src/providers/provider-conformance.test.ts` valid
 - Implement mapper sub-responsibility interfaces when adding provider-specific logic
 
 ⚠️ Ask first:
-- Adding new provider implementations (expect ~13 mapper files + boilerplate)
+- Adding new provider implementations
 - Modifying the Adapter, Provider, or stable mapper contract interfaces
 - Changing the config schema
 - Modifying stream pipeline transformers
@@ -216,4 +222,4 @@ Provider conformance tests in `src/providers/provider-conformance.test.ts` valid
 - Use Node.js-specific APIs when Bun equivalents exist
 - Add external test frameworks (use Bun's built-in test runner)
 - Import from `providers/*/` inside `adapter/mapper/chat/` (strict layer boundary)
-- Duplicate mapper logic between providers without extracting to `providers/shared/`
+- Duplicate bridge decisions between providers without extracting to `src/bridge/`

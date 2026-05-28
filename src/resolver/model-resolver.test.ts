@@ -37,11 +37,11 @@ describe("ModelResolver", () => {
 	});
 
 	test("falls back bare selectors to default provider without aliases", () => {
-		const noAliases = new ModelResolver({ defaultProvider: "openai" });
+		const noAliases = new ModelResolver({ defaultProvider: "deepseek" });
 
-		expect(noAliases.resolve("gpt-4o")).toEqual({
-			provider: "openai",
-			model: "gpt-4o",
+		expect(noAliases.resolve("deepseek-chat")).toEqual({
+			provider: "deepseek",
+			model: "deepseek-chat",
 		});
 	});
 

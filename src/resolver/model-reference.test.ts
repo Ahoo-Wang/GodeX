@@ -10,9 +10,9 @@ describe("parseProviderModelReference", () => {
 	});
 
 	test("allows additional separators inside the model segment", () => {
-		expect(parseProviderModelReference("openai/fine_tuned/gpt-4.1")).toEqual({
-			provider: "openai",
-			model: "fine_tuned/gpt-4.1",
+		expect(parseProviderModelReference("custom/fine_tuned/model")).toEqual({
+			provider: "custom",
+			model: "fine_tuned/model",
 		});
 	});
 

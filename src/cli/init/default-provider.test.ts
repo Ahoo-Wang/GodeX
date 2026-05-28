@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { DEEPSEEK_PROVIDER_NAME } from "../../providers/deepseek/provider";
-import { OPENAI_PROVIDER_NAME } from "../../providers/openai/provider";
-import { ZHIPU_PROVIDER_NAME } from "../../providers/zhipu/provider";
+import { DEEPSEEK_PROVIDER_NAME } from "../../providers/deepseek";
+import { ZHIPU_PROVIDER_NAME } from "../../providers/zhipu";
 import { resolveDefaultProvider } from "./default-provider";
 
 describe("resolveDefaultProvider", () => {
@@ -20,18 +19,18 @@ describe("resolveDefaultProvider", () => {
 	test("uses selected default when multiple providers are configured", () => {
 		expect(
 			resolveDefaultProvider(
-				[DEEPSEEK_PROVIDER_NAME, OPENAI_PROVIDER_NAME],
-				OPENAI_PROVIDER_NAME,
+				[DEEPSEEK_PROVIDER_NAME, ZHIPU_PROVIDER_NAME],
+				ZHIPU_PROVIDER_NAME,
 			),
-		).toBe(OPENAI_PROVIDER_NAME);
+		).toBe(ZHIPU_PROVIDER_NAME);
 	});
 
 	test("rejects a selected default that is not configured", () => {
 		expect(() =>
 			resolveDefaultProvider(
-				[DEEPSEEK_PROVIDER_NAME, OPENAI_PROVIDER_NAME],
-				ZHIPU_PROVIDER_NAME,
+				[DEEPSEEK_PROVIDER_NAME, ZHIPU_PROVIDER_NAME],
+				"missing" as never,
 			),
-		).toThrow('Default provider "zhipu" is not configured');
+		).toThrow('Default provider "missing" is not configured');
 	});
 });

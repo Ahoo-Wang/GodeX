@@ -1,9 +1,26 @@
 import { describe, expect, test } from "bun:test";
+import type {
+	ProviderEdge,
+	ProviderSpec,
+} from "../bridge/provider-spec/contract";
+import {
+	type BuildChatCompletionRequestResult,
+	buildChatCompletionRequest,
+} from "../bridge/request";
+import type { ToolPlanningProfile } from "../bridge/tools";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
+import {
+	completedTextResponse,
+	createTestProviderEdge,
+	type TestChatResponse,
+} from "../testing/provider-edge";
 import type { CompatibilityDiagnostic } from "./compatibility";
-import type { Provider } from "./provider";
+import {
+	ensureOutputFormatContractSlot,
+	OutputFormatContract,
+} from "./mapper/chat/output-format-contract";
 import type { ProviderRequestExchangeResult } from "./provider-exchange";
 import { SyncRequestPipeline } from "./sync-request-pipeline";
 
@@ -27,50 +44,19 @@ function createMockSessionStore(): ResponseSessionStore & {
 	};
 }
 
-function createResponseObject(id = "resp_sync"): ResponseObject {
-	return {
-		id,
-		object: "response",
-		status: "completed",
-		model: "test",
-		created_at: 1,
-		completed_at: 2,
-		output: [],
-		output_text: "",
-		usage: {
-			input_tokens: 10,
-			output_tokens: 5,
-			total_tokens: 15,
-			input_tokens_details: { cached_tokens: 3 },
-		},
-	};
-}
-
-function createMockProvider(
-	responseObject: ResponseObject,
-	responseMapCalls: unknown[],
-): Provider<unknown, unknown, unknown> {
-	return {
-		name: "mock",
-		mapper: {
-			request: { map: () => ({ model: "test" }) },
-			response: {
-				map: (_ctx, result) => {
-					responseMapCalls.push(result);
-					return responseObject;
-				},
-			},
-			stream: { map: () => [] },
-		},
-		client: {
-			request: async () => ({}),
-			stream: async () => new ReadableStream(),
-		},
-	};
+function createProvider(
+	response = completedTextResponse("", {
+		input_tokens: 10,
+		output_tokens: 5,
+		total_tokens: 15,
+		input_tokens_details: { cached_tokens: 3 },
+	}),
+): ProviderEdge<unknown, unknown, unknown> {
+	return createTestProviderEdge({ name: "mock", response });
 }
 
 function createMockCtx(
-	provider: Provider<unknown, unknown, unknown>,
+	provider: ProviderEdge<unknown, unknown, unknown>,
 	sessionStore: ResponseSessionStore,
 	loggerOverrides: Partial<ResponsesContext["logger"]> = {},
 ): ResponsesContext & { traceEvents: unknown[] } {
@@ -113,15 +99,61 @@ function createMockCtx(
 	} as unknown as ResponsesContext & { traceEvents: unknown[] };
 }
 
+function createExchangeResult(
+	ctx: ResponsesContext,
+	providerResponse: TestChatResponse = completedTextResponse(),
+): ProviderRequestExchangeResult {
+	const built = buildRequest(ctx);
+	ensureOutputFormatContractSlot(ctx).set(
+		new OutputFormatContract(built.output),
+	);
+	return { providerResponse, built };
+}
+
+function buildRequest(ctx: ResponsesContext): BuildChatCompletionRequestResult {
+	return buildChatCompletionRequest({
+		request: ctx.request,
+		provider: ctx.provider.name,
+		model: ctx.resolved.model,
+		capabilities: specOf(ctx.provider).capabilities,
+		profile: toolPlanningProfile(ctx.provider),
+		session: ctx.session,
+	});
+}
+
+function toolPlanningProfile(
+	provider: ProviderEdge<unknown, unknown, unknown>,
+): ToolPlanningProfile {
+	const degraded = provider.spec.capabilities.tools.degraded ?? new Map();
+	return {
+		provider: provider.name,
+		nativeToolTypes: new Set(
+			[...provider.spec.capabilities.tools.supported].filter(
+				(type) => !degraded.has(type),
+			),
+		),
+		degradedToolTypes: degraded,
+		toolChoice: provider.spec.capabilities.toolChoice.supported,
+		maxTools: provider.spec.capabilities.tools.maxTools,
+		toProviderName: provider.spec.toolName.toProviderName,
+	};
+}
+
+function specOf(
+	provider: ProviderEdge<unknown, unknown, unknown>,
+): ProviderSpec<unknown, unknown, unknown> {
+	return provider.spec;
+}
+
 describe("SyncRequestPipeline", () => {
 	test("maps provider response, records usage, logs completion, and saves", async () => {
-		const providerResponse = {
-			id: "upstream",
-			usage: { prompt_tokens_details: { cached_tokens: 2 } },
-		};
-		const responseObject = createResponseObject();
-		const responseMapCalls: unknown[] = [];
-		const provider = createMockProvider(responseObject, responseMapCalls);
+		const providerResponse = completedTextResponse("", {
+			input_tokens: 10,
+			output_tokens: 5,
+			total_tokens: 15,
+			input_tokens_details: { cached_tokens: 3 },
+		});
+		const provider = createProvider(providerResponse);
 		const sessionStore = createMockSessionStore();
 		const infoLogs: Array<{ event: string; attr: Record<string, unknown> }> =
 			[];
@@ -138,7 +170,7 @@ describe("SyncRequestPipeline", () => {
 				receivedCtx: ResponsesContext,
 			): Promise<ProviderRequestExchangeResult> => {
 				expect(receivedCtx).toBe(ctx);
-				return { providerResponse };
+				return createExchangeResult(ctx, providerResponse);
 			},
 		};
 		const saved: Array<{
@@ -158,8 +190,12 @@ describe("SyncRequestPipeline", () => {
 			ctx,
 		);
 
-		expect(result).toBe(responseObject);
-		expect(responseMapCalls).toEqual([providerResponse]);
+		expect(result).toMatchObject({
+			id: "resp_sync",
+			status: "completed",
+			model: "test",
+			usage: providerResponse.usage,
+		});
 		expect(
 			ctx.traceEvents.filter(
 				(event) => (event as { kind?: string }).kind === "usage",
@@ -176,21 +212,18 @@ describe("SyncRequestPipeline", () => {
 				attr: expect.objectContaining({
 					status: "completed",
 					model: "test",
-					outputCount: 0,
+					outputCount: 1,
 					durationMillis: expect.any(Number),
-					usage: responseObject.usage,
+					usage: providerResponse.usage,
 					cacheHitRatio: 0.3,
 				}) as Record<string, unknown>,
 			},
 		]);
-		expect(saved).toEqual([
-			{ store: sessionStore, response: responseObject, ctx },
-		]);
+		expect(saved).toEqual([{ store: sessionStore, response: result, ctx }]);
 	});
 
 	test("logs diagnostics after mapping the response", async () => {
-		const responseObject = createResponseObject("resp_diag");
-		const provider = createMockProvider(responseObject, []);
+		const provider = createProvider();
 		const sessionStore = createMockSessionStore();
 		const warnings: Array<{ event: string; attr: Record<string, unknown> }> =
 			[];
@@ -213,7 +246,7 @@ describe("SyncRequestPipeline", () => {
 		});
 		const exchange = {
 			request: async (): Promise<ProviderRequestExchangeResult> => ({
-				providerResponse: {},
+				...createExchangeResult(ctx),
 			}),
 		};
 
@@ -241,8 +274,7 @@ describe("SyncRequestPipeline", () => {
 	});
 
 	test("returns response and logs warning when session persistence fails", async () => {
-		const responseObject = createResponseObject("resp_save_failed");
-		const provider = createMockProvider(responseObject, []);
+		const provider = createProvider();
 		const sessionStore = createMockSessionStore();
 		const warnings: Array<{ event: string; attr: Record<string, unknown> }> =
 			[];
@@ -256,7 +288,7 @@ describe("SyncRequestPipeline", () => {
 		});
 		const exchange = {
 			request: async (): Promise<ProviderRequestExchangeResult> => ({
-				providerResponse: {},
+				...createExchangeResult(ctx),
 			}),
 		};
 		const saveSession = async () => {
@@ -267,13 +299,13 @@ describe("SyncRequestPipeline", () => {
 			ctx,
 		);
 
-		expect(result).toBe(responseObject);
+		expect(result).toMatchObject({ id: "resp_sync", status: "completed" });
 		expect(warnings).toEqual([
 			{
 				event: "session.save.error",
 				attr: {
 					request_id: "req_test",
-					response_id: "resp_save_failed",
+					response_id: "resp_sync",
 					error: "Error: session write failed",
 				},
 			},

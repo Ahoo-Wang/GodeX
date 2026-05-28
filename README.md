@@ -21,7 +21,7 @@ OpenAI-compatible Responses API gateway — translates `/v1/responses` into upst
 |---|---------|-------------|
 | 🔄 | **Protocol Translation** | Bridges OpenAI Responses API and provider-specific Chat Completions APIs |
 | 🔌 | **Provider-agnostic** | Plugin-based adapter system — add providers by implementing a small set of interfaces |
-| ⚡ | **Streaming-first** | 4-stage `TransformStream` pipeline for low-latency SSE delivery |
+| ⚡ | **Streaming-first** | `TransformStream` pipeline with trace, validation, logging, session persistence, and SSE delivery |
 | 💾 | **Session History** | Built-in `previous_response_id` chain resolution (SQLite / in-memory) |
 | 🛡️ | **Structured Errors** | Domain-specific error hierarchy with structured codes and diagnostic context |
 | 🔧 | **Built-in Tools** | `local_shell`, `shell`, `apply_patch` — Codex-compatible function tools |
@@ -80,16 +80,18 @@ Codex / CLI / IDE
 │       → DefaultAdapter.stream/request() │
 │           → ProviderMapper.map()        │
 │           → ChatClient.streamChat()     │
-│           → 4-stage TransformStream     │
+│           → TransformStream pipeline    │
 │       → Response (JSON or SSE)          │
 └──────────────┬──────────────────────────┘
                │  Provider Adapter
                ▼
 ┌─────────────────────────────────────────┐
 │       Chat Completions-compatible API   │
-│       (Zhipu, OpenAI, or custom)        │
+│       (Zhipu, DeepSeek, or custom)      │
 └─────────────────────────────────────────┘
 ```
+
+Responses-native upstreams already speak the target API; point clients at them directly instead of configuring them as GodeX providers.
 
 ## Architecture
 
@@ -101,13 +103,13 @@ C4Context
   System(godex_svr, "GodeX Server", "Translates Responses API → Chat Completions API<br/>Bun.serve on configurable port")
   SystemDb(sessions, "Session Store", "Stores response history for<br/>previous_response_id chain resolution<br/>SQLite (persistent) or In-Memory")
   System_Ext(zhipu, "Zhipu (智谱)", "Chat Completions API provider")
-  System_Ext(openai, "OpenAI", "Chat Completions API provider")
+  System_Ext(deepseek, "DeepSeek", "Chat Completions API provider")
   System_Ext(other, "Custom Provider", "Any Chat Completions<br/>compatible backend")
 
   Rel(user, godex_svr, "POST /v1/responses, GET /v1/models, GET /health", "HTTP/SSE")
   Rel(godex_svr, sessions, "save / resolve chains")
   Rel(godex_svr, zhipu, "POST /chat/completions", "HTTPS")
-  Rel(godex_svr, openai, "POST /chat/completions", "HTTPS")
+  Rel(godex_svr, deepseek, "POST /chat/completions", "HTTPS")
   Rel(godex_svr, other, "POST /chat/completions", "HTTPS")
 ```
 
@@ -271,12 +273,14 @@ flowchart LR
 
   subgraph godex["GodeX Stream Pipeline"]
     T1["① ProviderEventToResponse"]
-    T2["② ResponseLog"]
-    T3["③ SessionPersistence"]
+    T2["② OutputContractValidation"]
+    T3["③ ResponseLog"]
+    T4["④ SessionPersistence"]
+    T5["⑤ CompatibilityLog"]
   end
 
   subgraph server["HTTP Response"]
-    T4["④ SseEncode"]
+    T6["⑥ SseEncode"]
   end
 
   subgraph client["Client"]
@@ -285,9 +289,11 @@ flowchart LR
 
   SSE -->|pipeThrough| T1
   T1 -->|map per event| T2
-  T2 -->|log + pass through| T3
-  T3 -->|accumulate + save session| T4
-  T4 -->|serialize SSE wire format| BYTES
+  T2 -->|validate terminal response| T3
+  T3 -->|log + pass through| T4
+  T4 -->|accumulate + save session| T5
+  T5 -->|emit compatibility diagnostics| T6
+  T6 -->|serialize SSE wire format| BYTES
 
   style upstream fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
   style godex fill:#0f3460,stroke:#16213e,color:#e0e0e0
@@ -298,9 +304,11 @@ flowchart LR
 | Stage | Transformer | Input | Output | Role |
 |-------|------------|-------|--------|------|
 | ① | `ProviderEventToResponseTransformer` | `JsonServerSentEvent` | `ResponseStreamEvent` | Maps upstream SSE chunks via `StreamMapper.map()` |
-| ② | `ResponseLogTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Logs stream events for observability |
-| ③ | `ResponseSessionPersistenceTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Accumulates `StreamState`, saves session on terminal event |
-| ④ | `ResponseSseEncodeTransformer` | `ResponseStreamEvent` | `Uint8Array` | Serializes to `event:` / `data:` wire format |
+| ② | `ResponseOutputContractValidationTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Converts invalid strict downgraded JSON terminals into `response.failed` |
+| ③ | `ResponseLogTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Logs stream events and usage for observability |
+| ④ | `ResponseSessionPersistenceTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Accumulates `StreamState`, saves session on terminal event |
+| ⑤ | `CompatibilityLogTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Emits compatibility diagnostics once per stream |
+| ⑥ | `ResponseSseEncodeTransformer` | `ResponseStreamEvent` | `Uint8Array` | Serializes to `event:` / `data:` wire format |
 
 ## Project Structure
 
@@ -309,11 +317,16 @@ src/
 ├── cli/              Commander CLI (serve, config, init)
 ├── config/           godex.yaml schema, env interpolation, defaults
 ├── context/          ApplicationContext (DI), ResponsesContext (per-request)
+├── bridge/           Provider-agnostic Responses→Chat planning kernel
+│   ├── compatibility/  CompatibilityPlan and diagnostics planning
+│   ├── tools/          Tool/tool_choice planning and downgrade decisions
+│   └── output/         Output-format contracts and strict JSON validation
 ├── adapter/          Adapter interface, DefaultAdapter, stream transformers
 │   ├── mapper/       RequestMapper / ResponseMapper / StreamMapper contracts
-│   └── transformers/ 4-stage stream pipeline (map → log → persist → encode)
+│   └── transformers/ Stream pipeline (map → validate → log → persist → diagnostics)
 ├── providers/        Provider registry + builtin factories
-│   └── zhipu/        Reference provider: mapper, chat-client, tools, messages
+│   ├── deepseek/     DeepSeek Chat Completions bridge provider
+│   └── zhipu/        Zhipu Chat Completions bridge provider
 ├── resolver/         ModelResolver (model selector → provider + model)
 ├── server/           Bun.serve, routes (/v1/responses, /health, /v1/models)
 ├── session/          ResponseSessionStore (Memory + SQLite), chain resolution
@@ -367,7 +380,6 @@ logging:
 model: "gpt-4o"              → resolved via default_provider model mapping
 model: "zhipu/glm-4.7"       → explicit provider/model selector
 model: "deepseek/deepseek-v4-pro" → routes to configured DeepSeek provider
-model: "openai/gpt-4o"       → routes to configured openai provider
 ```
 
 ### Health Check
@@ -379,13 +391,15 @@ curl http://localhost:5678/health
 
 ### Adding a Provider
 
-Implement three interfaces in `src/providers/<name>/`:
+Implement a focused Chat Completions bridge provider in `src/providers/<name>/`:
 
 | Interface | Purpose |
 |-----------|---------|
 | `Provider` | Bundles mapper + chatClient + capabilities |
 | `ProviderMapper` | request / response / stream mapping functions |
 | `ChatClient` | `chat()` and `streamChat()` HTTP calls |
+
+Keep provider-specific files focused on protocol rendering. Shared compatibility decisions belong in `src/bridge/compatibility`, tool availability and `tool_choice` decisions in `src/bridge/tools`, and terminal output checks in `src/bridge/output`.
 
 Register the factory in `src/providers/builtin.ts`:
 

@@ -7,8 +7,9 @@ const config: GodeXConfig = {
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			api_key: "test-key",
-			base_url: "http://127.0.0.1:1",
+			spec: "builtin:zhipu",
+			credentials: { api_key: "test-key" },
+			endpoint: { base_url: "http://127.0.0.1:1" },
 		},
 	},
 	session: { backend: "memory" },

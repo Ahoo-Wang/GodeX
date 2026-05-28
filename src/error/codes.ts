@@ -10,6 +10,8 @@ export const ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT =
 	"adapter.request.unsupported_input_content";
 export const ADAPTER_REQUEST_UNSUPPORTED_TOOL =
 	"adapter.request.unsupported_tool";
+export const ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT =
+	"adapter.response.invalid_output_format";
 
 // --- adapter stream domain ---
 export const ADAPTER_STREAM_NOT_INITIALIZED = "adapter.stream.not_initialized";

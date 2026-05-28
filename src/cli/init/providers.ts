@@ -1,19 +1,14 @@
 import {
 	DEEPSEEK_PROVIDER_NAME,
 	DEFAULT_DEEPSEEK_BASE_URL,
-} from "../../providers/deepseek/provider";
-import {
-	DEFAULT_OPENAI_BASE_URL,
-	OPENAI_PROVIDER_NAME,
-} from "../../providers/openai/provider";
+} from "../../providers/deepseek";
 import {
 	ZHIPU_BASE_URL,
 	ZHIPU_CODING_PLAN_BASE_URL,
 	ZHIPU_PROVIDER_NAME,
-} from "../../providers/zhipu/provider";
+} from "../../providers/zhipu";
 
 export type InitProviderId =
-	| typeof OPENAI_PROVIDER_NAME
 	| typeof ZHIPU_PROVIDER_NAME
 	| typeof DEEPSEEK_PROVIDER_NAME;
 
@@ -32,19 +27,6 @@ export interface InitProviderDefinition {
 }
 
 export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
-	{
-		id: OPENAI_PROVIDER_NAME,
-		label: "OpenAI",
-		apiKeyPlaceholder: "${OPENAI_API_KEY}",
-		baseUrlChoices: [
-			{
-				value: DEFAULT_OPENAI_BASE_URL,
-				label: "Standard",
-				hint: DEFAULT_OPENAI_BASE_URL,
-			},
-		],
-		defaultBaseUrl: DEFAULT_OPENAI_BASE_URL,
-	},
 	{
 		id: ZHIPU_PROVIDER_NAME,
 		label: "Zhipu (智谱)",
