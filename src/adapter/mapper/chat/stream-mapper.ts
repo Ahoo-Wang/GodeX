@@ -85,11 +85,7 @@ export class ChatStreamMapper<TChunk, TDelta, TFinishReason extends string>
 
 		if (choice.finishReason) {
 			events.push(
-				...state.onFinish(
-					this.options.finishReason.map(choice.finishReason) as Parameters<
-						typeof state.onFinish
-					>[0],
-				),
+				...state.onFinish(this.options.finishReason.map(choice.finishReason)),
 			);
 		}
 

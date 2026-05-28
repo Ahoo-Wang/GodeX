@@ -83,6 +83,27 @@ describe("chat mapper contracts", () => {
 		);
 	});
 
+	test("finish reason mapper contracts only allow terminal response statuses", () => {
+		const completed = { status: "completed" } satisfies ResponseStatusFields;
+		const incomplete = {
+			status: "incomplete",
+			incomplete_details: { reason: "max_output_tokens" },
+		} satisfies ResponseStatusFields;
+		const failed = {
+			status: "failed",
+			error: { code: "server_error", message: "upstream failed" },
+		} satisfies ResponseStatusFields;
+		// @ts-expect-error finish-reason mapping must not emit non-terminal statuses.
+		const queued: ResponseStatusFields = { status: "queued" };
+
+		expect([completed.status, incomplete.status, failed.status]).toEqual([
+			"completed",
+			"incomplete",
+			"failed",
+		]);
+		void queued;
+	});
+
 	test("usage mapper source type is independent of response source type", () => {
 		const usageMapper: ChatUsageMapper<{ custom_usage: { total: number } }> = {
 			map: (source) => ({

@@ -18,6 +18,7 @@ import type {
 } from "../../../protocol/openai/responses";
 import type { ResponseError } from "../../../protocol/openai/shared";
 import { responseRequestEchoFields } from "../../response-utils";
+import type { ResponseStatusFields } from "./response-object-builder";
 import {
 	contentPart,
 	type MessageBlock,
@@ -55,12 +56,7 @@ export interface ToolCallSnapshot {
 
 export type ToolCallOutputItemMapper = (call: ToolCallSnapshot) => ResponseItem;
 
-export type StreamResponseTerminalStatus = Pick<
-	ResponseObject,
-	"status" | "error" | "incomplete_details"
-> & {
-	status: "completed" | "incomplete" | "failed";
-};
+export type StreamResponseTerminalStatus = ResponseStatusFields;
 
 export interface StreamResponseStateOptions {
 	toolCallOutputItemMapper: ToolCallOutputItemMapper;
@@ -484,9 +480,11 @@ export class StreamResponseState {
 				"finish already requested for this stream response.",
 			);
 		}
+		const nextPhase = terminalPhase(status.status, this.ctx);
+		const terminalType = terminalEventType(status.status, this.ctx);
 		const closeEvents = this.closeAllActiveBlocks();
 		if (!this.options.deferTerminal) {
-			this.currentPhase = terminalPhase(status.status);
+			this.currentPhase = nextPhase;
 			this.refreshSnapshot();
 			this.currentSnapshot = {
 				...this.currentSnapshot,
@@ -495,7 +493,10 @@ export class StreamResponseState {
 			};
 			return [
 				...closeEvents,
-				{ type: terminalEventType(status.status), response: this.snapshot },
+				{
+					type: terminalType,
+					response: this.snapshot,
+				},
 			];
 		}
 		this.pendingTerminal = status;
@@ -549,7 +550,7 @@ export class StreamResponseState {
 	private flushPendingTerminal(): ResponseStreamEvent[] {
 		const status = this.pendingTerminal;
 		if (!status) return [];
-		this.currentPhase = terminalPhase(status.status);
+		this.currentPhase = terminalPhase(status.status, this.ctx);
 		this.pendingTerminal = undefined;
 		this.refreshSnapshot();
 		this.currentSnapshot = {
@@ -558,7 +559,10 @@ export class StreamResponseState {
 			completed_at: this.options.nowSeconds(),
 		};
 		return [
-			{ type: terminalEventType(status.status), response: this.snapshot },
+			{
+				type: terminalEventType(status.status, this.ctx),
+				response: this.snapshot,
+			},
 		];
 	}
 
@@ -809,6 +813,7 @@ function isTerminalPhase(phase: StreamResponsePhase): boolean {
 
 function terminalPhase(
 	status: StreamResponseTerminalStatus["status"],
+	ctx: ResponsesContext,
 ): StreamResponsePhase {
 	switch (status) {
 		case "completed":
@@ -818,12 +823,13 @@ function terminalPhase(
 		case "failed":
 			return StreamResponsePhase.FAILED;
 		default:
-			throw new Error(`Unknown terminal status: ${status}`);
+			throw unknownTerminalStatusError(ctx, status);
 	}
 }
 
 function terminalEventType(
 	status: StreamResponseTerminalStatus["status"],
+	ctx: ResponsesContext,
 ): ResponseStreamEvent["type"] {
 	switch (status) {
 		case "completed":
@@ -833,6 +839,18 @@ function terminalEventType(
 		case "failed":
 			return "response.failed";
 		default:
-			throw new Error(`Unknown terminal status: ${status}`);
+			throw unknownTerminalStatusError(ctx, status);
 	}
+}
+
+function unknownTerminalStatusError(
+	ctx: ResponsesContext,
+	status: never,
+): AdapterError {
+	return streamStateError(
+		ctx,
+		ADAPTER_STREAM_INVALID_TRANSITION,
+		`Unknown stream terminal status: ${String(status)}.`,
+		{ status: String(status) },
+	);
 }

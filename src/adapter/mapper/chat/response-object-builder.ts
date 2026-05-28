@@ -1,14 +1,23 @@
 import type { ResponsesContext } from "../../../context/responses-context";
 import type {
+	ResponseIncompleteDetails,
 	ResponseObject,
+	ResponseStatus,
 	ResponseUsage,
 } from "../../../protocol/openai/responses";
+import type { ResponseError } from "../../../protocol/openai/shared";
 import { responseRequestEchoFields } from "../../response-utils";
 
-export type ResponseStatusFields = Pick<
-	ResponseObject,
-	"status" | "error" | "incomplete_details"
+export type TerminalResponseStatus = Extract<
+	ResponseStatus,
+	"completed" | "incomplete" | "failed"
 >;
+
+export interface ResponseStatusFields {
+	status: TerminalResponseStatus;
+	error?: ResponseError | null;
+	incomplete_details?: ResponseIncompleteDetails | null;
+}
 
 export interface ResponseObjectParts {
 	output?: ResponseObject["output"];
