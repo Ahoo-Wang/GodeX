@@ -496,6 +496,11 @@ describe("buildResponseObject", () => {
 		expect(searchItem).toBeDefined();
 		if (searchItem && searchItem.type === "web_search_call") {
 			expect(searchItem.status).toBe("completed");
+			expect(searchItem.action).toEqual({
+				type: "search",
+				query: "",
+				sources: [{ type: "url", url: "https://example.com" }],
+			});
 		}
 	});
 

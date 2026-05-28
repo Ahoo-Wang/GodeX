@@ -4,21 +4,21 @@ import {
 } from "../../../adapter/mapper/chat/compatibility-plan";
 import type { CompatibilityNegotiator } from "../../../adapter/mapper/chat/contract";
 import type { ResponsesContext } from "../../../context/responses-context";
-import {
-	ADAPTER_REQUEST_UNSUPPORTED_PARAMETER,
-	AdapterError,
-} from "../../../error";
 import { DEEPSEEK_CAPABILITIES } from "./capabilities";
 
 export class DeepSeekCompatibilityNegotiator
 	implements CompatibilityNegotiator
 {
 	negotiate(ctx: ResponsesContext): CompatibilityPlan {
-		rejectWhen(ctx.request.background === true, "background", ctx);
-		rejectWhen(ctx.request.conversation !== undefined, "conversation", ctx);
-		rejectWhen(ctx.request.prompt !== undefined, "prompt", ctx);
-
 		const plan = supportedPlan(DEEPSEEK_CAPABILITIES);
+		warnIgnored(ctx, plan, "background", ctx.request.background === true);
+		warnIgnored(
+			ctx,
+			plan,
+			"conversation",
+			ctx.request.conversation !== undefined,
+		);
+		warnIgnored(ctx, plan, "prompt", ctx.request.prompt !== undefined);
 		warnIgnored(ctx, plan, "truncation", ctx.request.truncation === "auto");
 		warnIgnored(
 			ctx,
@@ -59,23 +59,6 @@ export class DeepSeekCompatibilityNegotiator
 		);
 		return plan;
 	}
-}
-
-function rejectWhen(
-	condition: boolean,
-	field: string,
-	ctx: ResponsesContext,
-): void {
-	if (!condition) return;
-	throw new AdapterError(
-		ADAPTER_REQUEST_UNSUPPORTED_PARAMETER,
-		`Unsupported Responses parameter for DeepSeek: ${field}.`,
-		{
-			provider: ctx.resolved.provider,
-			model: ctx.resolved.model,
-			parameter: field,
-		},
-	);
 }
 
 function warnIgnored(

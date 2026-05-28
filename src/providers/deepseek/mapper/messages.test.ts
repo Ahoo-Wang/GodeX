@@ -5,6 +5,7 @@ import type { ResponsesContext } from "../../../context/responses-context";
 import { createLogger } from "../../../logger";
 import type { ResponseCreateRequest } from "../../../protocol/openai/responses";
 import type { ResponseSessionSnapshot } from "../../../session";
+import { describeCurrentInputContentCompatibility } from "../../shared/compatibility-test-suite";
 import type { ChatCompletionRequest } from "../protocol/completions";
 import { createDeepSeekMapper } from "./index";
 
@@ -33,10 +34,26 @@ function ctx(
 	} as unknown as ResponsesContext;
 }
 
+const requestMapper = createDeepSeekMapper().request;
+const mapRequest = (c: ResponsesContext): ChatCompletionRequest =>
+	requestMapper.map(c) as ChatCompletionRequest;
+
 function mapMessages(c: ResponsesContext) {
-	return (createDeepSeekMapper().request.map(c) as ChatCompletionRequest)
-		.messages;
+	return mapRequest(c).messages;
 }
+
+const mapCompatibilityRequest = (partial: Partial<ResponseCreateRequest>) => {
+	const c = ctx(partial);
+	return { request: mapRequest(c), diagnostics: c.diagnostics };
+};
+
+describeCurrentInputContentCompatibility<ChatCompletionRequest>({
+	provider: "DeepSeek",
+	mapRequest: mapCompatibilityRequest,
+	getUserMessageContent(request) {
+		return request.messages.find((message) => message.role === "user")?.content;
+	},
+});
 
 describe("DeepSeek messages", () => {
 	test("maps instructions and string input", () => {

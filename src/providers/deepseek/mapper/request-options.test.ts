@@ -2,7 +2,6 @@ import { describe, expect, test } from "bun:test";
 import type { CompatibilityDiagnostic } from "../../../adapter/compatibility";
 import type { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";
-import { AdapterError } from "../../../error";
 import { createLogger } from "../../../logger";
 import type { ResponseCreateRequest } from "../../../protocol/openai/responses";
 import type { ChatCompletionRequest } from "../protocol/completions";
@@ -105,13 +104,18 @@ describe("DeepSeek request mapping", () => {
 		expect(c.diagnostics.some((d) => d.path === "text.format")).toBe(true);
 	});
 
-	test("rejects unsupported hard parameters", () => {
-		expect(() => mapRequest(ctx({ background: true }))).toThrow(AdapterError);
-		expect(() => mapRequest(ctx({ conversation: "conv_1" }))).toThrow(
-			AdapterError,
-		);
-		expect(() => mapRequest(ctx({ prompt: { id: "pmpt_1" } }))).toThrow(
-			AdapterError,
+	test("warns and ignores unsupported hard parameters", () => {
+		const c = ctx({
+			background: true,
+			conversation: "conv_1",
+			prompt: { id: "pmpt_1" },
+		});
+
+		const result = mapRequest(c);
+
+		expect(result.messages).toEqual([{ role: "user", content: "Hello" }]);
+		expect(c.diagnostics.map((d) => d.path)).toEqual(
+			expect.arrayContaining(["background", "conversation", "prompt"]),
 		);
 	});
 

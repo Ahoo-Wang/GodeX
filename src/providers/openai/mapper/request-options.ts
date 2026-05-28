@@ -26,7 +26,7 @@ export class OpenAIRequestOptionsMapper
 {
 	apply(
 		ctx: ResponsesContext,
-		_plan: CompatibilityPlan,
+		plan: CompatibilityPlan,
 		request: ChatCompletionCreateRequest,
 	): void {
 		const req = ctx.request;
@@ -74,7 +74,7 @@ export class OpenAIRequestOptionsMapper
 			request.verbosity = req.text.verbosity;
 
 		if (req.tools && req.tools.length > 0) {
-			const mapped = getOpenAIMappedTools(ctx);
+			const mapped = getOpenAIMappedTools(ctx, plan);
 			if (mapped.webSearchOptions)
 				request.web_search_options = mapped.webSearchOptions;
 		}

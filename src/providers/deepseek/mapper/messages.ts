@@ -6,6 +6,7 @@ import type {
 	ResponseItem,
 } from "../../../protocol/openai/responses";
 import type { ResponseSessionSnapshot } from "../../../session";
+import { warnUnsupportedCurrentInputContent } from "../../shared/input-compatibility";
 import {
 	convertResponseItemToMessage,
 	extractResponseText,
@@ -24,6 +25,7 @@ export class DeepSeekMessageMapper
 	implements ChatMessageMapper<DeepSeekMessage>
 {
 	map(ctx: ResponsesContext, _plan: CompatibilityPlan): DeepSeekMessage[] {
+		warnUnsupportedCurrentInputContent(ctx, { providerLabel: "DeepSeek" });
 		return buildDeepSeekMessages(ctx.request, ctx.session);
 	}
 }

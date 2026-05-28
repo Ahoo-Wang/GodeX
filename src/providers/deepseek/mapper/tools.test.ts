@@ -5,6 +5,7 @@ import type { ResponsesContext } from "../../../context/responses-context";
 import { AdapterError } from "../../../error";
 import { createLogger } from "../../../logger";
 import type { ResponseCreateRequest } from "../../../protocol/openai/responses";
+import { describeUnsupportedToolCompatibility } from "../../shared/compatibility-test-suite";
 import type { ChatCompletionRequest } from "../protocol/completions";
 import { createDeepSeekMapper } from "./index";
 
@@ -33,6 +34,22 @@ function ctx(partial: Partial<ResponseCreateRequest> = {}): ResponsesContext {
 
 const mapRequest = (c: ResponsesContext): ChatCompletionRequest =>
 	createDeepSeekMapper().request.map(c) as ChatCompletionRequest;
+const mapCompatibilityRequest = (partial: Partial<ResponseCreateRequest>) => {
+	const c = ctx(partial);
+	return { request: mapRequest(c), diagnostics: c.diagnostics };
+};
+
+describeUnsupportedToolCompatibility<ChatCompletionRequest>({
+	provider: "DeepSeek",
+	mapRequest: mapCompatibilityRequest,
+	unsupportedTool: {
+		type: "code_interpreter",
+		container: { type: "auto" },
+	},
+	expectNoProviderTools(request) {
+		expect(request.tools).toBeUndefined();
+	},
+});
 
 describe("DeepSeek tools", () => {
 	test("maps function tools and preserves strict mode", () => {
