@@ -15,15 +15,6 @@ export interface TraceRequestRow {
 	stream: boolean;
 	created_at: number;
 	requested_prompt_cache_key?: string | null;
-	requested_prompt_cache_retention?: string | null;
-	prompt_cache_key?: string | null;
-	prompt_cache_retention?: string | null;
-	prefix_hash?: string | null;
-	prefix_bytes?: number | null;
-	cache_risk_level?: string | null;
-	cache_risk_reasons_json?: string | null;
-	tool_fingerprint_json?: string | null;
-	passthrough_json?: string | null;
 	payload_hash?: string | null;
 	payload_bytes?: number | null;
 	payload_json?: string | null;
@@ -41,9 +32,6 @@ export interface TraceUsageRow {
 	total_tokens?: number | null;
 	cached_tokens?: number | null;
 	cache_hit_ratio?: number | null;
-	cache_creation_input_tokens?: number | null;
-	cache_read_input_tokens?: number | null;
-	raw_usage_json?: string | null;
 }
 
 export interface TraceEventRow {
@@ -101,15 +89,6 @@ export class SQLiteTraceStore {
                 stream INTEGER NOT NULL,
                 created_at INTEGER NOT NULL,
                 requested_prompt_cache_key TEXT NULL,
-                requested_prompt_cache_retention TEXT NULL,
-                prompt_cache_key TEXT NULL,
-                prompt_cache_retention TEXT NULL,
-                prefix_hash TEXT NULL,
-                prefix_bytes INTEGER NULL,
-                cache_risk_level TEXT NULL,
-                cache_risk_reasons_json TEXT NULL,
-                tool_fingerprint_json TEXT NULL,
-                passthrough_json TEXT NULL,
                 payload_hash TEXT NULL,
                 payload_bytes INTEGER NULL,
                 payload_json TEXT NULL,
@@ -117,10 +96,8 @@ export class SQLiteTraceStore {
             );
             CREATE INDEX IF NOT EXISTS idx_trace_requests_request_id
                 ON trace_requests(request_id);
-            CREATE INDEX IF NOT EXISTS idx_trace_requests_requested_cache_identity
-                ON trace_requests(provider, model, requested_prompt_cache_key, created_at);
-            CREATE INDEX IF NOT EXISTS idx_trace_requests_provider_cache_identity
-                ON trace_requests(provider, model, prompt_cache_key, created_at);
+            CREATE INDEX IF NOT EXISTS idx_trace_requests_response_id
+                ON trace_requests(response_id);
             CREATE TABLE IF NOT EXISTS trace_usage (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 request_id TEXT NOT NULL,
@@ -132,10 +109,7 @@ export class SQLiteTraceStore {
                 output_tokens INTEGER NULL,
                 total_tokens INTEGER NULL,
                 cached_tokens INTEGER NULL,
-                cache_hit_ratio REAL NULL,
-                cache_creation_input_tokens INTEGER NULL,
-                cache_read_input_tokens INTEGER NULL,
-                raw_usage_json TEXT NULL
+                cache_hit_ratio REAL NULL
             );
             CREATE INDEX IF NOT EXISTS idx_trace_usage_request_id
                 ON trace_usage(request_id);
@@ -167,18 +141,12 @@ export class SQLiteTraceStore {
 				.query(
 					`INSERT INTO trace_requests (
                     request_id, response_id, provider, model, stream, created_at,
-                    requested_prompt_cache_key, requested_prompt_cache_retention,
-                    prompt_cache_key, prompt_cache_retention, prefix_hash, prefix_bytes,
-                    cache_risk_level, cache_risk_reasons_json, tool_fingerprint_json,
-                    passthrough_json, payload_hash, payload_bytes, payload_json,
-                    payload_truncated
+                    requested_prompt_cache_key, payload_hash, payload_bytes,
+                    payload_json, payload_truncated
                 ) VALUES (
                     $request_id, $response_id, $provider, $model, $stream, $created_at,
-                    $requested_prompt_cache_key, $requested_prompt_cache_retention,
-                    $prompt_cache_key, $prompt_cache_retention, $prefix_hash, $prefix_bytes,
-                    $cache_risk_level, $cache_risk_reasons_json, $tool_fingerprint_json,
-                    $passthrough_json, $payload_hash, $payload_bytes, $payload_json,
-                    $payload_truncated
+                    $requested_prompt_cache_key, $payload_hash, $payload_bytes,
+                    $payload_json, $payload_truncated
                 )`,
 				)
 				.run({
@@ -189,16 +157,6 @@ export class SQLiteTraceStore {
 					stream: values.stream ? 1 : 0,
 					created_at: values.created_at,
 					requested_prompt_cache_key: values.requested_prompt_cache_key ?? null,
-					requested_prompt_cache_retention:
-						values.requested_prompt_cache_retention ?? null,
-					prompt_cache_key: values.prompt_cache_key ?? null,
-					prompt_cache_retention: values.prompt_cache_retention ?? null,
-					prefix_hash: values.prefix_hash ?? null,
-					prefix_bytes: values.prefix_bytes ?? null,
-					cache_risk_level: values.cache_risk_level ?? null,
-					cache_risk_reasons_json: values.cache_risk_reasons_json ?? null,
-					tool_fingerprint_json: values.tool_fingerprint_json ?? null,
-					passthrough_json: values.passthrough_json ?? null,
 					payload_hash: values.payload_hash ?? null,
 					payload_bytes: values.payload_bytes ?? null,
 					payload_json: values.payload_json ?? null,
@@ -213,13 +171,11 @@ export class SQLiteTraceStore {
 					`INSERT INTO trace_usage (
                     request_id, response_id, provider, model, created_at,
                     input_tokens, output_tokens, total_tokens, cached_tokens,
-                    cache_hit_ratio, cache_creation_input_tokens,
-                    cache_read_input_tokens, raw_usage_json
+                    cache_hit_ratio
                 ) VALUES (
                     $request_id, $response_id, $provider, $model, $created_at,
                     $input_tokens, $output_tokens, $total_tokens, $cached_tokens,
-                    $cache_hit_ratio, $cache_creation_input_tokens,
-                    $cache_read_input_tokens, $raw_usage_json
+                    $cache_hit_ratio
 	                )`,
 				)
 				.run({
@@ -233,10 +189,6 @@ export class SQLiteTraceStore {
 					total_tokens: values.total_tokens ?? null,
 					cached_tokens: values.cached_tokens ?? null,
 					cache_hit_ratio: values.cache_hit_ratio ?? null,
-					cache_creation_input_tokens:
-						values.cache_creation_input_tokens ?? null,
-					cache_read_input_tokens: values.cache_read_input_tokens ?? null,
-					raw_usage_json: values.raw_usage_json ?? null,
 				});
 			return;
 		}

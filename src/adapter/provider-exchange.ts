@@ -1,6 +1,6 @@
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
 import type { ResponsesContext } from "../context/responses-context";
-import { analyzePromptCache, recordTraceEvent } from "../trace";
+import { recordTraceEvent, recordTraceRequest } from "../trace";
 
 export interface ProviderRequestExchangeResult<ProviderResponse = unknown> {
 	providerResponse: ProviderResponse;
@@ -16,7 +16,7 @@ export class ProviderExchange {
 	async request(ctx: ResponsesContext): Promise<ProviderRequestExchangeResult> {
 		const { mapper, client } = ctx.provider;
 		const providerRequest = await mapper.request.map(ctx);
-		analyzePromptCache(ctx, providerRequest);
+		recordTraceRequest(ctx, false, providerRequest);
 		recordTraceEvent(ctx, "provider.request.body", providerRequest);
 		ctx.logger.debug("provider.request.sending", () => ({
 			provider: ctx.resolved.provider,
@@ -39,7 +39,7 @@ export class ProviderExchange {
 	async stream(ctx: ResponsesContext): Promise<ProviderStreamExchangeResult> {
 		const { mapper, client } = ctx.provider;
 		const providerRequest = await mapper.request.map(ctx);
-		analyzePromptCache(ctx, providerRequest);
+		recordTraceRequest(ctx, true, providerRequest);
 		recordTraceEvent(ctx, "provider.request.body", providerRequest);
 		ctx.logger.debug("provider.request.sending", () => ({
 			provider: ctx.resolved.provider,

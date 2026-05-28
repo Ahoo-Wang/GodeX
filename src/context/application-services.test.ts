@@ -41,9 +41,6 @@ describe("createApplicationServices", () => {
 		expect(services.sessionStore).toBeInstanceOf(MemoryResponseSessionStore);
 		expect(services.traceEnabled).toBe(false);
 		expect(services.traceRecorder).toBeInstanceOf(NoopTraceRecorder);
-		expect(services.promptCacheRequestAnalyzer).toBeDefined();
-		expect(services.promptCacheDetector).toBeDefined();
-		expect(services.promptCacheObservationIndex).toBeDefined();
 	});
 
 	test("reuses a supplied registrar", () => {

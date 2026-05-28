@@ -80,49 +80,6 @@ function createMockCtx(
 					traceEvents.push(event);
 				},
 			},
-			promptCacheRequestAnalyzer: {
-				analyze: (input: {
-					request: unknown;
-					providerRequest: unknown;
-					provider?: string;
-					model?: string;
-				}) => ({
-					provider: input.provider ?? "mock",
-					model: input.model ?? "test",
-					requested_prompt_cache_key: (input.request as Record<string, unknown>)
-						?.prompt_cache_key as string | undefined,
-					requested_prompt_cache_retention: (
-						input.request as Record<string, unknown>
-					)?.prompt_cache_retention as string | undefined,
-					prompt_cache_key: (input.providerRequest as Record<string, unknown>)
-						?.prompt_cache_key as string | undefined,
-					prompt_cache_retention: (
-						input.providerRequest as Record<string, unknown>
-					)?.prompt_cache_retention as string | undefined,
-					has_cache_control: false,
-					prefix_parts: [],
-					static_prefix_hash: "hash",
-					static_prefix_bytes: 0,
-					dynamic_text_candidates: [],
-				}),
-			},
-			promptCacheDetector: {
-				detect: () => ({
-					risk_level: "none" as const,
-					reasons: [],
-					prefix_hash: "hash",
-					prefix_bytes: 0,
-					passthrough: {
-						prompt_cache_key: true,
-						prompt_cache_retention: true,
-						cache_control: false,
-					},
-				}),
-			},
-			promptCacheObservationIndex: {
-				get: () => null,
-				remember: () => {},
-			},
 		},
 		logger,
 		request: { model: "mock/test", input: "hello", store: true },
@@ -167,7 +124,7 @@ describe("ProviderExchange", () => {
 		expect(result.providerResponse).toBe(providerResponse);
 	});
 
-	test("records prompt-cache request trace, provider response trace, and sync logs", async () => {
+	test("records provider request and response payload events", async () => {
 		const providerRequest = { model: "test", prompt_cache_key: "cache" };
 		const providerResponse = { id: "upstream", usage: { prompt_tokens: 1 } };
 		const provider = createMockProvider(providerRequest, providerResponse);

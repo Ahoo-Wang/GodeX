@@ -9,7 +9,7 @@ export function parseTraceConfig(raw: unknown): TraceConfig {
 	}
 
 	const trace = asConfigObject(raw);
-	const enabled = trace.enabled === true;
+	const enabled = trace.enabled !== false;
 	return {
 		enabled,
 		path:
@@ -38,7 +38,7 @@ export function parseTraceConfig(raw: unknown): TraceConfig {
 
 function defaultTraceConfig(): TraceConfig {
 	return {
-		enabled: false,
+		enabled: true,
 		path: resolveDefaultTracePath(),
 		max_queue_size: 10000,
 		flush_interval_ms: 1000,

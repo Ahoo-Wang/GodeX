@@ -18,23 +18,6 @@ describe("traceUsageFromResponseUsage", () => {
 		});
 	});
 
-	test("extracts Anthropic-style raw usage fields", () => {
-		const usage = traceUsageFromResponseUsage(
-			{
-				input_tokens: 100,
-				output_tokens: 20,
-				total_tokens: 120,
-			},
-			{
-				cache_creation_input_tokens: 12,
-				cache_read_input_tokens: 34,
-			},
-		);
-		expect(usage).not.toBeNull();
-		expect(usage?.cache_creation_input_tokens).toBe(12);
-		expect(usage?.cache_read_input_tokens).toBe(34);
-	});
-
 	test("returns null for missing response usage", () => {
 		expect(traceUsageFromResponseUsage(null)).toBeNull();
 		expect(traceUsageFromResponseUsage(undefined)).toBeNull();

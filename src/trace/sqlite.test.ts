@@ -13,13 +13,48 @@ describe("SQLiteTraceStore", () => {
 		expect(tables).toContain("trace_events");
 		expect(tables).toContain("trace_requests");
 		expect(tables).toContain("trace_usage");
+		const requestColumns = store.db
+			.query<{ name: string }, []>("PRAGMA table_info(trace_requests)")
+			.all()
+			.map((row) => row.name);
+		expect(requestColumns).toEqual([
+			"id",
+			"request_id",
+			"response_id",
+			"provider",
+			"model",
+			"stream",
+			"created_at",
+			"requested_prompt_cache_key",
+			"payload_hash",
+			"payload_bytes",
+			"payload_json",
+			"payload_truncated",
+		]);
+		const usageColumns = store.db
+			.query<{ name: string }, []>("PRAGMA table_info(trace_usage)")
+			.all()
+			.map((row) => row.name);
+		expect(usageColumns).toEqual([
+			"id",
+			"request_id",
+			"response_id",
+			"provider",
+			"model",
+			"created_at",
+			"input_tokens",
+			"output_tokens",
+			"total_tokens",
+			"cached_tokens",
+			"cache_hit_ratio",
+		]);
 		const indexes = store.db
 			.query<{ name: string }, []>(
 				"SELECT name FROM sqlite_master WHERE type = 'index' ORDER BY name",
 			)
 			.all()
 			.map((row) => row.name);
-		expect(indexes).toContain("idx_trace_requests_requested_cache_identity");
+		expect(indexes).toContain("idx_trace_requests_request_id");
 		expect(indexes).toContain("idx_trace_events_request_id_sequence");
 		store.close();
 	});
@@ -36,13 +71,6 @@ describe("SQLiteTraceStore", () => {
 				stream: false,
 				created_at: 1000,
 				requested_prompt_cache_key: "client-key",
-				prompt_cache_key: "client-key",
-				prefix_hash: "abc",
-				prefix_bytes: 10,
-				cache_risk_level: "none",
-				cache_risk_reasons_json: "[]",
-				tool_fingerprint_json: null,
-				passthrough_json: '{"prompt_cache_key":true}',
 				payload_hash: "hash",
 				payload_bytes: 2,
 				payload_json: null,
@@ -60,9 +88,6 @@ describe("SQLiteTraceStore", () => {
 				total_tokens: 120,
 				cached_tokens: 40,
 				cache_hit_ratio: 0.4,
-				cache_creation_input_tokens: 12,
-				cache_read_input_tokens: 34,
-				raw_usage_json: '{"total_tokens":120}',
 			},
 			{
 				table: "events",
@@ -78,8 +103,12 @@ describe("SQLiteTraceStore", () => {
 			},
 		]);
 		expect(
-			store.db.query("SELECT count(*) AS count FROM trace_requests").get(),
-		).toMatchObject({ count: 1 });
+			store.db
+				.query(
+					"SELECT count(*) AS count, requested_prompt_cache_key FROM trace_requests",
+				)
+				.get(),
+		).toMatchObject({ count: 1, requested_prompt_cache_key: "client-key" });
 		expect(
 			store.db.query("SELECT cached_tokens FROM trace_usage").get(),
 		).toMatchObject({ cached_tokens: 40 });
@@ -114,18 +143,11 @@ describe("SQLiteTraceStore", () => {
 
 		expect(
 			store.db
-				.query(
-					`SELECT cached_tokens, cache_hit_ratio, cache_creation_input_tokens,
-						cache_read_input_tokens, raw_usage_json
-					FROM trace_usage`,
-				)
+				.query("SELECT cached_tokens, cache_hit_ratio FROM trace_usage")
 				.get(),
 		).toEqual({
 			cached_tokens: null,
 			cache_hit_ratio: null,
-			cache_creation_input_tokens: null,
-			cache_read_input_tokens: null,
-			raw_usage_json: null,
 		});
 		expect(
 			store.db

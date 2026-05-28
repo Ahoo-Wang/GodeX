@@ -50,7 +50,12 @@ function terminalEvent(
 			status,
 			model: "glm-4",
 			output: [{ type: "message", role: "assistant", content: [] }],
-			usage: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
+			usage: {
+				input_tokens: 10,
+				output_tokens: 20,
+				total_tokens: 30,
+				input_tokens_details: { cached_tokens: 2 },
+			},
 		} as ResponseObject,
 	};
 }
@@ -102,6 +107,7 @@ describe("ResponseLogTransformer", () => {
 			outputCount: 1,
 			streamEventCount: 1,
 			usage: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
+			cacheHitRatio: 0.2,
 		});
 	});
 

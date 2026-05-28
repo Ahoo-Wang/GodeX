@@ -4,7 +4,7 @@ import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../../protocol/openai/responses";
-import { recordTraceUsage } from "../../trace";
+import { cacheHitRatioFromResponseUsage, recordTraceUsage } from "../../trace";
 import {
 	StreamResponsePhase,
 	StreamResponseState,
@@ -54,6 +54,8 @@ export class ResponseLogTransformer extends SafeTransformer<
 			model: this.ctx.resolved.model,
 			outputCount,
 			durationMillis: Date.now() - this.ctx.createdAt * 1000,
+			usage: state.snapshot.usage,
+			cacheHitRatio: cacheHitRatioFromResponseUsage(state.snapshot.usage),
 			upstreamLatencyMillis: this.ctx.attributes.get(
 				ATTR_UPSTREAM_LATENCY_MILLIS,
 			),
@@ -73,6 +75,7 @@ export class ResponseLogTransformer extends SafeTransformer<
 			outputCount: response.output.length,
 			durationMillis: Date.now() - this.ctx.createdAt * 1000,
 			usage: response.usage,
+			cacheHitRatio: cacheHitRatioFromResponseUsage(response.usage),
 			upstreamLatencyMillis: this.ctx.attributes.get(
 				ATTR_UPSTREAM_LATENCY_MILLIS,
 			),
