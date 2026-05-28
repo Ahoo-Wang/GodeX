@@ -56,10 +56,18 @@ export function buildZhipuOutputItems(
 	}
 
 	if (zhipuRes.web_search && zhipuRes.web_search.length > 0) {
+		const sources = zhipuRes.web_search
+			.map((result) => result.link)
+			.filter((url): url is string => typeof url === "string" && url.length > 0)
+			.map((url) => ({ type: "url" as const, url }));
 		output.push({
 			id: `ws_${ctx.responseId}`,
 			type: "web_search_call",
-			action: { type: "search", query: "" },
+			action: {
+				type: "search",
+				query: "",
+				...(sources.length > 0 ? { sources } : {}),
+			},
 			status: "completed",
 		});
 	}

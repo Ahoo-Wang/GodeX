@@ -1,11 +1,15 @@
 import { describe, expect, test } from "bun:test";
+import type { CompatibilityDiagnostic } from "../../../adapter/compatibility";
 import type { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";
 import { createLogger } from "../../../logger";
 import type { ChatCompletionCreateRequest } from "../../../protocol/openai/completions";
+import type { ResponseCreateRequest } from "../../../protocol/openai/responses";
+import { describeUnsupportedToolCompatibility } from "../../shared/compatibility-test-suite";
 import { createOpenAIMapper } from "./index";
 
-function ctx(partial: Record<string, unknown> = {}): ResponsesContext {
+function ctx(partial: Partial<ResponseCreateRequest> = {}): ResponsesContext {
+	const diagnostics: CompatibilityDiagnostic[] = [];
 	return {
 		request: {
 			model: "gpt-4o",
@@ -23,15 +27,35 @@ function ctx(partial: Record<string, unknown> = {}): ResponsesContext {
 			mapper: {} as never,
 			client: {} as never,
 		},
+		diagnostics,
+		addDiagnostic(d: CompatibilityDiagnostic) {
+			diagnostics.push(d);
+		},
 		attributes: new Map(),
 	} as unknown as ResponsesContext;
 }
 
-describe("buildOpenAIRequest", () => {
-	const mapper = createOpenAIMapper();
-	const mapRequest = (c: ResponsesContext): ChatCompletionCreateRequest =>
-		mapper.request.map(c) as ChatCompletionCreateRequest;
+const mapper = createOpenAIMapper();
+const mapRequest = (c: ResponsesContext): ChatCompletionCreateRequest =>
+	mapper.request.map(c) as ChatCompletionCreateRequest;
+const mapCompatibilityRequest = (partial: Partial<ResponseCreateRequest>) => {
+	const c = ctx(partial);
+	return { request: mapRequest(c), diagnostics: c.diagnostics };
+};
 
+describeUnsupportedToolCompatibility<ChatCompletionCreateRequest>({
+	provider: "OpenAI",
+	mapRequest: mapCompatibilityRequest,
+	unsupportedTool: {
+		type: "code_interpreter",
+		container: { type: "auto" },
+	},
+	expectNoProviderTools(request) {
+		expect(request.tools).toBeUndefined();
+	},
+});
+
+describe("buildOpenAIRequest", () => {
 	test("converts basic text request", () => {
 		const result = mapRequest(ctx({ input: "Hello" }));
 
@@ -164,9 +188,62 @@ describe("buildOpenAIRequest", () => {
 	});
 
 	test("maps web_search tool to web_search_options", () => {
+		const c = ctx({
+			input: "Hi",
+			tools: [
+				{
+					type: "web_search",
+					search_context_size: "high",
+				},
+			],
+		});
+		const result = mapRequest(c);
+
+		expect(result.web_search_options).toEqual({
+			search_context_size: "high",
+		});
+		expect(result.tools).toBeUndefined();
+		expect(c.diagnostics).toContainEqual(
+			expect.objectContaining({
+				code: "adapter.tool.degraded",
+				severity: "warn",
+				path: "tools[type=web_search]",
+				action: "degraded",
+			}),
+		);
+	});
+
+	test("uses the actual web_search variant in degradation diagnostics", () => {
+		const c = ctx({
+			input: "Hi",
+			tools: [
+				{
+					type: "web_search_preview_2025_03_11",
+					search_context_size: "medium",
+				},
+			],
+		});
+
+		const result = mapRequest(c);
+
+		expect(result.web_search_options).toEqual({
+			search_context_size: "medium",
+		});
+		expect(c.diagnostics).toContainEqual(
+			expect.objectContaining({
+				code: "adapter.tool.degraded",
+				path: "tools[type=web_search_preview_2025_03_11]",
+				message: expect.stringContaining("web_search_preview_2025_03_11"),
+				metadata: { toolType: "web_search_preview_2025_03_11" },
+			}),
+		);
+	});
+
+	test('omits web_search_options when tool_choice "none" disables tools', () => {
 		const result = mapRequest(
 			ctx({
 				input: "Hi",
+				tool_choice: "none",
 				tools: [
 					{
 						type: "web_search",
@@ -176,10 +253,38 @@ describe("buildOpenAIRequest", () => {
 			}),
 		);
 
+		expect(result.web_search_options).toBeUndefined();
+		expect(result.tools).toBeUndefined();
+		expect(result.tool_choice).toBeUndefined();
+	});
+
+	test("omits unsupported tool_choice when only web_search sidecar remains", () => {
+		const c = ctx({
+			input: "Hi",
+			tool_choice: "required",
+			tools: [
+				{
+					type: "web_search",
+					search_context_size: "high",
+				},
+			],
+		});
+
+		const result = mapRequest(c);
+
 		expect(result.web_search_options).toEqual({
 			search_context_size: "high",
 		});
 		expect(result.tools).toBeUndefined();
+		expect(result.tool_choice).toBeUndefined();
+		expect(c.diagnostics).toContainEqual(
+			expect.objectContaining({
+				code: "adapter.param.unsupported",
+				severity: "warn",
+				path: "tool_choice",
+				action: "ignored",
+			}),
+		);
 	});
 
 	test("maps OpenAI tools once while applying tool sidecar options", () => {
@@ -188,7 +293,7 @@ describe("buildOpenAIRequest", () => {
 			{
 				type: "web_search",
 				search_context_size: "high",
-			},
+			} as const,
 			{
 				get(target, property, receiver) {
 					if (property === "type") typeReads += 1;

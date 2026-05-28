@@ -6,6 +6,10 @@ import type { ResponsesContext } from "../../../context/responses-context";
 import { AdapterError } from "../../../error";
 import { createLogger, type Logger } from "../../../logger";
 import type { ResponseCreateRequest } from "../../../protocol/openai/responses";
+import {
+	describeCurrentInputContentCompatibility,
+	describeUnsupportedToolCompatibility,
+} from "../../shared/compatibility-test-suite";
 import type { ChatCompletionTextRequest } from "../protocol/completions";
 import { createZhipuMapper } from "./index";
 
@@ -39,6 +43,30 @@ function ctx(
 const requestMapper = createZhipuMapper().request;
 const mapRequest = (c: ResponsesContext): ChatCompletionTextRequest =>
 	requestMapper.map(c) as ChatCompletionTextRequest;
+const mapCompatibilityRequest = (partial: Partial<ResponseCreateRequest>) => {
+	const c = ctx(partial);
+	return { request: mapRequest(c), diagnostics: c.diagnostics };
+};
+
+describeCurrentInputContentCompatibility<ChatCompletionTextRequest>({
+	provider: "Zhipu",
+	mapRequest: mapCompatibilityRequest,
+	getUserMessageContent(request) {
+		return request.messages.find((message) => message.role === "user")?.content;
+	},
+});
+
+describeUnsupportedToolCompatibility<ChatCompletionTextRequest>({
+	provider: "Zhipu",
+	mapRequest: mapCompatibilityRequest,
+	unsupportedTool: {
+		type: "code_interpreter",
+		container: { type: "auto" },
+	},
+	expectNoProviderTools(request) {
+		expect(request.tools).toBeUndefined();
+	},
+});
 
 describe("buildZhipuRequest", () => {
 	test("converts string input to user message", () => {
@@ -228,16 +256,42 @@ describe("buildZhipuRequest", () => {
 		expect(result.stream).toBe(true);
 	});
 
-	test("rejects unsupported Responses request options instead of silently ignoring them", () => {
-		const unsupportedRequests: Array<Partial<ResponseCreateRequest>> = [
-			{ background: true },
-			{ conversation: { id: "conv_1" } },
-			{ prompt: { id: "pmpt_1" } },
-		];
+	test("warns and ignores unsupported hard Responses request options", () => {
+		const testCtx = ctx({
+			input: "Hi",
+			background: true,
+			conversation: { id: "conv_1" },
+			prompt: { id: "pmpt_1" },
+		});
 
-		for (const request of unsupportedRequests) {
-			expect(() => mapRequest(ctx(request))).toThrow(AdapterError);
-		}
+		const result = mapRequest(testCtx);
+
+		expect(result.messages).toEqual([{ role: "user", content: "Hi" }]);
+		expect(testCtx.diagnostics.map((d) => d.path)).toEqual(
+			expect.arrayContaining(["background", "conversation", "prompt"]),
+		);
+		expect(testCtx.diagnostics).toContainEqual(
+			expect.objectContaining({
+				path: "conversation",
+				message: expect.stringContaining("previous_response_id"),
+				metadata: expect.objectContaining({
+					provider: "zhipu",
+					model: "glm-5.1",
+					parameter: "conversation",
+					value: { type: "object", keys: ["id"], id: "conv_1" },
+				}),
+			}),
+		);
+		expect(testCtx.diagnostics).toContainEqual(
+			expect.objectContaining({
+				path: "prompt",
+				message: expect.stringContaining("resolved before reaching"),
+				metadata: expect.objectContaining({
+					parameter: "prompt",
+					value: { type: "object", keys: ["id"], id: "pmpt_1" },
+				}),
+			}),
+		);
 	});
 
 	test("downgrades truncation auto instead of rejecting the request", () => {
@@ -253,6 +307,11 @@ describe("buildZhipuRequest", () => {
 				severity: "warn",
 				path: "truncation",
 				action: "ignored",
+				message: expect.stringContaining("forwarding without truncation"),
+				metadata: expect.objectContaining({
+					parameter: "truncation",
+					value: "auto",
+				}),
 			}),
 		);
 	});
@@ -269,6 +328,11 @@ describe("buildZhipuRequest", () => {
 				severity: "warn",
 				path: "parallel_tool_calls",
 				action: "ignored",
+				message: expect.stringContaining("parallel tool-call control"),
+				metadata: expect.objectContaining({
+					parameter: "parallel_tool_calls",
+					value: true,
+				}),
 			}),
 		);
 	});
@@ -665,28 +729,36 @@ describe("buildZhipuRequest", () => {
 		});
 	});
 
-	test("silently skips unsupported current input content", () => {
-		const request = mapRequest(
-			ctx({
-				input: [
-					{
-						role: "user",
-						content: [
-							{
-								type: "input_image",
-								image_url: "https://example.com/cat.png",
-							},
-							{
-								type: "input_text",
-								text: "Hello",
-							},
-						],
-					},
-				],
+	test("records diagnostics while skipping unsupported current input content", () => {
+		const testCtx = ctx({
+			input: [
+				{
+					role: "user",
+					content: [
+						{
+							type: "input_image",
+							image_url: "https://example.com/cat.png",
+						},
+						{
+							type: "input_text",
+							text: "Hello",
+						},
+					],
+				},
+			],
+		});
+
+		const request = mapRequest(testCtx);
+
+		expect(request.messages).toEqual([{ role: "user", content: "Hello" }]);
+		expect(testCtx.diagnostics).toContainEqual(
+			expect.objectContaining({
+				code: "adapter.input.unsupported_content",
+				severity: "warn",
+				path: "input[0].content[0]",
+				action: "ignored",
 			}),
 		);
-		// Should not throw; unsupported content is silently skipped
-		expect(request).toBeDefined();
 	});
 
 	test("gracefully skips unsupported provider-side tools", () => {

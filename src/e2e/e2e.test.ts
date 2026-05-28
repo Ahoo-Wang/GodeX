@@ -401,7 +401,7 @@ describe("E2E: sync response", () => {
 		expect(body.error.message).toContain("Provider is not registered");
 	});
 
-	test("rejects unsupported Responses parameters before calling upstream", async () => {
+	test("ignores unsupported Responses parameters and still calls upstream", async () => {
 		resetUpstreamRequests();
 		const res = await postResponses({
 			model: "gpt-5",
@@ -409,10 +409,9 @@ describe("E2E: sync response", () => {
 			background: true,
 		});
 
-		expect(res.status).toBe(400);
-		const body = (await res.json()) as { error: { code: string } };
-		expect(body.error.code).toBe("adapter.request.unsupported_parameter");
-		expect(upstreamRequests).toHaveLength(0);
+		expect(res.status).toBe(200);
+		expect(upstreamRequests).toHaveLength(1);
+		expect(lastUpstreamRequest()).not.toHaveProperty("background");
 	});
 
 	test("gracefully skips unsupported tools and still calls upstream", async () => {

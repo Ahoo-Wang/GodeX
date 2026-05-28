@@ -26,19 +26,54 @@ export interface OpenAIMappedTools {
 	webSearchOptions: ChatCompletionWebSearchOptions | undefined;
 }
 
+interface MapOpenAIToolsOptions {
+	supportedToolTypes?: ReadonlySet<string>;
+	onUnsupported?: (type: string) => void;
+	onDegraded?: (type: string) => void;
+}
+
 const OPENAI_MAPPED_TOOLS_ATTRIBUTE = "openai.mapped-tools";
 
-export function getOpenAIMappedTools(ctx: ResponsesContext): OpenAIMappedTools {
+export function getOpenAIMappedTools(
+	ctx: ResponsesContext,
+	plan: CompatibilityPlan,
+): OpenAIMappedTools {
 	const cached = ctx.attributes.get(OPENAI_MAPPED_TOOLS_ATTRIBUTE);
 	if (cached) return cached as OpenAIMappedTools;
 
-	const mapped = mapOpenAITools(ctx.request.tools);
+	const mapped =
+		ctx.request.tool_choice === "none"
+			? { tools: [], webSearchOptions: undefined }
+			: mapOpenAITools(ctx.request.tools, {
+					supportedToolTypes: plan.capabilities.tools.supported,
+					onUnsupported: (type) => {
+						ctx.addDiagnostic({
+							code: "adapter.tool.unsupported",
+							severity: "warn",
+							path: `tools[type=${type}]`,
+							action: "ignored",
+							message: `Tool type '${type}' is not supported by OpenAI Chat Completions mapping; skipped.`,
+							metadata: { toolType: type },
+						});
+					},
+					onDegraded: (type) => {
+						ctx.addDiagnostic({
+							code: "adapter.tool.degraded",
+							severity: "warn",
+							path: `tools[type=${type}]`,
+							action: "degraded",
+							message: `Responses tool '${type}' was mapped to OpenAI Chat Completions web_search_options.`,
+							metadata: { toolType: type },
+						});
+					},
+				});
 	ctx.attributes.set(OPENAI_MAPPED_TOOLS_ATTRIBUTE, mapped);
 	return mapped;
 }
 
 export function mapOpenAITools(
 	tools: ResponseTool[] | undefined,
+	options: MapOpenAIToolsOptions = {},
 ): OpenAIMappedTools {
 	if (!tools || tools.length === 0) {
 		return { tools: [], webSearchOptions: undefined };
@@ -48,7 +83,12 @@ export function mapOpenAITools(
 	let webSearchOptions: ChatCompletionWebSearchOptions | undefined;
 
 	for (const tool of tools) {
-		switch (tool.type) {
+		const type = tool.type;
+		if (!(options.supportedToolTypes?.has(type) ?? true)) {
+			options.onUnsupported?.(type);
+			continue;
+		}
+		switch (type) {
 			case "function": {
 				mappedTools.push({
 					type: "function",
@@ -88,11 +128,13 @@ export function mapOpenAITools(
 			case "web_search":
 			case "web_search_2025_08_26": {
 				webSearchOptions = mapWebSearchOptionsFromTool(tool);
+				options.onDegraded?.(type);
 				break;
 			}
 			case "web_search_preview":
 			case "web_search_preview_2025_03_11": {
 				webSearchOptions = mapWebSearchOptionsFromTool(tool);
+				options.onDegraded?.(type);
 				break;
 			}
 			case "local_shell":
@@ -156,6 +198,7 @@ export function mapOpenAITools(
 				break;
 			}
 			default:
+				options.onUnsupported?.(type);
 				break;
 		}
 	}
@@ -265,10 +308,10 @@ export function mapOpenAIToolChoice(
 
 export class OpenAIToolMapper implements ChatToolMapper<ChatCompletionTool[]> {
 	map(
-		_ctx: ResponsesContext,
-		_plan: CompatibilityPlan,
+		ctx: ResponsesContext,
+		plan: CompatibilityPlan,
 	): ChatCompletionTool[] | undefined {
-		const mapped = getOpenAIMappedTools(_ctx).tools;
+		const mapped = getOpenAIMappedTools(ctx, plan).tools;
 		return mapped.length > 0 ? mapped : undefined;
 	}
 }
@@ -279,11 +322,58 @@ export class OpenAIToolChoiceMapper
 {
 	map(
 		ctx: ResponsesContext,
-		_plan: CompatibilityPlan,
-		_tools: ChatCompletionTool[] | undefined,
+		plan: CompatibilityPlan,
+		tools: ChatCompletionTool[] | undefined,
 	): ChatCompletionToolChoiceOption | undefined {
+		if (ctx.request.tool_choice === "none") return undefined;
+		if (!tools || tools.length === 0) {
+			const requestedToolChoice = ctx.request.tool_choice;
+			if (requestedToolChoice !== undefined && requestedToolChoice !== "auto") {
+				ctx.addDiagnostic({
+					code: "adapter.param.unsupported",
+					severity: "warn",
+					path: "tool_choice",
+					action: "ignored",
+					message:
+						"OpenAI Chat Completions tool_choice was omitted because no provider tool entries remain.",
+					metadata: {
+						parameter: "tool_choice",
+						value: requestedToolChoice,
+					},
+				});
+			}
+			return undefined;
+		}
+
+		if (
+			ctx.request.tool_choice !== undefined &&
+			isUnsupportedToolChoice(ctx.request.tool_choice, plan)
+		) {
+			ctx.addDiagnostic({
+				code: "adapter.param.unsupported",
+				severity: "warn",
+				path: "tool_choice",
+				action: "degraded",
+				message:
+					"OpenAI Chat Completions does not support this Responses tool_choice shape; downgraded to auto.",
+				metadata: {
+					parameter: "tool_choice",
+					value: ctx.request.tool_choice,
+				},
+			});
+		}
 		return mapOpenAIToolChoice(
 			ctx.request.tool_choice as ResponseToolChoice | undefined,
 		);
 	}
+}
+
+function isUnsupportedToolChoice(
+	choice: ResponseToolChoice,
+	plan: CompatibilityPlan,
+): boolean {
+	if (typeof choice === "string") {
+		return !plan.capabilities.toolChoice.supported.has(choice);
+	}
+	return !plan.capabilities.toolChoice.supported.has(choice.type);
 }

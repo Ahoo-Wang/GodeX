@@ -6,6 +6,7 @@ import type {
 	ResponseItem,
 } from "../../../protocol/openai/responses";
 import type { ResponseSessionSnapshot } from "../../../session";
+import { warnUnsupportedCurrentInputContent } from "../../shared/input-compatibility";
 import {
 	convertResponseItemToMessage,
 	extractResponseText,
@@ -50,6 +51,7 @@ export function buildZhipuMessages(
 
 export class ZhipuMessageMapper implements ChatMessageMapper<TextMessage> {
 	map(ctx: ResponsesContext, _plan: CompatibilityPlan): TextMessage[] {
+		warnUnsupportedCurrentInputContent(ctx, { providerLabel: "Zhipu" });
 		return buildZhipuMessages(ctx.request, ctx.session);
 	}
 }
