@@ -33,22 +33,6 @@ export function mapTraceRecordToRow(
 				stream: event.stream,
 				created_at: event.created_at,
 				requested_prompt_cache_key: event.requested_prompt_cache_key ?? null,
-				requested_prompt_cache_retention:
-					event.requested_prompt_cache_retention ?? null,
-				prompt_cache_key: event.prompt_cache_key ?? null,
-				prompt_cache_retention: event.prompt_cache_retention ?? null,
-				prefix_hash: event.cache_detection?.prefix_hash ?? null,
-				prefix_bytes: event.cache_detection?.prefix_bytes ?? null,
-				cache_risk_level: event.cache_detection?.risk_level ?? null,
-				cache_risk_reasons_json: event.cache_detection
-					? JSON.stringify(event.cache_detection.reasons)
-					: null,
-				tool_fingerprint_json: event.cache_detection?.tool_fingerprint
-					? JSON.stringify(event.cache_detection.tool_fingerprint)
-					: null,
-				passthrough_json: event.cache_detection
-					? JSON.stringify(event.cache_detection.passthrough)
-					: null,
 				...payload,
 			};
 		}
@@ -65,13 +49,6 @@ export function mapTraceRecordToRow(
 				total_tokens: event.usage.total_tokens ?? null,
 				cached_tokens: event.usage.cached_tokens ?? null,
 				cache_hit_ratio: event.usage.cache_hit_ratio ?? null,
-				cache_creation_input_tokens:
-					event.usage.cache_creation_input_tokens ?? null,
-				cache_read_input_tokens: event.usage.cache_read_input_tokens ?? null,
-				raw_usage_json:
-					event.raw_usage === undefined
-						? null
-						: JSON.stringify(event.raw_usage),
 			};
 		}
 		const payload = payloadSummary(

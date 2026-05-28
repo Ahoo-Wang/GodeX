@@ -17,28 +17,6 @@ let mockServer: ReturnType<typeof Bun.serve> | undefined;
 let app: ApplicationContext | undefined;
 let tempDir: string | undefined;
 
-interface TraceRequestRow {
-	request_id: string;
-	response_id: string;
-	provider: string;
-	model: string;
-	stream: number;
-	requested_prompt_cache_key: string | null;
-	requested_prompt_cache_retention: string | null;
-	prompt_cache_key: string | null;
-	prompt_cache_retention: string | null;
-	prefix_hash: string | null;
-	prefix_bytes: number | null;
-	cache_risk_level: string | null;
-	cache_risk_reasons_json: string | null;
-	tool_fingerprint_json: string | null;
-	passthrough_json: string | null;
-	payload_hash: string | null;
-	payload_bytes: number | null;
-	payload_json: string | null;
-	payload_truncated: number;
-}
-
 interface TraceUsageRow {
 	request_id: string;
 	response_id: string;
@@ -49,7 +27,19 @@ interface TraceUsageRow {
 	total_tokens: number | null;
 	cached_tokens: number | null;
 	cache_hit_ratio: number | null;
-	raw_usage_json: string | null;
+}
+
+interface TraceRequestRow {
+	request_id: string;
+	response_id: string;
+	provider: string;
+	model: string;
+	stream: number;
+	requested_prompt_cache_key: string | null;
+	payload_hash: string | null;
+	payload_bytes: number | null;
+	payload_json: string | null;
+	payload_truncated: number;
 }
 
 afterEach(async () => {
@@ -104,10 +94,19 @@ describe("E2E: trace recording", () => {
 
 		const db = new Database(tracePath, { readonly: true, strict: true });
 		try {
+			const requestRow = db
+				.query("SELECT * FROM trace_requests")
+				.get() as TraceRequestRow | null;
 			const usageRow = db
 				.query("SELECT * FROM trace_usage")
 				.get() as TraceUsageRow | null;
 
+			expect(requestRow).toMatchObject({
+				provider: "zhipu",
+				model: "glm-5.1",
+				stream: 0,
+				requested_prompt_cache_key: null,
+			});
 			expect(usageRow).toMatchObject({
 				provider: "zhipu",
 				model: "glm-5.1",
@@ -116,14 +115,6 @@ describe("E2E: trace recording", () => {
 				total_tokens: 150,
 				cached_tokens: 60,
 				cache_hit_ratio: 0.5,
-			});
-			expect(
-				parseJson<Record<string, unknown>>(usageRow?.raw_usage_json),
-			).toEqual({
-				prompt_tokens: 120,
-				completion_tokens: 30,
-				total_tokens: 150,
-				prompt_tokens_details: { cached_tokens: 60 },
 			});
 		} finally {
 			db.close();
@@ -211,37 +202,17 @@ describe("E2E: trace recording", () => {
 				model: "glm-5.1",
 				stream: 1,
 				requested_prompt_cache_key: "trace-e2e-cache",
-				requested_prompt_cache_retention: null,
-				prompt_cache_key: null,
-				prompt_cache_retention: null,
-				cache_risk_level: "medium",
 				payload_json: null,
 				payload_truncated: 0,
 			});
-			expect(requestRow?.request_id).toMatch(/^req_/);
-			expect(requestRow?.response_id).toMatch(/^resp_/);
-			expect(requestRow?.prefix_hash).toEqual(expect.any(String));
-			expect(requestRow?.prefix_bytes).toBeGreaterThan(0);
-			expect(requestRow?.payload_hash).toEqual(expect.any(String));
-			expect(requestRow?.payload_bytes).toBeGreaterThan(0);
-
-			expect(parseJson<string[]>(requestRow?.cache_risk_reasons_json)).toEqual([
-				"prompt_cache_key was not preserved in provider request",
-			]);
-			expect(
-				parseJson<Record<string, boolean>>(requestRow?.passthrough_json),
-			).toEqual({
-				prompt_cache_key: false,
-				prompt_cache_retention: true,
-				cache_control: false,
-			});
-			expect(parseJson(requestRow?.tool_fingerprint_json)).toMatchObject({
-				names: ["lookup_order", "web_search"],
-			});
+			expect(requestRow.request_id).toMatch(/^req_/);
+			expect(requestRow.response_id).toMatch(/^resp_/);
+			expect(requestRow.payload_hash).toEqual(expect.any(String));
+			expect(requestRow.payload_bytes).toBeGreaterThan(0);
 
 			expect(usageRow).toMatchObject({
-				request_id: requestRow?.request_id,
-				response_id: requestRow?.response_id,
+				request_id: requestRow.request_id,
+				response_id: requestRow.response_id,
 				provider: "zhipu",
 				model: "glm-5.1",
 				input_tokens: 100,
@@ -249,7 +220,6 @@ describe("E2E: trace recording", () => {
 				total_tokens: 125,
 				cached_tokens: 40,
 				cache_hit_ratio: 0.4,
-				raw_usage_json: null,
 			});
 			expect(eventRows.map((row) => row.event_name)).toContain(
 				"provider.request.body",
@@ -260,86 +230,6 @@ describe("E2E: trace recording", () => {
 			expect(eventRows.map((row) => row.event_name)).toContain(
 				"upstream.stream.event.transformed",
 			);
-		} finally {
-			db.close();
-		}
-	});
-
-	test("tracks repeated prompt cache keys and flags changed prefixes", async () => {
-		tempDir = mkdtempSync(join(tmpdir(), "godex-trace-cache-e2e-"));
-		const upstreamRequests: Record<string, unknown>[] = [];
-		const mockBase = await startMockZhipu(upstreamRequests);
-		const tracePath = join(tempDir, "trace.db");
-		const godexBase = await startGodex(mockBase, tracePath);
-
-		await expectCompleted(
-			await postStreamingResponse(godexBase, {
-				prompt_cache_key: "cache-mechanism-key",
-				input: "Use the stable cache prefix.",
-			}),
-		);
-		await expectCompleted(
-			await postStreamingResponse(godexBase, {
-				prompt_cache_key: "cache-mechanism-key",
-				input: "Use the stable cache prefix.",
-			}),
-		);
-		await expectCompleted(
-			await postStreamingResponse(godexBase, {
-				prompt_cache_key: "cache-mechanism-key",
-				input: "Use the changed cache prefix.",
-			}),
-		);
-
-		expect(upstreamRequests).toHaveLength(3);
-
-		await app?.close();
-		app = undefined;
-
-		const db = new Database(tracePath, { readonly: true, strict: true });
-		try {
-			const rows = db
-				.query("SELECT * FROM trace_requests ORDER BY id")
-				.all() as TraceRequestRow[];
-			const usageRows = db
-				.query("SELECT * FROM trace_usage ORDER BY id")
-				.all() as TraceUsageRow[];
-
-			expect(rows).toHaveLength(3);
-			expect(usageRows).toHaveLength(3);
-			const [first, repeated, changed] = rows as [
-				TraceRequestRow,
-				TraceRequestRow,
-				TraceRequestRow,
-			];
-
-			expect(first.requested_prompt_cache_key).toBe("cache-mechanism-key");
-			expect(repeated.requested_prompt_cache_key).toBe("cache-mechanism-key");
-			expect(changed.requested_prompt_cache_key).toBe("cache-mechanism-key");
-			expect(first.prefix_hash).toEqual(expect.any(String));
-			expect(repeated.prefix_hash).toBe(first.prefix_hash);
-			expect(changed.prefix_hash).not.toBe(first.prefix_hash);
-
-			expect(parseJson<string[]>(first.cache_risk_reasons_json)).toEqual([
-				"prompt_cache_key was not preserved in provider request",
-			]);
-			expect(parseJson<string[]>(repeated.cache_risk_reasons_json)).toEqual([
-				"prompt_cache_key was not preserved in provider request",
-			]);
-			expect(parseJson<string[]>(changed.cache_risk_reasons_json)).toEqual([
-				"prompt_cache_key prefix changed",
-				"prompt_cache_key was not preserved in provider request",
-			]);
-			expect(first.cache_risk_level).toBe("medium");
-			expect(repeated.cache_risk_level).toBe("medium");
-			expect(changed.cache_risk_level).toBe("high");
-			expect(
-				parseJson<Record<string, boolean>>(changed.passthrough_json),
-			).toEqual({
-				prompt_cache_key: false,
-				prompt_cache_retention: true,
-				cache_control: false,
-			});
 		} finally {
 			db.close();
 		}
@@ -488,29 +378,6 @@ function handleMockChat(): Response {
 	});
 }
 
-async function postStreamingResponse(
-	godexBase: string,
-	body: Record<string, unknown>,
-): Promise<Response> {
-	return fetch(`${godexBase}/v1/responses`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
-			model: "gpt-5",
-			stream: true,
-			...body,
-		}),
-	});
-}
-
-async function expectCompleted(res: Response): Promise<void> {
-	expect(res.status).toBe(200);
-	const events = await collectSSEEvents(res);
-	expect(events.some((event) => event.type === "response.completed")).toBe(
-		true,
-	);
-}
-
 async function collectSSEEvents(
 	res: Response,
 ): Promise<Record<string, unknown>[]> {
@@ -519,9 +386,4 @@ async function collectSSEEvents(
 		.split("\n")
 		.filter((line) => line.startsWith("data: ") && line !== "data: [DONE]")
 		.map((line) => JSON.parse(line.slice(6)) as Record<string, unknown>);
-}
-
-function parseJson<T = unknown>(value: string | null | undefined): T {
-	expect(value).toEqual(expect.any(String));
-	return JSON.parse(value as string) as T;
 }

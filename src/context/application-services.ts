@@ -5,12 +5,7 @@ import { createLogger, type Logger } from "../logger";
 import type { Registrar } from "../providers/registrar";
 import { ModelResolver } from "../resolver";
 import type { ResponseSessionStore } from "../session";
-import type {
-	PromptCacheDetector,
-	PromptCacheObservationIndex,
-	ProviderPromptCacheRequestAnalyzer,
-	TraceRecorder,
-} from "../trace";
+import type { TraceRecorder } from "../trace";
 import { createConfiguredRegistrar } from "./provider-bootstrap";
 import { createResponseSessionStore } from "./session-store-factory";
 import { createTraceServices } from "./trace-services";
@@ -22,9 +17,6 @@ export interface ApplicationServices {
 	adapter: Adapter;
 	sessionStore: ResponseSessionStore;
 	traceRecorder: TraceRecorder;
-	promptCacheRequestAnalyzer: ProviderPromptCacheRequestAnalyzer;
-	promptCacheDetector: PromptCacheDetector;
-	promptCacheObservationIndex: PromptCacheObservationIndex;
 	traceEnabled: boolean;
 }
 
@@ -51,9 +43,6 @@ export function createApplicationServices(
 		adapter: new DefaultAdapter(),
 		sessionStore: createResponseSessionStore(config.session),
 		traceRecorder: trace.traceRecorder,
-		promptCacheRequestAnalyzer: trace.promptCacheRequestAnalyzer,
-		promptCacheDetector: trace.promptCacheDetector,
-		promptCacheObservationIndex: trace.promptCacheObservationIndex,
 		traceEnabled: trace.traceEnabled,
 	};
 }

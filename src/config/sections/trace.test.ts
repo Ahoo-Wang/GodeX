@@ -2,15 +2,21 @@ import { describe, expect, test } from "bun:test";
 import { parseTraceConfig } from "./trace";
 
 describe("parseTraceConfig", () => {
-	test("defaults trace config to disabled", () => {
+	test("defaults trace config to enabled", () => {
 		expect(parseTraceConfig(undefined)).toEqual({
-			enabled: false,
+			enabled: true,
 			path: "./data/trace.db",
 			max_queue_size: 10000,
 			flush_interval_ms: 1000,
 			batch_size: 100,
 			capture_payload: false,
 			payload_max_bytes: 65536,
+		});
+	});
+
+	test("parses disabled trace config", () => {
+		expect(parseTraceConfig({ enabled: false })).toMatchObject({
+			enabled: false,
 		});
 	});
 

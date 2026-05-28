@@ -11,34 +11,16 @@ function mapperOptions(warnings: string[] = []) {
 }
 
 describe("mapTraceRecordToRow", () => {
-	test("maps request records with prompt cache metadata", () => {
+	test("maps request records with provider payload metadata", () => {
 		const event: TraceRecordEvent = {
 			kind: "request",
 			request_id: "req_1",
 			response_id: "resp_1",
 			provider: "zhipu",
 			model: "glm-5.1",
-			stream: false,
+			stream: true,
 			created_at: 1000,
 			requested_prompt_cache_key: "client-key",
-			requested_prompt_cache_retention: "24h",
-			prompt_cache_key: "provider-key",
-			prompt_cache_retention: "1h",
-			cache_detection: {
-				risk_level: "high",
-				reasons: ["prompt_cache_key prefix changed"],
-				prefix_hash: "prefix-hash",
-				prefix_bytes: 42,
-				tool_fingerprint: {
-					names: ["exec_command"],
-					hash: "tool-hash",
-				},
-				passthrough: {
-					prompt_cache_key: false,
-					prompt_cache_retention: true,
-					cache_control: false,
-				},
-			},
 			payload: { payload: { model: "glm-5.1" } },
 		};
 
@@ -50,24 +32,14 @@ describe("mapTraceRecordToRow", () => {
 			response_id: "resp_1",
 			provider: "zhipu",
 			model: "glm-5.1",
-			stream: false,
+			stream: true,
 			requested_prompt_cache_key: "client-key",
-			requested_prompt_cache_retention: "24h",
-			prompt_cache_key: "provider-key",
-			prompt_cache_retention: "1h",
-			prefix_hash: "prefix-hash",
-			prefix_bytes: 42,
-			cache_risk_level: "high",
-			cache_risk_reasons_json: '["prompt_cache_key prefix changed"]',
-			tool_fingerprint_json: '{"names":["exec_command"],"hash":"tool-hash"}',
-			passthrough_json:
-				'{"prompt_cache_key":false,"prompt_cache_retention":true,"cache_control":false}',
 			payload_json: '{"model":"glm-5.1"}',
 			payload_truncated: false,
 		});
 	});
 
-	test("maps usage records with provider raw usage", () => {
+	test("maps normalized usage records", () => {
 		const row = mapTraceRecordToRow(
 			{
 				kind: "usage",
@@ -82,10 +54,7 @@ describe("mapTraceRecordToRow", () => {
 					total_tokens: 120,
 					cached_tokens: 40,
 					cache_hit_ratio: 0.4,
-					cache_creation_input_tokens: 12,
-					cache_read_input_tokens: 34,
 				},
-				raw_usage: { prompt_tokens: 100 },
 			},
 			mapperOptions(),
 		);
@@ -98,9 +67,6 @@ describe("mapTraceRecordToRow", () => {
 			total_tokens: 120,
 			cached_tokens: 40,
 			cache_hit_ratio: 0.4,
-			cache_creation_input_tokens: 12,
-			cache_read_input_tokens: 34,
-			raw_usage_json: '{"prompt_tokens":100}',
 		});
 	});
 

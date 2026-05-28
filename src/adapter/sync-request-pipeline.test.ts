@@ -167,7 +167,6 @@ describe("SyncRequestPipeline", () => {
 		).toEqual([
 			expect.objectContaining({
 				kind: "usage",
-				raw_usage: providerResponse.usage,
 				usage: expect.objectContaining({ cached_tokens: 3 }),
 			}),
 		]);
@@ -180,6 +179,7 @@ describe("SyncRequestPipeline", () => {
 					outputCount: 0,
 					durationMillis: expect.any(Number),
 					usage: responseObject.usage,
+					cacheHitRatio: 0.3,
 				}) as Record<string, unknown>,
 			},
 		]);

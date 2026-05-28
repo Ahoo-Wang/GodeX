@@ -4,12 +4,7 @@ import type { Logger } from "../logger";
 import type { Registrar } from "../providers/registrar";
 import type { ModelResolver } from "../resolver";
 import type { ResponseSessionStore } from "../session";
-import type {
-	PromptCacheDetector,
-	PromptCacheObservationIndex,
-	ProviderPromptCacheRequestAnalyzer,
-	TraceRecorder,
-} from "../trace";
+import type { TraceRecorder } from "../trace";
 import { createApplicationServices } from "./application-services";
 
 export class ApplicationContext {
@@ -20,9 +15,6 @@ export class ApplicationContext {
 	readonly adapter: Adapter;
 	readonly sessionStore: ResponseSessionStore;
 	readonly traceRecorder: TraceRecorder;
-	readonly promptCacheRequestAnalyzer: ProviderPromptCacheRequestAnalyzer;
-	readonly promptCacheDetector: PromptCacheDetector;
-	readonly promptCacheObservationIndex: PromptCacheObservationIndex;
 	readonly traceEnabled: boolean;
 
 	constructor(config: GodeXConfig, registrar?: Registrar) {
@@ -34,9 +26,6 @@ export class ApplicationContext {
 		this.adapter = services.adapter;
 		this.sessionStore = services.sessionStore;
 		this.traceRecorder = services.traceRecorder;
-		this.promptCacheRequestAnalyzer = services.promptCacheRequestAnalyzer;
-		this.promptCacheDetector = services.promptCacheDetector;
-		this.promptCacheObservationIndex = services.promptCacheObservationIndex;
 		this.traceEnabled = services.traceEnabled;
 	}
 

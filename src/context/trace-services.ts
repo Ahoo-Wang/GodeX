@@ -2,13 +2,7 @@ import type { TraceConfig } from "../config";
 import type { Logger } from "../logger";
 import {
 	AsyncTraceRecorder,
-	ChatCompletionPromptCacheRequestAnalyzer,
-	LruPromptCacheObservationIndex,
 	NoopTraceRecorder,
-	PrefixPromptCacheDetector,
-	type PromptCacheDetector,
-	type PromptCacheObservationIndex,
-	type ProviderPromptCacheRequestAnalyzer,
 	SQLiteTraceStore,
 	type TraceRecorder,
 } from "../trace";
@@ -16,9 +10,6 @@ import {
 export interface TraceServices {
 	traceEnabled: boolean;
 	traceRecorder: TraceRecorder;
-	promptCacheRequestAnalyzer: ProviderPromptCacheRequestAnalyzer;
-	promptCacheDetector: PromptCacheDetector;
-	promptCacheObservationIndex: PromptCacheObservationIndex;
 }
 
 export function createTraceServices(
@@ -39,10 +30,5 @@ export function createTraceServices(
 					payloadMaxBytes: config.payload_max_bytes,
 				})
 			: new NoopTraceRecorder(),
-		promptCacheRequestAnalyzer: new ChatCompletionPromptCacheRequestAnalyzer(),
-		promptCacheDetector: new PrefixPromptCacheDetector(),
-		promptCacheObservationIndex: new LruPromptCacheObservationIndex(
-			Math.max(1000, config.max_queue_size),
-		),
 	};
 }

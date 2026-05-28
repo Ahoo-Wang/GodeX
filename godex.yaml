@@ -48,21 +48,24 @@ models:
     "*":          zhipu/glm-5.1
 
 # ---------------------------------------------------------------------------
-# Provider 列表 — 上游 LLM 服务商配置
+# Provider 列表 — 已启用的上游 LLM 服务商
 # ---------------------------------------------------------------------------
+# 内置 provider 名称: zhipu, deepseek, openai。
+# 只有在这里配置过的 provider 才能被模型别名或 "provider/model" 选择器使用。
+# base_url 使用上游 OpenAI-compatible Chat Completions 根地址；具体路径由 GodeX 拼接。
 providers:
   zhipu:
-    api_key: ${ZHIPU_API_KEY}                                        # API 密钥 (必填)
-    base_url: https://open.bigmodel.cn/api/coding/paas/v4            # 上游地址 (必填)
-
-  # 添加其他 provider 示例:
+    # 智谱 OpenAI-compatible 根地址
+    api_key: ${ZHIPU_API_KEY}
+    base_url: https://open.bigmodel.cn/api/coding/paas/v4
+  deepseek:
+    # DeepSeek 根地址不要追加 /v1，GodeX 会拼接 chat/completions。
+    api_key: ${DEEPSEEK_API_KEY}
+    base_url: https://api.deepseek.com
+  # 可选: 直接转发到 OpenAI 官方 API
   # openai:
   #   api_key: ${OPENAI_API_KEY}
   #   base_url: https://api.openai.com/v1
-  #
-  # deepseek:
-  #   api_key: ${DEEPSEEK_API_KEY}
-  #   base_url: https://api.deepseek.com/v1
 
 # ---------------------------------------------------------------------------
 # 会话存储 — 多轮对话的 previous_response_id 链
@@ -73,10 +76,9 @@ session:
     path: ./data/sessions.db         # SQLite 数据库路径 (仅 sqlite 模式)
 
 # ---------------------------------------------------------------------------
-# Trace DB — 请求/响应/流事件与 Prompt Cache 检测，默认关闭
+# Trace DB — 请求/响应/流事件与真实 usage 观测，默认开启
 # ---------------------------------------------------------------------------
 # 启用后会在独立的 trace.db 中记录:
-#   - 每次请求的 Prompt Cache 分析结果 (prefix hash, risk level, passthrough status)
 #   - 上游请求/响应的 payload 摘要 (hash + 字节数, 可选完整 payload)
 #   - 流式事件追踪 (raw + transformed SSE chunks)
 #   - Token 使用量 (含 cached_tokens / cache_hit_ratio)
@@ -85,7 +87,7 @@ session:
 # 关闭时 (enabled: false) 零开销 — 直接使用 NoopTraceRecorder 丢弃所有事件。
 # ---------------------------------------------------------------------------
 trace:
-  enabled: false                    # 是否启用 (默认 false)
+  enabled: true                     # 是否启用 (默认 true)
   path: ./data/trace.db             # SQLite trace 数据库路径 (开发环境默认)
                                     #   非开发环境默认 ~/.godex/data/trace.db
   max_queue_size: 10000             # 异步队列最大长度，满时丢弃并 warn

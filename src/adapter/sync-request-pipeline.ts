@@ -1,7 +1,7 @@
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore } from "../session";
-import { recordTraceUsage } from "../trace";
+import { cacheHitRatioFromResponseUsage, recordTraceUsage } from "../trace";
 import { logDiagnostics } from "./compatibility";
 import {
 	ProviderExchange,
@@ -31,17 +31,14 @@ export class SyncRequestPipeline {
 			ctx,
 			providerResponse,
 		);
-		recordTraceUsage(
-			ctx,
-			response.usage,
-			(providerResponse as { usage?: unknown })?.usage,
-		);
+		recordTraceUsage(ctx, response.usage);
 		ctx.logger.info("responses.request.completed", () => ({
 			status: response.status,
 			model: response.model,
 			outputCount: response.output.length,
 			durationMillis: Date.now() - ctx.createdAt * 1000,
 			usage: response.usage,
+			cacheHitRatio: cacheHitRatioFromResponseUsage(response.usage),
 		}));
 		logDiagnostics(ctx, {
 			durationMillis: Date.now() - ctx.createdAt * 1000,

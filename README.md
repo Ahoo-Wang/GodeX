@@ -343,11 +343,19 @@ providers:
   zhipu:
     api_key: ${ZHIPU_API_KEY}
     base_url: https://open.bigmodel.cn/api/coding/paas/v4
+  deepseek:
+    api_key: ${DEEPSEEK_API_KEY}
+    base_url: https://api.deepseek.com
 
 session:
   backend: sqlite               # or "memory"
   sqlite:
     path: ./data/sessions.db
+
+trace:
+  enabled: true                 # records request/event/usage rows by default
+  path: ./data/trace.db
+  capture_payload: false        # false keeps only payload hash + byte size
 
 logging:
   level: info                   # trace | debug | info | warn | error
@@ -358,6 +366,7 @@ logging:
 ```
 model: "gpt-4o"              → resolved via default_provider model mapping
 model: "zhipu/glm-4.7"       → explicit provider/model selector
+model: "deepseek/deepseek-v4-pro" → routes to configured DeepSeek provider
 model: "openai/gpt-4o"       → routes to configured openai provider
 ```
 
@@ -365,7 +374,7 @@ model: "openai/gpt-4o"       → routes to configured openai provider
 
 ```bash
 curl http://localhost:5678/health
-# {"status":"ok","providers":["zhipu"],"unsupported_providers":[]}
+# {"status":"ok","providers":["zhipu","deepseek"],"unsupported_providers":[]}
 ```
 
 ### Adding a Provider
