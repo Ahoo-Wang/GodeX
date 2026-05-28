@@ -3,7 +3,7 @@ import type {
 	ChatRequestFactory,
 	ChatRequestOptionsMapper,
 } from "../../../adapter/mapper/chat/contract";
-import type { ProviderToolSurface } from "../../../adapter/mapper/chat/tool-surface";
+import type { ProviderToolIndex } from "../../../adapter/mapper/chat/tool-index";
 import type { ResponsesContext } from "../../../context/responses-context";
 import type {
 	ChatCompletionCreateRequest,
@@ -37,7 +37,7 @@ export class OpenAIRequestOptionsMapper
 		ctx: ResponsesContext,
 		_plan: CompatibilityPlan,
 		request: ChatCompletionCreateRequest,
-		toolSurface: ProviderToolSurface<ChatCompletionTool[], OpenAIToolSidecars>,
+		toolIndex: ProviderToolIndex<ChatCompletionTool[], OpenAIToolSidecars>,
 	): void {
 		const req = ctx.request;
 		if (req.stream) {
@@ -83,7 +83,7 @@ export class OpenAIRequestOptionsMapper
 		if (req.text?.verbosity !== undefined)
 			request.verbosity = req.text.verbosity;
 
-		const webSearchOptions = toolSurface.sidecars().webSearchOptions;
+		const webSearchOptions = toolIndex.sidecars().webSearchOptions;
 		if (webSearchOptions) request.web_search_options = webSearchOptions;
 	}
 }

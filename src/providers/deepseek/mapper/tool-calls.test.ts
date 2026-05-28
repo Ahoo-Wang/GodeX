@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { ToolCallSnapshot } from "../../../adapter/mapper/chat/stream-response-state";
 import {
-	ProviderToolSurface,
+	ProviderToolIndex,
 	ToolIdentityCatalog,
-	ToolSurfaceSlot,
-} from "../../../adapter/mapper/chat/tool-surface";
+	ToolIndexSlot,
+} from "../../../adapter/mapper/chat/tool-index";
 import type { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";
 import { createLogger } from "../../../logger";
@@ -16,9 +16,9 @@ import { toDeepSeekFunctionName } from "../function-names";
 import { DeepSeekToolCallRestorer, mapDeepSeekToolCall } from "./tool-calls";
 
 function ctx(tools: ResponseTool[] | undefined): ResponsesContext {
-	const toolSurface = new ToolSurfaceSlot();
-	toolSurface.set(
-		new ProviderToolSurface({
+	const toolIndex = new ToolIndexSlot();
+	toolIndex.set(
+		new ProviderToolIndex({
 			declarations: [],
 			identityCatalog: ToolIdentityCatalog.fromTools(
 				tools,
@@ -41,7 +41,7 @@ function ctx(tools: ResponseTool[] | undefined): ResponsesContext {
 		app: {} as ApplicationContext,
 		provider: { name: "deepseek", mapper: {} as never, client: {} as never },
 		attributes: new Map(),
-		toolSurface,
+		toolIndex,
 		diagnostics: [],
 		addDiagnostic() {},
 	} as unknown as ResponsesContext;
@@ -80,17 +80,17 @@ const tools: ResponseTool[] = [
 
 describe("DeepSeek tool call mapping", () => {
 	test("resolves flattened namespace tool identities", () => {
-		const surface = ctx(tools).toolSurface.current();
+		const index = ctx(tools).toolIndex.current();
 
 		expect(
-			surface?.resolveProviderCall("workspace__list-files")?.identity(),
+			index?.resolveProviderCall("workspace__list-files")?.identity(),
 		).toEqual({
 			type: "namespace_function",
 			providerName: "workspace__list-files",
 			namespace: "workspace",
 			name: "list-files",
 		});
-		expect(surface?.resolveProviderCall("plain_tool")).toBeNull();
+		expect(index?.resolveProviderCall("plain_tool")).toBeNull();
 	});
 
 	test("maps downgraded built-in and custom calls from response output", () => {

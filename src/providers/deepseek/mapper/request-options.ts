@@ -3,7 +3,7 @@ import type {
 	ChatRequestFactory,
 	ChatRequestOptionsMapper,
 } from "../../../adapter/mapper/chat/contract";
-import type { ProviderToolSurface } from "../../../adapter/mapper/chat/tool-surface";
+import type { ProviderToolIndex } from "../../../adapter/mapper/chat/tool-index";
 import type { ResponsesContext } from "../../../context/responses-context";
 import type {
 	ChatCompletionRequest,
@@ -28,7 +28,7 @@ export class DeepSeekRequestOptionsMapper
 		ctx: ResponsesContext,
 		plan: CompatibilityPlan,
 		request: ChatCompletionRequest,
-		_toolSurface: ProviderToolSurface<DeepSeekTool[]>,
+		_toolIndex: ProviderToolIndex<DeepSeekTool[]>,
 	): void {
 		const req = ctx.request;
 		const thinkingEnabled =

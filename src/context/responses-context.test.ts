@@ -97,7 +97,7 @@ describe("ResponsesContext", () => {
 	test("starts with empty request-scoped mapping contracts", () => {
 		const ctx = createContext();
 
-		expect(ctx.toolSurface.current()).toBeUndefined();
+		expect(ctx.toolIndex.current()).toBeUndefined();
 		expect(
 			ctx.outputFormatContract.current().syntheticInstruction(),
 		).toBeUndefined();

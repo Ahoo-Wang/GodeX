@@ -7,7 +7,10 @@ import type {
 import type { CompatibilityPlan } from "./compatibility-plan";
 import type { ResponseStatusFields } from "./response-object-builder";
 import type { ToolCallSnapshot } from "./stream-response-state";
-import type { ProviderToolSidecars, ProviderToolSurface } from "./tool-surface";
+import type {
+	ProviderToolIndex,
+	ProviderToolIndexSidecars,
+} from "./tool-index";
 
 export interface CompatibilityNegotiator {
 	negotiate(ctx: ResponsesContext): CompatibilityPlan;
@@ -17,25 +20,25 @@ export interface ChatMessageMapper<TMessage> {
 	map(ctx: ResponsesContext, plan: CompatibilityPlan): TMessage[];
 }
 
-export interface ChatToolSurfaceBuilder<
+export interface ChatToolIndexBuilder<
 	TTools extends readonly unknown[],
-	TSidecars extends ProviderToolSidecars = ProviderToolSidecars,
+	TSidecars extends ProviderToolIndexSidecars = ProviderToolIndexSidecars,
 > {
 	map(
 		ctx: ResponsesContext,
 		plan: CompatibilityPlan,
-	): ProviderToolSurface<TTools, TSidecars>;
+	): ProviderToolIndex<TTools, TSidecars>;
 }
 
 export interface ChatToolChoiceMapper<
 	TTools extends readonly unknown[],
 	TToolChoice,
-	TSidecars extends ProviderToolSidecars = ProviderToolSidecars,
+	TSidecars extends ProviderToolIndexSidecars = ProviderToolIndexSidecars,
 > {
 	map(
 		ctx: ResponsesContext,
 		plan: CompatibilityPlan,
-		toolSurface: ProviderToolSurface<TTools, TSidecars>,
+		toolIndex: ProviderToolIndex<TTools, TSidecars>,
 	): TToolChoice | undefined;
 }
 
@@ -64,13 +67,13 @@ export interface ChatRequestFactory<TReq> {
 export interface ChatRequestOptionsMapper<
 	TReq,
 	TTools extends readonly unknown[] = readonly unknown[],
-	TSidecars extends ProviderToolSidecars = ProviderToolSidecars,
+	TSidecars extends ProviderToolIndexSidecars = ProviderToolIndexSidecars,
 > {
 	apply(
 		ctx: ResponsesContext,
 		plan: CompatibilityPlan,
 		request: TReq,
-		toolSurface: ProviderToolSurface<TTools, TSidecars>,
+		toolIndex: ProviderToolIndex<TTools, TSidecars>,
 	): void;
 }
 

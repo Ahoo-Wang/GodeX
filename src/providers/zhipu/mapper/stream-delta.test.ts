@@ -2,10 +2,10 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
 import {
-	ProviderToolSurface,
+	ProviderToolIndex,
 	ToolIdentityCatalog,
-	ToolSurfaceSlot,
-} from "../../../adapter/mapper/chat/tool-surface";
+	ToolIndexSlot,
+} from "../../../adapter/mapper/chat/tool-index";
 import type { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";
 import { createLogger } from "../../../logger";
@@ -69,13 +69,13 @@ function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 		provider: { mapper: {} as never, client: {} as never },
 		attributes: new Map(),
 	} as unknown as ResponsesContext;
-	return withToolSurface(context);
+	return withToolIndex(context);
 }
 
-function withToolSurface(context: ResponsesContext): ResponsesContext {
-	const slot = new ToolSurfaceSlot();
+function withToolIndex(context: ResponsesContext): ResponsesContext {
+	const slot = new ToolIndexSlot();
 	slot.set(
-		new ProviderToolSurface({
+		new ProviderToolIndex({
 			declarations: [],
 			identityCatalog: ToolIdentityCatalog.fromTools(
 				context.request.tools as ResponseTool[] | undefined,
@@ -83,8 +83,7 @@ function withToolSurface(context: ResponsesContext): ResponsesContext {
 			),
 		}),
 	);
-	(context as ResponsesContext & { toolSurface: ToolSurfaceSlot }).toolSurface =
-		slot;
+	(context as ResponsesContext & { toolIndex: ToolIndexSlot }).toolIndex = slot;
 	return context;
 }
 

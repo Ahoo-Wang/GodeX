@@ -3,7 +3,7 @@ import type {
 	ChatRequestFactory,
 	ChatRequestOptionsMapper,
 } from "../../../adapter/mapper/chat/contract";
-import type { ProviderToolSurface } from "../../../adapter/mapper/chat/tool-surface";
+import type { ProviderToolIndex } from "../../../adapter/mapper/chat/tool-index";
 import type { ResponsesContext } from "../../../context/responses-context";
 import type {
 	ChatCompletionTextRequest,
@@ -29,7 +29,7 @@ export class ZhipuRequestOptionsMapper
 		ctx: ResponsesContext,
 		plan: CompatibilityPlan,
 		request: ChatCompletionTextRequest,
-		_toolSurface: ProviderToolSurface<ChatTool[]>,
+		_toolIndex: ProviderToolIndex<ChatTool[]>,
 	): void {
 		const req = ctx.request;
 		if (req.stream) {

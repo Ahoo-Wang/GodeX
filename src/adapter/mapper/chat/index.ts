@@ -9,4 +9,4 @@ export * from "./stream-response-message";
 export * from "./stream-response-output";
 export * from "./stream-response-state";
 export * from "./stream-response-tool-call";
-export * from "./tool-surface";
+export * from "./tool-index";

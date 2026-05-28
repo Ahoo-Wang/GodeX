@@ -24,7 +24,7 @@ import {
 } from "./response-output";
 import { DeepSeekStreamDeltaMapper } from "./stream-delta";
 import { DeepSeekToolCallRestorer } from "./tool-calls";
-import { DeepSeekToolChoiceMapper, DeepSeekToolSurfaceBuilder } from "./tools";
+import { DeepSeekToolChoiceMapper, DeepSeekToolIndexBuilder } from "./tools";
 import { DeepSeekUsageMapper } from "./usage";
 
 export function createDeepSeekMapper(): ProviderMapper<
@@ -43,7 +43,7 @@ export function createDeepSeekMapper(): ProviderMapper<
 			negotiator: new DeepSeekCompatibilityNegotiator(),
 			factory: new DeepSeekRequestFactory(),
 			messages: new DeepSeekMessageMapper(),
-			tools: new DeepSeekToolSurfaceBuilder(),
+			tools: new DeepSeekToolIndexBuilder(),
 			toolChoice: new DeepSeekToolChoiceMapper(),
 			options: new DeepSeekRequestOptionsMapper(),
 		}),

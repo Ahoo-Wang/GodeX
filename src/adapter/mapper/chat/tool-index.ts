@@ -35,7 +35,7 @@ export type ToolIdentity =
 			name: string;
 	  };
 
-export type ProviderToolSidecars = Readonly<Record<string, unknown>>;
+export type ProviderToolIndexSidecars = Readonly<Record<string, unknown>>;
 
 export interface FlattenedToolNameMatch {
 	namespace: string;
@@ -188,15 +188,15 @@ export class ToolIdentityCatalogBuilder {
 	}
 }
 
-export class ProviderToolSurface<
+export class ProviderToolIndex<
 	TDeclarations extends readonly unknown[] = readonly unknown[],
-	TSidecars extends ProviderToolSidecars = ProviderToolSidecars,
+	TSidecars extends ProviderToolIndexSidecars = ProviderToolIndexSidecars,
 > {
 	static empty<
 		TDeclarations extends readonly unknown[] = readonly unknown[],
-		TSidecars extends ProviderToolSidecars = ProviderToolSidecars,
-	>(): ProviderToolSurface<TDeclarations, TSidecars> {
-		return new ProviderToolSurface({
+		TSidecars extends ProviderToolIndexSidecars = ProviderToolIndexSidecars,
+	>(): ProviderToolIndex<TDeclarations, TSidecars> {
+		return new ProviderToolIndex({
 			declarations: [] as unknown as TDeclarations,
 		});
 	}
@@ -285,24 +285,24 @@ export class ToolCallRoute {
 	}
 }
 
-export class ToolSurfaceSlot {
-	#surface: ProviderToolSurface | undefined;
+export class ToolIndexSlot {
+	#index: ProviderToolIndex | undefined;
 
-	set(surface: ProviderToolSurface): void {
-		this.#surface = surface;
+	set(index: ProviderToolIndex): void {
+		this.#index = index;
 	}
 
-	current<TSurface extends ProviderToolSurface = ProviderToolSurface>():
-		| TSurface
+	current<TIndex extends ProviderToolIndex = ProviderToolIndex>():
+		| TIndex
 		| undefined {
-		return this.#surface as TSurface | undefined;
+		return this.#index as TIndex | undefined;
 	}
 }
 
-export function ensureToolSurfaceSlot(ctx: ResponsesContext): ToolSurfaceSlot {
-	const partial = ctx as ResponsesContext & { toolSurface?: ToolSurfaceSlot };
-	if (!partial.toolSurface) partial.toolSurface = new ToolSurfaceSlot();
-	return partial.toolSurface;
+export function ensureToolIndexSlot(ctx: ResponsesContext): ToolIndexSlot {
+	const partial = ctx as ResponsesContext & { toolIndex?: ToolIndexSlot };
+	if (!partial.toolIndex) partial.toolIndex = new ToolIndexSlot();
+	return partial.toolIndex;
 }
 
 export function createFunctionCall(

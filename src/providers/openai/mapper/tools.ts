@@ -1,14 +1,14 @@
 import type { CompatibilityPlan } from "../../../adapter/mapper/chat/compatibility-plan";
 import type {
 	ChatToolChoiceMapper,
-	ChatToolSurfaceBuilder,
+	ChatToolIndexBuilder,
 } from "../../../adapter/mapper/chat/contract";
 import {
 	flattenToolName,
-	type ProviderToolSidecars,
-	ProviderToolSurface,
+	ProviderToolIndex,
+	type ProviderToolIndexSidecars,
 	ToolIdentityCatalogBuilder,
-} from "../../../adapter/mapper/chat/tool-surface";
+} from "../../../adapter/mapper/chat/tool-index";
 import { isRecord } from "../../../adapter/utils";
 import type { ResponsesContext } from "../../../context/responses-context";
 import { ADAPTER_REQUEST_UNSUPPORTED_TOOL, AdapterError } from "../../../error";
@@ -38,11 +38,11 @@ export interface OpenAIMappedTools {
 	webSearchOptions: ChatCompletionWebSearchOptions | undefined;
 }
 
-export type OpenAIToolSidecars = ProviderToolSidecars & {
+export type OpenAIToolSidecars = ProviderToolIndexSidecars & {
 	webSearchOptions?: ChatCompletionWebSearchOptions;
 };
 
-export type OpenAIToolSurface = ProviderToolSurface<
+export type OpenAIToolIndex = ProviderToolIndex<
 	ChatCompletionTool[],
 	OpenAIToolSidecars
 >;
@@ -55,12 +55,12 @@ interface MapOpenAIToolsOptions {
 	onDegraded?: (type: string, effectiveType?: string) => void;
 }
 
-export function createOpenAIToolSurface(
+export function createOpenAIToolIndex(
 	ctx: ResponsesContext,
 	plan: CompatibilityPlan,
-): OpenAIToolSurface {
+): OpenAIToolIndex {
 	if (ctx.request.tool_choice === "none") {
-		return new ProviderToolSurface<ChatCompletionTool[], OpenAIToolSidecars>({
+		return new ProviderToolIndex<ChatCompletionTool[], OpenAIToolSidecars>({
 			declarations: [],
 			sidecars: {},
 		});
@@ -99,7 +99,7 @@ export function createOpenAIToolSurface(
 			});
 		},
 	});
-	return new ProviderToolSurface<ChatCompletionTool[], OpenAIToolSidecars>({
+	return new ProviderToolIndex<ChatCompletionTool[], OpenAIToolSidecars>({
 		declarations: mapped.tools,
 		sidecars: mapped.webSearchOptions
 			? { webSearchOptions: mapped.webSearchOptions }
@@ -472,11 +472,11 @@ function assertNoFunctionNameCollisions(tools: ChatCompletionTool[]): void {
 	}
 }
 
-export class OpenAIToolSurfaceBuilder
-	implements ChatToolSurfaceBuilder<ChatCompletionTool[], OpenAIToolSidecars>
+export class OpenAIToolIndexBuilder
+	implements ChatToolIndexBuilder<ChatCompletionTool[], OpenAIToolSidecars>
 {
-	map(ctx: ResponsesContext, plan: CompatibilityPlan): OpenAIToolSurface {
-		return createOpenAIToolSurface(ctx, plan);
+	map(ctx: ResponsesContext, plan: CompatibilityPlan): OpenAIToolIndex {
+		return createOpenAIToolIndex(ctx, plan);
 	}
 }
 
@@ -491,10 +491,10 @@ export class OpenAIToolChoiceMapper
 	map(
 		ctx: ResponsesContext,
 		plan: CompatibilityPlan,
-		toolSurface: OpenAIToolSurface,
+		toolIndex: OpenAIToolIndex,
 	): ChatCompletionToolChoiceOption | undefined {
 		if (ctx.request.tool_choice === "none") return undefined;
-		if (!toolSurface.hasDeclarations()) {
+		if (!toolIndex.hasDeclarations()) {
 			const requestedToolChoice = ctx.request.tool_choice;
 			if (requestedToolChoice !== undefined && requestedToolChoice !== "auto") {
 				ctx.addDiagnostic({

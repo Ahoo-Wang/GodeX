@@ -3,13 +3,13 @@
 import type { CompatibilityPlan } from "../../../adapter/mapper/chat/compatibility-plan";
 import type {
 	ChatToolChoiceMapper,
-	ChatToolSurfaceBuilder,
+	ChatToolIndexBuilder,
 } from "../../../adapter/mapper/chat/contract";
 import {
 	flattenToolName,
-	ProviderToolSurface,
+	ProviderToolIndex,
 	ToolIdentityCatalogBuilder,
-} from "../../../adapter/mapper/chat/tool-surface";
+} from "../../../adapter/mapper/chat/tool-index";
 import { isRecord, isStringArray } from "../../../adapter/utils";
 import type { ResponsesContext } from "../../../context/responses-context";
 import {
@@ -45,7 +45,7 @@ interface MapToolsOptions {
 	identityCatalog?: ToolIdentityCatalogBuilder;
 }
 
-export type ZhipuToolSurface = ProviderToolSurface<ChatTool[]>;
+export type ZhipuToolIndex = ProviderToolIndex<ChatTool[]>;
 
 export function mapZhipuTools(
 	tools: ResponseTool[] | undefined,
@@ -332,10 +332,8 @@ function assertNoFunctionNameCollisions(tools: ChatTool[]): void {
 	}
 }
 
-export class ZhipuToolSurfaceBuilder
-	implements ChatToolSurfaceBuilder<ChatTool[]>
-{
-	map(ctx: ResponsesContext, plan: CompatibilityPlan): ZhipuToolSurface {
+export class ZhipuToolIndexBuilder implements ChatToolIndexBuilder<ChatTool[]> {
+	map(ctx: ResponsesContext, plan: CompatibilityPlan): ZhipuToolIndex {
 		const toolsDisabled = ctx.request.tool_choice === "none";
 		const identityCatalog = new ToolIdentityCatalogBuilder(toZhipuFunctionName);
 		const tools = toolsDisabled
@@ -373,7 +371,7 @@ export class ZhipuToolSurfaceBuilder
 					},
 				});
 		assertMappedToolCapacity(tools.length, ctx, plan);
-		return new ProviderToolSurface({
+		return new ProviderToolIndex({
 			declarations: tools,
 			identityCatalog: identityCatalog.build(),
 		});
@@ -386,7 +384,7 @@ export class ZhipuToolChoiceMapper
 	map(
 		ctx: ResponsesContext,
 		_plan: CompatibilityPlan,
-		toolSurface: ZhipuToolSurface,
+		toolIndex: ZhipuToolIndex,
 	): ToolChoice | undefined {
 		const requestedToolChoice = ctx.request.tool_choice;
 		if (
@@ -404,7 +402,7 @@ export class ZhipuToolChoiceMapper
 				metadata: { parameter: "tool_choice", value: requestedToolChoice },
 			});
 		}
-		if (!toolSurface.hasDeclarations()) return undefined;
+		if (!toolIndex.hasDeclarations()) return undefined;
 		return mapZhipuToolChoice(requestedToolChoice);
 	}
 }

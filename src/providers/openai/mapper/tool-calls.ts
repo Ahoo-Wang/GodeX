@@ -1,6 +1,6 @@
 import type { ChatToolCallRestorer } from "../../../adapter/mapper/chat/contract";
 import type { ToolCallSnapshot } from "../../../adapter/mapper/chat/stream-response-state";
-import { createFunctionCall } from "../../../adapter/mapper/chat/tool-surface";
+import { createFunctionCall } from "../../../adapter/mapper/chat/tool-index";
 import type { ResponsesContext } from "../../../context/responses-context";
 import type { ChatCompletionMessageToolCall } from "../../../protocol/openai/completions";
 import type {
@@ -34,7 +34,7 @@ function functionCallFromName(
 	args: string,
 ): ResponseItem {
 	return (
-		ctx.toolSurface?.current()?.restoreProviderFunctionCall({
+		ctx.toolIndex?.current()?.restoreProviderFunctionCall({
 			providerName,
 			callId,
 			args,
@@ -58,7 +58,7 @@ function customToolCall(
 export class OpenAIToolCallRestorer implements ChatToolCallRestorer {
 	restore(ctx: ResponsesContext, call: ToolCallSnapshot): ResponseItem {
 		if (call.type === "custom") {
-			const restored = ctx.toolSurface?.current()?.restoreProviderFunctionCall({
+			const restored = ctx.toolIndex?.current()?.restoreProviderFunctionCall({
 				providerName: call.name,
 				callId: call.id,
 				args: call.arguments,
@@ -67,7 +67,7 @@ export class OpenAIToolCallRestorer implements ChatToolCallRestorer {
 			return customToolCall(call.id, call.name, call.arguments);
 		}
 		return (
-			ctx.toolSurface?.current()?.restoreProviderFunctionCall({
+			ctx.toolIndex?.current()?.restoreProviderFunctionCall({
 				providerName: call.name,
 				callId: call.id,
 				args: call.arguments,

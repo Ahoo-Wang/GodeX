@@ -1,13 +1,13 @@
 import type { CompatibilityPlan } from "../../../adapter/mapper/chat/compatibility-plan";
 import type {
 	ChatToolChoiceMapper,
-	ChatToolSurfaceBuilder,
+	ChatToolIndexBuilder,
 } from "../../../adapter/mapper/chat/contract";
 import {
 	flattenToolName,
-	ProviderToolSurface,
+	ProviderToolIndex,
 	ToolIdentityCatalogBuilder,
-} from "../../../adapter/mapper/chat/tool-surface";
+} from "../../../adapter/mapper/chat/tool-index";
 import { isRecord } from "../../../adapter/utils";
 import type { ResponsesContext } from "../../../context/responses-context";
 import {
@@ -39,7 +39,7 @@ interface MapToolsOptions {
 	identityCatalog?: ToolIdentityCatalogBuilder;
 }
 
-export type DeepSeekToolSurface = ProviderToolSurface<DeepSeekTool[]>;
+export type DeepSeekToolIndex = ProviderToolIndex<DeepSeekTool[]>;
 
 const TOOL_SEARCH_PARAMETERS = {
 	type: "object",
@@ -289,10 +289,10 @@ export function mapDeepSeekToolChoice(
 	return "auto";
 }
 
-export class DeepSeekToolSurfaceBuilder
-	implements ChatToolSurfaceBuilder<DeepSeekTool[]>
+export class DeepSeekToolIndexBuilder
+	implements ChatToolIndexBuilder<DeepSeekTool[]>
 {
-	map(ctx: ResponsesContext, plan: CompatibilityPlan): DeepSeekToolSurface {
+	map(ctx: ResponsesContext, plan: CompatibilityPlan): DeepSeekToolIndex {
 		const toolsDisabled = ctx.request.tool_choice === "none";
 		const identityCatalog = new ToolIdentityCatalogBuilder(
 			toDeepSeekFunctionName,
@@ -332,7 +332,7 @@ export class DeepSeekToolSurfaceBuilder
 					},
 				});
 		assertMappedToolCapacity(tools.length, ctx, plan);
-		return new ProviderToolSurface({
+		return new ProviderToolIndex({
 			declarations: tools,
 			identityCatalog: identityCatalog.build(),
 		});
@@ -345,7 +345,7 @@ export class DeepSeekToolChoiceMapper
 	map(
 		ctx: ResponsesContext,
 		_plan: CompatibilityPlan,
-		toolSurface: DeepSeekToolSurface,
+		toolIndex: DeepSeekToolIndex,
 	): DeepSeekToolChoice | undefined {
 		const requestedToolChoice = ctx.request.tool_choice;
 		if (isThinkingMode(ctx) && requestedToolChoice !== undefined) {
@@ -363,7 +363,7 @@ export class DeepSeekToolChoiceMapper
 			});
 			return undefined;
 		}
-		if (!toolSurface.hasDeclarations()) return undefined;
+		if (!toolIndex.hasDeclarations()) return undefined;
 		if (isUnsupportedToolChoice(requestedToolChoice)) {
 			ctx.addDiagnostic({
 				code: "adapter.param.unsupported",

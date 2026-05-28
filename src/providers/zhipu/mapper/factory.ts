@@ -24,7 +24,7 @@ import {
 } from "./response-output";
 import { ZhipuStreamDeltaMapper } from "./stream-delta";
 import { ZhipuToolCallRestorer } from "./tool-calls";
-import { ZhipuToolChoiceMapper, ZhipuToolSurfaceBuilder } from "./tools";
+import { ZhipuToolChoiceMapper, ZhipuToolIndexBuilder } from "./tools";
 import { ZhipuUsageMapper } from "./usage";
 
 export function createZhipuMapper(): ProviderMapper<
@@ -43,7 +43,7 @@ export function createZhipuMapper(): ProviderMapper<
 			negotiator: new ZhipuCompatibilityNegotiator(),
 			factory: new ZhipuRequestFactory(),
 			messages: new ZhipuMessageMapper(),
-			tools: new ZhipuToolSurfaceBuilder(),
+			tools: new ZhipuToolIndexBuilder(),
 			toolChoice: new ZhipuToolChoiceMapper(),
 			options: new ZhipuRequestOptionsMapper(),
 		}),

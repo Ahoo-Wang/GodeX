@@ -5,7 +5,7 @@ import type { ResponsesContext } from "../../../context/responses-context";
 import { createLogger } from "../../../logger";
 import type { ResponseItem } from "../../../protocol/openai/responses";
 import { ChatStreamMapper } from "./stream-mapper";
-import { ToolSurfaceSlot } from "./tool-surface";
+import { ToolIndexSlot } from "./tool-index";
 
 interface TestChunk {
 	delta?: {
@@ -31,7 +31,7 @@ function ctx(): ResponsesContext {
 		app: {} as unknown as ApplicationContext,
 		provider: { mapper: {} as never, client: {} as never },
 		attributes: new Map(),
-		toolSurface: new ToolSurfaceSlot(),
+		toolIndex: new ToolIndexSlot(),
 	} as unknown as ResponsesContext;
 }
 

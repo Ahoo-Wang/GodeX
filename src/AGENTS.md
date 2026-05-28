@@ -30,7 +30,7 @@ CLI → ApplicationContext → Bun HTTP server
 
 The `ProviderMapper` is built from sub-responsibility interfaces in `adapter/mapper/chat/contract.ts`:
 
-**Request:** `CompatibilityNegotiator` → `OutputFormatContract` → `ChatRequestFactory` → `ChatMessageMapper` → `ChatToolSurfaceBuilder` → `ChatToolChoiceMapper` → `ChatRequestOptionsMapper`
+**Request:** `CompatibilityNegotiator` → `OutputFormatContract` → `ChatRequestFactory` → `ChatMessageMapper` → `ChatToolIndexBuilder` → `ChatToolChoiceMapper` → `ChatRequestOptionsMapper`
 
 **Response:** `ChatResponseAccessor` → `ChatResponseOutputMapper` + `ChatUsageMapper` + `ChatFinishReasonMapper` → `buildChatResponseObject`
 

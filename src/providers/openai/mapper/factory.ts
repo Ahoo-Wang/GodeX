@@ -24,7 +24,7 @@ import {
 } from "./response-output";
 import { OpenAIStreamDeltaMapper } from "./stream-delta";
 import { OpenAIToolCallRestorer } from "./tool-calls";
-import { OpenAIToolChoiceMapper, OpenAIToolSurfaceBuilder } from "./tools";
+import { OpenAIToolChoiceMapper, OpenAIToolIndexBuilder } from "./tools";
 import { OpenAIUsageMapper } from "./usage";
 
 export function createOpenAIMapper(): ProviderMapper<
@@ -43,7 +43,7 @@ export function createOpenAIMapper(): ProviderMapper<
 			negotiator: new OpenAICompatibilityNegotiator(),
 			factory: new OpenAIRequestFactory(),
 			messages: new OpenAIMessageMapper(),
-			tools: new OpenAIToolSurfaceBuilder(),
+			tools: new OpenAIToolIndexBuilder(),
 			toolChoice: new OpenAIToolChoiceMapper(),
 			options: new OpenAIRequestOptionsMapper(),
 		}),

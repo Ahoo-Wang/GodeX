@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import type { ResponseTool } from "../../../protocol/openai/responses";
 import {
 	flattenToolName,
-	ProviderToolSurface,
+	ProviderToolIndex,
 	ToolIdentityCatalog,
-} from "./tool-surface";
+} from "./tool-index";
 
 const encodeName = (name: string) => name.replaceAll(".", "_");
 
@@ -31,9 +31,9 @@ const tools: ResponseTool[] = [
 	},
 ];
 
-describe("ProviderToolSurface", () => {
+describe("ProviderToolIndex", () => {
 	test("encapsulates provider declarations, sidecars, and call restoration", () => {
-		const surface = new ProviderToolSurface({
+		const index = new ProviderToolIndex({
 			declarations: ["weather_now"],
 			sidecars: { webSearchOptions: { search_context_size: "high" } },
 			identityCatalog: ToolIdentityCatalog.fromTools(tools, encodeName),
@@ -42,13 +42,13 @@ describe("ProviderToolSurface", () => {
 		expect(flattenToolName({ namespace: "workspace", name: "raw" })).toBe(
 			"workspace__raw",
 		);
-		expect(surface.hasDeclarations()).toBe(true);
-		expect(surface.declarations()).toEqual(["weather_now"]);
-		expect(surface.sidecars()).toEqual({
+		expect(index.hasDeclarations()).toBe(true);
+		expect(index.declarations()).toEqual(["weather_now"]);
+		expect(index.sidecars()).toEqual({
 			webSearchOptions: { search_context_size: "high" },
 		});
 
-		const route = surface.resolveProviderCall("workspace__raw");
+		const route = index.resolveProviderCall("workspace__raw");
 		expect(route?.identity()).toEqual({
 			type: "namespace_custom",
 			providerName: "workspace__raw",
@@ -65,7 +65,7 @@ describe("ProviderToolSurface", () => {
 	});
 
 	test("keeps namespace identities ahead of top-level provider-name collisions", () => {
-		const surface = new ProviderToolSurface({
+		const index = new ProviderToolIndex({
 			declarations: [],
 			identityCatalog: ToolIdentityCatalog.fromTools(
 				[
@@ -86,7 +86,7 @@ describe("ProviderToolSurface", () => {
 			),
 		});
 
-		expect(surface.resolveProviderCall("workspace__raw")?.identity()).toEqual({
+		expect(index.resolveProviderCall("workspace__raw")?.identity()).toEqual({
 			type: "namespace_custom",
 			providerName: "workspace__raw",
 			namespace: "workspace",
@@ -95,11 +95,11 @@ describe("ProviderToolSurface", () => {
 	});
 
 	test("restores apply_patch calls using the protocol operation shapes", () => {
-		const surface = new ProviderToolSurface({
+		const index = new ProviderToolIndex({
 			declarations: [],
 			identityCatalog: ToolIdentityCatalog.fromTools([{ type: "apply_patch" }]),
 		});
-		const route = surface.resolveProviderCall("apply_patch");
+		const route = index.resolveProviderCall("apply_patch");
 
 		expect(
 			route?.restore(
@@ -138,11 +138,11 @@ describe("ProviderToolSurface", () => {
 	});
 
 	test("rejects apply_patch operations that do not match the protocol", () => {
-		const surface = new ProviderToolSurface({
+		const index = new ProviderToolIndex({
 			declarations: [],
 			identityCatalog: ToolIdentityCatalog.fromTools([{ type: "apply_patch" }]),
 		});
-		const route = surface.resolveProviderCall("apply_patch");
+		const route = index.resolveProviderCall("apply_patch");
 
 		expect(
 			route?.restore(

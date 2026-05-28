@@ -1,6 +1,6 @@
 import type { ChatToolCallRestorer } from "../../../adapter/mapper/chat/contract";
 import type { ToolCallSnapshot } from "../../../adapter/mapper/chat/stream-response-state";
-import { createFunctionCall } from "../../../adapter/mapper/chat/tool-surface";
+import { createFunctionCall } from "../../../adapter/mapper/chat/tool-index";
 import type { ResponsesContext } from "../../../context/responses-context";
 import type { ResponseItem } from "../../../protocol/openai/responses";
 
@@ -19,7 +19,7 @@ export function mapZhipuToolCall(
 	const args = toolCall.arguments ?? "{}";
 
 	return (
-		ctx.toolSurface?.current()?.restoreProviderFunctionCall({
+		ctx.toolIndex?.current()?.restoreProviderFunctionCall({
 			providerName: name,
 			callId,
 			args,

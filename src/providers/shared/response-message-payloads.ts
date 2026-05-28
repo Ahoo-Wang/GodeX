@@ -1,4 +1,4 @@
-import { flattenToolName } from "../../adapter/mapper/chat/tool-surface";
+import { flattenToolName } from "../../adapter/mapper/chat/tool-index";
 import { isRecord } from "../../adapter/utils";
 import {
 	ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
