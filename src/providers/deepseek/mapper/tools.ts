@@ -15,6 +15,10 @@ import type {
 	ResponseToolChoice,
 } from "../../../protocol/openai/responses";
 import { getBuiltinFunctionToolDefinition } from "../../../tools";
+import {
+	degradedCustomToolDescription,
+	degradedCustomToolParameters,
+} from "../../shared/custom-tool-degradation";
 import { toDeepSeekFunctionName } from "../function-names";
 import type { DeepSeekTool, DeepSeekToolChoice } from "../protocol/completions";
 import { DEEPSEEK_PROVIDER_NAME } from "../provider";
@@ -28,17 +32,6 @@ interface MapToolsOptions {
 	supportedToolTypes?: ReadonlySet<string>;
 	degradedToolTypes?: ReadonlyMap<string, string>;
 }
-
-const INPUT_STRING_PARAMETERS = {
-	type: "object",
-	properties: {
-		input: {
-			type: "string",
-			description: "Input for the custom tool.",
-		},
-	},
-	required: ["input"],
-} satisfies Record<string, unknown>;
 
 const TOOL_SEARCH_PARAMETERS = {
 	type: "object",
@@ -100,9 +93,8 @@ function mapTool(
 		case "custom":
 			return functionTool(
 				tool.name,
-				tool.description ??
-					"Call this custom tool with a string input when it best matches the user request.",
-				INPUT_STRING_PARAMETERS,
+				degradedCustomToolDescription(tool),
+				degradedCustomToolParameters(tool),
 			);
 		case "tool_search":
 			return functionTool(
@@ -129,7 +121,11 @@ function mapTool(
 							: undefined,
 					);
 				}
-				return functionTool(name, description, INPUT_STRING_PARAMETERS);
+				return functionTool(
+					name,
+					degradedCustomToolDescription(nestedTool, description),
+					degradedCustomToolParameters(nestedTool),
+				);
 			});
 		default:
 			return handleUnsupportedTool(

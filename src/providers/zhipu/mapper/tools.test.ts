@@ -206,6 +206,36 @@ describe("mapZhipuTools", () => {
 		);
 	});
 
+	test("describes custom tool input format when downgraded to function", () => {
+		const [tool] = mapZhipuTools([
+			{
+				type: "custom",
+				name: "raw-sql",
+				description: "Run a SQL statement",
+				format: {
+					type: "grammar",
+					syntax: "lark",
+					definition: "start: /.+/",
+				},
+			},
+		]);
+
+		expect(tool).toMatchObject({
+			type: "function",
+			function: {
+				name: "raw_sql",
+				description: expect.stringContaining("Input format: grammar (lark)"),
+				parameters: {
+					properties: {
+						input: {
+							description: expect.stringContaining("start: /.+/"),
+						},
+					},
+				},
+			},
+		});
+	});
+
 	test("rejects function name collisions after Zhipu sanitization", () => {
 		expect(() =>
 			mapZhipuTools([

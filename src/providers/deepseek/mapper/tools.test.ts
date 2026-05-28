@@ -126,6 +126,40 @@ describe("DeepSeek tools", () => {
 		expect(result.tools?.[3]?.function.strict).toBe(false);
 	});
 
+	test("describes custom tool input format when downgraded to function", () => {
+		const result = mapRequest(
+			ctx({
+				tools: [
+					{
+						type: "custom",
+						name: "raw.sql",
+						description: "Run a SQL statement",
+						format: {
+							type: "grammar",
+							syntax: "lark",
+							definition: "start: /.+/",
+						},
+					},
+				],
+			}),
+		);
+
+		expect(result.tools?.[0]).toMatchObject({
+			type: "function",
+			function: {
+				name: "raw_sql",
+				description: expect.stringContaining("Input format: grammar (lark)"),
+				parameters: {
+					properties: {
+						input: {
+							description: expect.stringContaining("start: /.+/"),
+						},
+					},
+				},
+			},
+		});
+	});
+
 	test("skips unsupported native tools with diagnostics", () => {
 		const c = ctx({
 			tools: [

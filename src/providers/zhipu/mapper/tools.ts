@@ -17,6 +17,10 @@ import type {
 	ResponseToolChoice,
 } from "../../../protocol/openai/responses";
 import { getBuiltinFunctionToolDefinition } from "../../../tools";
+import {
+	degradedCustomToolDescription,
+	degradedCustomToolParameters,
+} from "../../shared/custom-tool-degradation";
 import { toZhipuFunctionName } from "../function-names";
 import type {
 	ChatTool,
@@ -129,16 +133,8 @@ function mapTool(
 		case "custom":
 			return codexFunctionTool(
 				tool.name,
-				tool.description ??
-					"Call this custom tool with a string input when it best matches the user request.",
-				{
-					input: {
-						type: "string",
-						description:
-							"Input for the custom tool. Keep it concise and valid for the tool name.",
-					},
-				},
-				["input"],
+				degradedCustomToolDescription(tool),
+				degradedCustomToolParameters(tool),
 			);
 		case "tool_search":
 			return codexFunctionTool(
@@ -159,23 +155,28 @@ function mapTool(
 						},
 			);
 		case "namespace":
-			return tool.tools.map((nestedTool) =>
-				codexFunctionTool(
+			return tool.tools.map((nestedTool) => {
+				const fallbackDescription = `${tool.description} (${nestedTool.name})`;
+				if (nestedTool.type === "function") {
+					return codexFunctionTool(
+						`${tool.name}__${nestedTool.name}`,
+						nestedTool.description ?? fallbackDescription,
+						nestedTool.parameters && isRecord(nestedTool.parameters)
+							? nestedTool.parameters
+							: { input: { type: "string" } },
+						nestedTool.parameters &&
+							isRecord(nestedTool.parameters) &&
+							isStringArray(nestedTool.parameters.required)
+							? nestedTool.parameters.required
+							: undefined,
+					);
+				}
+				return codexFunctionTool(
 					`${tool.name}__${nestedTool.name}`,
-					nestedTool.description ?? `${tool.description} (${nestedTool.name})`,
-					nestedTool.type === "function" &&
-						nestedTool.parameters &&
-						isRecord(nestedTool.parameters)
-						? nestedTool.parameters
-						: { input: { type: "string" } },
-					nestedTool.type === "function" &&
-						nestedTool.parameters &&
-						isRecord(nestedTool.parameters) &&
-						isStringArray(nestedTool.parameters.required)
-						? nestedTool.parameters.required
-						: undefined,
-				),
-			);
+					degradedCustomToolDescription(nestedTool, fallbackDescription),
+					degradedCustomToolParameters(nestedTool),
+				);
+			});
 		default:
 			return handleUnsupportedTool(
 				tool.type,
