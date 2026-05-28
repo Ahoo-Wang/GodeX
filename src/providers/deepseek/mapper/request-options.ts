@@ -4,6 +4,7 @@ import type {
 	ChatRequestOptionsMapper,
 } from "../../../adapter/mapper/chat/contract";
 import type { ResponsesContext } from "../../../context/responses-context";
+import { jsonSchemaOutputContractMessage } from "../../shared/json-schema-output-contract";
 import type { ChatCompletionRequest } from "../protocol/completions";
 
 export class DeepSeekRequestFactory
@@ -22,7 +23,7 @@ export class DeepSeekRequestOptionsMapper
 {
 	apply(
 		ctx: ResponsesContext,
-		_plan: CompatibilityPlan,
+		plan: CompatibilityPlan,
 		request: ChatCompletionRequest,
 	): void {
 		const req = ctx.request;
@@ -53,15 +54,13 @@ export class DeepSeekRequestOptionsMapper
 			req.text?.format?.type === "json_schema"
 		) {
 			request.response_format = { type: "json_object" };
-			if (req.text.format.type === "json_schema") {
-				ctx.addDiagnostic({
-					code: "adapter.param.unsupported",
-					severity: "warn",
-					path: "text.format",
-					action: "degraded",
-					message:
-						"DeepSeek supports JSON object mode but not Responses JSON Schema enforcement; degraded to json_object.",
-					metadata: { parameter: "text.format", value: "json_schema" },
+			if (
+				req.text.format.type === "json_schema" &&
+				plan.responseFormat?.action === "degraded"
+			) {
+				request.messages.push({
+					role: "user",
+					content: jsonSchemaOutputContractMessage(req.text.format),
 				});
 			}
 		}

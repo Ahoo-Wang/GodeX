@@ -4,6 +4,7 @@ import type {
 	ChatRequestOptionsMapper,
 } from "../../../adapter/mapper/chat/contract";
 import type { ResponsesContext } from "../../../context/responses-context";
+import { jsonSchemaOutputContractMessage } from "../../shared/json-schema-output-contract";
 import type { ChatCompletionTextRequest } from "../protocol/completions";
 import type { TextModel } from "../protocol/models";
 
@@ -23,7 +24,7 @@ export class ZhipuRequestOptionsMapper
 {
 	apply(
 		ctx: ResponsesContext,
-		_plan: CompatibilityPlan,
+		plan: CompatibilityPlan,
 		request: ChatCompletionTextRequest,
 	): void {
 		const req = ctx.request;
@@ -46,6 +47,15 @@ export class ZhipuRequestOptionsMapper
 			req.text?.format?.type === "json_object"
 		) {
 			request.response_format = { type: "json_object" };
+			if (
+				req.text.format.type === "json_schema" &&
+				plan.responseFormat?.action === "degraded"
+			) {
+				request.messages.push({
+					role: "user",
+					content: jsonSchemaOutputContractMessage(req.text.format),
+				});
+			}
 		}
 	}
 }

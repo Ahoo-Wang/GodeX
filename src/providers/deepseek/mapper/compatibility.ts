@@ -4,7 +4,10 @@ import {
 } from "../../../adapter/mapper/chat/compatibility-plan";
 import type { CompatibilityNegotiator } from "../../../adapter/mapper/chat/contract";
 import type { ResponsesContext } from "../../../context/responses-context";
-import { warnIgnoredParameter } from "../../shared/compatibility-diagnostics";
+import {
+	warnDegradedResponseFormat,
+	warnIgnoredParameter,
+} from "../../shared/compatibility-diagnostics";
 import { DEEPSEEK_CAPABILITIES } from "./capabilities";
 
 export class DeepSeekCompatibilityNegotiator
@@ -77,6 +80,15 @@ export class DeepSeekCompatibilityNegotiator
 			ctx.request.text?.verbosity,
 			"DeepSeek Chat Completions does not support text verbosity controls.",
 		);
+		if (ctx.request.text?.format?.type === "json_schema") {
+			warnDegradedResponseFormat({
+				ctx,
+				plan,
+				providerLabel: "DeepSeek",
+				from: "json_schema",
+				to: "json_object",
+			});
+		}
 		return plan;
 	}
 }

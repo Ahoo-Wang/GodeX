@@ -89,19 +89,45 @@ describe("DeepSeek request mapping", () => {
 		expect(result.response_format).toEqual({ type: "json_object" });
 	});
 
-	test("degrades json_schema to json_object with diagnostic", () => {
+	test("degrades json_schema to json_object with diagnostic and schema constraint message", () => {
 		const c = ctx({
 			text: {
 				format: {
 					type: "json_schema",
 					name: "person",
-					schema: { type: "object" },
+					description: "A person payload.",
+					schema: {
+						type: "object",
+						properties: { name: { type: "string" } },
+						required: ["name"],
+					},
 				},
 			},
 		});
 		const result = mapRequest(c);
 		expect(result.response_format).toEqual({ type: "json_object" });
-		expect(c.diagnostics.some((d) => d.path === "text.format")).toBe(true);
+		expect(c.diagnostics).toContainEqual(
+			expect.objectContaining({
+				path: "text.format",
+				action: "degraded",
+			}),
+		);
+		const schemaMessage = result.messages.at(-1);
+		expect(schemaMessage?.role).toBe("user");
+		expect(schemaMessage?.content).toEqual(
+			expect.stringContaining(
+				"Return only a JSON object that conforms to the JSON Schema below.",
+			),
+		);
+		expect(schemaMessage?.content).toEqual(
+			expect.stringContaining("Schema name: person"),
+		);
+		expect(schemaMessage?.content).toEqual(
+			expect.stringContaining("Schema description: A person payload."),
+		);
+		expect(schemaMessage?.content).toEqual(
+			expect.stringContaining('"required":["name"]'),
+		);
 	});
 
 	test("warns and ignores unsupported hard parameters", () => {

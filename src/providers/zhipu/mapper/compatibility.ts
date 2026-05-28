@@ -4,7 +4,10 @@ import {
 } from "../../../adapter/mapper/chat/compatibility-plan";
 import type { CompatibilityNegotiator } from "../../../adapter/mapper/chat/contract";
 import type { ResponsesContext } from "../../../context/responses-context";
-import { warnIgnoredParameter } from "../../shared/compatibility-diagnostics";
+import {
+	warnDegradedResponseFormat,
+	warnIgnoredParameter,
+} from "../../shared/compatibility-diagnostics";
 import { ZHIPU_CAPABILITIES } from "./capabilities";
 
 export class ZhipuCompatibilityNegotiator implements CompatibilityNegotiator {
@@ -45,6 +48,15 @@ export class ZhipuCompatibilityNegotiator implements CompatibilityNegotiator {
 			ctx.request.parallel_tool_calls,
 			"Zhipu Chat Completions does not expose parallel tool-call control.",
 		);
+		if (ctx.request.text?.format?.type === "json_schema") {
+			warnDegradedResponseFormat({
+				ctx,
+				plan,
+				providerLabel: "Zhipu",
+				from: "json_schema",
+				to: "json_object",
+			});
+		}
 		return plan;
 	}
 }

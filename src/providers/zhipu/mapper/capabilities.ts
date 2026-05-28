@@ -33,7 +33,10 @@ export const ZHIPU_CAPABILITIES: ProviderCapabilities = {
 	},
 	tools: { supported: ZHIPU_SUPPORTED_TOOL_TYPES, maxTools: ZHIPU_MAX_TOOLS },
 	toolChoice: { supported: new Set(["auto", "none"]) },
-	responseFormats: { supported: new Set(["json_object", "json_schema"]) },
+	responseFormats: {
+		supported: new Set(["text", "json_object"]),
+		degraded: new Map([["json_schema", "json_object"]]),
+	},
 	reasoning: { effort: "boolean" },
 	streaming: { usage: true },
 };

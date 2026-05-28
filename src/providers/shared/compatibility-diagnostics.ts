@@ -12,6 +12,14 @@ interface WarnIgnoredParameterOptions {
 	message?: string;
 }
 
+interface WarnDegradedResponseFormatOptions {
+	ctx: ResponsesContext;
+	plan: CompatibilityPlan;
+	providerLabel: string;
+	from: string;
+	to: string;
+}
+
 export function warnIgnoredParameter({
 	ctx,
 	plan,
@@ -40,6 +48,41 @@ export function warnIgnoredParameter({
 	ctx.addDiagnostic(diagnostic);
 	plan.diagnostics.push(diagnostic);
 	plan.parameters[path] = { action: "ignored", reason: diagnostic.message };
+}
+
+export function warnDegradedResponseFormat({
+	ctx,
+	plan,
+	providerLabel,
+	from,
+	to,
+}: WarnDegradedResponseFormatOptions): void {
+	const diagnostic: CompatibilityDiagnostic = {
+		code: "adapter.param.unsupported",
+		severity: "warn",
+		path: "text.format",
+		action: "degraded",
+		message: `${providerLabel} Chat Completions supports ${to} but does not enforce Responses ${from}; using ${to} with a schema instruction.`,
+		metadata: {
+			provider: ctx.resolved.provider,
+			model: ctx.resolved.model,
+			parameter: "text.format",
+			value: summarizeCompatibilityValue(ctx.request.text?.format),
+			effectiveValue: { type: to },
+		},
+	};
+	ctx.addDiagnostic(diagnostic);
+	plan.diagnostics.push(diagnostic);
+	plan.parameters["text.format"] = {
+		action: "degraded",
+		reason: diagnostic.message,
+		effectiveValue: { type: to },
+	};
+	plan.responseFormat = {
+		action: "degraded",
+		reason: diagnostic.message,
+		effectiveValue: { type: to },
+	};
 }
 
 export function summarizeCompatibilityValue(value: unknown): unknown {

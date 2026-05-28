@@ -15,6 +15,7 @@ export interface ToolChoiceCapabilities {
 
 export interface ResponseFormatCapabilities {
 	supported: ReadonlySet<string>;
+	degraded?: ReadonlyMap<string, string>;
 }
 
 export interface ReasoningCapabilities {
