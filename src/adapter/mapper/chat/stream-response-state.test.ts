@@ -7,6 +7,7 @@ import type { ResponseItem } from "../../../protocol/openai/responses";
 import {
 	StreamResponsePhase,
 	StreamResponseState,
+	type StreamResponseTerminalStatus,
 	type ToolCallSnapshot,
 } from "./stream-response-state";
 
@@ -520,6 +521,26 @@ describe("StreamResponseState terminal behavior", () => {
 		state.onFinish({ status: "completed" });
 
 		expect(() => state.onTextDelta("late")).toThrow(GodeXError);
+	});
+
+	test("invalid terminal status throws instead of corrupting phase", () => {
+		const state = StreamResponseState.create(ctx(), {
+			toolCallOutputItemMapper: toolMapper,
+		});
+		state.start();
+		state.onTextDelta("partial");
+
+		expect(() =>
+			state.onFinish({
+				status: "queued",
+			} as unknown as StreamResponseTerminalStatus),
+		).toThrow(GodeXError);
+		expect(state.phase).toBe(StreamResponsePhase.IN_PROGRESS);
+		expect(state.snapshot.output[0]).toMatchObject({
+			type: "message",
+			status: "in_progress",
+		});
+		expect(() => state.onTextDone()).not.toThrow();
 	});
 
 	test("delta before start throws with specific error code", () => {
