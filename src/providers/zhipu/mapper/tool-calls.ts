@@ -39,15 +39,6 @@ export class ZhipuToolCallMapper implements ChatToolCallMapper {
 		const callId = call.id ?? `fc_${name || "tool"}`;
 		const args = call.arguments ?? "{}";
 
-		if (identity.namespace) {
-			return createFunctionCall(
-				callId,
-				identity.name,
-				args,
-				identity.namespace,
-			);
-		}
-
 		return (
 			restoreToolCallFromFunctionName({
 				tools: ctx.request.tools,
@@ -55,7 +46,7 @@ export class ZhipuToolCallMapper implements ChatToolCallMapper {
 				callId,
 				args,
 				encodeName: toZhipuFunctionName,
-			}) ?? createFunctionCall(callId, name, args)
+			}) ?? createFunctionCall(callId, name, args, identity.namespace)
 		);
 	}
 }

@@ -7,6 +7,7 @@ import type {
 
 export interface ToolCallRecord extends ToolCallSnapshot {
 	outputIndex?: number;
+	eventType?: "function" | "custom";
 	opened: boolean;
 	done: boolean;
 }

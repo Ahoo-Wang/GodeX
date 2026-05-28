@@ -257,6 +257,113 @@ describe("OpenAIStreamMapper", () => {
 		});
 	});
 
+	test("streams downgraded namespace custom tool calls as custom_tool_call items", () => {
+		const testCtx = ctx({
+			tools: [
+				{
+					type: "namespace",
+					name: "workspace",
+					description: "Workspace tools",
+					tools: [{ type: "custom", name: "raw" }],
+				},
+			],
+		});
+		mapStream(testCtx, sse());
+
+		const addedEvents = mapStream(
+			testCtx,
+			sse({
+				choices: [
+					{
+						index: 0,
+						delta: {
+							tool_calls: [
+								{
+									index: 0,
+									type: "function",
+									id: "call_raw",
+									function: {
+										name: "workspace__raw",
+										arguments: '{"input":"select',
+									},
+								} as never,
+							],
+						},
+						finish_reason: null,
+						logprobs: null,
+					},
+				],
+			}),
+		);
+
+		expect(addedEvents).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					type: "response.output_item.added",
+					item: {
+						type: "custom_tool_call",
+						call_id: "call_raw",
+						namespace: "workspace",
+						name: "raw",
+						input: "",
+						status: "in_progress",
+					},
+				}),
+			]),
+		);
+
+		mapStream(
+			testCtx,
+			sse({
+				choices: [
+					{
+						index: 0,
+						delta: {
+							tool_calls: [
+								{
+									index: 0,
+									function: { arguments: ' 1"}' },
+								} as never,
+							],
+						},
+						finish_reason: null,
+						logprobs: null,
+					},
+				],
+			}),
+		);
+
+		const doneEvents = mapStream(
+			testCtx,
+			sse({
+				choices: [
+					{
+						index: 0,
+						delta: {},
+						finish_reason: "tool_calls",
+						logprobs: null,
+					},
+				],
+			}),
+		);
+
+		expect(doneEvents).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					type: "response.output_item.done",
+					item: {
+						type: "custom_tool_call",
+						call_id: "call_raw",
+						namespace: "workspace",
+						name: "raw",
+						input: "select 1",
+						status: "completed",
+					},
+				}),
+			]),
+		);
+	});
+
 	test("streams custom tool calls as custom_tool_call items", () => {
 		const testCtx = ctx();
 		mapStream(testCtx, sse());

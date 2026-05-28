@@ -375,6 +375,8 @@ export class StreamResponseState {
 		if (!call.opened) {
 			const emptySnapshot = this.toolCalls.snapshot({ ...call, arguments: "" });
 			const rawItem = this.toolCalls.item(emptySnapshot);
+			call.eventType =
+				rawItem.type === "custom_tool_call" ? "custom" : call.type;
 			const emptyItem = normalizeItemStatus(rawItem, "in_progress");
 			const output = this.output.add(emptyItem);
 			call.outputIndex = output.index;
@@ -806,17 +808,17 @@ function normalizeItemStatus(
 }
 
 function toolCallDeltaEventType(
-	call: ToolCallSnapshot,
+	call: ToolCallSnapshot & { eventType?: "function" | "custom" },
 ): ResponseStreamEvent["type"] {
-	return call.type === "custom"
+	return (call.eventType ?? call.type) === "custom"
 		? "response.custom_tool_call_input.delta"
 		: "response.function_call_arguments.delta";
 }
 
 function toolCallDoneEventType(
-	call: ToolCallSnapshot,
+	call: ToolCallSnapshot & { eventType?: "function" | "custom" },
 ): ResponseStreamEvent["type"] {
-	return call.type === "custom"
+	return (call.eventType ?? call.type) === "custom"
 		? "response.custom_tool_call_input.done"
 		: "response.function_call_arguments.done";
 }

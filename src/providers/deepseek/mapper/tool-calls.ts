@@ -39,15 +39,6 @@ export class DeepSeekToolCallMapper implements ChatToolCallMapper {
 		const callId = call.id ?? `fc_${name || "tool"}`;
 		const args = call.arguments ?? "{}";
 
-		if (identity.namespace) {
-			return createFunctionCall(
-				callId,
-				identity.name,
-				args,
-				identity.namespace,
-			);
-		}
-
 		return (
 			restoreToolCallFromFunctionName({
 				tools: ctx.request.tools,
@@ -55,7 +46,7 @@ export class DeepSeekToolCallMapper implements ChatToolCallMapper {
 				callId,
 				args,
 				encodeName: toDeepSeekFunctionName,
-			}) ?? createFunctionCall(callId, name, args)
+			}) ?? createFunctionCall(callId, name, args, identity.namespace)
 		);
 	}
 }

@@ -58,7 +58,10 @@ const tools: ResponseTool[] = [
 		type: "namespace",
 		name: "workspace",
 		description: "Workspace tools",
-		tools: [{ type: "function", name: "list-files" }],
+		tools: [
+			{ type: "function", name: "list-files" },
+			{ type: "custom", name: "raw" },
+		],
 	},
 ];
 
@@ -231,6 +234,23 @@ describe("DeepSeek tool call mapping", () => {
 			namespace: "workspace",
 			name: "list-files",
 			arguments: "{}",
+		});
+		expect(
+			mapper.map(
+				c,
+				call("ignored", { input: "select 1" }, "call_namespace_custom"),
+				{
+					upstreamName: "workspace__raw",
+					namespace: "workspace",
+					name: "raw",
+				},
+			),
+		).toEqual({
+			type: "custom_tool_call",
+			call_id: "call_namespace_custom",
+			namespace: "workspace",
+			name: "raw",
+			input: "select 1",
 		});
 	});
 });

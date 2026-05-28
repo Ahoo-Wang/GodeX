@@ -152,6 +152,69 @@ describe("buildResponseObject", () => {
 		});
 	});
 
+	test("restores downgraded built-in and namespace custom tool calls", () => {
+		const withDowngradedTools: ChatCompletion = {
+			...openAICompletion,
+			choices: [
+				choice({
+					message: {
+						role: "assistant",
+						content: null,
+						refusal: null,
+						tool_calls: [
+							{
+								type: "function",
+								id: "tc_shell",
+								function: {
+									name: "shell",
+									arguments: '{"commands":["pwd"]}',
+								},
+							},
+							{
+								type: "function",
+								id: "tc_raw",
+								function: {
+									name: "workspace__raw",
+									arguments: '{"input":"select 1"}',
+								},
+							},
+						],
+					},
+					finish_reason: "tool_calls",
+				}),
+			],
+		};
+
+		const result = mapResponse(
+			ctx({
+				tools: [
+					{ type: "shell" },
+					{
+						type: "namespace",
+						name: "workspace",
+						description: "Workspace tools",
+						tools: [{ type: "custom", name: "raw" }],
+					},
+				] satisfies ResponseTool[],
+			}),
+			withDowngradedTools,
+		);
+
+		expect(result.output[1]).toEqual({
+			type: "shell_call",
+			call_id: "tc_shell",
+			action: { commands: ["pwd"] },
+			status: "in_progress",
+		});
+		expect(result.output[2]).toEqual({
+			type: "custom_tool_call",
+			call_id: "tc_raw",
+			namespace: "workspace",
+			name: "raw",
+			input: "select 1",
+		});
+	});
+
 	test("restores flattened namespace tool calls to FunctionCall namespace", () => {
 		const withNamespaceTool: ChatCompletion = {
 			...openAICompletion,

@@ -8,9 +8,12 @@ import type { ResponsesContext } from "../../../context/responses-context";
 import type { ChatCompletionMessageToolCall } from "../../../protocol/openai/completions";
 import type {
 	CustomToolCall,
-	FunctionCall,
 	ResponseItem,
 } from "../../../protocol/openai/responses";
+import {
+	createFunctionCall,
+	restoreToolCallFromFunctionName,
+} from "../../shared/tool-call-restoration";
 import { findFlattenedNamespaceTool } from "../../shared/tool-name-mapping";
 
 export function mapOpenAIToolCall(
@@ -52,18 +55,16 @@ function functionCallFromName(
 	callId: string,
 	providerName: string,
 	args: string,
-): FunctionCall {
-	const namespaceMatch = findFlattenedNamespaceTool(
-		ctx.request.tools,
-		providerName,
+): ResponseItem {
+	return (
+		restoreToolCallFromFunctionName({
+			tools: ctx.request.tools,
+			providerName,
+			callId,
+			args,
+			encodeName: (name) => name,
+		}) ?? createFunctionCall(callId, providerName, args)
 	);
-	return {
-		type: "function_call",
-		call_id: callId,
-		...(namespaceMatch ? { namespace: namespaceMatch.namespace } : {}),
-		name: namespaceMatch?.name ?? providerName,
-		arguments: args,
-	};
 }
 
 function customToolCall(
@@ -97,19 +98,27 @@ export class OpenAIToolCallIdentityResolver
 
 export class OpenAIToolCallMapper implements ChatToolCallMapper {
 	map(
-		_ctx: ResponsesContext,
+		ctx: ResponsesContext,
 		call: ToolCallSnapshot,
 		identity: ChatToolCallIdentity,
 	): ResponseItem {
 		if (call.type === "custom") {
 			return customToolCall(call.id, identity.name, call.arguments);
 		}
-		return {
-			type: "function_call",
-			call_id: call.id,
-			...(identity.namespace ? { namespace: identity.namespace } : {}),
-			name: identity.name,
-			arguments: call.arguments,
-		};
+		return (
+			restoreToolCallFromFunctionName({
+				tools: ctx.request.tools,
+				providerName: identity.upstreamName,
+				callId: call.id,
+				args: call.arguments,
+				encodeName: (name) => name,
+			}) ??
+			createFunctionCall(
+				call.id,
+				identity.name,
+				call.arguments,
+				identity.namespace,
+			)
+		);
 	}
 }

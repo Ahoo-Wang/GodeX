@@ -287,6 +287,49 @@ describe("buildOpenAIRequest", () => {
 		);
 	});
 
+	test("maps allowed_tools tool_choice to Chat Completions shape", () => {
+		const c = ctx({
+			input: "Hi",
+			tools: [
+				{
+					type: "function",
+					name: "get_weather",
+					parameters: { type: "object" },
+					strict: true,
+				},
+				{
+					type: "web_search",
+					search_context_size: "high",
+				},
+			],
+			tool_choice: {
+				type: "allowed_tools",
+				mode: "required",
+				tools: [
+					{ type: "function", name: "get_weather" },
+					{ type: "web_search" },
+				],
+			},
+		});
+
+		const result = mapRequest(c);
+
+		expect(result.tool_choice).toEqual({
+			type: "allowed_tools",
+			allowed_tools: {
+				mode: "required",
+				tools: [{ type: "function", function: { name: "get_weather" } }],
+			},
+		});
+		expect(c.diagnostics).toContainEqual(
+			expect.objectContaining({
+				code: "adapter.param.unsupported",
+				path: "tool_choice.allowed_tools.tools",
+				action: "ignored",
+			}),
+		);
+	});
+
 	test("maps OpenAI tools once while applying tool sidecar options", () => {
 		let typeReads = 0;
 		const tool = new Proxy(
