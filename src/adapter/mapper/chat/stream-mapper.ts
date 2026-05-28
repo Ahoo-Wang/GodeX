@@ -6,8 +6,7 @@ import type {
 	ChatFinishReasonMapper,
 	ChatStreamDeltaMapper,
 	ChatStreamToolCallDelta,
-	ChatToolCallIdentityResolver,
-	ChatToolCallMapper,
+	ChatToolCallRestorer,
 } from "./contract";
 import {
 	type FunctionCallDelta,
@@ -18,8 +17,7 @@ import {
 export interface ChatStreamMapperOptions<TChunk, TDelta, TFinishReason> {
 	delta: ChatStreamDeltaMapper<TChunk, TDelta, TFinishReason>;
 	finishReason: ChatFinishReasonMapper<TFinishReason>;
-	identity: ChatToolCallIdentityResolver;
-	toolCall: ChatToolCallMapper;
+	toolCall: ChatToolCallRestorer;
 	deferTerminal?: boolean;
 }
 
@@ -42,11 +40,7 @@ export class ChatStreamMapper<TChunk, TDelta, TFinishReason extends string>
 			StreamResponseState.get(ctx) ??
 			StreamResponseState.create(ctx, {
 				toolCallOutputItemMapper: (call) =>
-					this.options.toolCall.map(
-						ctx,
-						call,
-						this.options.identity.resolve(ctx, call.name),
-					),
+					this.options.toolCall.restore(ctx, call),
 				deferTerminal: this.options.deferTerminal ?? false,
 			});
 		const choice = this.options.delta.extractChoice(event.data);

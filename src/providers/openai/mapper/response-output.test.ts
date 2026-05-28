@@ -1,4 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import {
+	ProviderToolSurface,
+	ToolIdentityCatalog,
+	ToolSurfaceSlot,
+} from "../../../adapter/mapper/chat/tool-surface";
 import type { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";
 import { createLogger } from "../../../logger";
@@ -13,7 +18,7 @@ import type {
 import { createOpenAIMapper } from "./index";
 
 function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
-	return {
+	const context = {
 		request: {
 			model: "gpt-4o",
 			...requestOverrides,
@@ -31,6 +36,20 @@ function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 			client: {} as never,
 		},
 	} as unknown as ResponsesContext;
+	return withToolSurface(context);
+}
+
+function withToolSurface(context: ResponsesContext): ResponsesContext {
+	const slot = new ToolSurfaceSlot();
+	slot.set(
+		new ProviderToolSurface({
+			declarations: [],
+			identityCatalog: ToolIdentityCatalog.fromTools(context.request.tools),
+		}),
+	);
+	(context as ResponsesContext & { toolSurface: ToolSurfaceSlot }).toolSurface =
+		slot;
+	return context;
 }
 
 function choice(

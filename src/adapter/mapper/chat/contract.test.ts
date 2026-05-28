@@ -8,7 +8,7 @@ import type {
 import type {
 	ChatFinishReasonMapper,
 	ChatRequestFactory,
-	ChatToolCallIdentityResolver,
+	ChatToolCallRestorer,
 	ChatUsageMapper,
 	CompatibilityNegotiator,
 } from "./contract";
@@ -66,8 +66,13 @@ describe("chat mapper contracts", () => {
 		const finishReason: ChatFinishReasonMapper<string> = {
 			map: () => ({ status: "completed" }) satisfies ResponseStatusFields,
 		};
-		const identity: ChatToolCallIdentityResolver = {
-			resolve: (_ctx, upstreamName) => ({ upstreamName, name: upstreamName }),
+		const toolCall: ChatToolCallRestorer = {
+			restore: (_ctx, call) => ({
+				type: "function_call",
+				call_id: call.id,
+				name: call.name,
+				arguments: call.arguments,
+			}),
 		};
 
 		expect(negotiator.negotiate({} as ResponsesContext).tools.size).toBe(0);
@@ -78,9 +83,15 @@ describe("chat mapper contracts", () => {
 			),
 		).toEqual({ model: "m", messages: [] });
 		expect(finishReason.map("stop").status).toBe("completed");
-		expect(identity.resolve({} as ResponsesContext, "get_weather").name).toBe(
-			"get_weather",
-		);
+		expect(
+			toolCall.restore({} as ResponsesContext, {
+				index: 0,
+				id: "call_1",
+				type: "function",
+				name: "get_weather",
+				arguments: "{}",
+			}),
+		).toEqual(expect.objectContaining({ name: "get_weather" }));
 	});
 
 	test("finish reason mapper contracts only allow terminal response statuses", () => {

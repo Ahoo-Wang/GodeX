@@ -7,6 +7,7 @@ import type {
 import type { CompatibilityPlan } from "./compatibility-plan";
 import type { ResponseStatusFields } from "./response-object-builder";
 import type { ToolCallSnapshot } from "./stream-response-state";
+import type { ProviderToolSidecars, ProviderToolSurface } from "./tool-surface";
 
 export interface CompatibilityNegotiator {
 	negotiate(ctx: ResponsesContext): CompatibilityPlan;
@@ -16,15 +17,25 @@ export interface ChatMessageMapper<TMessage> {
 	map(ctx: ResponsesContext, plan: CompatibilityPlan): TMessage[];
 }
 
-export interface ChatToolMapper<TTools> {
-	map(ctx: ResponsesContext, plan: CompatibilityPlan): TTools | undefined;
-}
-
-export interface ChatToolChoiceMapper<TTools, TToolChoice> {
+export interface ChatToolSurfaceBuilder<
+	TTools extends readonly unknown[],
+	TSidecars extends ProviderToolSidecars = ProviderToolSidecars,
+> {
 	map(
 		ctx: ResponsesContext,
 		plan: CompatibilityPlan,
-		tools: TTools | undefined,
+	): ProviderToolSurface<TTools, TSidecars>;
+}
+
+export interface ChatToolChoiceMapper<
+	TTools extends readonly unknown[],
+	TToolChoice,
+	TSidecars extends ProviderToolSidecars = ProviderToolSidecars,
+> {
+	map(
+		ctx: ResponsesContext,
+		plan: CompatibilityPlan,
+		toolSurface: ProviderToolSurface<TTools, TSidecars>,
 	): TToolChoice | undefined;
 }
 
@@ -50,8 +61,17 @@ export interface ChatRequestFactory<TReq> {
 	create(ctx: ResponsesContext, plan: CompatibilityPlan): TReq;
 }
 
-export interface ChatRequestOptionsMapper<TReq> {
-	apply(ctx: ResponsesContext, plan: CompatibilityPlan, request: TReq): void;
+export interface ChatRequestOptionsMapper<
+	TReq,
+	TTools extends readonly unknown[] = readonly unknown[],
+	TSidecars extends ProviderToolSidecars = ProviderToolSidecars,
+> {
+	apply(
+		ctx: ResponsesContext,
+		plan: CompatibilityPlan,
+		request: TReq,
+		toolSurface: ProviderToolSurface<TTools, TSidecars>,
+	): void;
 }
 
 export interface ChatResponseAccessor<TRes, TChoice, TFinishReason>
@@ -103,20 +123,6 @@ export interface ChatStreamDeltaMapper<TChunk, TDelta, TFinishReason> {
 	extractUsage(chunk: TChunk): ResponseUsage | undefined;
 }
 
-export interface ChatToolCallIdentity {
-	upstreamName: string;
-	name: string;
-	namespace?: string;
-}
-
-export interface ChatToolCallIdentityResolver {
-	resolve(ctx: ResponsesContext, upstreamName: string): ChatToolCallIdentity;
-}
-
-export interface ChatToolCallMapper {
-	map(
-		ctx: ResponsesContext,
-		call: ToolCallSnapshot,
-		identity: ChatToolCallIdentity,
-	): ResponseItem;
+export interface ChatToolCallRestorer {
+	restore(ctx: ResponsesContext, call: ToolCallSnapshot): ResponseItem;
 }

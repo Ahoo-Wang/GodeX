@@ -3,8 +3,13 @@
 import type { CompatibilityPlan } from "../../../adapter/mapper/chat/compatibility-plan";
 import type {
 	ChatToolChoiceMapper,
-	ChatToolMapper,
+	ChatToolSurfaceBuilder,
 } from "../../../adapter/mapper/chat/contract";
+import {
+	flattenToolName,
+	ProviderToolSurface,
+	ToolIdentityCatalogBuilder,
+} from "../../../adapter/mapper/chat/tool-surface";
 import { isRecord, isStringArray } from "../../../adapter/utils";
 import type { ResponsesContext } from "../../../context/responses-context";
 import {
@@ -21,7 +26,6 @@ import {
 	degradedCustomToolDescription,
 	degradedCustomToolParameters,
 } from "../../shared/custom-tool-degradation";
-import { flattenToolName } from "../../shared/tool-identity";
 import { toZhipuFunctionName } from "../function-names";
 import type {
 	ChatTool,
@@ -38,7 +42,10 @@ interface MapToolsOptions {
 	onDegraded?: (type: string, effectiveType: string) => void;
 	supportedToolTypes?: ReadonlySet<string>;
 	degradedToolTypes?: ReadonlyMap<string, string>;
+	identityCatalog?: ToolIdentityCatalogBuilder;
 }
+
+export type ZhipuToolSurface = ProviderToolSurface<ChatTool[]>;
 
 export function mapZhipuTools(
 	tools: ResponseTool[] | undefined,
@@ -75,6 +82,7 @@ function mapTool(
 	if (degradedTarget) options.onDegraded?.(tool.type, degradedTarget);
 	switch (tool.type) {
 		case "function": {
+			options.identityCatalog?.addFunction(tool.name);
 			return {
 				type: "function",
 				function: {
@@ -130,14 +138,17 @@ function mapTool(
 		case "local_shell":
 		case "shell":
 		case "apply_patch":
+			options.identityCatalog?.addBuiltin(tool.type);
 			return builtinFunctionTool(tool.type);
 		case "custom":
+			options.identityCatalog?.addCustom(tool.name);
 			return codexFunctionTool(
 				tool.name,
 				degradedCustomToolDescription(tool),
 				degradedCustomToolParameters(tool),
 			);
 		case "tool_search":
+			options.identityCatalog?.addToolSearch(tool.execution);
 			return codexFunctionTool(
 				"tool_search",
 				tool.description ??
@@ -162,6 +173,11 @@ function mapTool(
 					namespace: tool.name,
 					name: nestedTool.name,
 				});
+				options.identityCatalog?.addNamespaceTool(
+					tool.name,
+					nestedTool.name,
+					nestedTool.type,
+				);
 				if (nestedTool.type === "function") {
 					return codexFunctionTool(
 						name,
@@ -316,14 +332,18 @@ function assertNoFunctionNameCollisions(tools: ChatTool[]): void {
 	}
 }
 
-export class ZhipuToolMapper implements ChatToolMapper<ChatTool[]> {
-	map(ctx: ResponsesContext, plan: CompatibilityPlan): ChatTool[] | undefined {
+export class ZhipuToolSurfaceBuilder
+	implements ChatToolSurfaceBuilder<ChatTool[]>
+{
+	map(ctx: ResponsesContext, plan: CompatibilityPlan): ZhipuToolSurface {
 		const toolsDisabled = ctx.request.tool_choice === "none";
+		const identityCatalog = new ToolIdentityCatalogBuilder(toZhipuFunctionName);
 		const tools = toolsDisabled
 			? []
 			: mapZhipuTools(ctx.request.tools, {
 					supportedToolTypes: plan.capabilities.tools.supported,
 					degradedToolTypes: plan.capabilities.tools.degraded,
+					identityCatalog,
 					unsupported: "skip",
 					onUnsupported: (type) => {
 						ctx.addDiagnostic({
@@ -353,7 +373,10 @@ export class ZhipuToolMapper implements ChatToolMapper<ChatTool[]> {
 					},
 				});
 		assertMappedToolCapacity(tools.length, ctx, plan);
-		return tools.length > 0 ? tools : undefined;
+		return new ProviderToolSurface({
+			declarations: tools,
+			identityCatalog: identityCatalog.build(),
+		});
 	}
 }
 
@@ -363,7 +386,7 @@ export class ZhipuToolChoiceMapper
 	map(
 		ctx: ResponsesContext,
 		_plan: CompatibilityPlan,
-		tools: ChatTool[] | undefined,
+		toolSurface: ZhipuToolSurface,
 	): ToolChoice | undefined {
 		const requestedToolChoice = ctx.request.tool_choice;
 		if (
@@ -381,7 +404,7 @@ export class ZhipuToolChoiceMapper
 				metadata: { parameter: "tool_choice", value: requestedToolChoice },
 			});
 		}
-		if (!tools || tools.length === 0) return undefined;
+		if (!toolSurface.hasDeclarations()) return undefined;
 		return mapZhipuToolChoice(requestedToolChoice);
 	}
 }

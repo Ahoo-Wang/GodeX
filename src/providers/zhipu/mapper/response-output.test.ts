@@ -1,5 +1,10 @@
 // src/providers/zhipu/response.test.ts
 import { describe, expect, test } from "bun:test";
+import {
+	ProviderToolSurface,
+	ToolIdentityCatalog,
+	ToolSurfaceSlot,
+} from "../../../adapter/mapper/chat/tool-surface";
 import type { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";
 import { createLogger } from "../../../logger";
@@ -7,11 +12,12 @@ import type {
 	ResponseObject,
 	ResponseTool,
 } from "../../../protocol/openai/responses";
+import { toZhipuFunctionName } from "../function-names";
 import type { ChatCompletionResponse } from "../protocol/completions";
 import { createZhipuMapper } from "./index";
 
 function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
-	return {
+	const context = {
 		request: {
 			model: "gpt-5",
 			instructions: "Be concise.",
@@ -61,6 +67,23 @@ function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 		app: {} as unknown as ApplicationContext,
 		provider: { mapper: {} as never, client: {} as never },
 	} as unknown as ResponsesContext;
+	return withToolSurface(context);
+}
+
+function withToolSurface(context: ResponsesContext): ResponsesContext {
+	const slot = new ToolSurfaceSlot();
+	slot.set(
+		new ProviderToolSurface({
+			declarations: [],
+			identityCatalog: ToolIdentityCatalog.fromTools(
+				context.request.tools,
+				toZhipuFunctionName,
+			),
+		}),
+	);
+	(context as ResponsesContext & { toolSurface: ToolSurfaceSlot }).toolSurface =
+		slot;
+	return context;
 }
 
 function withTools(tools: ResponseTool[]): ResponsesContext {

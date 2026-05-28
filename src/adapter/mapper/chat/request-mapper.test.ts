@@ -7,7 +7,9 @@ import type {
 	ProviderCapabilities,
 } from "./compatibility-plan";
 import type { CompatibilityNegotiator } from "./contract";
+import { OutputFormatContractSlot } from "./output-format-contract";
 import { ChatRequestMapper } from "./request-mapper";
+import { ProviderToolSurface, ToolSurfaceSlot } from "./tool-surface";
 
 interface TestRequest {
 	model: string;
@@ -45,6 +47,8 @@ function ctx(): ResponsesContext {
 		app: {} as unknown as ApplicationContext,
 		provider: { mapper: {} as never, client: {} as never },
 		attributes: new Map(),
+		toolSurface: new ToolSurfaceSlot(),
+		outputFormatContract: new OutputFormatContractSlot(),
 		diagnostics,
 		addDiagnostic(d: unknown) {
 			diagnostics.push(d);
@@ -68,6 +72,9 @@ describe("ChatRequestMapper", () => {
 				return plan;
 			},
 		};
+		let builtSurface: ProviderToolSurface<string[]> | undefined;
+		let toolChoiceSurface: ProviderToolSurface<string[]> | undefined;
+		let optionsSurface: ProviderToolSurface<string[]> | undefined;
 		const mapper = new ChatRequestMapper<TestRequest, string, string[], string>(
 			{
 				negotiator,
@@ -78,15 +85,25 @@ describe("ChatRequestMapper", () => {
 					}),
 				},
 				messages: { map: () => ["user: Hello"] },
-				tools: { map: () => ["get_weather"] },
+				tools: {
+					map: () => {
+						builtSurface = new ProviderToolSurface({
+							declarations: ["get_weather"],
+						});
+						return builtSurface;
+					},
+				},
 				toolChoice: {
-					map: (_ctx, compatibilityPlan, tools) =>
-						tools && tools.length > 0
+					map: (_ctx, compatibilityPlan, surface) => {
+						toolChoiceSurface = surface;
+						return surface.hasDeclarations()
 							? (compatibilityPlan.toolChoice?.effectiveValue as string)
-							: undefined,
+							: undefined;
+					},
 				},
 				options: {
-					apply: (requestCtx, _plan, request) => {
+					apply: (requestCtx, _plan, request, surface) => {
+						optionsSurface = surface;
 						request.stream = requestCtx.request.stream;
 						request.temperature = requestCtx.request.temperature;
 					},
@@ -94,7 +111,8 @@ describe("ChatRequestMapper", () => {
 			},
 		);
 
-		expect(mapper.map(ctx())).toEqual({
+		const requestCtx = ctx();
+		expect(mapper.map(requestCtx)).toEqual({
 			model: "upstream-model",
 			messages: ["user: Hello"],
 			tools: ["get_weather"],
@@ -103,6 +121,9 @@ describe("ChatRequestMapper", () => {
 			temperature: 0.5,
 		});
 		expect(negotiateCount).toBe(1);
+		expect(requestCtx.toolSurface.current()).toBe(builtSurface);
+		expect(toolChoiceSurface).toBe(builtSurface);
+		expect(optionsSurface).toBe(builtSurface);
 	});
 
 	test("errors from negotiator propagate without wrapping", () => {
@@ -115,7 +136,7 @@ describe("ChatRequestMapper", () => {
 				},
 				factory: { create: (_ctx, _plan) => ({ model: "m", messages: [] }) },
 				messages: { map: () => [] },
-				tools: { map: () => undefined },
+				tools: { map: () => ProviderToolSurface.empty<string[]>() },
 				toolChoice: { map: () => undefined },
 				options: { apply: () => undefined },
 			},
@@ -137,7 +158,7 @@ describe("ChatRequestMapper", () => {
 				},
 				factory: { create: (_ctx, _plan) => ({ model: "m", messages: [] }) },
 				messages: { map: () => [] },
-				tools: { map: () => undefined },
+				tools: { map: () => ProviderToolSurface.empty<string[]>() },
 				toolChoice: { map: () => undefined },
 				options: { apply: () => undefined },
 			},

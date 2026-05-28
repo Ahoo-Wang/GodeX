@@ -1,14 +1,22 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
+import {
+	ProviderToolSurface,
+	ToolIdentityCatalog,
+	ToolSurfaceSlot,
+} from "../../../adapter/mapper/chat/tool-surface";
 import type { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";
 import { createLogger } from "../../../logger";
 import type { ChatCompletionChunk } from "../../../protocol/openai/completions";
-import type { ResponseStreamEvent } from "../../../protocol/openai/responses";
+import type {
+	ResponseStreamEvent,
+	ResponseTool,
+} from "../../../protocol/openai/responses";
 import { createOpenAIMapper } from "./index";
 
 function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
-	return {
+	const context = {
 		request: {
 			model: "gpt-4o",
 			stream: true,
@@ -28,6 +36,22 @@ function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 		},
 		attributes: new Map(),
 	} as unknown as ResponsesContext;
+	return withToolSurface(context);
+}
+
+function withToolSurface(context: ResponsesContext): ResponsesContext {
+	const slot = new ToolSurfaceSlot();
+	slot.set(
+		new ProviderToolSurface({
+			declarations: [],
+			identityCatalog: ToolIdentityCatalog.fromTools(
+				context.request.tools as ResponseTool[] | undefined,
+			),
+		}),
+	);
+	(context as ResponsesContext & { toolSurface: ToolSurfaceSlot }).toolSurface =
+		slot;
+	return context;
 }
 
 function chunk(
