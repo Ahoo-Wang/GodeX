@@ -213,6 +213,32 @@ describe("buildOpenAIRequest", () => {
 		);
 	});
 
+	test("uses the actual web_search variant in degradation diagnostics", () => {
+		const c = ctx({
+			input: "Hi",
+			tools: [
+				{
+					type: "web_search_preview_2025_03_11",
+					search_context_size: "medium",
+				},
+			],
+		});
+
+		const result = mapRequest(c);
+
+		expect(result.web_search_options).toEqual({
+			search_context_size: "medium",
+		});
+		expect(c.diagnostics).toContainEqual(
+			expect.objectContaining({
+				code: "adapter.tool.degraded",
+				path: "tools[type=web_search_preview_2025_03_11]",
+				message: expect.stringContaining("web_search_preview_2025_03_11"),
+				metadata: { toolType: "web_search_preview_2025_03_11" },
+			}),
+		);
+	});
+
 	test('omits web_search_options when tool_choice "none" disables tools', () => {
 		const result = mapRequest(
 			ctx({

@@ -62,8 +62,7 @@ export function getOpenAIMappedTools(
 							severity: "warn",
 							path: `tools[type=${type}]`,
 							action: "degraded",
-							message:
-								"Responses web_search was mapped to OpenAI Chat Completions web_search_options.",
+							message: `Responses tool '${type}' was mapped to OpenAI Chat Completions web_search_options.`,
 							metadata: { toolType: type },
 						});
 					},

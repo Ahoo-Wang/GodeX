@@ -117,6 +117,28 @@ describe("DeepSeek request mapping", () => {
 		expect(c.diagnostics.map((d) => d.path)).toEqual(
 			expect.arrayContaining(["background", "conversation", "prompt"]),
 		);
+		expect(c.diagnostics).toContainEqual(
+			expect.objectContaining({
+				path: "conversation",
+				message: expect.stringContaining("previous_response_id"),
+				metadata: expect.objectContaining({
+					provider: "deepseek",
+					model: "deepseek-v4-flash",
+					parameter: "conversation",
+					value: "conv_1",
+				}),
+			}),
+		);
+		expect(c.diagnostics).toContainEqual(
+			expect.objectContaining({
+				path: "prompt",
+				message: expect.stringContaining("resolved before reaching"),
+				metadata: expect.objectContaining({
+					parameter: "prompt",
+					value: { type: "object", keys: ["id"], id: "pmpt_1" },
+				}),
+			}),
+		);
 	});
 
 	test("warns and ignores unsupported soft parameters", () => {
@@ -124,8 +146,10 @@ describe("DeepSeek request mapping", () => {
 			truncation: "auto",
 			parallel_tool_calls: true,
 			metadata: { trace: "x" },
+			service_tier: "default",
 			prompt_cache_key: "cache-key",
 			prompt_cache_retention: "24h",
+			stream_options: { include_obfuscation: true },
 			text: { verbosity: "low" },
 		});
 		const result = mapRequest(c);
@@ -136,10 +160,31 @@ describe("DeepSeek request mapping", () => {
 				"truncation",
 				"parallel_tool_calls",
 				"metadata",
+				"service_tier",
 				"prompt_cache_key",
 				"prompt_cache_retention",
+				"stream_options.include_obfuscation",
 				"text.verbosity",
 			]),
+		);
+		expect(c.diagnostics).toContainEqual(
+			expect.objectContaining({
+				path: "metadata",
+				message: expect.stringContaining("metadata stays"),
+				metadata: expect.objectContaining({
+					parameter: "metadata",
+					value: { type: "object", keys: ["trace"] },
+				}),
+			}),
+		);
+		expect(c.diagnostics).toContainEqual(
+			expect.objectContaining({
+				path: "stream_options.include_obfuscation",
+				metadata: expect.objectContaining({
+					parameter: "stream_options.include_obfuscation",
+					value: true,
+				}),
+			}),
 		);
 	});
 });

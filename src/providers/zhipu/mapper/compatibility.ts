@@ -4,45 +4,47 @@ import {
 } from "../../../adapter/mapper/chat/compatibility-plan";
 import type { CompatibilityNegotiator } from "../../../adapter/mapper/chat/contract";
 import type { ResponsesContext } from "../../../context/responses-context";
+import { warnIgnoredParameter } from "../../shared/compatibility-diagnostics";
 import { ZHIPU_CAPABILITIES } from "./capabilities";
 
 export class ZhipuCompatibilityNegotiator implements CompatibilityNegotiator {
 	negotiate(ctx: ResponsesContext): CompatibilityPlan {
 		const plan = supportedPlan(ZHIPU_CAPABILITIES);
-		warnIgnored(ctx, plan, "background", ctx.request.background === true);
+		const warnIgnored = (path: string, value: unknown, message: string): void =>
+			warnIgnoredParameter({
+				ctx,
+				plan,
+				providerLabel: "Zhipu",
+				path,
+				value,
+				message,
+			});
+
 		warnIgnored(
-			ctx,
-			plan,
-			"conversation",
-			ctx.request.conversation !== undefined,
+			"background",
+			ctx.request.background === true ? ctx.request.background : undefined,
+			"Background responses are not supported by the Zhipu Chat Completions adapter; forwarding synchronously.",
 		);
-		warnIgnored(ctx, plan, "prompt", ctx.request.prompt !== undefined);
-		if (ctx.request.truncation === "auto") {
-			warnIgnored(ctx, plan, "truncation", true);
-		}
-		if (ctx.request.parallel_tool_calls !== undefined) {
-			warnIgnored(ctx, plan, "parallel_tool_calls", true);
-		}
+		warnIgnored(
+			"conversation",
+			ctx.request.conversation,
+			"Conversation lifecycle support is not implemented; use previous_response_id instead.",
+		);
+		warnIgnored(
+			"prompt",
+			ctx.request.prompt,
+			"Prompt templates must be resolved before reaching the provider adapter.",
+		);
+		warnIgnored(
+			"truncation",
+			ctx.request.truncation === "auto" ? ctx.request.truncation : undefined,
+			"Automatic context truncation is not implemented; forwarding without truncation.",
+		);
+		warnIgnored(
+			"parallel_tool_calls",
+			ctx.request.parallel_tool_calls,
+			"Zhipu Chat Completions does not expose parallel tool-call control.",
+		);
 		return plan;
 	}
-}
-
-function warnIgnored(
-	ctx: ResponsesContext,
-	plan: CompatibilityPlan,
-	path: string,
-	condition: boolean,
-): void {
-	if (!condition) return;
-	const diagnostic = {
-		code: "adapter.param.unsupported",
-		severity: "warn" as const,
-		path,
-		action: "ignored" as const,
-		message: `Zhipu Chat Completions does not support Responses parameter '${path}'; ignored.`,
-		metadata: { parameter: path },
-	};
-	ctx.addDiagnostic(diagnostic);
-	plan.diagnostics.push(diagnostic);
-	plan.parameters[path] = { action: "ignored", reason: diagnostic.message };
 }

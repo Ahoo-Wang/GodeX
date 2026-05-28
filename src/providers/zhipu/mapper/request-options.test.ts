@@ -270,6 +270,28 @@ describe("buildZhipuRequest", () => {
 		expect(testCtx.diagnostics.map((d) => d.path)).toEqual(
 			expect.arrayContaining(["background", "conversation", "prompt"]),
 		);
+		expect(testCtx.diagnostics).toContainEqual(
+			expect.objectContaining({
+				path: "conversation",
+				message: expect.stringContaining("previous_response_id"),
+				metadata: expect.objectContaining({
+					provider: "zhipu",
+					model: "glm-5.1",
+					parameter: "conversation",
+					value: { type: "object", keys: ["id"], id: "conv_1" },
+				}),
+			}),
+		);
+		expect(testCtx.diagnostics).toContainEqual(
+			expect.objectContaining({
+				path: "prompt",
+				message: expect.stringContaining("resolved before reaching"),
+				metadata: expect.objectContaining({
+					parameter: "prompt",
+					value: { type: "object", keys: ["id"], id: "pmpt_1" },
+				}),
+			}),
+		);
 	});
 
 	test("downgrades truncation auto instead of rejecting the request", () => {
@@ -285,6 +307,11 @@ describe("buildZhipuRequest", () => {
 				severity: "warn",
 				path: "truncation",
 				action: "ignored",
+				message: expect.stringContaining("forwarding without truncation"),
+				metadata: expect.objectContaining({
+					parameter: "truncation",
+					value: "auto",
+				}),
 			}),
 		);
 	});
@@ -301,6 +328,11 @@ describe("buildZhipuRequest", () => {
 				severity: "warn",
 				path: "parallel_tool_calls",
 				action: "ignored",
+				message: expect.stringContaining("parallel tool-call control"),
+				metadata: expect.objectContaining({
+					parameter: "parallel_tool_calls",
+					value: true,
+				}),
 			}),
 		);
 	});
