@@ -1,10 +1,10 @@
 import { SafeTransformer } from "@ahoo-wang/fetcher-eventstream";
+import { ensureOutputContractSlot } from "../../context/output-contract-slot";
 import type { ResponsesContext } from "../../context/responses-context";
 import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../../protocol/openai/responses";
-import { ensureOutputContractSlot } from "../output-contract";
 import {
 	invalidOutputFormatMessage,
 	validateResponseOutputContract,

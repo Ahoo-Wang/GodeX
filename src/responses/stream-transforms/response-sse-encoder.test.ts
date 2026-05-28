@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { ResponseStreamEvent } from "../../protocol/openai/responses";
-import { ResponseSseEncodeTransformer } from "./response-sse-encode-transformer";
+import { ResponseSseEncoder } from "./response-sse-encoder";
 import { pipeTransform } from "./stream-utils";
 
 async function readText(stream: ReadableStream<Uint8Array>): Promise<string> {
@@ -25,7 +25,7 @@ function dataPayloads(text: string): Array<Record<string, unknown>> {
 		.map((line) => JSON.parse(line.slice(6)) as Record<string, unknown>);
 }
 
-describe("ResponseSseEncodeTransformer", () => {
+describe("ResponseSseEncoder", () => {
 	test("encodes response stream events as SSE frames", async () => {
 		const event: ResponseStreamEvent = {
 			type: "response.created",
@@ -46,7 +46,7 @@ describe("ResponseSseEncodeTransformer", () => {
 		});
 
 		const text = await readText(
-			pipeTransform(stream, new ResponseSseEncodeTransformer()),
+			pipeTransform(stream, new ResponseSseEncoder()),
 		);
 
 		expect(text).toContain("event: response.created\n");
@@ -74,7 +74,7 @@ describe("ResponseSseEncodeTransformer", () => {
 		});
 
 		const text = await readText(
-			pipeTransform(stream, new ResponseSseEncodeTransformer()),
+			pipeTransform(stream, new ResponseSseEncoder()),
 		);
 
 		expect(text).toContain('"sequence_number":42');
@@ -103,7 +103,7 @@ describe("ResponseSseEncodeTransformer", () => {
 		});
 
 		const text = await readText(
-			pipeTransform(stream, new ResponseSseEncodeTransformer()),
+			pipeTransform(stream, new ResponseSseEncoder()),
 		);
 
 		expect(dataPayloads(text).map((event) => event.sequence_number)).toEqual([

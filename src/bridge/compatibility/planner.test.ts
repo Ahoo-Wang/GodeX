@@ -53,7 +53,7 @@ describe("planBridgeCompatibility", () => {
 			effectiveValue: { type: "json_object" },
 		});
 		expect(plan.diagnostics).toContainEqual({
-			code: "adapter.param.unsupported",
+			code: "bridge.param.unsupported",
 			severity: "warn",
 			path: "text.format",
 			action: "degraded",
@@ -92,7 +92,7 @@ describe("planBridgeCompatibility", () => {
 			reason: "background is owned by GodeX and is not forwarded upstream.",
 		});
 		expect(plan.diagnostics).toContainEqual({
-			code: "adapter.param.unsupported",
+			code: "bridge.param.unsupported",
 			severity: "warn",
 			path: "metadata",
 			action: "ignored",
@@ -123,7 +123,7 @@ describe("planBridgeCompatibility", () => {
 			reason: "text.format xml is not supported by provider acme.",
 		});
 		expect(plan.diagnostics).toContainEqual({
-			code: "adapter.param.unsupported",
+			code: "bridge.param.unsupported",
 			severity: "error",
 			path: "text.format",
 			action: "rejected",

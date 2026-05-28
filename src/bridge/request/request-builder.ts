@@ -1,4 +1,4 @@
-import { ADAPTER_REQUEST_UNSUPPORTED_TOOL, AdapterError } from "../../error";
+import { BRIDGE_REQUEST_UNSUPPORTED_TOOL, BridgeError } from "../../error";
 import type {
 	ChatCompletionCreateRequest,
 	ChatCompletionMessageParam,
@@ -111,8 +111,8 @@ function applyTools(
 
 	const declarations = renderProviderToolDeclarations(tools.declarations);
 	if (declarations.length !== tools.declarations.length) {
-		throw new AdapterError(
-			ADAPTER_REQUEST_UNSUPPORTED_TOOL,
+		throw new BridgeError(
+			BRIDGE_REQUEST_UNSUPPORTED_TOOL,
 			`Provider-native tool rendering is not implemented for provider ${input.provider}: ${unrenderedProviderToolTypes(tools).join(", ")}.`,
 			{
 				provider: input.provider,

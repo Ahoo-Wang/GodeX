@@ -41,7 +41,7 @@ export interface StoredResponseSession {
  * Minimal request data needed to rebuild provider chat context later.
  *
  * Keep this as a snapshot of API-shaped input. Provider-specific conversions
- * belong in adapters, not in the session store.
+ * belong in the bridge runtime, not in the session store.
  */
 export interface StoredResponseRequestSnapshot {
 	input?: ResponseCreateRequest["input"];

@@ -32,7 +32,7 @@ describe("ApplicationContext", () => {
 		expect(app.logger.level).toBe("error");
 		expect(app.resolver).toBeDefined();
 		expect(app.registrar).toBeDefined();
-		expect(app.adapter).toBeDefined();
+		expect(app.responses).toBeDefined();
 		expect(app.sessionStore).toBeDefined();
 	});
 

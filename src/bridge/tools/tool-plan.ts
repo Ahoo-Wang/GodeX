@@ -1,15 +1,12 @@
-import type { CompatibilityDiagnostic } from "../../adapter/compatibility";
 import type { ResponsesContext } from "../../context/responses-context";
-import {
-	ADAPTER_REQUEST_UNSUPPORTED_PARAMETER,
-	AdapterError,
-} from "../../error";
+import { BRIDGE_REQUEST_UNSUPPORTED_PARAMETER, BridgeError } from "../../error";
 import type {
 	ResponseTool,
 	ResponseToolChoice,
 } from "../../protocol/openai/responses";
 import type {
 	CompatibilityDecision,
+	CompatibilityDiagnostic,
 	CompatibilityPlan,
 } from "../compatibility";
 import type { BridgeDialectProfile } from "../dialect";
@@ -176,8 +173,8 @@ function assertMaxTools(
 	) {
 		return;
 	}
-	throw new AdapterError(
-		ADAPTER_REQUEST_UNSUPPORTED_PARAMETER,
+	throw new BridgeError(
+		BRIDGE_REQUEST_UNSUPPORTED_PARAMETER,
 		`${profile.provider} accepts at most ${profile.maxTools} mapped tools; received ${declarations.length}.`,
 		{
 			provider: profile.provider,
@@ -300,9 +297,9 @@ function toolChoiceMatchesDeclaration(
 	}
 }
 
-function explicitToolChoiceError(provider: string): AdapterError {
-	return new AdapterError(
-		ADAPTER_REQUEST_UNSUPPORTED_PARAMETER,
+function explicitToolChoiceError(provider: string): BridgeError {
+	return new BridgeError(
+		BRIDGE_REQUEST_UNSUPPORTED_PARAMETER,
 		`Explicit tool_choice cannot be satisfied by provider ${provider}.`,
 		{
 			provider,
@@ -413,7 +410,7 @@ function planToolEntry(
 	const effectiveType = profile.tools.degraded.get(requestedType);
 	if (effectiveType) {
 		diagnostics.push({
-			code: "adapter.tool.degraded",
+			code: "bridge.tool.degraded",
 			severity: "warn",
 			path: `tools[type=${requestedType}]`,
 			action: "degraded",
@@ -435,7 +432,7 @@ function planToolEntry(
 	}
 
 	diagnostics.push({
-		code: "adapter.tool.unsupported",
+		code: "bridge.tool.unsupported",
 		severity: "warn",
 		path: `tools[type=${requestedType}]`,
 		action: "ignored",
@@ -605,7 +602,7 @@ function toolChoiceDiagnostic(
 	message: string,
 ): CompatibilityDiagnostic {
 	return {
-		code: "adapter.param.unsupported",
+		code: "bridge.param.unsupported",
 		severity,
 		path: "tool_choice",
 		action,

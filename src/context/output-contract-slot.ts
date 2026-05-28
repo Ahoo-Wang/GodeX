@@ -1,5 +1,5 @@
 import { type OutputContractPlan, planOutputContract } from "../bridge/output";
-import type { ResponsesContext } from "../context/responses-context";
+import type { ResponsesContext } from "./responses-context";
 
 export class OutputContractSlot {
 	#plan = planOutputContract({ format: undefined });

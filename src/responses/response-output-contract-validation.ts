@@ -1,11 +1,11 @@
 import type { OutputContractPlan } from "../bridge/output";
 import { validateResponseOutputContract as validateBridgeResponseOutputContract } from "../bridge/output/validator";
 import type { ResponsesContext } from "../context/responses-context";
-import { ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT, AdapterError } from "../error";
+import { BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT, BridgeError } from "../error";
 import type { ResponseObject } from "../protocol/openai/responses";
 
 export function invalidOutputFormatMessage(err: unknown): string {
-	if (err instanceof AdapterError) {
+	if (err instanceof BridgeError) {
 		return `${err.code}: ${err.message}`;
 	}
 	return String(err);
@@ -38,7 +38,7 @@ function addInvalidOutputDiagnostic(
 	};
 	if (typeof maybeCtx.addDiagnostic !== "function") return;
 	maybeCtx.addDiagnostic({
-		code: ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
+		code: BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT,
 		severity: "error",
 		path: "response.output_text",
 		action: "rejected",

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { CompatibilityDiagnostic } from "../adapter/compatibility";
+import type { CompatibilityDiagnostic } from "../bridge/compatibility";
 import type { Logger } from "../logger";
 import type { ResponseCreateRequest } from "../protocol/openai/responses";
 import type { ResolvedModel } from "../resolver";

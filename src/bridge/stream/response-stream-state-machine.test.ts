@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
-	ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
-	ADAPTER_STREAM_OUTPUT_BEFORE_START,
-	AdapterError,
+	BRIDGE_STREAM_DELTA_AFTER_TERMINAL,
+	BRIDGE_STREAM_OUTPUT_BEFORE_START,
+	BridgeError,
 } from "../../error";
 import type { ResponseUsage } from "../../protocol/openai/responses";
 import {
@@ -66,34 +66,30 @@ describe("ResponseStreamStateMachine", () => {
 		});
 	});
 
-	test("rejects delta before start with AdapterError", () => {
-		expect(() => machine().text("early")).toThrow(AdapterError);
+	test("rejects delta before start with BridgeError", () => {
+		expect(() => machine().text("early")).toThrow(BridgeError);
 
 		try {
 			machine().text("early");
 		} catch (err) {
-			expect(err).toBeInstanceOf(AdapterError);
-			expect((err as AdapterError).code).toBe(
-				ADAPTER_STREAM_OUTPUT_BEFORE_START,
-			);
+			expect(err).toBeInstanceOf(BridgeError);
+			expect((err as BridgeError).code).toBe(BRIDGE_STREAM_OUTPUT_BEFORE_START);
 		}
 	});
 
-	test("rejects fail before start with AdapterError", () => {
+	test("rejects fail before start with BridgeError", () => {
 		const state = machine();
 
 		expect(() =>
 			state.fail({ code: "provider_error", message: "early failure" }),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 		expect(state.snapshot.status).toBe("queued");
 
 		try {
 			state.fail({ code: "provider_error", message: "early failure" });
 		} catch (err) {
-			expect(err).toBeInstanceOf(AdapterError);
-			expect((err as AdapterError).code).toBe(
-				ADAPTER_STREAM_OUTPUT_BEFORE_START,
-			);
+			expect(err).toBeInstanceOf(BridgeError);
+			expect((err as BridgeError).code).toBe(BRIDGE_STREAM_OUTPUT_BEFORE_START);
 		}
 	});
 
@@ -102,14 +98,14 @@ describe("ResponseStreamStateMachine", () => {
 		state.start();
 		state.finish("stop");
 
-		expect(() => state.text("late")).toThrow(AdapterError);
+		expect(() => state.text("late")).toThrow(BridgeError);
 
 		try {
 			state.text("late");
 		} catch (err) {
-			expect(err).toBeInstanceOf(AdapterError);
-			expect((err as AdapterError).code).toBe(
-				ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
+			expect(err).toBeInstanceOf(BridgeError);
+			expect((err as BridgeError).code).toBe(
+				BRIDGE_STREAM_DELTA_AFTER_TERMINAL,
 			);
 		}
 	});
@@ -155,7 +151,7 @@ describe("ResponseStreamStateMachine", () => {
 			status: "failed",
 			error: { code: "server_error", message: "upstream failed" },
 		});
-		expect(() => state.text("late")).toThrow(AdapterError);
+		expect(() => state.text("late")).toThrow(BridgeError);
 	});
 
 	test("keeps allowed response error codes on failed terminal response", () => {

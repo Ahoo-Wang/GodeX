@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { ResponsesContext } from "../context/responses-context";
-import { type CompatibilityDiagnostic, logDiagnostics } from "./compatibility";
+import type { ResponsesContext } from "../../context/responses-context";
+import { type CompatibilityDiagnostic, logDiagnostics } from "./diagnostic";
 
 function mockDiagnosticCtx(diagnostics: CompatibilityDiagnostic[]): {
 	ctx: ResponsesContext;
@@ -53,7 +53,7 @@ describe("logDiagnostics", () => {
 	test("logs at info level when all diagnostics are info severity", () => {
 		const { ctx, calls } = mockDiagnosticCtx([
 			{
-				code: "adapter.response.partial",
+				code: "bridge.response.partial",
 				severity: "info",
 				action: "degraded",
 				message: "Some fields not mapped",
@@ -72,19 +72,19 @@ describe("logDiagnostics", () => {
 		});
 		const diagArray = calls[0]?.attr.diagnostics as CompatibilityDiagnostic[];
 		expect(diagArray.length).toBe(1);
-		expect(diagArray[0]?.code).toBe("adapter.response.partial");
+		expect(diagArray[0]?.code).toBe("bridge.response.partial");
 	});
 
 	test("logs at warn level when at least one diagnostic is warn", () => {
 		const { ctx, calls } = mockDiagnosticCtx([
 			{
-				code: "adapter.response.partial",
+				code: "bridge.response.partial",
 				severity: "info",
 				action: "degraded",
 				message: "Some fields not mapped",
 			},
 			{
-				code: "adapter.tool.unsupported",
+				code: "bridge.tool.unsupported",
 				severity: "warn",
 				action: "ignored",
 				message: "Tool not supported",
@@ -101,13 +101,13 @@ describe("logDiagnostics", () => {
 	test("logs at error level when at least one diagnostic is error", () => {
 		const { ctx, calls } = mockDiagnosticCtx([
 			{
-				code: "adapter.tool.unsupported",
+				code: "bridge.tool.unsupported",
 				severity: "warn",
 				action: "ignored",
 				message: "Tool not supported",
 			},
 			{
-				code: "adapter.input.rejected",
+				code: "bridge.input.rejected",
 				severity: "error",
 				action: "rejected",
 				message: "Critical failure",
@@ -124,7 +124,7 @@ describe("logDiagnostics", () => {
 	test("includes timing when provided", () => {
 		const { ctx, calls } = mockDiagnosticCtx([
 			{
-				code: "adapter.param.unsupported",
+				code: "bridge.param.unsupported",
 				severity: "info",
 				action: "ignored",
 				message: "test",
@@ -138,7 +138,7 @@ describe("logDiagnostics", () => {
 
 	test("includes full diagnostic objects in output", () => {
 		const diagnostic: CompatibilityDiagnostic = {
-			code: "adapter.tool.unsupported",
+			code: "bridge.tool.unsupported",
 			severity: "warn",
 			path: "tools[0].type",
 			action: "ignored",
@@ -157,19 +157,19 @@ describe("logDiagnostics", () => {
 describe("CompatibilityDiagnostic", () => {
 	test("accepts valid diagnostic with required fields", () => {
 		const d: CompatibilityDiagnostic = {
-			code: "adapter.tool.unsupported",
+			code: "bridge.tool.unsupported",
 			severity: "warn",
 			action: "ignored",
 			message: "Tool type not supported",
 		};
-		expect(d.code).toBe("adapter.tool.unsupported");
+		expect(d.code).toBe("bridge.tool.unsupported");
 		expect(d.severity).toBe("warn");
 		expect(d.action).toBe("ignored");
 	});
 
 	test("accepts optional path and metadata", () => {
 		const d: CompatibilityDiagnostic = {
-			code: "adapter.input.unsupported",
+			code: "bridge.input.unsupported",
 			severity: "info",
 			path: "input[2].content[0]",
 			action: "ignored",

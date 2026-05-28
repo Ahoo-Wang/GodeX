@@ -1,20 +1,20 @@
-// src/error/adapter-error.ts
+// src/error/bridge-error.ts
 import { GodeXError } from "./godex-error";
 
-export interface AdapterErrorContext {
+export interface BridgeErrorContext {
 	[key: string]: unknown;
 	provider: string;
 	model: string;
 	parameter?: string;
 }
 
-export class AdapterError extends GodeXError {
-	readonly domain = "adapter";
+export class BridgeError extends GodeXError {
+	readonly domain = "bridge";
 
 	constructor(
 		code: string,
 		message: string,
-		context: AdapterErrorContext,
+		context: BridgeErrorContext,
 		options?: { status?: number; cause?: Error },
 	) {
 		super({
@@ -27,11 +27,11 @@ export class AdapterError extends GodeXError {
 	}
 }
 
-export function createAdapterFailure(
+export function createBridgeFailure(
 	code: string,
 	message: string,
-	context: AdapterErrorContext,
+	context: BridgeErrorContext,
 	options?: { status?: number; cause?: Error },
-): AdapterError {
-	return new AdapterError(code, message, context, options);
+): BridgeError {
+	return new BridgeError(code, message, context, options);
 }

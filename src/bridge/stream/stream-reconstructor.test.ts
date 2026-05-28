@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { ADAPTER_STREAM_INVALID_TRANSITION, AdapterError } from "../../error";
+import { BRIDGE_STREAM_INVALID_TRANSITION, BridgeError } from "../../error";
 import type { ResponseUsage } from "../../protocol/openai/responses";
 import { ResponseStreamStateMachine } from "./response-stream-state-machine";
 import { mapProviderDeltasToEvents } from "./stream-reconstructor";
@@ -110,7 +110,7 @@ describe("mapProviderDeltasToEvents", () => {
 				machine: state,
 				deltas: [{}],
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 		expect(state.snapshot.status).toBe("queued");
 		expect(state.snapshot.output).toEqual([]);
 	});
@@ -123,7 +123,7 @@ describe("mapProviderDeltasToEvents", () => {
 				machine: state,
 				deltas: [{ foo: "bar" }],
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 		expect(state.snapshot.status).toBe("queued");
 		expect(state.snapshot.output).toEqual([]);
 	});
@@ -136,7 +136,7 @@ describe("mapProviderDeltasToEvents", () => {
 				machine: state,
 				deltas: [{ text: 1 } as never],
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 		expect(state.snapshot.output).toEqual([]);
 		expect(state.snapshot.output_text).toBe("");
 		expect(state.snapshot.status).toBe("queued");
@@ -150,7 +150,7 @@ describe("mapProviderDeltasToEvents", () => {
 				machine: state,
 				deltas: [{ usage: {} }],
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 		expect(state.snapshot.status).toBe("queued");
 		expect(state.snapshot.usage).toBeNull();
 	});
@@ -171,7 +171,7 @@ describe("mapProviderDeltasToEvents", () => {
 					},
 				],
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 		expect(state.snapshot.status).toBe("queued");
 		expect(state.snapshot.usage).toBeNull();
 	});
@@ -193,7 +193,7 @@ describe("mapProviderDeltasToEvents", () => {
 					},
 				],
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 		expect(state.snapshot.status).toBe("queued");
 		expect(state.snapshot.usage).toBeNull();
 	});
@@ -215,7 +215,7 @@ describe("mapProviderDeltasToEvents", () => {
 					},
 				],
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 		expect(state.snapshot.status).toBe("queued");
 		expect(state.snapshot.usage).toBeNull();
 	});
@@ -284,7 +284,7 @@ describe("mapProviderDeltasToEvents", () => {
 				machine: machine(),
 				deltas: [{ toolCall: { index: 0, name: "lookup" } }],
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 
 		try {
 			mapProviderDeltasToEvents({
@@ -292,10 +292,8 @@ describe("mapProviderDeltasToEvents", () => {
 				deltas: [{ toolCall: { index: 0, name: "lookup" } }],
 			});
 		} catch (err) {
-			expect(err).toBeInstanceOf(AdapterError);
-			expect((err as AdapterError).code).toBe(
-				ADAPTER_STREAM_INVALID_TRANSITION,
-			);
+			expect(err).toBeInstanceOf(BridgeError);
+			expect((err as BridgeError).code).toBe(BRIDGE_STREAM_INVALID_TRANSITION);
 		}
 	});
 
@@ -305,7 +303,7 @@ describe("mapProviderDeltasToEvents", () => {
 				machine: machine(),
 				deltas: [{ toolCall: null } as never],
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 	});
 
 	test("maps reasoning deltas into reasoning output items", () => {

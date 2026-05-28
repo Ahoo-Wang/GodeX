@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
+import type { CompatibilityDiagnostic } from "../../bridge/compatibility";
 import { planOutputContract } from "../../bridge/output";
+import { ensureOutputContractSlot } from "../../context/output-contract-slot";
 import type { ResponsesContext } from "../../context/responses-context";
-import { ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT } from "../../error";
+import { BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT } from "../../error";
 import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../../protocol/openai/responses";
-import type { CompatibilityDiagnostic } from "../compatibility";
-import { ensureOutputContractSlot } from "../output-contract";
 import { ResponseOutputContractValidationTransformer } from "./response-output-contract-validation-transformer";
 import { pipeTransform } from "./stream-utils";
 
@@ -110,14 +110,14 @@ describe("ResponseOutputContractValidationTransformer", () => {
 				error: {
 					code: "server_error",
 					message: expect.stringContaining(
-						ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
+						BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT,
 					),
 				},
 			},
 		});
 		expect(ctx.diagnostics).toContainEqual(
 			expect.objectContaining({
-				code: ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
+				code: BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT,
 				path: "response.output_text",
 				action: "rejected",
 			}),

@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
+import type { CompatibilityDiagnostic } from "../bridge/compatibility";
 import { planOutputContract } from "../bridge/output";
 import type { ProviderEdge } from "../bridge/provider-spec";
+import { ensureOutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import { createTestProviderEdge } from "../testing/provider-edge";
-import type { CompatibilityDiagnostic } from "./compatibility";
-import { ensureOutputContractSlot } from "./output-contract";
 import type { ProviderStreamExchangeResult } from "./provider-exchange";
 import { StreamPipeline } from "./stream-pipeline";
-import { ATTR_UPSTREAM_LATENCY_MILLIS } from "./transformers/stream-utils";
+import { ATTR_UPSTREAM_LATENCY_MILLIS } from "./stream-transforms/stream-utils";
 
 function createMockSessionStore(): ResponseSessionStore & {
 	saved: StoredResponseSession[];
@@ -325,7 +325,7 @@ describe("StreamPipeline", () => {
 		});
 		expect(ctx.diagnostics).toContainEqual(
 			expect.objectContaining({
-				code: "adapter.response.invalid_output_format",
+				code: "bridge.response.invalid_output_format",
 				action: "rejected",
 			}),
 		);

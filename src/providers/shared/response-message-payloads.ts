@@ -1,9 +1,9 @@
-import { isRecord } from "../../adapter/utils";
 import { flattenToolName } from "../../bridge/tools";
+import { isRecord } from "../../common";
 import {
-	ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
-	ADAPTER_REQUEST_UNSUPPORTED_INPUT_ITEM,
-	AdapterError,
+	BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT,
+	BRIDGE_REQUEST_UNSUPPORTED_INPUT_ITEM,
+	BridgeError,
 } from "../../error";
 import type {
 	FunctionCall,
@@ -263,9 +263,9 @@ export function extractResponseText(
 export function unsupportedResponseInputItemError(
 	item: ResponseItem,
 	options: ResponseMessagePayloadOptions,
-): AdapterError {
-	return new AdapterError(
-		ADAPTER_REQUEST_UNSUPPORTED_INPUT_ITEM,
+): BridgeError {
+	return new BridgeError(
+		BRIDGE_REQUEST_UNSUPPORTED_INPUT_ITEM,
 		`Unsupported Responses input item type for ${providerLabel(options)}: ${
 			"type" in item && item.type ? String(item.type) : "message"
 		}`,
@@ -276,9 +276,9 @@ export function unsupportedResponseInputItemError(
 export function unsupportedResponseInputContentError(
 	message: string,
 	options: ResponseMessagePayloadOptions,
-): AdapterError {
-	return new AdapterError(
-		ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
+): BridgeError {
+	return new BridgeError(
+		BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 		`${message} for ${providerLabel(options)}.`,
 		errorContext(options),
 	);

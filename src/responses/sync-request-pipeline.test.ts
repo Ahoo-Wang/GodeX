@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { CompatibilityDiagnostic } from "../bridge/compatibility";
 import type {
 	ProviderEdge,
 	ProviderSpec,
@@ -8,6 +9,7 @@ import {
 	buildChatCompletionRequest,
 } from "../bridge/request";
 import type { ToolPlanningProfile } from "../bridge/tools";
+import { ensureOutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
@@ -16,8 +18,6 @@ import {
 	createTestProviderEdge,
 	type TestChatResponse,
 } from "../testing/provider-edge";
-import type { CompatibilityDiagnostic } from "./compatibility";
-import { ensureOutputContractSlot } from "./output-contract";
 import type { ProviderRequestExchangeResult } from "./provider-exchange";
 import { SyncRequestPipeline } from "./sync-request-pipeline";
 
@@ -234,7 +234,7 @@ describe("SyncRequestPipeline", () => {
 			},
 		});
 		ctx.addDiagnostic({
-			code: "adapter.tool.unsupported",
+			code: "bridge.tool.unsupported",
 			severity: "warn",
 			action: "ignored",
 			message: "Tool is not supported",
@@ -256,7 +256,7 @@ describe("SyncRequestPipeline", () => {
 					count: 1,
 					diagnostics: [
 						{
-							code: "adapter.tool.unsupported",
+							code: "bridge.tool.unsupported",
 							severity: "warn",
 							action: "ignored",
 							message: "Tool is not supported",

@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-	ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
-	GodeXError,
-} from "../../error";
+import { BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT, GodeXError } from "../../error";
 import { validateOutputContract } from "./output-validator";
 
 const validationInput = {
@@ -24,7 +21,7 @@ describe("validateOutputContract", () => {
 		} catch (err) {
 			expect(err).toBeInstanceOf(GodeXError);
 			expect((err as GodeXError).code).toBe(
-				ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
+				BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT,
 			);
 			expect((err as GodeXError).context).toEqual({
 				provider: "deepseek",
@@ -73,7 +70,7 @@ describe("validateOutputContract", () => {
 		} catch (err) {
 			expect(err).toBeInstanceOf(GodeXError);
 			expect((err as GodeXError).code).toBe(
-				ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
+				BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT,
 			);
 			expect((err as GodeXError).cause).toBeInstanceOf(SyntaxError);
 		}

@@ -39,7 +39,7 @@ describe("createApplicationServices", () => {
 			model: "glm-5.1",
 		});
 		expect(services.registrar.resolve("zhipu")).toBeDefined();
-		expect(services.adapter).toBeDefined();
+		expect(services.responses).toBeDefined();
 		expect(services.sessionStore).toBeInstanceOf(MemoryResponseSessionStore);
 		expect(services.traceEnabled).toBe(false);
 		expect(services.traceRecorder).toBeInstanceOf(NoopTraceRecorder);

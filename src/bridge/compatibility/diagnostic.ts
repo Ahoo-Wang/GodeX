@@ -1,4 +1,4 @@
-import type { ResponsesContext } from "../context/responses-context";
+import type { ResponsesContext } from "../../context/responses-context";
 
 export type DiagnosticSeverity = "info" | "warn" | "error";
 
@@ -24,11 +24,11 @@ export function logDiagnostics(
 	const diagnostics = [...ctx.diagnostics];
 	if (diagnostics.length === 0) return;
 
-	const severity = diagnostics.reduce((max, d) => {
+	const severity = diagnostics.reduce<DiagnosticSeverity>((max, d) => {
 		const current = SEVERITY_PRIORITY[d.severity];
 		const existing = SEVERITY_PRIORITY[max];
 		return current > existing ? d.severity : max;
-	}, "info" as DiagnosticSeverity);
+	}, "info");
 
 	const logger = ctx.logger;
 	const attr = {

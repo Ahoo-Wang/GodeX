@@ -1,4 +1,3 @@
-import type { CompatibilityDiagnostic } from "../../adapter/compatibility";
 import type { ResponseCreateRequest } from "../../protocol/openai/responses";
 import {
 	type CompatibilityDecision,
@@ -6,6 +5,7 @@ import {
 	type ProviderCapabilities,
 	supportedPlan,
 } from "./compatibility-plan";
+import type { CompatibilityDiagnostic } from "./diagnostic";
 
 export type { ProviderCapabilities };
 
@@ -120,7 +120,7 @@ function recordParameterDecision(
 	},
 ): CompatibilityDecision {
 	const diagnostic: CompatibilityDiagnostic = {
-		code: "adapter.param.unsupported",
+		code: "bridge.param.unsupported",
 		severity: options.severity,
 		path: options.path,
 		action: options.action,

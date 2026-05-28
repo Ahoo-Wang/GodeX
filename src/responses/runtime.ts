@@ -3,26 +3,26 @@ import type {
 	ResponseObject,
 	ResponseStreamEvent,
 } from "../protocol/openai/responses";
-import type { Adapter } from "./adapter";
+import type { ResponsesBridge } from "./bridge";
 import { ProviderExchange } from "./provider-exchange";
 import { StreamPipeline } from "./stream-pipeline";
 import { SyncRequestPipeline } from "./sync-request-pipeline";
 
-export interface AdapterSyncPipeline {
+export interface ResponsesSyncPipeline {
 	request(ctx: ResponsesContext): Promise<ResponseObject>;
 }
 
-export interface AdapterStreamPipeline {
+export interface ResponsesStreamPipeline {
 	stream(ctx: ResponsesContext): Promise<ReadableStream<ResponseStreamEvent>>;
 }
 
-export class DefaultAdapter implements Adapter {
-	private readonly syncPipeline: AdapterSyncPipeline;
-	private readonly streamPipeline: AdapterStreamPipeline;
+export class ResponsesBridgeRuntime implements ResponsesBridge {
+	private readonly syncPipeline: ResponsesSyncPipeline;
+	private readonly streamPipeline: ResponsesStreamPipeline;
 
 	constructor(
-		syncPipeline?: AdapterSyncPipeline,
-		streamPipeline?: AdapterStreamPipeline,
+		syncPipeline?: ResponsesSyncPipeline,
+		streamPipeline?: ResponsesStreamPipeline,
 	) {
 		const exchange = new ProviderExchange();
 		this.syncPipeline = syncPipeline ?? new SyncRequestPipeline(exchange);

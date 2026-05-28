@@ -4,9 +4,9 @@ import {
 	buildChatCompletionRequest,
 } from "../bridge/request";
 import type { ToolPlanningProfile } from "../bridge/tools";
+import { ensureOutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import { recordTraceEvent, recordTraceRequest } from "../trace";
-import { ensureOutputContractSlot } from "./output-contract";
 
 export interface ProviderRequestExchangeResult<ProviderResponse = unknown> {
 	providerResponse: ProviderResponse;

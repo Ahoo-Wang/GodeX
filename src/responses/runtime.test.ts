@@ -10,7 +10,7 @@ import {
 	completedTextResponse,
 	createTestProviderEdge,
 } from "../testing/provider-edge";
-import { DefaultAdapter } from "./default-adapter";
+import { ResponsesBridgeRuntime } from "./runtime";
 
 function createMockProvider(
 	text = "",
@@ -87,13 +87,13 @@ async function readStream<T>(stream: ReadableStream<T>): Promise<T[]> {
 	}
 }
 
-describe("DefaultAdapter", () => {
+describe("ResponsesBridgeRuntime", () => {
 	test("default construction wires a working sync pipeline", async () => {
 		const provider = createMockProvider("sync text");
 		const sessionStore = createMockSessionStore();
 		const ctx = createMockCtx(provider, sessionStore);
 
-		const result = await new DefaultAdapter().request(ctx);
+		const result = await new ResponsesBridgeRuntime().request(ctx);
 
 		expect(result).toMatchObject({
 			id: "resp_123",
@@ -110,7 +110,9 @@ describe("DefaultAdapter", () => {
 		const sessionStore = createMockSessionStore();
 		const ctx = createMockCtx(provider, sessionStore);
 
-		const events = await readStream(await new DefaultAdapter().stream(ctx));
+		const events = await readStream(
+			await new ResponsesBridgeRuntime().stream(ctx),
+		);
 
 		expect(events.at(-1)).toMatchObject({
 			type: "response.completed",
@@ -131,7 +133,7 @@ describe("DefaultAdapter", () => {
 		} as ResponseObject;
 		const stream = new ReadableStream<ResponseStreamEvent>();
 		const calls: Array<{ pipeline: string; ctx: ResponsesContext }> = [];
-		const adapter = new DefaultAdapter(
+		const bridge = new ResponsesBridgeRuntime(
 			{
 				request: async (receivedCtx) => {
 					calls.push({ pipeline: "sync", ctx: receivedCtx });
@@ -146,8 +148,8 @@ describe("DefaultAdapter", () => {
 			},
 		);
 
-		const responseResult = await adapter.request(ctx);
-		const streamResult = await adapter.stream(ctx);
+		const responseResult = await bridge.request(ctx);
+		const streamResult = await bridge.stream(ctx);
 
 		expect(responseResult).toBe(responseObject);
 		expect(streamResult).toBe(stream);

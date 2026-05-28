@@ -1,11 +1,11 @@
-import type { CompatibilityDiagnostic } from "../../adapter/compatibility";
-import { isRecord } from "../../adapter/utils";
+import { isRecord } from "../../common";
 import type { ResponsesContext } from "../../context/responses-context";
 import {
 	type CompatibilityPlan,
 	type ProviderCapabilities,
 	supportedPlan,
 } from "./compatibility-plan";
+import type { CompatibilityDiagnostic } from "./diagnostic";
 import {
 	type PlanBridgeCompatibilityInput,
 	planBridgeCompatibility as planBridgeCompatibilityFromInput,
@@ -29,7 +29,7 @@ export const CHAT_COMPLETIONS_COMMON_IGNORED_PARAMETERS = [
 		(ctx) =>
 			ctx.request.background === true ? ctx.request.background : undefined,
 		(providerLabel) =>
-			`Background responses are not supported by the ${providerLabel} Chat Completions adapter; forwarding synchronously.`,
+			`Background responses are not supported by the ${providerLabel} Chat Completions bridge; forwarding synchronously.`,
 	),
 	ignoredParameter(
 		"conversation",
@@ -41,7 +41,7 @@ export const CHAT_COMPLETIONS_COMMON_IGNORED_PARAMETERS = [
 		"prompt",
 		(ctx) => ctx.request.prompt,
 		() =>
-			"Prompt templates must be resolved before reaching the provider adapter.",
+			"Prompt templates must be resolved before reaching the provider bridge.",
 	),
 	ignoredParameter(
 		"truncation",
@@ -174,7 +174,7 @@ function warnIgnoredParameter(options: {
 	if (options.value === undefined) return;
 
 	const diagnostic: CompatibilityDiagnostic = {
-		code: "adapter.param.unsupported",
+		code: "bridge.param.unsupported",
 		severity: "warn",
 		path: options.path,
 		action: "ignored",
@@ -204,7 +204,7 @@ function warnRejectedResponseFormat({
 	requestedType: string;
 }): void {
 	const diagnostic: CompatibilityDiagnostic = {
-		code: "adapter.param.unsupported",
+		code: "bridge.param.unsupported",
 		severity: "error",
 		path: "text.format",
 		action: "rejected",
@@ -242,7 +242,7 @@ function warnDegradedResponseFormat({
 	to: string;
 }): void {
 	const diagnostic: CompatibilityDiagnostic = {
-		code: "adapter.param.unsupported",
+		code: "bridge.param.unsupported",
 		severity: "warn",
 		path: "text.format",
 		action: "degraded",

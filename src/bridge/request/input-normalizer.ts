@@ -1,7 +1,7 @@
 import {
-	ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
-	ADAPTER_REQUEST_UNSUPPORTED_INPUT_ITEM,
-	AdapterError,
+	BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT,
+	BRIDGE_REQUEST_UNSUPPORTED_INPUT_ITEM,
+	BridgeError,
 } from "../../error";
 import type { ChatCompletionMessageParam } from "../../protocol/openai/completions";
 import type {
@@ -276,9 +276,9 @@ function unsupportedInputItemError(
 	item: ResponseItem,
 	request: ResponseCreateRequest,
 	context: InputNormalizerContext,
-): AdapterError {
-	return new AdapterError(
-		ADAPTER_REQUEST_UNSUPPORTED_INPUT_ITEM,
+): BridgeError {
+	return new BridgeError(
+		BRIDGE_REQUEST_UNSUPPORTED_INPUT_ITEM,
 		`Unsupported Responses input item type for ${provider(context)}: ${inputItemType(item)}.`,
 		errorContext(request, context, "input"),
 	);
@@ -288,9 +288,9 @@ function unsupportedInputContentError(
 	message: string,
 	request: ResponseCreateRequest,
 	context: InputNormalizerContext,
-): AdapterError {
-	return new AdapterError(
-		ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
+): BridgeError {
+	return new BridgeError(
+		BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 		`${message} for ${provider(context)}.`,
 		errorContext(request, context, "input.content"),
 	);

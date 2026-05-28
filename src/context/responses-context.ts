@@ -1,11 +1,11 @@
-import type { CompatibilityDiagnostic } from "../adapter/compatibility";
-import { OutputContractSlot } from "../adapter/output-contract";
+import type { CompatibilityDiagnostic } from "../bridge/compatibility";
 import type { ProviderEdge } from "../bridge/provider-spec";
 import type { Logger } from "../logger";
 import type { ResponseCreateRequest } from "../protocol/openai/responses";
 import type { ResolvedModel } from "../resolver";
 import type { ResponseSessionSnapshot } from "../session";
 import type { ApplicationContext } from "./application-context";
+import { OutputContractSlot } from "./output-contract-slot";
 
 export interface ResponsesContextInit {
 	app: ApplicationContext;

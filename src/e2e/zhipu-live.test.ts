@@ -112,7 +112,7 @@ async function collectResponseStreamEvents(
 	return collectGodexStreamEvents(stream);
 }
 
-liveDescribe("Live E2E: Zhipu adapter", () => {
+liveDescribe("Live E2E: Zhipu bridge", () => {
 	test("completes a synchronous Responses request", async () => {
 		const res = await postResponses({
 			model: liveModel,

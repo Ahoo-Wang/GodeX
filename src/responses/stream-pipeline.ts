@@ -12,15 +12,15 @@ import {
 } from "./provider-exchange";
 import { saveResponseSession } from "./response-session-persistence";
 import { wrapWithErrorHandler } from "./stream-error-handler";
-import { CompatibilityLogTransformer } from "./transformers/compatibility-log-transformer";
-import { ResponseLogTransformer } from "./transformers/response-log-transformer";
-import { ResponseOutputContractValidationTransformer } from "./transformers/response-output-contract-validation-transformer";
-import { ResponseSessionPersistenceTransformer } from "./transformers/response-session-persistence-transformer";
+import { CompatibilityLogTransformer } from "./stream-transforms/compatibility-log-transformer";
+import { ResponseLogTransformer } from "./stream-transforms/response-log-transformer";
+import { ResponseOutputContractValidationTransformer } from "./stream-transforms/response-output-contract-validation-transformer";
+import { ResponseSessionPersistenceTransformer } from "./stream-transforms/response-session-persistence-transformer";
 import {
 	ATTR_UPSTREAM_LATENCY_MILLIS,
 	pipeTransform,
-} from "./transformers/stream-utils";
-import { TraceTransformer } from "./transformers/trace-transformer";
+} from "./stream-transforms/stream-utils";
+import { TraceTransformer } from "./stream-transforms/trace-transformer";
 
 export interface StreamProviderExchange {
 	stream(ctx: ResponsesContext): Promise<ProviderStreamExchangeResult>;
@@ -44,12 +44,12 @@ export class StreamPipeline {
 			new TraceTransformer("upstream.stream.event.raw", ctx),
 		);
 
-		const eventTransformer = new ProviderEventToResponseTransformer(ctx);
-		const eventStream = pipeTransform(traceRawStream, eventTransformer);
+		const eventBridge = new ProviderStreamEventBridge(ctx);
+		const eventStream = pipeTransform(traceRawStream, eventBridge);
 
 		const errorSafeStream = wrapWithErrorHandler(
 			eventStream,
-			eventTransformer.machine,
+			eventBridge.machine,
 			ctx,
 		);
 
@@ -83,7 +83,7 @@ export class StreamPipeline {
 	}
 }
 
-class ProviderEventToResponseTransformer
+class ProviderStreamEventBridge
 	implements Transformer<JsonServerSentEvent<unknown>, ResponseStreamEvent>
 {
 	readonly machine: ResponseStreamStateMachine;

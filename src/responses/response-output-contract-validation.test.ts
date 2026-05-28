@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { type OutputContractPlan, planOutputContract } from "../bridge/output";
 import type { ResponsesContext } from "../context/responses-context";
-import { ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT, GodeXError } from "../error";
+import { BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT, GodeXError } from "../error";
 import type { ResponseObject } from "../protocol/openai/responses";
 import { validateResponseOutputContract } from "./response-output-contract-validation";
 
@@ -66,7 +66,7 @@ describe("validateResponseOutputContract", () => {
 		} catch (err) {
 			expect(err).toBeInstanceOf(GodeXError);
 			expect((err as GodeXError).code).toBe(
-				ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
+				BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT,
 			);
 		}
 	});
@@ -107,7 +107,7 @@ describe("validateResponseOutputContract", () => {
 
 		expect(diagnostics).toEqual([
 			{
-				code: ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
+				code: BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT,
 				severity: "error",
 				path: "response.output_text",
 				action: "rejected",

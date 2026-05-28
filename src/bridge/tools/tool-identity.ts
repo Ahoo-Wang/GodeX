@@ -1,7 +1,4 @@
-import {
-	ADAPTER_REQUEST_UNSUPPORTED_PARAMETER,
-	AdapterError,
-} from "../../error";
+import { BRIDGE_REQUEST_UNSUPPORTED_PARAMETER, BridgeError } from "../../error";
 
 export interface ToolIdentity {
 	readonly requestedName: string;
@@ -23,8 +20,8 @@ export class ToolIdentityMap {
 	add(identity: ToolIdentity): void {
 		const existing = this.#byProviderName.get(identity.providerName);
 		if (existing && !sameIdentity(existing, identity)) {
-			throw new AdapterError(
-				ADAPTER_REQUEST_UNSUPPORTED_PARAMETER,
+			throw new BridgeError(
+				BRIDGE_REQUEST_UNSUPPORTED_PARAMETER,
 				`Multiple tools map to provider name '${identity.providerName}'.`,
 				{
 					provider: "unknown",

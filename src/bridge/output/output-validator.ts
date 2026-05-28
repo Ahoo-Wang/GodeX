@@ -1,6 +1,6 @@
 import {
-	ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
-	createAdapterFailure,
+	BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT,
+	createBridgeFailure,
 } from "../../error";
 
 export function validateOutputContract(input: {
@@ -15,8 +15,8 @@ export function validateOutputContract(input: {
 	try {
 		JSON.parse(input.outputText);
 	} catch (cause) {
-		throw createAdapterFailure(
-			ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
+		throw createBridgeFailure(
+			BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT,
 			"Response output is not valid JSON for strict downgraded json_schema.",
 			{
 				provider: input.provider,

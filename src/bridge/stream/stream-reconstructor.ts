@@ -1,4 +1,4 @@
-import { ADAPTER_STREAM_INVALID_TRANSITION, AdapterError } from "../../error";
+import { BRIDGE_STREAM_INVALID_TRANSITION, BridgeError } from "../../error";
 import type {
 	ResponseInputTokensDetails,
 	ResponseOutputTokensDetails,
@@ -324,8 +324,8 @@ function invalidDelta(
 	machine: MapProviderDeltasToEventsInput["machine"],
 	parameter: string,
 	message: string,
-): AdapterError {
-	return new AdapterError(ADAPTER_STREAM_INVALID_TRANSITION, message, {
+): BridgeError {
+	return new BridgeError(BRIDGE_STREAM_INVALID_TRANSITION, message, {
 		provider: providerOf(machine),
 		model: modelOf(machine),
 		parameter,

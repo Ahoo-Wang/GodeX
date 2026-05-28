@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { AdapterError } from "../../error";
+import { BridgeError } from "../../error";
 import type { ResponseItem } from "../../protocol/openai/responses";
 import {
 	downgradedResponseToolCallPayload,
@@ -114,6 +114,6 @@ describe("response message payload helpers", () => {
 				provider: "zhipu",
 				onUnsupported: "throw",
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 	});
 });

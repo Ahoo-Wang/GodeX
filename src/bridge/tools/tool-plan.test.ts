@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { AdapterError } from "../../error";
+import { BridgeError } from "../../error";
 import type { ResponseTool } from "../../protocol/openai/responses";
 import type { BridgeDialectProfile } from "../dialect";
 import {
@@ -98,7 +98,7 @@ describe("planTools", () => {
 				},
 				profile: kernelProfile,
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 		expect(() =>
 			planTools({
 				tools: [{ type: "mcp", server_label: "repo" }],
@@ -291,7 +291,7 @@ describe("planTools", () => {
 				requestedType: "function",
 				providerType: "function",
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 	});
 
 	test("renders built-in and custom function declarations with strict bridge schemas", () => {
@@ -384,7 +384,7 @@ describe("planTools", () => {
 					maxTools: 1,
 				},
 			}),
-		).toThrow(AdapterError);
+		).toThrow(BridgeError);
 	});
 });
 

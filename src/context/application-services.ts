@@ -1,9 +1,9 @@
-import type { Adapter } from "../adapter/adapter";
-import { DefaultAdapter } from "../adapter/default-adapter";
 import type { GodeXConfig } from "../config";
 import { createLogger, type Logger } from "../logger";
 import type { Registrar } from "../providers/registrar";
 import { ModelResolver } from "../resolver";
+import type { ResponsesBridge } from "../responses/bridge";
+import { ResponsesBridgeRuntime } from "../responses/runtime";
 import type { ResponseSessionStore } from "../session";
 import type { TraceRecorder } from "../trace";
 import { createConfiguredRegistrar } from "./provider-bootstrap";
@@ -14,7 +14,7 @@ export interface ApplicationServices {
 	logger: Logger;
 	resolver: ModelResolver;
 	registrar: Registrar;
-	adapter: Adapter;
+	responses: ResponsesBridge;
 	sessionStore: ResponseSessionStore;
 	traceRecorder: TraceRecorder;
 	traceEnabled: boolean;
@@ -40,7 +40,7 @@ export function createApplicationServices(
 		logger,
 		resolver,
 		registrar: configuredRegistrar,
-		adapter: new DefaultAdapter(),
+		responses: new ResponsesBridgeRuntime(),
 		sessionStore: createResponseSessionStore(config.session),
 		traceRecorder: trace.traceRecorder,
 		traceEnabled: trace.traceEnabled,

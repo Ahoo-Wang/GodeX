@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
-	ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
-	ADAPTER_REQUEST_UNSUPPORTED_INPUT_ITEM,
-	ADAPTER_REQUEST_UNSUPPORTED_TOOL,
-	AdapterError,
+	BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT,
+	BRIDGE_REQUEST_UNSUPPORTED_INPUT_ITEM,
+	BRIDGE_REQUEST_UNSUPPORTED_TOOL,
+	BridgeError,
 } from "../../error";
 import type { ResponseCreateRequest } from "../../protocol/openai/responses";
 import type { ProviderCapabilities } from "../compatibility";
@@ -189,7 +189,7 @@ describe("buildChatCompletionRequest", () => {
 	});
 
 	test("throws when planned provider-native tool declarations cannot be rendered", () => {
-		const error = captureAdapterError(() =>
+		const error = captureBridgeError(() =>
 			buildChatCompletionRequest({
 				provider: "acme",
 				model: "acme-chat",
@@ -213,14 +213,14 @@ describe("buildChatCompletionRequest", () => {
 			}),
 		);
 
-		expect(error.code).toBe(ADAPTER_REQUEST_UNSUPPORTED_TOOL);
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_TOOL);
 		expect(error.message).toContain(
 			"Provider-native tool rendering is not implemented",
 		);
 	});
 
 	test("throws instead of partially forwarding mixed renderable and non-renderable tools", () => {
-		const error = captureAdapterError(() =>
+		const error = captureBridgeError(() =>
 			buildChatCompletionRequest({
 				provider: "acme",
 				model: "acme-chat",
@@ -250,7 +250,7 @@ describe("buildChatCompletionRequest", () => {
 			}),
 		);
 
-		expect(error.code).toBe(ADAPTER_REQUEST_UNSUPPORTED_TOOL);
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_TOOL);
 		expect(error.message).toContain(
 			"Provider-native tool rendering is not implemented",
 		);
@@ -284,8 +284,8 @@ describe("normalizeCurrentInput", () => {
 		]);
 	});
 
-	test("throws AdapterError for unsupported input content parts", () => {
-		const error = captureAdapterError(() =>
+	test("throws BridgeError for unsupported input content parts", () => {
+		const error = captureBridgeError(() =>
 			normalizeCurrentInput(
 				request({
 					input: [
@@ -303,11 +303,11 @@ describe("normalizeCurrentInput", () => {
 			),
 		);
 
-		expect(error.code).toBe(ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT);
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT);
 	});
 
-	test("throws AdapterError for unsupported input items", () => {
-		const error = captureAdapterError(() =>
+	test("throws BridgeError for unsupported input items", () => {
+		const error = captureBridgeError(() =>
 			normalizeCurrentInput(
 				request({
 					input: [
@@ -324,7 +324,7 @@ describe("normalizeCurrentInput", () => {
 			),
 		);
 
-		expect(error.code).toBe(ADAPTER_REQUEST_UNSUPPORTED_INPUT_ITEM);
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_ITEM);
 	});
 
 	test("normalizes assistant output_text content for session replay", () => {
@@ -348,12 +348,12 @@ describe("normalizeCurrentInput", () => {
 	});
 });
 
-function captureAdapterError(action: () => unknown): AdapterError {
+function captureBridgeError(action: () => unknown): BridgeError {
 	try {
 		action();
 	} catch (error) {
-		if (error instanceof AdapterError) return error;
+		if (error instanceof BridgeError) return error;
 		throw error;
 	}
-	throw new Error("Expected AdapterError.");
+	throw new Error("Expected BridgeError.");
 }

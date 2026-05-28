@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import type { CompatibilityDiagnostic } from "../../adapter/compatibility";
 import type { ResponsesContext } from "../../context/responses-context";
 import {
 	CHAT_COMPLETIONS_COMMON_IGNORED_PARAMETERS,
@@ -7,6 +6,7 @@ import {
 	RESPONSES_ENVELOPE_IGNORED_PARAMETERS,
 } from "./chat-plan";
 import type { ProviderCapabilities } from "./compatibility-plan";
+import type { CompatibilityDiagnostic } from "./diagnostic";
 
 const capabilities: ProviderCapabilities = {
 	parameters: { supported: new Set(["stream", "text.format"]) },
@@ -135,7 +135,7 @@ describe("planBridgeCompatibility", () => {
 		});
 		expect(testCtx.diagnostics).toContainEqual(
 			expect.objectContaining({
-				code: "adapter.param.unsupported",
+				code: "bridge.param.unsupported",
 				severity: "error",
 				path: "text.format",
 				action: "rejected",

@@ -10,7 +10,7 @@ import {
 } from "./test-fixtures";
 
 describe("handleResponses", () => {
-	test("maps sync requests exactly once through the adapter", async () => {
+	test("maps sync requests exactly once through the responses bridge", async () => {
 		let requestCalls = 0;
 		const app = createTestApp({
 			onRequest() {
@@ -247,7 +247,7 @@ describe("handleResponses", () => {
 		expect(errorLog?.attr).not.toHaveProperty("requestId");
 	});
 
-	test("maps adapter translation failures to invalid request errors", async () => {
+	test("maps bridge translation failures to invalid request errors", async () => {
 		const app = createTestApp();
 
 		const res = await handleResponses(
@@ -267,7 +267,7 @@ describe("handleResponses", () => {
 
 		expect(res.status).toBe(400);
 		const body = (await res.json()) as { error: { code: string } };
-		expect(body.error.code).toBe("adapter.request.unsupported_input_content");
+		expect(body.error.code).toBe("bridge.request.unsupported_input_content");
 	});
 });
 

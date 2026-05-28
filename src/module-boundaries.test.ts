@@ -145,11 +145,17 @@ describe("src module boundaries", () => {
 		expect(offenders).toEqual([]);
 	});
 
-	test("legacy adapter mapper and provider wrapper modules stay removed", () => {
+	test("legacy runtime mapper and provider wrapper modules stay removed", () => {
+		const legacyRuntimeDir = ["adapt", "er"].join("");
 		const forbidden = [
-			"adapter/mapper",
-			"adapter/provider.ts",
-			"adapter/transformers/provider-event-to-response-transformer.ts",
+			legacyRuntimeDir,
+			[legacyRuntimeDir, "mapper"].join("/"),
+			[legacyRuntimeDir, "provider.ts"].join("/"),
+			[
+				legacyRuntimeDir,
+				"transformers",
+				"provider-event-to-response-transformer.ts",
+			].join("/"),
 		].filter((path) => existsSync(join(SRC_ROOT, path)));
 
 		expect(forbidden).toEqual([]);

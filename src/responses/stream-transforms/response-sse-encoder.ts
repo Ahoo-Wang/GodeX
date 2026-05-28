@@ -1,7 +1,7 @@
 import { SafeTransformer } from "@ahoo-wang/fetcher-eventstream";
 import type { ResponseStreamEvent } from "../../protocol/openai/responses";
 
-export class ResponseSseEncodeTransformer extends SafeTransformer<
+export class ResponseSseEncoder extends SafeTransformer<
 	ResponseStreamEvent,
 	Uint8Array
 > {

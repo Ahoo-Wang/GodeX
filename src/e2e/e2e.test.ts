@@ -517,7 +517,7 @@ describe("E2E: sync response", () => {
 		const body = (await res.json()) as {
 			error: { code: string; message: string };
 		};
-		expect(body.error.code).toBe("adapter.response.invalid_output_format");
+		expect(body.error.code).toBe("bridge.response.invalid_output_format");
 		expect(body.error.message).toContain("not valid JSON");
 		expect(lastUpstreamRequest().response_format).toEqual({
 			type: "json_object",
@@ -683,7 +683,7 @@ describe("E2E: sync response", () => {
 		const body = (await res.json()) as {
 			error: { code: string; message: string };
 		};
-		expect(body.error.code).toBe("adapter.request.unsupported_parameter");
+		expect(body.error.code).toBe("bridge.request.unsupported_parameter");
 		expect(body.error.message).toContain("tool_choice");
 		expect(upstreamRequests).toHaveLength(0);
 	});
@@ -787,7 +787,7 @@ describe("E2E: stream response", () => {
 			| undefined;
 		expect(failed?.response?.status).toBe("failed");
 		expect(failed?.response?.error?.message).toContain(
-			"adapter.response.invalid_output_format",
+			"bridge.response.invalid_output_format",
 		);
 		expect(lastUpstreamRequest().response_format).toEqual({
 			type: "json_object",

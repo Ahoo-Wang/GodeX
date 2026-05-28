@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-	ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
-	GodeXError,
-} from "../../error";
+import { BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT, GodeXError } from "../../error";
 import type { ResponseUsage } from "../../protocol/openai/responses";
 import { reconstructResponseObject } from "./response-reconstructor";
 
@@ -235,7 +232,7 @@ describe("reconstructResponseObject", () => {
 		});
 	});
 
-	test("throws AdapterError code when strict JSON output is invalid", () => {
+	test("throws BridgeError code when strict JSON output is invalid", () => {
 		try {
 			reconstructResponseObject({
 				requestId: "req_123",
@@ -252,7 +249,7 @@ describe("reconstructResponseObject", () => {
 		} catch (err) {
 			expect(err).toBeInstanceOf(GodeXError);
 			expect((err as GodeXError).code).toBe(
-				ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
+				BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT,
 			);
 		}
 	});

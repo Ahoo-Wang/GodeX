@@ -5,12 +5,12 @@ import { dispatchResponseRequest } from "./response-dispatcher";
 import { basicRequest, createTestApp, responseObject } from "./test-fixtures";
 
 describe("dispatchResponseRequest", () => {
-	test("dispatches non-stream requests through adapter.request", async () => {
+	test("dispatches non-stream requests through responses.request", async () => {
 		const app = createTestApp();
 		const ctx = await createResponsesContext(app, basicRequest);
 		let requestCalls = 0;
 		let streamCalls = 0;
-		Object.defineProperty(app, "adapter", {
+		Object.defineProperty(app, "responses", {
 			value: {
 				async request() {
 					requestCalls++;
@@ -32,7 +32,7 @@ describe("dispatchResponseRequest", () => {
 		expect(body.id).toBe(ctx.responseId);
 	});
 
-	test("dispatches stream requests through adapter.stream and encodes SSE", async () => {
+	test("dispatches stream requests through responses.stream and encodes SSE", async () => {
 		const app = createTestApp();
 		const ctx = await createResponsesContext(app, {
 			...basicRequest,
@@ -40,7 +40,7 @@ describe("dispatchResponseRequest", () => {
 		});
 		let requestCalls = 0;
 		let streamCalls = 0;
-		Object.defineProperty(app, "adapter", {
+		Object.defineProperty(app, "responses", {
 			value: {
 				async request() {
 					requestCalls++;

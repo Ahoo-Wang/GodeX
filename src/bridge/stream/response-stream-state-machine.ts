@@ -1,8 +1,8 @@
 import {
-	ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
-	ADAPTER_STREAM_INVALID_TRANSITION,
-	ADAPTER_STREAM_OUTPUT_BEFORE_START,
-	AdapterError,
+	BRIDGE_STREAM_DELTA_AFTER_TERMINAL,
+	BRIDGE_STREAM_INVALID_TRANSITION,
+	BRIDGE_STREAM_OUTPUT_BEFORE_START,
+	BridgeError,
 	SERVER_ERROR,
 } from "../../error";
 import type {
@@ -415,7 +415,7 @@ export class ResponseStreamStateMachine {
 	private assertNoPendingFinish(action: string): void {
 		if (this.pendingFinishReason === undefined) return;
 		throw this.error(
-			ADAPTER_STREAM_DELTA_AFTER_TERMINAL,
+			BRIDGE_STREAM_DELTA_AFTER_TERMINAL,
 			`${action} cannot run after provider finish reason was observed.`,
 			{ action, finishReason: this.pendingFinishReason },
 		);
@@ -426,10 +426,10 @@ export class ResponseStreamStateMachine {
 		const code =
 			expected === ResponseStreamPhase.IN_PROGRESS &&
 			this.currentPhase === ResponseStreamPhase.IDLE
-				? ADAPTER_STREAM_OUTPUT_BEFORE_START
+				? BRIDGE_STREAM_OUTPUT_BEFORE_START
 				: isTerminalPhase(this.currentPhase)
-					? ADAPTER_STREAM_DELTA_AFTER_TERMINAL
-					: ADAPTER_STREAM_INVALID_TRANSITION;
+					? BRIDGE_STREAM_DELTA_AFTER_TERMINAL
+					: BRIDGE_STREAM_INVALID_TRANSITION;
 		throw this.error(
 			code,
 			`${action} cannot run while stream response phase is ${this.currentPhase}.`,
@@ -441,8 +441,8 @@ export class ResponseStreamStateMachine {
 		code: string,
 		message: string,
 		context: Record<string, unknown> = {},
-	): AdapterError {
-		return new AdapterError(code, message, {
+	): BridgeError {
+		return new BridgeError(code, message, {
 			provider: this.options.provider,
 			model: this.options.model,
 			...context,

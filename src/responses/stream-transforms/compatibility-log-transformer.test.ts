@@ -85,7 +85,7 @@ describe("CompatibilityLogTransformer", () => {
 	test("logs diagnostics on response.completed terminal event", async () => {
 		const { ctx, logCalls } = mockCtx([
 			{
-				code: "adapter.tool.unsupported",
+				code: "bridge.tool.unsupported",
 				severity: "warn",
 				action: "ignored",
 				message: "Not supported",
@@ -111,7 +111,7 @@ describe("CompatibilityLogTransformer", () => {
 	test("logs diagnostics on response.failed terminal event", async () => {
 		const { ctx, logCalls } = mockCtx([
 			{
-				code: "adapter.param.unsupported",
+				code: "bridge.param.unsupported",
 				severity: "error",
 				action: "rejected",
 				message: "test",
@@ -133,7 +133,7 @@ describe("CompatibilityLogTransformer", () => {
 	test("logs diagnostics on response.cancelled terminal event", async () => {
 		const { ctx, logCalls } = mockCtx([
 			{
-				code: "adapter.tool.unsupported",
+				code: "bridge.tool.unsupported",
 				severity: "info",
 				action: "ignored",
 				message: "test",
@@ -155,7 +155,7 @@ describe("CompatibilityLogTransformer", () => {
 	test("logs only once on multiple terminal events", async () => {
 		const { ctx, logCalls } = mockCtx([
 			{
-				code: "adapter.tool.unsupported",
+				code: "bridge.tool.unsupported",
 				severity: "warn",
 				action: "ignored",
 				message: "test",
@@ -188,7 +188,7 @@ describe("CompatibilityLogTransformer", () => {
 	test("logs on flush when no terminal event seen", async () => {
 		const { ctx, logCalls } = mockCtx([
 			{
-				code: "adapter.tool.unsupported",
+				code: "bridge.tool.unsupported",
 				severity: "warn",
 				action: "ignored",
 				message: "test",

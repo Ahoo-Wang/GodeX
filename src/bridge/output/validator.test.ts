@@ -2,10 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-	ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
-	GodeXError,
-} from "../../error";
+import { BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT, GodeXError } from "../../error";
 import type { ResponseObject } from "../../protocol/openai/responses";
 import { validateResponseOutputContract } from "./validator";
 
@@ -63,7 +60,7 @@ describe("validateResponseOutputContract", () => {
 		} catch (err) {
 			expect(err).toBeInstanceOf(GodeXError);
 			expect((err as GodeXError).code).toBe(
-				ADAPTER_RESPONSE_INVALID_OUTPUT_FORMAT,
+				BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT,
 			);
 		}
 	});
@@ -107,26 +104,17 @@ describe("validateResponseOutputContract", () => {
 		).not.toThrow();
 	});
 
-	test("bridge output files do not import adapter modules", () => {
+	test("bridge output files do not import responses runtime modules", () => {
 		const dir = fileURLToPath(new URL(".", import.meta.url));
-		const adapterName = ["adapt", "er"].join("");
-		const adapterMapperPath = [adapterName, "mapper"].join("/");
-		const parentAdapterPath = ["..", "..", adapterName].join("/");
-		const adapterImportPattern = new RegExp(
-			`${adapterMapperPath}|${parentAdapterPath.replaceAll(".", "\\.")}|${[
-				"fr",
-				"om ",
-				'"',
-				".*",
-				adapterName,
-			].join("")}`,
-		);
 		const offenders = bridgeOutputFiles(dir).filter((path) => {
 			const importLines = readFileSync(path, "utf8")
 				.split("\n")
 				.filter((line) => /^\s*(import|export)\b/.test(line))
 				.join("\n");
-			return adapterImportPattern.test(importLines);
+			return (
+				importLines.includes('"../../responses') ||
+				importLines.includes("'../../responses")
+			);
 		});
 
 		expect(offenders).toEqual([]);

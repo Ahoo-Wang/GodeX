@@ -1,7 +1,7 @@
 // src/server/errors.test.ts
 
 import { describe, expect, test } from "bun:test";
-import { AdapterError, ProviderError } from "../error";
+import { BridgeError, ProviderError } from "../error";
 import {
 	godeXErrorToHttp,
 	jsonError,
@@ -94,8 +94,8 @@ describe("server error mapping", () => {
 	});
 
 	test("godeXErrorToHttp returns status, code, and message from a GodeXError", () => {
-		const err = new AdapterError(
-			"adapter.request.unsupported_input_content",
+		const err = new BridgeError(
+			"bridge.request.unsupported_input_content",
 			"Unsupported input content",
 			{
 				provider: "test",
@@ -105,7 +105,7 @@ describe("server error mapping", () => {
 		expect(godeXErrorToHttp(err)).toEqual({
 			status: 400,
 			error: {
-				code: "adapter.request.unsupported_input_content",
+				code: "bridge.request.unsupported_input_content",
 				message: "Unsupported input content",
 			},
 		});

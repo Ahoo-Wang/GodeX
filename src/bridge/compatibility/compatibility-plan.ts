@@ -1,4 +1,4 @@
-import type { CompatibilityDiagnostic } from "../../adapter/compatibility";
+import type { CompatibilityDiagnostic } from "./diagnostic";
 
 export interface ParameterCapabilities {
 	supported: ReadonlySet<string>;
