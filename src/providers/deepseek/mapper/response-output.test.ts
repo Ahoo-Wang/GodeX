@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { CompatibilityDiagnostic } from "../../../adapter/compatibility";
+import {
+	ProviderToolIndex,
+	ToolIdentityCatalog,
+	ToolIndexSlot,
+} from "../../../adapter/mapper/chat/tool-index";
 import type { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";
 import { createLogger } from "../../../logger";
@@ -7,12 +12,13 @@ import type {
 	ResponseCreateRequest,
 	ResponseObject,
 } from "../../../protocol/openai/responses";
+import { toDeepSeekFunctionName } from "../function-names";
 import type { ChatCompletion, FinishReason } from "../protocol/completions";
 import { createDeepSeekMapper } from "./index";
 
 function ctx(partial: Partial<ResponseCreateRequest> = {}): ResponsesContext {
 	const diagnostics: CompatibilityDiagnostic[] = [];
-	return {
+	const context = {
 		request: {
 			model: "deepseek-v4-flash",
 			input: "Hello",
@@ -31,6 +37,22 @@ function ctx(partial: Partial<ResponseCreateRequest> = {}): ResponsesContext {
 			diagnostics.push(d);
 		},
 	} as unknown as ResponsesContext;
+	return withToolIndex(context);
+}
+
+function withToolIndex(context: ResponsesContext): ResponsesContext {
+	const slot = new ToolIndexSlot();
+	slot.set(
+		new ProviderToolIndex({
+			declarations: [],
+			identityCatalog: ToolIdentityCatalog.fromTools(
+				context.request.tools,
+				toDeepSeekFunctionName,
+			),
+		}),
+	);
+	(context as ResponsesContext & { toolIndex: ToolIndexSlot }).toolIndex = slot;
+	return context;
 }
 
 function mapResponse(

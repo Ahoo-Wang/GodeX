@@ -23,11 +23,8 @@ import {
 	ZhipuResponseOutputMapper,
 } from "./response-output";
 import { ZhipuStreamDeltaMapper } from "./stream-delta";
-import {
-	ZhipuToolCallIdentityResolver,
-	ZhipuToolCallMapper,
-} from "./tool-calls";
-import { ZhipuToolChoiceMapper, ZhipuToolMapper } from "./tools";
+import { ZhipuToolCallRestorer } from "./tool-calls";
+import { ZhipuToolChoiceMapper, ZhipuToolIndexBuilder } from "./tools";
 import { ZhipuUsageMapper } from "./usage";
 
 export function createZhipuMapper(): ProviderMapper<
@@ -46,7 +43,7 @@ export function createZhipuMapper(): ProviderMapper<
 			negotiator: new ZhipuCompatibilityNegotiator(),
 			factory: new ZhipuRequestFactory(),
 			messages: new ZhipuMessageMapper(),
-			tools: new ZhipuToolMapper(),
+			tools: new ZhipuToolIndexBuilder(),
 			toolChoice: new ZhipuToolChoiceMapper(),
 			options: new ZhipuRequestOptionsMapper(),
 		}),
@@ -64,8 +61,7 @@ export function createZhipuMapper(): ProviderMapper<
 		stream: new ChatStreamMapper({
 			delta: new ZhipuStreamDeltaMapper(),
 			finishReason,
-			identity: new ZhipuToolCallIdentityResolver(),
-			toolCall: new ZhipuToolCallMapper(),
+			toolCall: new ZhipuToolCallRestorer(),
 			deferTerminal: true,
 		}),
 	};

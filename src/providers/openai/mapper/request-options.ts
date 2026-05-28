@@ -3,9 +3,13 @@ import type {
 	ChatRequestFactory,
 	ChatRequestOptionsMapper,
 } from "../../../adapter/mapper/chat/contract";
+import type { ProviderToolIndex } from "../../../adapter/mapper/chat/tool-index";
 import type { ResponsesContext } from "../../../context/responses-context";
-import type { ChatCompletionCreateRequest } from "../../../protocol/openai/completions";
-import { getOpenAIMappedTools } from "./tools";
+import type {
+	ChatCompletionCreateRequest,
+	ChatCompletionTool,
+} from "../../../protocol/openai/completions";
+import type { OpenAIToolSidecars } from "./tools";
 
 export class OpenAIRequestFactory
 	implements ChatRequestFactory<ChatCompletionCreateRequest>
@@ -22,12 +26,18 @@ export class OpenAIRequestFactory
 }
 
 export class OpenAIRequestOptionsMapper
-	implements ChatRequestOptionsMapper<ChatCompletionCreateRequest>
+	implements
+		ChatRequestOptionsMapper<
+			ChatCompletionCreateRequest,
+			ChatCompletionTool[],
+			OpenAIToolSidecars
+		>
 {
 	apply(
 		ctx: ResponsesContext,
-		plan: CompatibilityPlan,
+		_plan: CompatibilityPlan,
 		request: ChatCompletionCreateRequest,
+		toolIndex: ProviderToolIndex<ChatCompletionTool[], OpenAIToolSidecars>,
 	): void {
 		const req = ctx.request;
 		if (req.stream) {
@@ -73,10 +83,7 @@ export class OpenAIRequestOptionsMapper
 		if (req.text?.verbosity !== undefined)
 			request.verbosity = req.text.verbosity;
 
-		if (req.tools && req.tools.length > 0) {
-			const mapped = getOpenAIMappedTools(ctx, plan);
-			if (mapped.webSearchOptions)
-				request.web_search_options = mapped.webSearchOptions;
-		}
+		const webSearchOptions = toolIndex.sidecars().webSearchOptions;
+		if (webSearchOptions) request.web_search_options = webSearchOptions;
 	}
 }

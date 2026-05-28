@@ -30,11 +30,11 @@ CLI → ApplicationContext → Bun HTTP server
 
 The `ProviderMapper` is built from sub-responsibility interfaces in `adapter/mapper/chat/contract.ts`:
 
-**Request:** `CompatibilityNegotiator` → `ChatRequestFactory` → `ChatMessageMapper` → `ChatToolMapper` → `ChatToolChoiceMapper` → `ChatRequestOptionsMapper`
+**Request:** `CompatibilityNegotiator` → `OutputFormatContract` → `ChatRequestFactory` → `ChatMessageMapper` → `ChatToolIndexBuilder` → `ChatToolChoiceMapper` → `ChatRequestOptionsMapper`
 
 **Response:** `ChatResponseAccessor` → `ChatResponseOutputMapper` + `ChatUsageMapper` + `ChatFinishReasonMapper` → `buildChatResponseObject`
 
-**Stream:** `ChatStreamDeltaMapper` + `ChatFinishReasonMapper` + `ChatToolCallMapper` + `ChatToolCallIdentityResolver` → `StreamResponseState`
+**Stream:** `ChatStreamDeltaMapper` + `ChatFinishReasonMapper` + `ChatToolCallRestorer` → `StreamResponseState`
 
 The composition classes (`ChatRequestMapper`, `ChatResponseMapper`, `ChatStreamMapper`) live in `adapter/mapper/chat/`.
 
@@ -45,7 +45,6 @@ Each provider in `providers/<name>/mapper/` implements the sub-responsibility in
 Shared provider utilities (`providers/shared/`):
 - `chat-provider-client.ts` — `ChatProviderClient` (HTTP boundary, wraps Fetcher)
 - `response-message-payloads.ts` — `convertResponseItemToMessage` and payload extraction
-- `tool-name-mapping.ts` — namespace tool resolution
 - `chat-api.ts` — Fetcher-based `ChatApi` factory
 - `stream-result-extractor.ts` — SSE JSON parsing
 

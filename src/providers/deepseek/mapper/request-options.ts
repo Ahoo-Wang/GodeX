@@ -3,9 +3,12 @@ import type {
 	ChatRequestFactory,
 	ChatRequestOptionsMapper,
 } from "../../../adapter/mapper/chat/contract";
+import type { ProviderToolIndex } from "../../../adapter/mapper/chat/tool-index";
 import type { ResponsesContext } from "../../../context/responses-context";
-import { jsonSchemaOutputContractMessage } from "../../shared/json-schema-output-contract";
-import type { ChatCompletionRequest } from "../protocol/completions";
+import type {
+	ChatCompletionRequest,
+	DeepSeekTool,
+} from "../protocol/completions";
 
 export class DeepSeekRequestFactory
 	implements ChatRequestFactory<ChatCompletionRequest>
@@ -19,12 +22,13 @@ export class DeepSeekRequestFactory
 }
 
 export class DeepSeekRequestOptionsMapper
-	implements ChatRequestOptionsMapper<ChatCompletionRequest>
+	implements ChatRequestOptionsMapper<ChatCompletionRequest, DeepSeekTool[]>
 {
 	apply(
 		ctx: ResponsesContext,
 		plan: CompatibilityPlan,
 		request: ChatCompletionRequest,
+		_toolIndex: ProviderToolIndex<DeepSeekTool[]>,
 	): void {
 		const req = ctx.request;
 		const thinkingEnabled =
@@ -58,10 +62,15 @@ export class DeepSeekRequestOptionsMapper
 				req.text.format.type === "json_schema" &&
 				plan.responseFormat?.action === "degraded"
 			) {
-				request.messages.push({
-					role: "user",
-					content: jsonSchemaOutputContractMessage(req.text.format),
-				});
+				const syntheticInstruction = ctx.outputFormatContract
+					.current()
+					.syntheticInstruction();
+				if (syntheticInstruction) {
+					request.messages.push({
+						role: "user",
+						content: syntheticInstruction,
+					});
+				}
 			}
 		}
 	}

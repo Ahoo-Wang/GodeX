@@ -3,9 +3,12 @@ import type {
 	ChatRequestFactory,
 	ChatRequestOptionsMapper,
 } from "../../../adapter/mapper/chat/contract";
+import type { ProviderToolIndex } from "../../../adapter/mapper/chat/tool-index";
 import type { ResponsesContext } from "../../../context/responses-context";
-import { jsonSchemaOutputContractMessage } from "../../shared/json-schema-output-contract";
-import type { ChatCompletionTextRequest } from "../protocol/completions";
+import type {
+	ChatCompletionTextRequest,
+	ChatTool,
+} from "../protocol/completions";
 import type { TextModel } from "../protocol/models";
 
 export class ZhipuRequestFactory
@@ -20,12 +23,13 @@ export class ZhipuRequestFactory
 }
 
 export class ZhipuRequestOptionsMapper
-	implements ChatRequestOptionsMapper<ChatCompletionTextRequest>
+	implements ChatRequestOptionsMapper<ChatCompletionTextRequest, ChatTool[]>
 {
 	apply(
 		ctx: ResponsesContext,
 		plan: CompatibilityPlan,
 		request: ChatCompletionTextRequest,
+		_toolIndex: ProviderToolIndex<ChatTool[]>,
 	): void {
 		const req = ctx.request;
 		if (req.stream) {
@@ -51,10 +55,15 @@ export class ZhipuRequestOptionsMapper
 				req.text.format.type === "json_schema" &&
 				plan.responseFormat?.action === "degraded"
 			) {
-				request.messages.push({
-					role: "user",
-					content: jsonSchemaOutputContractMessage(req.text.format),
-				});
+				const syntheticInstruction = ctx.outputFormatContract
+					.current()
+					.syntheticInstruction();
+				if (syntheticInstruction) {
+					request.messages.push({
+						role: "user",
+						content: syntheticInstruction,
+					});
+				}
 			}
 		}
 	}

@@ -23,11 +23,8 @@ import {
 	OpenAIResponseOutputMapper,
 } from "./response-output";
 import { OpenAIStreamDeltaMapper } from "./stream-delta";
-import {
-	OpenAIToolCallIdentityResolver,
-	OpenAIToolCallMapper,
-} from "./tool-calls";
-import { OpenAIToolChoiceMapper, OpenAIToolMapper } from "./tools";
+import { OpenAIToolCallRestorer } from "./tool-calls";
+import { OpenAIToolChoiceMapper, OpenAIToolIndexBuilder } from "./tools";
 import { OpenAIUsageMapper } from "./usage";
 
 export function createOpenAIMapper(): ProviderMapper<
@@ -46,7 +43,7 @@ export function createOpenAIMapper(): ProviderMapper<
 			negotiator: new OpenAICompatibilityNegotiator(),
 			factory: new OpenAIRequestFactory(),
 			messages: new OpenAIMessageMapper(),
-			tools: new OpenAIToolMapper(),
+			tools: new OpenAIToolIndexBuilder(),
 			toolChoice: new OpenAIToolChoiceMapper(),
 			options: new OpenAIRequestOptionsMapper(),
 		}),
@@ -64,8 +61,7 @@ export function createOpenAIMapper(): ProviderMapper<
 		stream: new ChatStreamMapper({
 			delta: new OpenAIStreamDeltaMapper(),
 			finishReason,
-			identity: new OpenAIToolCallIdentityResolver(),
-			toolCall: new OpenAIToolCallMapper(),
+			toolCall: new OpenAIToolCallRestorer(),
 			deferTerminal: true,
 		}),
 	};

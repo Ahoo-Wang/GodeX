@@ -1,6 +1,11 @@
 // src/providers/zhipu/stream.test.ts
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
+import {
+	ProviderToolIndex,
+	ToolIdentityCatalog,
+	ToolIndexSlot,
+} from "../../../adapter/mapper/chat/tool-index";
 import type { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";
 import { createLogger } from "../../../logger";
@@ -9,11 +14,12 @@ import type {
 	ResponseStreamEvent,
 	ResponseTool,
 } from "../../../protocol/openai/responses";
+import { toZhipuFunctionName } from "../function-names";
 import type { ChatCompletionChunk } from "../protocol/completions";
 import { createZhipuMapper } from "./index";
 
 function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
-	return {
+	const context = {
 		request: {
 			model: "glm-5.1",
 			stream: true,
@@ -63,6 +69,22 @@ function ctx(requestOverrides: Record<string, unknown> = {}): ResponsesContext {
 		provider: { mapper: {} as never, client: {} as never },
 		attributes: new Map(),
 	} as unknown as ResponsesContext;
+	return withToolIndex(context);
+}
+
+function withToolIndex(context: ResponsesContext): ResponsesContext {
+	const slot = new ToolIndexSlot();
+	slot.set(
+		new ProviderToolIndex({
+			declarations: [],
+			identityCatalog: ToolIdentityCatalog.fromTools(
+				context.request.tools as ResponseTool[] | undefined,
+				toZhipuFunctionName,
+			),
+		}),
+	);
+	(context as ResponsesContext & { toolIndex: ToolIndexSlot }).toolIndex = slot;
+	return context;
 }
 
 function withTools(tools: ResponseTool[]): ResponsesContext {

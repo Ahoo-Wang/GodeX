@@ -1,8 +1,13 @@
 import type { CompatibilityPlan } from "../../../adapter/mapper/chat/compatibility-plan";
 import type {
 	ChatToolChoiceMapper,
-	ChatToolMapper,
+	ChatToolIndexBuilder,
 } from "../../../adapter/mapper/chat/contract";
+import {
+	flattenToolName,
+	ProviderToolIndex,
+	ToolIdentityCatalogBuilder,
+} from "../../../adapter/mapper/chat/tool-index";
 import { isRecord } from "../../../adapter/utils";
 import type { ResponsesContext } from "../../../context/responses-context";
 import {
@@ -19,7 +24,6 @@ import {
 	degradedCustomToolDescription,
 	degradedCustomToolParameters,
 } from "../../shared/custom-tool-degradation";
-import { flattenToolName } from "../../shared/tool-identity";
 import { toDeepSeekFunctionName } from "../function-names";
 import type { DeepSeekTool, DeepSeekToolChoice } from "../protocol/completions";
 import { DEEPSEEK_PROVIDER_NAME } from "../provider";
@@ -32,7 +36,10 @@ interface MapToolsOptions {
 	onDegraded?: (type: string, effectiveType: string) => void;
 	supportedToolTypes?: ReadonlySet<string>;
 	degradedToolTypes?: ReadonlyMap<string, string>;
+	identityCatalog?: ToolIdentityCatalogBuilder;
 }
+
+export type DeepSeekToolIndex = ProviderToolIndex<DeepSeekTool[]>;
 
 const TOOL_SEARCH_PARAMETERS = {
 	type: "object",
@@ -81,6 +88,7 @@ function mapTool(
 
 	switch (tool.type) {
 		case "function":
+			options.identityCatalog?.addFunction(tool.name);
 			return functionTool(
 				tool.name,
 				tool.description,
@@ -90,14 +98,17 @@ function mapTool(
 		case "local_shell":
 		case "shell":
 		case "apply_patch":
+			options.identityCatalog?.addBuiltin(tool.type);
 			return builtinFunctionTool(tool.type);
 		case "custom":
+			options.identityCatalog?.addCustom(tool.name);
 			return functionTool(
 				tool.name,
 				degradedCustomToolDescription(tool),
 				degradedCustomToolParameters(tool),
 			);
 		case "tool_search":
+			options.identityCatalog?.addToolSearch(tool.execution);
 			return functionTool(
 				"tool_search",
 				tool.description ??
@@ -110,6 +121,11 @@ function mapTool(
 					namespace: tool.name,
 					name: nestedTool.name,
 				});
+				options.identityCatalog?.addNamespaceTool(
+					tool.name,
+					nestedTool.name,
+					nestedTool.type,
+				);
 				const description =
 					nestedTool.description ?? `${tool.description} (${nestedTool.name})`;
 				if (nestedTool.type === "function") {
@@ -273,17 +289,20 @@ export function mapDeepSeekToolChoice(
 	return "auto";
 }
 
-export class DeepSeekToolMapper implements ChatToolMapper<DeepSeekTool[]> {
-	map(
-		ctx: ResponsesContext,
-		plan: CompatibilityPlan,
-	): DeepSeekTool[] | undefined {
+export class DeepSeekToolIndexBuilder
+	implements ChatToolIndexBuilder<DeepSeekTool[]>
+{
+	map(ctx: ResponsesContext, plan: CompatibilityPlan): DeepSeekToolIndex {
 		const toolsDisabled = ctx.request.tool_choice === "none";
+		const identityCatalog = new ToolIdentityCatalogBuilder(
+			toDeepSeekFunctionName,
+		);
 		const tools = toolsDisabled
 			? []
 			: mapDeepSeekTools(ctx.request.tools, {
 					supportedToolTypes: plan.capabilities.tools.supported,
 					degradedToolTypes: plan.capabilities.tools.degraded,
+					identityCatalog,
 					unsupported: "skip",
 					onUnsupported: (type) => {
 						ctx.addDiagnostic({
@@ -313,7 +332,10 @@ export class DeepSeekToolMapper implements ChatToolMapper<DeepSeekTool[]> {
 					},
 				});
 		assertMappedToolCapacity(tools.length, ctx, plan);
-		return tools.length > 0 ? tools : undefined;
+		return new ProviderToolIndex({
+			declarations: tools,
+			identityCatalog: identityCatalog.build(),
+		});
 	}
 }
 
@@ -323,7 +345,7 @@ export class DeepSeekToolChoiceMapper
 	map(
 		ctx: ResponsesContext,
 		_plan: CompatibilityPlan,
-		tools: DeepSeekTool[] | undefined,
+		toolIndex: DeepSeekToolIndex,
 	): DeepSeekToolChoice | undefined {
 		const requestedToolChoice = ctx.request.tool_choice;
 		if (isThinkingMode(ctx) && requestedToolChoice !== undefined) {
@@ -341,7 +363,7 @@ export class DeepSeekToolChoiceMapper
 			});
 			return undefined;
 		}
-		if (!tools || tools.length === 0) return undefined;
+		if (!toolIndex.hasDeclarations()) return undefined;
 		if (isUnsupportedToolChoice(requestedToolChoice)) {
 			ctx.addDiagnostic({
 				code: "adapter.param.unsupported",

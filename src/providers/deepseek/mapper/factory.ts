@@ -23,11 +23,8 @@ import {
 	DeepSeekResponseOutputMapper,
 } from "./response-output";
 import { DeepSeekStreamDeltaMapper } from "./stream-delta";
-import {
-	DeepSeekToolCallIdentityResolver,
-	DeepSeekToolCallMapper,
-} from "./tool-calls";
-import { DeepSeekToolChoiceMapper, DeepSeekToolMapper } from "./tools";
+import { DeepSeekToolCallRestorer } from "./tool-calls";
+import { DeepSeekToolChoiceMapper, DeepSeekToolIndexBuilder } from "./tools";
 import { DeepSeekUsageMapper } from "./usage";
 
 export function createDeepSeekMapper(): ProviderMapper<
@@ -46,7 +43,7 @@ export function createDeepSeekMapper(): ProviderMapper<
 			negotiator: new DeepSeekCompatibilityNegotiator(),
 			factory: new DeepSeekRequestFactory(),
 			messages: new DeepSeekMessageMapper(),
-			tools: new DeepSeekToolMapper(),
+			tools: new DeepSeekToolIndexBuilder(),
 			toolChoice: new DeepSeekToolChoiceMapper(),
 			options: new DeepSeekRequestOptionsMapper(),
 		}),
@@ -64,8 +61,7 @@ export function createDeepSeekMapper(): ProviderMapper<
 		stream: new ChatStreamMapper({
 			delta: new DeepSeekStreamDeltaMapper(),
 			finishReason,
-			identity: new DeepSeekToolCallIdentityResolver(),
-			toolCall: new DeepSeekToolCallMapper(),
+			toolCall: new DeepSeekToolCallRestorer(),
 			deferTerminal: true,
 		}),
 	};

@@ -1,8 +1,14 @@
 import type { CompatibilityPlan } from "../../../adapter/mapper/chat/compatibility-plan";
 import type {
 	ChatToolChoiceMapper,
-	ChatToolMapper,
+	ChatToolIndexBuilder,
 } from "../../../adapter/mapper/chat/contract";
+import {
+	flattenToolName,
+	ProviderToolIndex,
+	type ProviderToolIndexSidecars,
+	ToolIdentityCatalogBuilder,
+} from "../../../adapter/mapper/chat/tool-index";
 import { isRecord } from "../../../adapter/utils";
 import type { ResponsesContext } from "../../../context/responses-context";
 import { ADAPTER_REQUEST_UNSUPPORTED_TOOL, AdapterError } from "../../../error";
@@ -25,7 +31,6 @@ import {
 	degradedCustomToolDescription,
 	degradedCustomToolParameters,
 } from "../../shared/custom-tool-degradation";
-import { flattenToolName } from "../../shared/tool-identity";
 import { OPENAI_PROVIDER_NAME } from "../provider";
 
 export interface OpenAIMappedTools {
@@ -33,58 +38,74 @@ export interface OpenAIMappedTools {
 	webSearchOptions: ChatCompletionWebSearchOptions | undefined;
 }
 
+export type OpenAIToolSidecars = ProviderToolIndexSidecars & {
+	webSearchOptions?: ChatCompletionWebSearchOptions;
+};
+
+export type OpenAIToolIndex = ProviderToolIndex<
+	ChatCompletionTool[],
+	OpenAIToolSidecars
+>;
+
 interface MapOpenAIToolsOptions {
 	supportedToolTypes?: ReadonlySet<string>;
 	degradedToolTypes?: ReadonlyMap<string, string>;
+	identityCatalog?: ToolIdentityCatalogBuilder;
 	onUnsupported?: (type: string) => void;
 	onDegraded?: (type: string, effectiveType?: string) => void;
 }
 
-const OPENAI_MAPPED_TOOLS_ATTRIBUTE = "openai.mapped-tools";
-
-export function getOpenAIMappedTools(
+export function createOpenAIToolIndex(
 	ctx: ResponsesContext,
 	plan: CompatibilityPlan,
-): OpenAIMappedTools {
-	const cached = ctx.attributes.get(OPENAI_MAPPED_TOOLS_ATTRIBUTE);
-	if (cached) return cached as OpenAIMappedTools;
+): OpenAIToolIndex {
+	if (ctx.request.tool_choice === "none") {
+		return new ProviderToolIndex<ChatCompletionTool[], OpenAIToolSidecars>({
+			declarations: [],
+			sidecars: {},
+		});
+	}
 
-	const mapped =
-		ctx.request.tool_choice === "none"
-			? { tools: [], webSearchOptions: undefined }
-			: mapOpenAITools(ctx.request.tools, {
-					supportedToolTypes: plan.capabilities.tools.supported,
-					degradedToolTypes: plan.capabilities.tools.degraded,
-					onUnsupported: (type) => {
-						ctx.addDiagnostic({
-							code: "adapter.tool.unsupported",
-							severity: "warn",
-							path: `tools[type=${type}]`,
-							action: "ignored",
-							message: `Tool type '${type}' is not supported by OpenAI Chat Completions mapping; skipped.`,
-							metadata: { toolType: type },
-						});
-					},
-					onDegraded: (type, effectiveType) => {
-						const effective = effectiveType ?? "web_search_options";
-						const message = `Responses tool '${type}' was mapped to OpenAI Chat Completions ${effective}.`;
-						ctx.addDiagnostic({
-							code: "adapter.tool.degraded",
-							severity: "warn",
-							path: `tools[type=${type}]`,
-							action: "degraded",
-							message,
-							metadata: { toolType: type },
-						});
-						plan.tools.set(type, {
-							action: "degraded",
-							reason: message,
-							effectiveValue: { type: effective },
-						});
-					},
-				});
-	ctx.attributes.set(OPENAI_MAPPED_TOOLS_ATTRIBUTE, mapped);
-	return mapped;
+	const identityCatalog = new ToolIdentityCatalogBuilder();
+	const mapped = mapOpenAITools(ctx.request.tools, {
+		supportedToolTypes: plan.capabilities.tools.supported,
+		degradedToolTypes: plan.capabilities.tools.degraded,
+		identityCatalog,
+		onUnsupported: (type) => {
+			ctx.addDiagnostic({
+				code: "adapter.tool.unsupported",
+				severity: "warn",
+				path: `tools[type=${type}]`,
+				action: "ignored",
+				message: `Tool type '${type}' is not supported by OpenAI Chat Completions mapping; skipped.`,
+				metadata: { toolType: type },
+			});
+		},
+		onDegraded: (type, effectiveType) => {
+			const effective = effectiveType ?? "web_search_options";
+			const message = `Responses tool '${type}' was mapped to OpenAI Chat Completions ${effective}.`;
+			ctx.addDiagnostic({
+				code: "adapter.tool.degraded",
+				severity: "warn",
+				path: `tools[type=${type}]`,
+				action: "degraded",
+				message,
+				metadata: { toolType: type },
+			});
+			plan.tools.set(type, {
+				action: "degraded",
+				reason: message,
+				effectiveValue: { type: effective },
+			});
+		},
+	});
+	return new ProviderToolIndex<ChatCompletionTool[], OpenAIToolSidecars>({
+		declarations: mapped.tools,
+		sidecars: mapped.webSearchOptions
+			? { webSearchOptions: mapped.webSearchOptions }
+			: {},
+		identityCatalog: identityCatalog.build(),
+	});
 }
 
 export function mapOpenAITools(
@@ -109,6 +130,7 @@ export function mapOpenAITools(
 		if (degradedTarget) options.onDegraded?.(type, degradedTarget);
 		switch (type) {
 			case "function": {
+				options.identityCatalog?.addFunction(tool.name);
 				mappedTools.push({
 					type: "function",
 					function: {
@@ -121,6 +143,7 @@ export function mapOpenAITools(
 				break;
 			}
 			case "custom": {
+				options.identityCatalog?.addCustom(tool.name);
 				mappedTools.push({
 					type: "custom",
 					custom: {
@@ -161,6 +184,7 @@ export function mapOpenAITools(
 			case "apply_patch": {
 				const def = getBuiltinFunctionToolDefinition(tool.type);
 				if (def) {
+					options.identityCatalog?.addBuiltin(tool.type);
 					mappedTools.push({
 						type: "function",
 						function: {
@@ -173,6 +197,7 @@ export function mapOpenAITools(
 				break;
 			}
 			case "tool_search": {
+				options.identityCatalog?.addToolSearch(tool.execution);
 				mappedTools.push(
 					toolSearchToFunctionTool(tool.description, tool.parameters),
 				);
@@ -184,6 +209,11 @@ export function mapOpenAITools(
 						namespace: tool.name,
 						name: nestedTool.name,
 					});
+					options.identityCatalog?.addNamespaceTool(
+						tool.name,
+						nestedTool.name,
+						nestedTool.type,
+					);
 					if (nestedTool.type === "function") {
 						mappedTools.push({
 							type: "function",
@@ -442,27 +472,29 @@ function assertNoFunctionNameCollisions(tools: ChatCompletionTool[]): void {
 	}
 }
 
-export class OpenAIToolMapper implements ChatToolMapper<ChatCompletionTool[]> {
-	map(
-		ctx: ResponsesContext,
-		plan: CompatibilityPlan,
-	): ChatCompletionTool[] | undefined {
-		const mapped = getOpenAIMappedTools(ctx, plan).tools;
-		return mapped.length > 0 ? mapped : undefined;
+export class OpenAIToolIndexBuilder
+	implements ChatToolIndexBuilder<ChatCompletionTool[], OpenAIToolSidecars>
+{
+	map(ctx: ResponsesContext, plan: CompatibilityPlan): OpenAIToolIndex {
+		return createOpenAIToolIndex(ctx, plan);
 	}
 }
 
 export class OpenAIToolChoiceMapper
 	implements
-		ChatToolChoiceMapper<ChatCompletionTool[], ChatCompletionToolChoiceOption>
+		ChatToolChoiceMapper<
+			ChatCompletionTool[],
+			ChatCompletionToolChoiceOption,
+			OpenAIToolSidecars
+		>
 {
 	map(
 		ctx: ResponsesContext,
 		plan: CompatibilityPlan,
-		tools: ChatCompletionTool[] | undefined,
+		toolIndex: OpenAIToolIndex,
 	): ChatCompletionToolChoiceOption | undefined {
 		if (ctx.request.tool_choice === "none") return undefined;
-		if (!tools || tools.length === 0) {
+		if (!toolIndex.hasDeclarations()) {
 			const requestedToolChoice = ctx.request.tool_choice;
 			if (requestedToolChoice !== undefined && requestedToolChoice !== "auto") {
 				ctx.addDiagnostic({

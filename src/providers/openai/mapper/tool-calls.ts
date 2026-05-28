@@ -1,35 +1,12 @@
-import type {
-	ChatToolCallIdentity,
-	ChatToolCallIdentityResolver,
-	ChatToolCallMapper,
-} from "../../../adapter/mapper/chat/contract";
+import type { ChatToolCallRestorer } from "../../../adapter/mapper/chat/contract";
 import type { ToolCallSnapshot } from "../../../adapter/mapper/chat/stream-response-state";
+import { createFunctionCall } from "../../../adapter/mapper/chat/tool-index";
 import type { ResponsesContext } from "../../../context/responses-context";
 import type { ChatCompletionMessageToolCall } from "../../../protocol/openai/completions";
 import type {
 	CustomToolCall,
 	ResponseItem,
 } from "../../../protocol/openai/responses";
-import {
-	createFunctionCall,
-	restoreToolCallFromFunctionName,
-} from "../../shared/tool-call-restoration";
-import { findFlattenedNamespaceTool } from "../../shared/tool-identity";
-
-export function mapOpenAIToolCall(
-	ctx: ResponsesContext,
-	toolCall: ToolCallSnapshot,
-): ResponseItem {
-	if (toolCall.type === "custom") {
-		return customToolCall(toolCall.id, toolCall.name, toolCall.arguments);
-	}
-	return functionCallFromName(
-		ctx,
-		toolCall.id,
-		toolCall.name,
-		toolCall.arguments,
-	);
-}
 
 export function mapOpenAIResponseToolCall(
 	ctx: ResponsesContext,
@@ -57,12 +34,10 @@ function functionCallFromName(
 	args: string,
 ): ResponseItem {
 	return (
-		restoreToolCallFromFunctionName({
-			tools: ctx.request.tools,
+		ctx.toolIndex?.current()?.restoreProviderFunctionCall({
 			providerName,
 			callId,
 			args,
-			encodeName: (name) => name,
 		}) ?? createFunctionCall(callId, providerName, args)
 	);
 }
@@ -80,45 +55,23 @@ function customToolCall(
 	};
 }
 
-export class OpenAIToolCallIdentityResolver
-	implements ChatToolCallIdentityResolver
-{
-	resolve(ctx: ResponsesContext, upstreamName: string): ChatToolCallIdentity {
-		const match = findFlattenedNamespaceTool(ctx.request.tools, upstreamName);
-		if (match) {
-			return {
-				upstreamName,
-				name: match.name,
-				namespace: match.namespace,
-			};
-		}
-		return { upstreamName, name: upstreamName };
-	}
-}
-
-export class OpenAIToolCallMapper implements ChatToolCallMapper {
-	map(
-		ctx: ResponsesContext,
-		call: ToolCallSnapshot,
-		identity: ChatToolCallIdentity,
-	): ResponseItem {
+export class OpenAIToolCallRestorer implements ChatToolCallRestorer {
+	restore(ctx: ResponsesContext, call: ToolCallSnapshot): ResponseItem {
 		if (call.type === "custom") {
-			return customToolCall(call.id, identity.name, call.arguments);
-		}
-		return (
-			restoreToolCallFromFunctionName({
-				tools: ctx.request.tools,
-				providerName: identity.upstreamName,
+			const restored = ctx.toolIndex?.current()?.restoreProviderFunctionCall({
+				providerName: call.name,
 				callId: call.id,
 				args: call.arguments,
-				encodeName: (name) => name,
-			}) ??
-			createFunctionCall(
-				call.id,
-				identity.name,
-				call.arguments,
-				identity.namespace,
-			)
+			});
+			if (restored?.type === "custom_tool_call") return restored;
+			return customToolCall(call.id, call.name, call.arguments);
+		}
+		return (
+			ctx.toolIndex?.current()?.restoreProviderFunctionCall({
+				providerName: call.name,
+				callId: call.id,
+				args: call.arguments,
+			}) ?? createFunctionCall(call.id, call.name, call.arguments)
 		);
 	}
 }

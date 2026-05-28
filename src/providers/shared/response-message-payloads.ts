@@ -1,3 +1,4 @@
+import { flattenToolName } from "../../adapter/mapper/chat/tool-index";
 import { isRecord } from "../../adapter/utils";
 import {
 	ADAPTER_REQUEST_UNSUPPORTED_INPUT_CONTENT,
@@ -10,7 +11,6 @@ import type {
 	ResponseInputContent,
 	ResponseItem,
 } from "../../protocol/openai/responses";
-import { flattenToolName } from "./tool-identity";
 
 export type UnsupportedMode = "skip" | "throw";
 

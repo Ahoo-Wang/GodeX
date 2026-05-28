@@ -5,6 +5,7 @@ import type { ResponsesContext } from "../../../context/responses-context";
 import { createLogger } from "../../../logger";
 import type { ResponseItem } from "../../../protocol/openai/responses";
 import { ChatStreamMapper } from "./stream-mapper";
+import { ToolIndexSlot } from "./tool-index";
 
 interface TestChunk {
 	delta?: {
@@ -30,6 +31,7 @@ function ctx(): ResponsesContext {
 		app: {} as unknown as ApplicationContext,
 		provider: { mapper: {} as never, client: {} as never },
 		attributes: new Map(),
+		toolIndex: new ToolIndexSlot(),
 	} as unknown as ResponsesContext;
 }
 
@@ -56,14 +58,11 @@ describe("ChatStreamMapper", () => {
 				extractUsage: () => undefined,
 			},
 			finishReason: { map: () => ({ status: "completed" }) },
-			identity: {
-				resolve: (_ctx, upstreamName) => ({ upstreamName, name: upstreamName }),
-			},
 			toolCall: {
-				map: (_ctx, call, identity): ResponseItem => ({
+				restore: (_ctx, call): ResponseItem => ({
 					type: "function_call",
 					call_id: call.id,
-					name: identity.name,
+					name: call.name,
 					arguments: call.arguments,
 				}),
 			},
@@ -144,14 +143,8 @@ describe("ChatStreamMapper", () => {
 						: undefined,
 			},
 			finishReason: { map: () => ({ status: "completed" }) },
-			identity: {
-				resolve: (_ctx, upstreamName) => ({
-					upstreamName,
-					name: upstreamName,
-				}),
-			},
 			toolCall: {
-				map: (_ctx, call): ResponseItem => ({
+				restore: (_ctx, call): ResponseItem => ({
 					type: "function_call",
 					call_id: call.id,
 					name: call.name,

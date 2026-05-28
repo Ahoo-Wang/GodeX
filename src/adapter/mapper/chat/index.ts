@@ -1,5 +1,6 @@
 export * from "./compatibility-plan";
 export * from "./contract";
+export * from "./output-format-contract";
 export * from "./request-mapper";
 export * from "./response-mapper";
 export * from "./response-object-builder";
@@ -8,3 +9,4 @@ export * from "./stream-response-message";
 export * from "./stream-response-output";
 export * from "./stream-response-state";
 export * from "./stream-response-tool-call";
+export * from "./tool-index";

@@ -1,4 +1,6 @@
 import type { CompatibilityDiagnostic } from "../adapter/compatibility";
+import { OutputFormatContractSlot } from "../adapter/mapper/chat/output-format-contract";
+import { ToolIndexSlot } from "../adapter/mapper/chat/tool-index";
 import type { Provider } from "../adapter/provider";
 import type { Logger } from "../logger";
 import type { ResponseCreateRequest } from "../protocol/openai/responses";
@@ -30,6 +32,8 @@ export class ResponsesContext {
 	readonly logger: Logger;
 	readonly diagnostics: CompatibilityDiagnostic[];
 	readonly attributes: Map<string, unknown>;
+	readonly toolIndex: ToolIndexSlot;
+	readonly outputFormatContract: OutputFormatContractSlot;
 
 	constructor(init: ResponsesContextInit) {
 		this.app = init.app;
@@ -43,6 +47,8 @@ export class ResponsesContext {
 		this.logger = init.logger;
 		this.diagnostics = [];
 		this.attributes = new Map();
+		this.toolIndex = new ToolIndexSlot();
+		this.outputFormatContract = new OutputFormatContractSlot();
 	}
 
 	addDiagnostic(diagnostic: CompatibilityDiagnostic): void {

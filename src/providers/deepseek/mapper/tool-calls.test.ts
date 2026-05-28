@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { ChatToolCallIdentity } from "../../../adapter/mapper/chat/contract";
 import type { ToolCallSnapshot } from "../../../adapter/mapper/chat/stream-response-state";
+import {
+	ProviderToolIndex,
+	ToolIdentityCatalog,
+	ToolIndexSlot,
+} from "../../../adapter/mapper/chat/tool-index";
 import type { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";
 import { createLogger } from "../../../logger";
@@ -8,13 +12,20 @@ import type {
 	ResponseCreateRequest,
 	ResponseTool,
 } from "../../../protocol/openai/responses";
-import {
-	DeepSeekToolCallIdentityResolver,
-	DeepSeekToolCallMapper,
-	mapDeepSeekToolCall,
-} from "./tool-calls";
+import { toDeepSeekFunctionName } from "../function-names";
+import { DeepSeekToolCallRestorer, mapDeepSeekToolCall } from "./tool-calls";
 
 function ctx(tools: ResponseTool[] | undefined): ResponsesContext {
+	const toolIndex = new ToolIndexSlot();
+	toolIndex.set(
+		new ProviderToolIndex({
+			declarations: [],
+			identityCatalog: ToolIdentityCatalog.fromTools(
+				tools,
+				toDeepSeekFunctionName,
+			),
+		}),
+	);
 	return {
 		request: {
 			model: "deepseek-v4-flash",
@@ -29,6 +40,8 @@ function ctx(tools: ResponseTool[] | undefined): ResponsesContext {
 		logger: createLogger({ level: "error" }),
 		app: {} as ApplicationContext,
 		provider: { name: "deepseek", mapper: {} as never, client: {} as never },
+		attributes: new Map(),
+		toolIndex,
 		diagnostics: [],
 		addDiagnostic() {},
 	} as unknown as ResponsesContext;
@@ -67,17 +80,17 @@ const tools: ResponseTool[] = [
 
 describe("DeepSeek tool call mapping", () => {
 	test("resolves flattened namespace tool identities", () => {
-		const resolver = new DeepSeekToolCallIdentityResolver();
+		const index = ctx(tools).toolIndex.current();
 
-		expect(resolver.resolve(ctx(tools), "workspace__list-files")).toEqual({
-			upstreamName: "workspace__list-files",
+		expect(
+			index?.resolveProviderCall("workspace__list-files")?.identity(),
+		).toEqual({
+			type: "namespace_function",
+			providerName: "workspace__list-files",
 			namespace: "workspace",
 			name: "list-files",
 		});
-		expect(resolver.resolve(ctx(tools), "plain_tool")).toEqual({
-			upstreamName: "plain_tool",
-			name: "plain_tool",
-		});
+		expect(index?.resolveProviderCall("plain_tool")).toBeNull();
 	});
 
 	test("maps downgraded built-in and custom calls from response output", () => {
@@ -202,18 +215,13 @@ describe("DeepSeek tool call mapping", () => {
 	});
 
 	test("maps streaming tool calls through provider identities", () => {
-		const mapper = new DeepSeekToolCallMapper();
+		const restorer = new DeepSeekToolCallRestorer();
 		const c = ctx(tools);
-		const identity: ChatToolCallIdentity = {
-			upstreamName: "local_shell",
-			name: "local_shell",
-		};
 
 		expect(
-			mapper.map(
+			restorer.restore(
 				c,
 				call("local_shell", { command: ["pwd"] }, "call_stream_shell"),
-				identity,
 			),
 		).toEqual({
 			id: "call_stream_shell",
@@ -223,11 +231,7 @@ describe("DeepSeek tool call mapping", () => {
 			status: "in_progress",
 		});
 		expect(
-			mapper.map(c, call("ignored", {}, "call_namespaced"), {
-				upstreamName: "workspace__list-files",
-				namespace: "workspace",
-				name: "list-files",
-			}),
+			restorer.restore(c, call("workspace__list-files", {}, "call_namespaced")),
 		).toEqual({
 			type: "function_call",
 			call_id: "call_namespaced",
@@ -236,14 +240,9 @@ describe("DeepSeek tool call mapping", () => {
 			arguments: "{}",
 		});
 		expect(
-			mapper.map(
+			restorer.restore(
 				c,
-				call("ignored", { input: "select 1" }, "call_namespace_custom"),
-				{
-					upstreamName: "workspace__raw",
-					namespace: "workspace",
-					name: "raw",
-				},
+				call("workspace__raw", { input: "select 1" }, "call_namespace_custom"),
 			),
 		).toEqual({
 			type: "custom_tool_call",
