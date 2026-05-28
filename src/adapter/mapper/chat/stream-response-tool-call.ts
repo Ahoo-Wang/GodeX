@@ -23,6 +23,7 @@ export class ToolCallOutputState {
 			({
 				index,
 				id: delta.id ?? `call_${index}`,
+				type: delta.type ?? "function",
 				name: "",
 				arguments: "",
 				opened: false,
@@ -31,6 +32,7 @@ export class ToolCallOutputState {
 		// Freeze id and name once the call is opened
 		if (!current.opened) {
 			if (delta.id) current.id = delta.id;
+			if (delta.type) current.type = delta.type;
 			if (delta.name) current.name = delta.name;
 		}
 		if (delta.arguments) current.arguments += delta.arguments;
@@ -50,6 +52,7 @@ export class ToolCallOutputState {
 		return {
 			index: call.index,
 			id: call.id,
+			type: call.type,
 			name: call.name,
 			arguments: call.arguments,
 		};

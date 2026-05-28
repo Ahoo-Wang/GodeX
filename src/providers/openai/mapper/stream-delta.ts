@@ -50,14 +50,24 @@ export class OpenAIStreamDeltaMapper
 		id?: string;
 		type?: string;
 		function?: { name?: string; arguments?: string };
+		custom?: { name?: string; input?: string };
 	}[] {
 		return ((delta.tool_calls ?? []) as unknown[])
 			.filter((toolCall) => {
 				const raw = toolCall as Record<string, unknown>;
-				return raw.type === "function" || raw.function;
+				return (
+					raw.type === "function" ||
+					raw.function ||
+					raw.type === "custom" ||
+					raw.custom
+				);
 			})
 			.map((toolCall) => {
 				const raw = toolCall as Record<string, unknown>;
+				const custom =
+					typeof raw.custom === "object" && raw.custom
+						? (raw.custom as { name?: string; input?: string })
+						: undefined;
 				return {
 					index: typeof raw.index === "number" ? raw.index : undefined,
 					id: typeof raw.id === "string" ? raw.id : undefined,
@@ -65,6 +75,7 @@ export class OpenAIStreamDeltaMapper
 					function: (typeof raw.function === "object" && raw.function
 						? raw.function
 						: undefined) as { name?: string; arguments?: string } | undefined,
+					custom,
 				};
 			});
 	}

@@ -92,6 +92,7 @@ export function buildZhipuOutputItems(
 				mapZhipuToolCall(ctx, {
 					index,
 					id: tc.id || `call_${index}`,
+					type: "function",
 					name: tc.function?.name ?? "",
 					arguments: tc.function?.arguments ?? "",
 				}),

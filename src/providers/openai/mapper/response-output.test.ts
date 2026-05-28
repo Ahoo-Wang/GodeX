@@ -116,6 +116,42 @@ describe("buildResponseObject", () => {
 		}
 	});
 
+	test("maps custom tool calls to custom_tool_call items", () => {
+		const withCustomToolCall: ChatCompletion = {
+			...openAICompletion,
+			choices: [
+				choice({
+					message: {
+						role: "assistant",
+						content: null,
+						refusal: null,
+						tool_calls: [
+							{
+								type: "custom",
+								id: "tc_custom",
+								custom: {
+									name: "raw_sql",
+									input: "select 1",
+								},
+							},
+						],
+					},
+					finish_reason: "tool_calls",
+				}),
+			],
+		};
+
+		const result = mapResponse(ctx(), withCustomToolCall);
+
+		expect(result.output[0]?.type).toBe("message");
+		expect(result.output[1]).toEqual({
+			type: "custom_tool_call",
+			call_id: "tc_custom",
+			name: "raw_sql",
+			input: "select 1",
+		});
+	});
+
 	test("restores flattened namespace tool calls to FunctionCall namespace", () => {
 		const withNamespaceTool: ChatCompletion = {
 			...openAICompletion,

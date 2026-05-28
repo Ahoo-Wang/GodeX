@@ -256,4 +256,108 @@ describe("OpenAIStreamMapper", () => {
 			},
 		});
 	});
+
+	test("streams custom tool calls as custom_tool_call items", () => {
+		const testCtx = ctx();
+		mapStream(testCtx, sse());
+
+		const addedEvents = mapStream(
+			testCtx,
+			sse({
+				choices: [
+					{
+						index: 0,
+						delta: {
+							tool_calls: [
+								{
+									index: 0,
+									type: "custom",
+									id: "call_custom",
+									custom: {
+										name: "raw_sql",
+										input: "select",
+									},
+								} as never,
+							],
+						},
+						finish_reason: null,
+						logprobs: null,
+					},
+				],
+			}),
+		);
+
+		expect(addedEvents).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					type: "response.output_item.added",
+					item: {
+						type: "custom_tool_call",
+						call_id: "call_custom",
+						name: "raw_sql",
+						input: "",
+						status: "in_progress",
+					},
+				}),
+				expect.objectContaining({
+					type: "response.custom_tool_call_input.delta",
+					delta: "select",
+				}),
+			]),
+		);
+
+		mapStream(
+			testCtx,
+			sse({
+				choices: [
+					{
+						index: 0,
+						delta: {
+							tool_calls: [
+								{
+									index: 0,
+									custom: { input: " 1" },
+								} as never,
+							],
+						},
+						finish_reason: null,
+						logprobs: null,
+					},
+				],
+			}),
+		);
+
+		const doneEvents = mapStream(
+			testCtx,
+			sse({
+				choices: [
+					{
+						index: 0,
+						delta: {},
+						finish_reason: "tool_calls",
+						logprobs: null,
+					},
+				],
+			}),
+		);
+
+		expect(doneEvents).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					type: "response.custom_tool_call_input.done",
+					text: "select 1",
+				}),
+				expect.objectContaining({
+					type: "response.output_item.done",
+					item: {
+						type: "custom_tool_call",
+						call_id: "call_custom",
+						name: "raw_sql",
+						input: "select 1",
+						status: "completed",
+					},
+				}),
+			]),
+		);
+	});
 });

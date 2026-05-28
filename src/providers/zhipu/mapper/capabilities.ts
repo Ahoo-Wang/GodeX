@@ -31,7 +31,21 @@ export const ZHIPU_CAPABILITIES: ProviderCapabilities = {
 			"text.format",
 		]),
 	},
-	tools: { supported: ZHIPU_SUPPORTED_TOOL_TYPES, maxTools: ZHIPU_MAX_TOOLS },
+	tools: {
+		supported: ZHIPU_SUPPORTED_TOOL_TYPES,
+		degraded: new Map([
+			["web_search_preview", "web_search"],
+			["web_search_preview_2025_03_11", "web_search"],
+			["file_search", "retrieval"],
+			["local_shell", "function"],
+			["shell", "function"],
+			["apply_patch", "function"],
+			["custom", "function"],
+			["tool_search", "function"],
+			["namespace", "function"],
+		]),
+		maxTools: ZHIPU_MAX_TOOLS,
+	},
 	toolChoice: { supported: new Set(["auto", "none"]) },
 	responseFormats: {
 		supported: new Set(["text", "json_object"]),

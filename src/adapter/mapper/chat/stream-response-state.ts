@@ -43,6 +43,7 @@ export enum StreamResponsePhase {
 export interface FunctionCallDelta {
 	index?: number;
 	id?: string;
+	type?: "function" | "custom";
 	name?: string;
 	arguments?: string;
 }
@@ -50,6 +51,7 @@ export interface FunctionCallDelta {
 export interface ToolCallSnapshot {
 	index: number;
 	id: string;
+	type: "function" | "custom";
 	name: string;
 	arguments: string;
 }
@@ -388,7 +390,7 @@ export class StreamResponseState {
 			// If arguments accumulated before name, emit them as one delta
 			if (call.arguments) {
 				events.push({
-					type: "response.function_call_arguments.delta",
+					type: toolCallDeltaEventType(call),
 					item_id: call.id,
 					output_index: output.index,
 					delta: call.arguments,
@@ -408,7 +410,7 @@ export class StreamResponseState {
 		if (outputIdx === undefined) return events;
 		if (delta.arguments) {
 			events.push({
-				type: "response.function_call_arguments.delta",
+				type: toolCallDeltaEventType(call),
 				item_id: call.id,
 				output_index: outputIdx,
 				delta: delta.arguments,
@@ -457,7 +459,7 @@ export class StreamResponseState {
 		this.refreshSnapshot();
 
 		events.push({
-			type: "response.function_call_arguments.done",
+			type: toolCallDoneEventType(call),
 			item_id: call.id,
 			output_index: call.outputIndex,
 			text: call.arguments,
@@ -611,7 +613,7 @@ export class StreamResponseState {
 		this.output.markDone(outputIdx, finalItem);
 		return [
 			{
-				type: "response.function_call_arguments.done",
+				type: toolCallDoneEventType(call),
 				item_id: call.id,
 				output_index: outputIdx,
 				text: call.arguments,
@@ -801,6 +803,22 @@ function normalizeItemStatus(
 		return { ...item, status } as ResponseItem;
 	}
 	return item;
+}
+
+function toolCallDeltaEventType(
+	call: ToolCallSnapshot,
+): ResponseStreamEvent["type"] {
+	return call.type === "custom"
+		? "response.custom_tool_call_input.delta"
+		: "response.function_call_arguments.delta";
+}
+
+function toolCallDoneEventType(
+	call: ToolCallSnapshot,
+): ResponseStreamEvent["type"] {
+	return call.type === "custom"
+		? "response.custom_tool_call_input.done"
+		: "response.function_call_arguments.done";
 }
 
 function isTerminalPhase(phase: StreamResponsePhase): boolean {

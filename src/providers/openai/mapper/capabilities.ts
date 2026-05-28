@@ -34,6 +34,13 @@ export const OPENAI_CAPABILITIES: ProviderCapabilities = {
 			"tool_search",
 			"namespace",
 		]),
+		degraded: new Map([
+			["local_shell", "function"],
+			["shell", "function"],
+			["apply_patch", "function"],
+			["tool_search", "function"],
+			["namespace", "function"],
+		]),
 	},
 	toolChoice: {
 		supported: new Set([

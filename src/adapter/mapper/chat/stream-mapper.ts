@@ -94,10 +94,12 @@ export class ChatStreamMapper<TChunk, TDelta, TFinishReason extends string>
 }
 
 function toFunctionCallDelta(tc: ChatStreamToolCallDelta): FunctionCallDelta {
+	const isCustom = tc.type === "custom" || tc.custom !== undefined;
 	return {
 		index: tc.index,
 		id: tc.id,
-		name: tc.function?.name,
-		arguments: tc.function?.arguments,
+		type: isCustom ? "custom" : "function",
+		name: isCustom ? tc.custom?.name : tc.function?.name,
+		arguments: isCustom ? tc.custom?.input : tc.function?.arguments,
 	};
 }

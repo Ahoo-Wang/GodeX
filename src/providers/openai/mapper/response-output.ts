@@ -70,9 +70,7 @@ export function buildOutputItems(
 			content,
 		});
 		for (const tc of message.tool_calls) {
-			if (tc.type === "function") {
-				output.push(mapOpenAIResponseToolCall(ctx, tc));
-			}
+			output.push(mapOpenAIResponseToolCall(ctx, tc));
 		}
 	} else if (message?.content !== null && message?.content !== undefined) {
 		const content = buildContentParts(

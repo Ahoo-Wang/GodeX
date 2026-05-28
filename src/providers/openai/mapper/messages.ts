@@ -12,6 +12,7 @@ import type {
 	ChatCompletionUserMessageParam,
 } from "../../../protocol/openai/completions";
 import type {
+	CustomToolCall,
 	ResponseCreateRequest,
 	ResponseItem,
 } from "../../../protocol/openai/responses";
@@ -71,8 +72,9 @@ export class OpenAIMessageMapper
 const responseItemToMessage = (
 	item: ResponseItem,
 	onUnsupported?: UnsupportedMode,
-) =>
-	convertResponseItemToMessage<ChatCompletionMessageParam>(
+) => {
+	if (item.type === "custom_tool_call") return customToolCallMessage(item);
+	return convertResponseItemToMessage<ChatCompletionMessageParam>(
 		{
 			defaultMode: "skip",
 			provider: OPENAI_PROVIDER_NAME,
@@ -84,6 +86,7 @@ const responseItemToMessage = (
 		item,
 		onUnsupported,
 	);
+};
 
 function messageItemToMessage(
 	item: ResponseItem & ResponseMessageItemLike,
@@ -221,6 +224,25 @@ function toolCallMessage(
 						typeof argumentsValue === "string"
 							? argumentsValue
 							: JSON.stringify(argumentsValue),
+				},
+			},
+		],
+	};
+}
+
+function customToolCallMessage(
+	item: CustomToolCall,
+): ChatCompletionAssistantMessageParam {
+	return {
+		role: "assistant",
+		content: "",
+		tool_calls: [
+			{
+				type: "custom",
+				id: item.call_id,
+				custom: {
+					name: item.name,
+					input: item.input,
 				},
 			},
 		],

@@ -823,4 +823,35 @@ describe("buildZhipuRequest", () => {
 			"computer_use_preview",
 		]);
 	});
+
+	test("records degraded diagnostics for custom tools mapped to functions", () => {
+		const testCtx = ctx({
+			input: "Hi",
+			tools: [
+				{
+					type: "custom",
+					name: "raw_sql",
+					format: {
+						type: "grammar",
+						syntax: "lark",
+						definition: "start: /.+/",
+					},
+				},
+			],
+		});
+
+		const result = mapRequest(testCtx);
+
+		expect(result.tools?.[0]).toMatchObject({
+			type: "function",
+			function: { name: "raw_sql" },
+		});
+		expect(testCtx.diagnostics).toContainEqual(
+			expect.objectContaining({
+				code: "adapter.tool.degraded",
+				path: "tools[type=custom]",
+				action: "degraded",
+			}),
+		);
+	});
 });

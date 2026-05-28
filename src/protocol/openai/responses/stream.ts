@@ -40,6 +40,8 @@ export type ResponseStreamEventType =
 	| "response.file_search_call.failed"
 	| "response.function_call_arguments.delta"
 	| "response.function_call_arguments.done"
+	| "response.custom_tool_call_input.delta"
+	| "response.custom_tool_call_input.done"
 	| "response.code_interpreter_call.in_progress"
 	| "response.code_interpreter_call.interpreting"
 	| "response.code_interpreter_call.completed"

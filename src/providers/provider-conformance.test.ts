@@ -79,9 +79,21 @@ const jsonSchemaFormat = {
 	strict: true,
 };
 
+const customTool = {
+	type: "custom" as const,
+	name: "raw_sql",
+	description: "Run raw SQL",
+	format: {
+		type: "grammar" as const,
+		syntax: "lark" as const,
+		definition: "start: /.+/",
+	},
+};
+
 function createRequestContext(
 	provider: string,
 	model: string,
+	request: Partial<ResponseCreateRequest> = {},
 ): ResponsesContext {
 	const diagnostics: CompatibilityDiagnostic[] = [];
 	return {
@@ -89,6 +101,7 @@ function createRequestContext(
 			model,
 			input: "Return Jane as JSON.",
 			text: { format: jsonSchemaFormat },
+			...request,
 		} as ResponseCreateRequest,
 		resolved: { provider, model },
 		session: null,
@@ -238,6 +251,47 @@ describe("Provider capability conformance", () => {
 			);
 			expect(schemaMessage?.content).toEqual(
 				expect.stringContaining('"required":["name","age"]'),
+			);
+		});
+
+		test(`${name} tool degradations are declared for accepted lossy mappings`, () => {
+			for (const [from, to] of capabilities.tools.degraded ?? []) {
+				expect(capabilities.tools.supported.has(from)).toBeTrue();
+				expect(to.length).toBeGreaterThan(0);
+			}
+		});
+
+		test(`${name} custom tool capability matches request mapping`, () => {
+			const ctx = createRequestContext(provider, model, {
+				input: "Use raw_sql.",
+				text: undefined,
+				tools: [customTool],
+			});
+			const request = mapper().request.map(ctx) as {
+				tools?: Array<Record<string, unknown>>;
+			};
+			const customDegradation = capabilities.tools.degraded?.get("custom");
+
+			if (customDegradation) {
+				expect(request.tools?.length).toBeGreaterThan(0);
+				expect(ctx.diagnostics).toContainEqual(
+					expect.objectContaining({
+						path: "tools[type=custom]",
+						action: "degraded",
+					}),
+				);
+				return;
+			}
+
+			expect(capabilities.tools.supported.has("custom")).toBeTrue();
+			expect(request.tools).toContainEqual(
+				expect.objectContaining({ type: "custom" }),
+			);
+			expect(ctx.diagnostics).not.toContainEqual(
+				expect.objectContaining({
+					path: "tools[type=custom]",
+					action: "degraded",
+				}),
 			);
 		});
 	}

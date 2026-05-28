@@ -30,7 +30,9 @@ type UnsupportedToolMode = "throw" | "skip";
 interface MapToolsOptions {
 	unsupported?: UnsupportedToolMode;
 	onUnsupported?: (type: string) => void;
+	onDegraded?: (type: string, effectiveType: string) => void;
 	supportedToolTypes?: ReadonlySet<string>;
+	degradedToolTypes?: ReadonlyMap<string, string>;
 }
 
 export function mapZhipuTools(
@@ -64,6 +66,8 @@ function mapTool(
 			options,
 		);
 	}
+	const degradedTarget = options.degradedToolTypes?.get(tool.type);
+	if (degradedTarget) options.onDegraded?.(tool.type, degradedTarget);
 	switch (tool.type) {
 		case "function": {
 			return {
@@ -313,6 +317,7 @@ export class ZhipuToolMapper implements ChatToolMapper<ChatTool[]> {
 			? []
 			: mapZhipuTools(ctx.request.tools, {
 					supportedToolTypes: plan.capabilities.tools.supported,
+					degradedToolTypes: plan.capabilities.tools.degraded,
 					unsupported: "skip",
 					onUnsupported: (type) => {
 						ctx.addDiagnostic({
@@ -322,6 +327,22 @@ export class ZhipuToolMapper implements ChatToolMapper<ChatTool[]> {
 							action: "ignored",
 							message: `Tool type '${type}' is not supported, skipping.`,
 							metadata: { toolType: type },
+						});
+					},
+					onDegraded: (type, effectiveType) => {
+						const message = `Zhipu maps Responses tool '${type}' to ${effectiveType}; provider-native tool semantics may not be enforced.`;
+						ctx.addDiagnostic({
+							code: "adapter.tool.degraded",
+							severity: "warn",
+							path: `tools[type=${type}]`,
+							action: "degraded",
+							message,
+							metadata: { toolType: type, effectiveToolType: effectiveType },
+						});
+						plan.tools.set(type, {
+							action: "degraded",
+							reason: message,
+							effectiveValue: { type: effectiveType },
 						});
 					},
 				});

@@ -113,6 +113,37 @@ describe("buildOpenAIMessages", () => {
 		});
 	});
 
+	test("maps custom tool call to native custom chat tool call", () => {
+		const messages = buildOpenAIMessages(
+			req({
+				input: [
+					{
+						type: "custom_tool_call",
+						call_id: "call_custom",
+						name: "raw_sql",
+						input: "select 1",
+					},
+				],
+			}),
+			null,
+		);
+
+		expect(messages[0]).toEqual({
+			role: "assistant",
+			content: "",
+			tool_calls: [
+				{
+					type: "custom",
+					id: "call_custom",
+					custom: {
+						name: "raw_sql",
+						input: "select 1",
+					},
+				},
+			],
+		});
+	});
+
 	test("maps multimodal user content (input_text + input_image) to content parts", () => {
 		const messages = buildOpenAIMessages(
 			req({

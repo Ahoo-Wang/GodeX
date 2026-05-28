@@ -88,6 +88,10 @@ export interface ChatStreamToolCallDelta {
 		name?: string;
 		arguments?: string;
 	};
+	custom?: {
+		name?: string;
+		input?: string;
+	};
 }
 
 export interface ChatStreamDeltaMapper<TChunk, TDelta, TFinishReason> {

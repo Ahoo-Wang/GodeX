@@ -6,6 +6,7 @@ export interface ParameterCapabilities {
 
 export interface ToolCapabilities {
 	supported: ReadonlySet<string>;
+	degraded?: ReadonlyMap<string, string>;
 	maxTools?: number;
 }
 

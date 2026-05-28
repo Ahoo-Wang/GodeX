@@ -5,7 +5,9 @@ import type {
 } from "../../../adapter/mapper/chat/contract";
 import type { ToolCallSnapshot } from "../../../adapter/mapper/chat/stream-response-state";
 import type { ResponsesContext } from "../../../context/responses-context";
+import type { ChatCompletionMessageToolCall } from "../../../protocol/openai/completions";
 import type {
+	CustomToolCall,
 	FunctionCall,
 	ResponseItem,
 } from "../../../protocol/openai/responses";
@@ -14,7 +16,10 @@ import { findFlattenedNamespaceTool } from "../../shared/tool-name-mapping";
 export function mapOpenAIToolCall(
 	ctx: ResponsesContext,
 	toolCall: ToolCallSnapshot,
-): FunctionCall {
+): ResponseItem {
+	if (toolCall.type === "custom") {
+		return customToolCall(toolCall.id, toolCall.name, toolCall.arguments);
+	}
 	return functionCallFromName(
 		ctx,
 		toolCall.id,
@@ -25,11 +30,15 @@ export function mapOpenAIToolCall(
 
 export function mapOpenAIResponseToolCall(
 	ctx: ResponsesContext,
-	toolCall: {
-		id: string;
-		function?: { name: string; arguments: string };
-	},
-): FunctionCall {
+	toolCall: ChatCompletionMessageToolCall,
+): ResponseItem {
+	if (toolCall.type === "custom") {
+		return customToolCall(
+			toolCall.id,
+			toolCall.custom.name,
+			toolCall.custom.input,
+		);
+	}
 	return functionCallFromName(
 		ctx,
 		toolCall.id,
@@ -57,6 +66,19 @@ function functionCallFromName(
 	};
 }
 
+function customToolCall(
+	callId: string,
+	name: string,
+	input: string,
+): CustomToolCall {
+	return {
+		type: "custom_tool_call",
+		call_id: callId,
+		name,
+		input,
+	};
+}
+
 export class OpenAIToolCallIdentityResolver
 	implements ChatToolCallIdentityResolver
 {
@@ -79,6 +101,9 @@ export class OpenAIToolCallMapper implements ChatToolCallMapper {
 		call: ToolCallSnapshot,
 		identity: ChatToolCallIdentity,
 	): ResponseItem {
+		if (call.type === "custom") {
+			return customToolCall(call.id, identity.name, call.arguments);
+		}
 		return {
 			type: "function_call",
 			call_id: call.id,

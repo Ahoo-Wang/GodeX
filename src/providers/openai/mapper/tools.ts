@@ -28,8 +28,9 @@ export interface OpenAIMappedTools {
 
 interface MapOpenAIToolsOptions {
 	supportedToolTypes?: ReadonlySet<string>;
+	degradedToolTypes?: ReadonlyMap<string, string>;
 	onUnsupported?: (type: string) => void;
-	onDegraded?: (type: string) => void;
+	onDegraded?: (type: string, effectiveType?: string) => void;
 }
 
 const OPENAI_MAPPED_TOOLS_ATTRIBUTE = "openai.mapped-tools";
@@ -46,6 +47,7 @@ export function getOpenAIMappedTools(
 			? { tools: [], webSearchOptions: undefined }
 			: mapOpenAITools(ctx.request.tools, {
 					supportedToolTypes: plan.capabilities.tools.supported,
+					degradedToolTypes: plan.capabilities.tools.degraded,
 					onUnsupported: (type) => {
 						ctx.addDiagnostic({
 							code: "adapter.tool.unsupported",
@@ -56,14 +58,21 @@ export function getOpenAIMappedTools(
 							metadata: { toolType: type },
 						});
 					},
-					onDegraded: (type) => {
+					onDegraded: (type, effectiveType) => {
+						const effective = effectiveType ?? "web_search_options";
+						const message = `Responses tool '${type}' was mapped to OpenAI Chat Completions ${effective}.`;
 						ctx.addDiagnostic({
 							code: "adapter.tool.degraded",
 							severity: "warn",
 							path: `tools[type=${type}]`,
 							action: "degraded",
-							message: `Responses tool '${type}' was mapped to OpenAI Chat Completions web_search_options.`,
+							message,
 							metadata: { toolType: type },
+						});
+						plan.tools.set(type, {
+							action: "degraded",
+							reason: message,
+							effectiveValue: { type: effective },
 						});
 					},
 				});
@@ -88,6 +97,8 @@ export function mapOpenAITools(
 			options.onUnsupported?.(type);
 			continue;
 		}
+		const degradedTarget = options.degradedToolTypes?.get(type);
+		if (degradedTarget) options.onDegraded?.(type, degradedTarget);
 		switch (type) {
 			case "function": {
 				mappedTools.push({

@@ -42,6 +42,7 @@ function call(
 	return {
 		index: 0,
 		id,
+		type: "function",
 		name,
 		arguments: typeof args === "string" ? args : JSON.stringify(args),
 	};

@@ -67,6 +67,7 @@ export function buildDeepSeekOutputItems(
 				mapDeepSeekToolCall(ctx, {
 					index,
 					id: tc.id || `call_${index}`,
+					type: "function",
 					name: tc.function.name,
 					arguments: tc.function.arguments,
 				}),
