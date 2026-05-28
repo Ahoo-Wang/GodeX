@@ -21,6 +21,7 @@ import {
 	degradedCustomToolDescription,
 	degradedCustomToolParameters,
 } from "../../shared/custom-tool-degradation";
+import { flattenToolName } from "../../shared/tool-identity";
 import { toZhipuFunctionName } from "../function-names";
 import type {
 	ChatTool,
@@ -157,9 +158,13 @@ function mapTool(
 		case "namespace":
 			return tool.tools.map((nestedTool) => {
 				const fallbackDescription = `${tool.description} (${nestedTool.name})`;
+				const name = flattenToolName({
+					namespace: tool.name,
+					name: nestedTool.name,
+				});
 				if (nestedTool.type === "function") {
 					return codexFunctionTool(
-						`${tool.name}__${nestedTool.name}`,
+						name,
 						nestedTool.description ?? fallbackDescription,
 						nestedTool.parameters && isRecord(nestedTool.parameters)
 							? nestedTool.parameters
@@ -172,7 +177,7 @@ function mapTool(
 					);
 				}
 				return codexFunctionTool(
-					`${tool.name}__${nestedTool.name}`,
+					name,
 					degradedCustomToolDescription(nestedTool, fallbackDescription),
 					degradedCustomToolParameters(nestedTool),
 				);

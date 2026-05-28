@@ -25,6 +25,7 @@ import {
 	degradedCustomToolDescription,
 	degradedCustomToolParameters,
 } from "../../shared/custom-tool-degradation";
+import { flattenToolName } from "../../shared/tool-identity";
 import { OPENAI_PROVIDER_NAME } from "../provider";
 
 export interface OpenAIMappedTools {
@@ -179,11 +180,15 @@ export function mapOpenAITools(
 			}
 			case "namespace": {
 				for (const nestedTool of tool.tools) {
+					const name = flattenToolName({
+						namespace: tool.name,
+						name: nestedTool.name,
+					});
 					if (nestedTool.type === "function") {
 						mappedTools.push({
 							type: "function",
 							function: {
-								name: `${tool.name}__${nestedTool.name}`,
+								name,
 								description:
 									nestedTool.description ??
 									`${tool.description} (${nestedTool.name})`,
@@ -203,7 +208,7 @@ export function mapOpenAITools(
 						mappedTools.push({
 							type: "function",
 							function: {
-								name: `${tool.name}__${nestedTool.name}`,
+								name,
 								description: degradedCustomToolDescription(
 									nestedTool,
 									fallbackDescription,
@@ -408,7 +413,12 @@ function mapOpenAIAllowedToolChoiceTool(
 			}
 			mappedTools.push({
 				type: "function",
-				function: { name: `${tool.name}__${nestedTool.name}` },
+				function: {
+					name: flattenToolName({
+						namespace: tool.name,
+						name: nestedTool.name,
+					}),
+				},
 			});
 		}
 		return mappedTools.length > 0 ? mappedTools : null;

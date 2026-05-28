@@ -9,16 +9,10 @@ import type {
 	ShellCall,
 	ToolSearchCall,
 } from "../../protocol/openai/responses";
-
-type RequestedTool =
-	| { type: "function"; name: string }
-	| { type: "local_shell" }
-	| { type: "shell" }
-	| { type: "apply_patch" }
-	| { type: "tool_search"; execution?: "server" | "client" }
-	| { type: "custom"; name: string }
-	| { type: "namespace_function"; namespace: string; name: string }
-	| { type: "namespace_custom"; namespace: string; name: string };
+import {
+	createToolIdentityIndex,
+	findProviderToolIdentity,
+} from "./tool-identity";
 
 export interface ToolCallRestorationOptions {
 	tools: ResponseTool[] | undefined;
@@ -31,10 +25,9 @@ export interface ToolCallRestorationOptions {
 export function restoreToolCallFromFunctionName(
 	options: ToolCallRestorationOptions,
 ): ResponseItem | null {
-	const requestedTool = findRequestedTool(
-		options.tools,
+	const requestedTool = findProviderToolIdentity(
+		createToolIdentityIndex(options.tools, options.encodeName),
 		options.providerName,
-		options.encodeName,
 	);
 	if (!requestedTool) return null;
 
@@ -89,73 +82,6 @@ export function createFunctionCall(
 		name,
 		arguments: args,
 	};
-}
-
-function findRequestedTool(
-	tools: ResponseTool[] | undefined,
-	providerName: string,
-	encodeName: (name: string) => string,
-): RequestedTool | null {
-	if (!tools) return null;
-	const namespaceMatch = findRequestedNamespaceTool(
-		tools,
-		providerName,
-		encodeName,
-	);
-	if (namespaceMatch) return namespaceMatch;
-
-	for (const tool of tools) {
-		switch (tool.type) {
-			case "function":
-				if (providerName === encodeName(tool.name)) {
-					return { type: "function", name: tool.name };
-				}
-				break;
-			case "local_shell":
-			case "shell":
-			case "apply_patch":
-				if (providerName === encodeName(tool.type)) return { type: tool.type };
-				break;
-			case "tool_search":
-				if (providerName === encodeName(tool.type)) {
-					return { type: "tool_search", execution: tool.execution };
-				}
-				break;
-			case "custom":
-				if (providerName === encodeName(tool.name)) {
-					return { type: "custom", name: tool.name };
-				}
-				break;
-		}
-	}
-
-	return null;
-}
-
-function findRequestedNamespaceTool(
-	tools: ResponseTool[],
-	providerName: string,
-	encodeName: (name: string) => string,
-): RequestedTool | null {
-	for (const tool of tools) {
-		if (tool.type !== "namespace") continue;
-		for (const nestedTool of tool.tools) {
-			const flattenedName = `${tool.name}__${nestedTool.name}`;
-			if (providerName !== encodeName(flattenedName)) continue;
-			return nestedTool.type === "custom"
-				? {
-						type: "namespace_custom",
-						namespace: tool.name,
-						name: nestedTool.name,
-					}
-				: {
-						type: "namespace_function",
-						namespace: tool.name,
-						name: nestedTool.name,
-					};
-		}
-	}
-	return null;
 }
 
 function localShellCall(callId: string, args: string): LocalShellCall | null {

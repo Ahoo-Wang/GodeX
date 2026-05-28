@@ -10,7 +10,7 @@ import {
 	createFunctionCall,
 	restoreToolCallFromFunctionName,
 } from "../../shared/tool-call-restoration";
-import { findFlattenedNamespaceTool } from "../../shared/tool-name-mapping";
+import { findFlattenedNamespaceTool } from "../../shared/tool-identity";
 import { toDeepSeekFunctionName } from "../function-names";
 
 export class DeepSeekToolCallIdentityResolver

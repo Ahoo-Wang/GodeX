@@ -19,6 +19,7 @@ import {
 	degradedCustomToolDescription,
 	degradedCustomToolParameters,
 } from "../../shared/custom-tool-degradation";
+import { flattenToolName } from "../../shared/tool-identity";
 import { toDeepSeekFunctionName } from "../function-names";
 import type { DeepSeekTool, DeepSeekToolChoice } from "../protocol/completions";
 import { DEEPSEEK_PROVIDER_NAME } from "../provider";
@@ -105,7 +106,10 @@ function mapTool(
 			);
 		case "namespace":
 			return tool.tools.map((nestedTool) => {
-				const name = `${tool.name}__${nestedTool.name}`;
+				const name = flattenToolName({
+					namespace: tool.name,
+					name: nestedTool.name,
+				});
 				const description =
 					nestedTool.description ?? `${tool.description} (${nestedTool.name})`;
 				if (nestedTool.type === "function") {
