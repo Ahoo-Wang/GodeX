@@ -385,7 +385,7 @@ describe("buildZhipuRequest", () => {
 		expect(schemaMessage?.role).toBe("user");
 		expect(schemaMessage?.content).toEqual(
 			expect.stringContaining(
-				"Return only a JSON object that conforms to the JSON Schema below.",
+				"Return only JSON that conforms to the JSON Schema below.",
 			),
 		);
 		expect(schemaMessage?.content).toEqual(

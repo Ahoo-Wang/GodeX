@@ -493,7 +493,7 @@ describe("E2E: sync response", () => {
 			{
 				role: "user",
 				content: expect.stringContaining(
-					"Return only a JSON object that conforms to the JSON Schema below.",
+					"Return only JSON that conforms to the JSON Schema below.",
 				),
 			},
 		]);

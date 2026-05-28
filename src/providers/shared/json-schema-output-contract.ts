@@ -9,10 +9,10 @@ export function jsonSchemaOutputContractMessage(
 		lines.push(`Schema description: ${format.description}`);
 	if (lines.length > 0) lines.push("");
 	lines.push(
-		"Return only a JSON object that conforms to the JSON Schema below.",
+		"Return only JSON that conforms to the JSON Schema below.",
 		"",
 		"Rules:",
-		"- Output exactly one JSON object and nothing else.",
+		"- Output exactly one JSON value and nothing else.",
 		"- Do not include markdown, code fences, explanations, or extra text.",
 		"- Include all required properties.",
 		"- Respect property types, enum/const values, numeric/string constraints, and additionalProperties.",
