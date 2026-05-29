@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { validateProviderPackageShape } from "../bridge/provider-spec";
+import { DEFAULT_TOOL_NAME_CODEC } from "../bridge/tools";
 import { ProviderError } from "../error";
 import { BUILTIN_PROVIDER_SPECS } from "./builtin";
 import { DEEPSEEK_PROVIDER_SPEC } from "./deepseek/spec";
@@ -59,6 +60,8 @@ describe("ProviderSpec runtime conformance", () => {
 	}
 
 	test("Zhipu and DeepSeek share the same chat-completions function name codec constraints", () => {
+		expect(ZHIPU_PROVIDER_SPEC.toolName).toBe(DEFAULT_TOOL_NAME_CODEC);
+		expect(ZHIPU_PROVIDER_SPEC.toolName).toBe(DEEPSEEK_PROVIDER_SPEC.toolName);
 		for (const spec of [ZHIPU_PROVIDER_SPEC, DEEPSEEK_PROVIDER_SPEC]) {
 			expect(spec.toolName.toProviderName("abc-XYZ_09")).toBe("abc-XYZ_09");
 			expect(spec.toolName.toProviderName("")).toBe("tool");

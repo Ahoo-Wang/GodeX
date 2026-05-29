@@ -1,5 +1,5 @@
 import type { ProviderSpec } from "../../bridge/provider-spec";
-import { defaultToolNameCodec } from "../../bridge/tools";
+import { DEFAULT_TOOL_NAME_CODEC } from "../../bridge/tools";
 import {
 	mapZhipuUsage,
 	ZHIPU_SPEC_CAPABILITIES,
@@ -33,10 +33,7 @@ export const ZHIPU_PROVIDER_SPEC: ProviderSpec<
 		defaultBaseURL: DEFAULT_ZHIPU_BASE_URL,
 	},
 	auth: { scheme: "bearer" },
-	toolName: {
-		toProviderName: defaultToolNameCodec,
-		fromProviderName: (name) => name,
-	},
+	toolName: DEFAULT_TOOL_NAME_CODEC,
 	response: {
 		firstChoice: zhipuFirstChoice,
 		finishReason: zhipuFinishReason,

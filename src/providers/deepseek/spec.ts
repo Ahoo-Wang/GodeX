@@ -1,5 +1,5 @@
 import type { ProviderSpec } from "../../bridge/provider-spec";
-import { defaultToolNameCodec } from "../../bridge/tools";
+import { DEFAULT_TOOL_NAME_CODEC } from "../../bridge/tools";
 import {
 	DEEPSEEK_SPEC_CAPABILITIES,
 	deepSeekFinishReason,
@@ -31,10 +31,7 @@ export const DEEPSEEK_PROVIDER_SPEC: ProviderSpec<
 		defaultBaseURL: DEFAULT_DEEPSEEK_BASE_URL,
 	},
 	auth: { scheme: "bearer" },
-	toolName: {
-		toProviderName: defaultToolNameCodec,
-		fromProviderName: (name) => name,
-	},
+	toolName: DEFAULT_TOOL_NAME_CODEC,
 	response: {
 		firstChoice: deepSeekFirstChoice,
 		finishReason: deepSeekFinishReason,

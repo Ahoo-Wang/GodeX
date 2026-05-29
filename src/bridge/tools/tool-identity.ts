@@ -1,4 +1,5 @@
 import { BRIDGE_REQUEST_UNSUPPORTED_PARAMETER, BridgeError } from "../../error";
+import type { ToolNameCodec } from "../provider-spec";
 
 export interface ToolIdentity {
 	readonly requestedName: string;
@@ -54,6 +55,11 @@ export function defaultToolNameCodec(name: string): string {
 	const sanitized = name.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
 	return sanitized || "tool";
 }
+
+export const DEFAULT_TOOL_NAME_CODEC: ToolNameCodec = {
+	toProviderName: defaultToolNameCodec,
+	fromProviderName: (name) => name,
+};
 
 function sameIdentity(left: ToolIdentity, right: ToolIdentity): boolean {
 	return (
