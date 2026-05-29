@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import { validateProviderPackageShape } from "../bridge/provider-spec";
+import {
+	BEARER_AUTH,
+	CHAT_COMPLETIONS_PROTOCOL,
+	validateProviderPackageShape,
+} from "../bridge/provider-spec";
 import { DEFAULT_TOOL_NAME_CODEC } from "../bridge/tools";
 import { ProviderError } from "../error";
 import { BUILTIN_PROVIDER_SPECS } from "./builtin";
@@ -40,13 +44,13 @@ describe("ProviderSpec runtime conformance", () => {
 
 	for (const spec of BUILTIN_PROVIDER_SPECS) {
 		test(`${spec.name} spec exposes protocol, capabilities, accessors, and toolName`, () => {
-			expect(spec.protocol).toBe("chat_completions");
+			expect(spec.protocol).toBe(CHAT_COMPLETIONS_PROTOCOL);
 			expect(spec.capabilities.parameters.supported.size).toBeGreaterThan(0);
 			expect(spec.capabilities.responseFormats.supported.size).toBeGreaterThan(
 				0,
 			);
 			expect(spec.endpoint.defaultBaseURL).toStartWith("https://");
-			expect(spec.auth.scheme).toBe("bearer");
+			expect(spec.auth).toBe(BEARER_AUTH);
 			expect(spec.toolName.toProviderName("local.shell")).toBeString();
 			expect(spec.toolName.fromProviderName("provider_name")).toBe(
 				"provider_name",

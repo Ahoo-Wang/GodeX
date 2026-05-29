@@ -3,7 +3,7 @@ import type { ProviderStreamDelta } from "../../bridge/stream/stream-delta";
 import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
 import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
 import type { ResponseUsage } from "../../protocol/openai/responses";
-import { assertProviderChatRequest } from "../shared";
+import { assertProviderChatRequest, mapCommonChatStreamDelta } from "../shared";
 import type {
 	ChatCompletionChunk,
 	ChatCompletionResponse,
@@ -169,25 +169,7 @@ function mapZhipuChoiceDelta(
 	if (text.length > 0) {
 		deltas.push({ text });
 	}
-	if (delta.reasoning_content) {
-		deltas.push({ reasoning: delta.reasoning_content });
-	}
-	for (const toolCall of delta.tool_calls ?? []) {
-		const providerToolCall = {
-			...(toolCall.index !== undefined ? { index: toolCall.index } : {}),
-			...(toolCall.id !== undefined ? { id: toolCall.id } : {}),
-			...(toolCall.type !== undefined ? { type: toolCall.type } : {}),
-			...(toolCall.function?.name !== undefined
-				? { name: toolCall.function.name }
-				: {}),
-			...(toolCall.function?.arguments !== undefined
-				? { arguments: toolCall.function.arguments }
-				: {}),
-		};
-		if (Object.keys(providerToolCall).length > 0) {
-			deltas.push({ toolCall: providerToolCall });
-		}
-	}
+	deltas.push(...mapCommonChatStreamDelta(delta));
 	return deltas;
 }
 

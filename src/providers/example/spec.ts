@@ -1,4 +1,8 @@
-import type { ProviderSpec } from "../../bridge/provider-spec";
+import {
+	BEARER_AUTH,
+	CHAT_COMPLETIONS_PROTOCOL,
+	type ProviderSpec,
+} from "../../bridge/provider-spec";
 import type { ProviderStreamDelta } from "../../bridge/stream/stream-delta";
 import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
 import type {
@@ -79,7 +83,7 @@ export const EXAMPLE_PROVIDER_SPEC: ProviderSpec<
 	ExampleChatChunk
 > = {
 	name: "example",
-	protocol: "chat_completions",
+	protocol: CHAT_COMPLETIONS_PROTOCOL,
 	capabilities: {
 		parameters: {
 			supported: new Set([
@@ -105,7 +109,7 @@ export const EXAMPLE_PROVIDER_SPEC: ProviderSpec<
 	endpoint: {
 		defaultBaseURL: "https://example.invalid",
 	},
-	auth: { scheme: "bearer" },
+	auth: BEARER_AUTH,
 	toolName: {
 		toProviderName: (name) => name,
 		fromProviderName: (name) => name,

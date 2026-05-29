@@ -1,5 +1,7 @@
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
 import {
+	BEARER_AUTH,
+	CHAT_COMPLETIONS_PROTOCOL,
 	createProviderEdge,
 	type ProviderEdge,
 	type ProviderRuntimeConfig,
@@ -78,7 +80,7 @@ function testProviderSpec(
 ): ProviderSpec<unknown, unknown, unknown> {
 	return {
 		name,
-		protocol: "chat_completions",
+		protocol: CHAT_COMPLETIONS_PROTOCOL,
 		capabilities: {
 			parameters: {
 				supported: new Set([
@@ -104,7 +106,7 @@ function testProviderSpec(
 		endpoint: {
 			defaultBaseURL: "https://example.invalid",
 		},
-		auth: { scheme: "bearer" },
+		auth: BEARER_AUTH,
 		toolName: {
 			toProviderName: (toolName) => toolName,
 			fromProviderName: (toolName) => toolName,

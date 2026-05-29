@@ -1,4 +1,8 @@
-import type { ProviderSpec } from "../../bridge/provider-spec";
+import {
+	BEARER_AUTH,
+	CHAT_COMPLETIONS_PROTOCOL,
+	type ProviderSpec,
+} from "../../bridge/provider-spec";
 import { DEFAULT_TOOL_NAME_CODEC } from "../../bridge/tools";
 import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
 import {
@@ -30,12 +34,12 @@ export const ZHIPU_PROVIDER_SPEC: ProviderSpec<
 	ChatCompletionCreateRequest
 > = {
 	name: ZHIPU_PROVIDER_NAME,
-	protocol: "chat_completions",
+	protocol: CHAT_COMPLETIONS_PROTOCOL,
 	capabilities: ZHIPU_SPEC_CAPABILITIES,
 	endpoint: {
 		defaultBaseURL: DEFAULT_ZHIPU_BASE_URL,
 	},
-	auth: { scheme: "bearer" },
+	auth: BEARER_AUTH,
 	toolName: DEFAULT_TOOL_NAME_CODEC,
 	response: {
 		firstChoice: zhipuFirstChoice,
