@@ -9,8 +9,8 @@ import {
 } from "../../providers/zhipu";
 
 export type InitProviderId =
-	| typeof ZHIPU_PROVIDER_NAME
-	| typeof DEEPSEEK_PROVIDER_NAME;
+	| typeof DEEPSEEK_PROVIDER_NAME
+	| typeof ZHIPU_PROVIDER_NAME;
 
 export interface InitProviderBaseUrlChoice {
 	value: string;
@@ -28,6 +28,19 @@ export interface InitProviderDefinition {
 
 export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
 	{
+		id: DEEPSEEK_PROVIDER_NAME,
+		label: "DeepSeek",
+		apiKeyPlaceholder: "${DEEPSEEK_API_KEY}",
+		baseUrlChoices: [
+			{
+				value: DEFAULT_DEEPSEEK_BASE_URL,
+				label: "Standard",
+				hint: DEFAULT_DEEPSEEK_BASE_URL,
+			},
+		],
+		defaultBaseUrl: DEFAULT_DEEPSEEK_BASE_URL,
+	},
+	{
 		id: ZHIPU_PROVIDER_NAME,
 		label: "Zhipu (智谱)",
 		apiKeyPlaceholder: "${ZHIPU_API_KEY}",
@@ -44,19 +57,6 @@ export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
 			},
 		],
 		defaultBaseUrl: ZHIPU_CODING_PLAN_BASE_URL,
-	},
-	{
-		id: DEEPSEEK_PROVIDER_NAME,
-		label: "DeepSeek",
-		apiKeyPlaceholder: "${DEEPSEEK_API_KEY}",
-		baseUrlChoices: [
-			{
-				value: DEFAULT_DEEPSEEK_BASE_URL,
-				label: "Standard",
-				hint: DEFAULT_DEEPSEEK_BASE_URL,
-			},
-		],
-		defaultBaseUrl: DEFAULT_DEEPSEEK_BASE_URL,
 	},
 ];
 

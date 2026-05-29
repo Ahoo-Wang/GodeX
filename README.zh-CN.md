@@ -4,415 +4,346 @@
 
 **让每个模型都成为 Codex 引擎。**
 
-OpenAI 兼容的 Responses API 网关 — 将 `/v1/responses` 请求转换为上游 Chat Completions API 调用，连接 Codex、CLI、IDE 和自动化开发工具与不同模型供应商。
+面向编码模型的 OpenAI 兼容 Responses API 网关，用一个本地服务连接 Codex、SDK、CLI、IDE 与 DeepSeek、智谱等 Chat Completions 上游。
 
 [![npm version](https://img.shields.io/npm/v/@ahoo-wang/godex?logo=npm)](https://www.npmjs.com/package/@ahoo-wang/godex)
 [![codecov](https://codecov.io/gh/Ahoo-Wang/GodeX/graph/badge.svg?token=dJQrmUAiXu)](https://codecov.io/gh/Ahoo-Wang/GodeX)
 [![Bun](https://img.shields.io/badge/runtime-bun-f9f1e0?logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/lang-typescript-3178c6?logo=typescript)](https://www.typescriptlang.org/)
 
-[快速入门](https://godex.ahoo.me/zh/01-getting-started/overview) · [架构](https://godex.ahoo.me/zh/02-architecture/overview) · [配置](https://godex.ahoo.me/zh/07-configuration/config-schema) · [文档](https://godex.ahoo.me/zh/)
-
 </div>
 
+GodeX 让使用 OpenAI Responses API 的客户端，可以通过一个本地网关调用 DeepSeek、智谱等只提供 Chat Completions API 的模型提供商。
 
 ## 功能特性
 
-| | 特性 | 说明 |
-|---|------|------|
-| 🔄 | **协议转换** | 弥补 OpenAI Responses API 与提供商 Chat Completions API 之间的差距 |
-| 🔌 | **提供商无关** | 基于插件的适配器系统 — 添加提供商只需实现少量接口 |
-| ⚡ | **流式优先** | 4 阶段 `TransformStream` 管道，低延迟 SSE 传输 |
-| 💾 | **会话历史** | 内置 `previous_response_id` 链式解析（SQLite / 内存） |
-| 🛡️ | **结构化错误** | 域特定错误层次结构，带结构化编码和诊断上下文 |
-| 🔧 | **内置工具** | `local_shell`、`shell`、`apply_patch` — Codex 兼容函数工具 |
-| 📦 | **独立二进制** | 零运行时依赖，通过 GitHub Actions 构建 6 个平台 |
+- OpenAI 兼容的 `POST /v1/responses`，支持同步和流式响应。
+- `GET /v1/models` 暴露模型别名，让客户端使用稳定模型名，GodeX 负责路由到 provider/model。
+- 内置 DeepSeek、智谱桥接 provider。
+- 基于 provider capability 规划请求参数、工具、`tool_choice`、结构化输出、推理和流式 usage。
+- 支持 `previous_response_id` 会话链，可使用内存或 SQLite。
+- Trace 记录 provider request、provider response、stream event、usage 和 error。
+- 基于 Bun 运行时、TypeScript 源码，并通过 release 产出多平台原生二进制。
 
-## 快速开始
-
-```bash
-# 安装 — 运行时无需 Bun
-npm install -g @ahoo-wang/godex
-
-# 交互式创建配置
-godex init
-
-# 启动网关
-godex serve
-```
-
-将 Codex CLI 指向你的 GodeX 实例：
-
-```bash
-export OPENAI_BASE_URL=http://localhost:5678/v1
-export OPENAI_API_KEY=any-value          # GodeX 不验证此值，但必须设置
-codex
-```
-
-或使用 OpenAI SDK：
-
-```ts
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "http://localhost:5678/v1",
-  apiKey: "any-value",
-});
-
-const response = await client.responses.create({
-  model: "gpt-4o",          // 通过 models.aliases 解析为 zhipu/glm-4.7
-  input: "Hello!",
-});
-```
-
-## 工作原理
-
-```
-Codex / CLI / IDE
-      │
-      ▼  POST /v1/responses
-┌─────────────────────────────────────────┐
-│              GodeX 网关                  │
-│                                         │
-│  Bun.serve → handleResponses()          │
-│       → ResponsesContext.create()       │
-│           → ModelResolver.resolve()     │
-│           → Registrar.resolve()         │
-│       → DefaultAdapter.stream/request() │
-│           → ProviderMapper.map()        │
-│           → ChatClient.streamChat()     │
-│           → 4 阶段 TransformStream      │
-│       → Response (JSON 或 SSE)          │
-└──────────────┬──────────────────────────┘
-               │  提供商适配器
-               ▼
-┌─────────────────────────────────────────┐
-│       Chat Completions 兼容 API          │
-│       (智谱、OpenAI 或自定义)             │
-└─────────────────────────────────────────┘
-```
-
-## 架构
+## 架构图
 
 ```mermaid
-C4Context
-  title GodeX — 系统上下文
+flowchart TB
+  Client["客户端<br>Codex, SDK, CLI, IDE"] --> Routes["Bun 路由<br>/health<br>/v1/models<br>/v1/responses"]
+  Routes --> Ctx["ResponsesContext<br>request id, response id, resolved model,<br>provider, session, diagnostics"]
 
-  Person(user, "开发者 / Codex CLI", "通过 OpenAI 兼容端点<br/>发送 Responses API 请求")
-  System(godex_svr, "GodeX 服务器", "转换 Responses API → Chat Completions API<br/>基于 Bun.serve，端口可配置")
-  SystemDb(sessions, "会话存储", "存储响应历史，用于<br/>previous_response_id 链式解析<br/>SQLite（持久化）或内存")
-  System_Ext(zhipu, "智谱 (Zhipu)", "Chat Completions API 提供商")
-  System_Ext(openai, "OpenAI", "Chat Completions API 提供商")
-  System_Ext(other, "自定义提供商", "任何 Chat Completions<br/>兼容后端")
+  Ctx --> Resolver["ModelResolver<br>别名与 provider/model 解析"]
+  Ctx --> Session["ResponseSessionStore<br>内存或 SQLite<br>previous_response_id 链"]
+  Ctx --> Registrar["Registrar<br>内置 ProviderEdge 工厂"]
+  Ctx --> Runtime["ResponsesBridgeRuntime"]
 
-  Rel(user, godex_svr, "POST /v1/responses, GET /v1/models, GET /health", "HTTP/SSE")
-  Rel(godex_svr, sessions, "保存 / 解析链")
-  Rel(godex_svr, zhipu, "POST /chat/completions", "HTTPS")
-  Rel(godex_svr, openai, "POST /chat/completions", "HTTPS")
-  Rel(godex_svr, other, "POST /chat/completions", "HTTPS")
+  Runtime --> Sync["SyncRequestPipeline"]
+  Runtime --> Stream["StreamPipeline"]
+  Sync --> Exchange["ProviderExchange"]
+  Stream --> Exchange
+
+  Exchange --> Builder["bridge/request<br>buildChatCompletionRequest"]
+  Builder --> Compat["bridge/compatibility<br>参数与 response-format 决策"]
+  Builder --> Tools["bridge/tools<br>工具声明, tool_choice,<br>身份恢复"]
+  Builder --> Output["bridge/output<br>结构化输出契约"]
+
+  Exchange --> Edge["ProviderEdge<br>ProviderSpec + hooks"]
+  Edge --> ClientHttp["ChatProviderClient<br>Fetcher HTTP 边界"]
+  ClientHttp --> Upstream["Chat Completions 上游<br>DeepSeek, 智谱, 自定义"]
+
+  Upstream --> SyncRecon["bridge/response<br>reconstructResponseObject"]
+  Upstream --> StreamRecon["bridge/stream<br>ResponseStreamStateMachine"]
+  SyncRecon --> ResponseJson["ResponseObject JSON"]
+  StreamRecon --> StreamTransforms["stream transforms<br>validate, trace, log, persist, diagnostics"]
+  StreamTransforms --> Sse["Responses SSE"]
+
+  Ctx --> Trace["trace recorder<br>request, usage, event, error rows"]
+  Ctx --> Logger["structured logger"]
 ```
 
-## 组件模型
-
-```mermaid
-classDiagram
-  direction TB
-
-  class ApplicationContext {
-    +config: GodeXConfig
-    +logger: Logger
-    +resolver: ModelResolver
-    +registrar: Registrar
-    +adapter: Adapter
-    +sessionStore: ResponseSessionStore
-  }
-
-  class ResponsesContext {
-    +app: ApplicationContext
-    +request: ResponseCreateRequest
-    +session: ResponseSessionSnapshot
-    +resolved: ResolvedModel
-    +provider: Provider
-    +responseId: string
-    +requestId: string
-    +attributes: Map
-    +create(app, body)$ Promise~ResponsesContext~
-  }
-
-  class ModelResolver {
-    -defaultProvider: string
-    -providerConfigs: Record
-    +resolve(model) ResolvedModel
-  }
-
-  class Registrar {
-    -factories: Map~string, ProviderFactory~
-    +registerFactory(name, factory)
-    +build(providers)
-    +resolve(name) Provider
-  }
-
-  class Adapter {
-    <<interface>>
-    +request(ctx) Promise~ResponseObject~
-    +stream(ctx) Promise~ReadableStream~
-  }
-
-  class DefaultAdapter {
-    +request(ctx) Promise~ResponseObject~
-    +stream(ctx) Promise~ReadableStream~
-  }
-
-  class Provider {
-    <<interface>>
-    +name: string
-    +mapper: ProviderMapper
-    +chatClient: ChatClient
-    +capabilities: ProviderCapabilities
-  }
-
-  class ProviderMapper {
-    <<interface>>
-    +request: RequestMapper
-    +response: ResponseMapper
-    +stream: StreamMapper
-  }
-
-  class ChatClient {
-    <<interface>>
-    +chat(req) Promise~TRes~
-    +streamChat(req) Promise~ReadableStream~
-  }
-
-  class ResponseSessionStore {
-    <<interface>>
-    +get(id) StoredResponseSession
-    +save(session, opts)
-    +resolveChain(id, opts) ResponseSessionSnapshot
-    +delete(id)
-    +close()
-  }
-
-  ApplicationContext --> ResponsesContext : creates
-  ApplicationContext --> ModelResolver
-  ApplicationContext --> Registrar
-  ApplicationContext --> Adapter
-  ApplicationContext --> ResponseSessionStore
-  ResponsesContext --> Provider : uses
-  Provider --> ProviderMapper
-  Provider --> ChatClient
-  Adapter <|.. DefaultAdapter
-  DefaultAdapter --> ProviderMapper : calls
-  DefaultAdapter --> ChatClient : calls
-  DefaultAdapter --> ResponseSessionStore : saves
-```
-
-## 请求流程
+## 组件交互图
 
 ```mermaid
 sequenceDiagram
-  actor C as 客户端 (Codex CLI)
-  participant H as handleResponses
-  participant RC as ResponsesContext
-  participant MR as ModelResolver
-  participant SS as SessionStore
-  participant REG as Registrar
-  participant A as DefaultAdapter
-  participant PM as ProviderMapper
-  participant CC as ChatClient
-  participant UP as 上游 API
+  autonumber
+  actor Client as 客户端
+  participant Server as /v1/responses route
+  participant Context as ResponsesContext factory
+  participant Resolver as ModelResolver
+  participant Store as ResponseSessionStore
+  participant Registrar
+  participant Runtime as ResponsesBridgeRuntime
+  participant Exchange as ProviderExchange
+  participant Bridge as bridge/request
+  participant Provider as ProviderEdge
+  participant Upstream as Chat Completions API
 
-  C->>H: POST /v1/responses
-  H->>RC: ResponsesContext.create(app, body)
-  activate RC
-    RC->>MR: resolve(model)
-    MR-->>RC: { provider, model }
-    opt previous_response_id
-      RC->>SS: resolveChain(id)
-      SS-->>RC: session snapshot
-    end
-    RC->>REG: resolve(provider)
-    REG-->>RC: Provider 实例
-  deactivate RC
-
-  alt stream = true
-    H->>A: adapter.stream(ctx)
-    activate A
-      A->>PM: mapper.request.map(ctx)
-      A->>CC: chatClient.streamChat(req)
-      CC->>UP: POST (SSE)
-      UP-->>CC: SSE 数据块
-      A->>A: pipeTransform → ProviderEventToResponse
-      A->>A: pipeTransform → ResponseLog
-      A->>A: pipeTransform → ResponseSessionPersistence
-    deactivate A
-    H->>H: pipeTransform → ResponseSseEncode
-    H-->>C: SSE 字节流
-  else stream = false
-    H->>A: adapter.request(ctx)
-    activate A
-      A->>PM: mapper.request.map(ctx)
-      A->>CC: chatClient.chat(req)
-      CC->>UP: POST
-      UP-->>A: 上游响应
-      A->>PM: mapper.response.map(ctx, res)
-      A->>SS: save(session)
-    deactivate A
-    H-->>C: JSON 响应
+  Client->>Server: POST /v1/responses
+  Server->>Server: 解析并校验 JSON envelope
+  Server->>Context: create(app, body)
+  Context->>Resolver: resolve(body.model)
+  Resolver-->>Context: provider + upstream model
+  opt previous_response_id
+    Context->>Store: resolveChain(previous_response_id)
+    Store-->>Context: 有序 session snapshot
+  end
+  Context->>Registrar: resolve(provider)
+  Registrar-->>Context: ProviderEdge
+  Server->>Runtime: request(ctx) 或 stream(ctx)
+  Runtime->>Exchange: 构建并发送 provider request
+  Exchange->>Bridge: buildChatCompletionRequest(ctx)
+  Bridge-->>Exchange: chat request + compatibility/tool/output plans
+  Exchange->>Provider: request(body) 或 stream(body)
+  Provider->>Upstream: POST /chat/completions
+  Upstream-->>Provider: JSON response 或 SSE chunks
+  alt sync
+    Provider-->>Exchange: provider response
+    Exchange-->>Runtime: provider response + plans
+    Runtime->>Store: 保存 completed response，除非 store=false
+    Runtime-->>Server: ResponseObject
+    Server-->>Client: JSON
+  else stream
+    Provider-->>Exchange: provider SSE stream
+    Exchange-->>Runtime: stream + plans
+    Runtime->>Runtime: 桥接 delta、校验输出、trace、log、persist
+    Runtime-->>Server: ResponseStreamEvent stream
+    Server-->>Client: text/event-stream
   end
 ```
 
-## 流式管道
+## 安装
 
-```mermaid
-flowchart LR
-  subgraph upstream["上游提供商"]
-    SSE["SSE 数据块"]
-  end
+本地开发：
 
-  subgraph godex["GodeX 流式管道"]
-    T1["① ProviderEventToResponse"]
-    T2["② ResponseLog"]
-    T3["③ SessionPersistence"]
-  end
-
-  subgraph server["HTTP 响应"]
-    T4["④ SseEncode"]
-  end
-
-  subgraph client["客户端"]
-    BYTES["SSE 字节流"]
-  end
-
-  SSE -->|pipeThrough| T1
-  T1 -->|逐事件映射| T2
-  T2 -->|日志透传| T3
-  T3 -->|累积状态并保存会话| T4
-  T4 -->|序列化 SSE 格式| BYTES
-
-  style upstream fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
-  style godex fill:#0f3460,stroke:#16213e,color:#e0e0e0
-  style server fill:#1c2333,stroke:#16213e,color:#e0e0e0
-  style client fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
+```bash
+git clone https://github.com/Ahoo-Wang/GodeX.git
+cd GodeX
+bun install
 ```
 
-| 阶段 | Transformer | 输入 | 输出 | 职责 |
-|------|------------|------|------|------|
-| ① | `ProviderEventToResponseTransformer` | `JsonServerSentEvent` | `ResponseStreamEvent` | 通过 `StreamMapper.map()` 映射上游 SSE 数据块 |
-| ② | `ResponseLogTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | 可观测性日志 |
-| ③ | `ResponseSessionPersistenceTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | 累积 `StreamState`，终止事件时保存会话 |
-| ④ | `ResponseSseEncodeTransformer` | `ResponseStreamEvent` | `Uint8Array` | 序列化为 `event:` / `data:` 传输格式 |
+包安装：
 
-## 项目结构
-
-```
-src/
-├── cli/              Commander CLI（serve、配置检查、初始化）
-├── config/           godex.yaml 配置模式、环境变量插值、默认值
-├── context/          ApplicationContext（DI 容器）、ResponsesContext（每请求）
-├── adapter/          Adapter 接口、DefaultAdapter、流式 Transformer
-│   ├── mapper/       RequestMapper / ResponseMapper / StreamMapper 契约
-│   └── transformers/ 4 阶段流式管道（映射 → 日志 → 持久化 → 编码）
-├── providers/        Provider 注册表 + 内置工厂
-│   └── zhipu/        参考提供商：映射器、聊天客户端、工具、消息
-├── resolver/         ModelResolver（模型选择器 → 提供商 + 模型）
-├── server/           Bun.serve、路由（/v1/responses、/health、/v1/models）
-├── session/          ResponseSessionStore（内存 + SQLite）、链式解析
-├── error/            GodeXError 错误体系及领域编码
-├── tools/            内置函数工具（local_shell、shell、apply_patch）
-├── protocol/openai/  OpenAI 兼容类型定义
-├── logger/           结构化 JSON 日志
-└── e2e/              模拟上游的端到端测试
+```bash
+npm install -g @ahoo-wang/godex
+godex --help
 ```
 
-## 配置
+## 快速开始
 
-### godex.yaml
+交互式创建配置：
+
+```bash
+godex init
+```
+
+也可以手写 `godex.yaml`：
 
 ```yaml
 server:
   port: 5678
+  host: 0.0.0.0
 
-default_provider: zhipu
+default_provider: deepseek
 
 models:
   aliases:
-    "gpt-4o": zhipu/glm-4.7   # 模型名称映射
-    "*": zhipu/glm-5.1         # 兜底映射
+    gpt-5.5: deepseek/deepseek-v4-pro
+    glm: zhipu/glm-5.1
+    "*": deepseek/deepseek-v4-flash
 
 providers:
+  deepseek:
+    spec: deepseek
+    credentials:
+      api_key: ${DEEPSEEK_API_KEY}
+    endpoint:
+      base_url: https://api.deepseek.com
   zhipu:
-    api_key: ${ZHIPU_API_KEY}
-    base_url: https://open.bigmodel.cn/api/coding/paas/v4
+    spec: zhipu
+    credentials:
+      api_key: ${ZHIPU_API_KEY}
+    endpoint:
+      base_url: https://open.bigmodel.cn/api/coding/paas/v4
 
 session:
-  backend: sqlite               # 或 "memory"
+  backend: sqlite
   sqlite:
     path: ./data/sessions.db
 
 logging:
-  level: info                   # trace | debug | info | warn | error
+  level: info
+
+trace:
+  enabled: true
+  path: ./data/trace.db
+  capture_payload: false
 ```
 
-### 模型选择
+启动服务：
 
+```bash
+godex serve --config ./godex.yaml
 ```
-model: "gpt-4o"              → 通过 default_provider 的模型映射解析
-model: "zhipu/glm-4.7"       → 显式指定 provider/model 选择器
-model: "openai/gpt-4o"       → 路由到已配置的 openai 提供商
+
+源码开发模式：
+
+```bash
+bun run dev
 ```
+
+`bun run dev` 使用端口 `13145`；运行时配置默认端口是 `5678`。
+
+## API
 
 ### 健康检查
 
 ```bash
 curl http://localhost:5678/health
-# {"status":"ok","providers":["zhipu"],"unsupported_providers":[]}
 ```
 
-### 添加提供商
+### 模型列表
 
-在 `src/providers/<name>/` 中实现三个接口：
-
-| 接口 | 用途 |
-|------|------|
-| `Provider` | 组合 mapper + chatClient + capabilities |
-| `ProviderMapper` | request / response / stream 映射函数 |
-| `ChatClient` | `chat()` 和 `streamChat()` HTTP 调用 |
-
-在 `src/providers/builtin.ts` 中注册工厂：
-
-```ts
-registrar.registerFactory("myprovider", (config) =>
-  createMyProvider(config) as Provider<unknown, unknown, unknown>
-);
+```bash
+curl http://localhost:5678/v1/models
 ```
+
+`/v1/models` 返回已配置模型别名，不包含通配别名 `*`。
+
+### Responses
+
+```bash
+curl http://localhost:5678/v1/responses \
+  -H 'content-type: application/json' \
+  -d '{
+    "model": "gpt-5.5",
+    "input": "写一个 TypeScript add 函数。"
+  }'
+```
+
+流式响应使用标准 Responses SSE 事件名：
+
+```bash
+curl -N http://localhost:5678/v1/responses \
+  -H 'content-type: application/json' \
+  -d '{
+    "model": "gpt-5.5",
+    "stream": true,
+    "input": "用两句话解释 Bun streams。"
+  }'
+```
+
+## 模型路由
+
+客户端可以传入：
+
+- provider-qualified selector，例如 `deepseek/deepseek-v4-pro`
+- 配置别名，例如 `gpt-5.5`
+- 普通模型名；未命中别名时通过 `default_provider` 解析
+
+`models.aliases` 的值必须是 `provider/model`，且 provider 必须存在于 `providers`。
+
+## Provider 桥接行为
+
+GodeX 构建 provider request 分三步：
+
+1. 将客户端模型选择器解析为配置里的 provider 和上游模型。
+2. 根据 provider `ProviderSpec` 规划参数、工具声明、`tool_choice`、响应格式、推理和 stream usage。
+3. 将 Responses input 和 session history 转换为 Chat Completions messages，调用上游，再重建 Responses object 或 Responses SSE stream。
+
+Provider 特有差异放在各 provider 的 `spec.ts`、`hooks.ts`、协议类型和 HTTP client 中。共享 Responses-to-Chat 策略放在 `src/bridge`。
+
+## 结构化输出
+
+当 provider 支持 `json_object` 但不支持原生 `json_schema` 时，GodeX 可以把 strict `json_schema` 请求降级到 `json_object`。
+
+对 strict 降级 schema：
+
+- 当前请求的 provider prompt 前言会加入 schema 格式指令。
+- provider 收到 `response_format: { "type": "json_object" }`。
+- GodeX 校验最终输出是否是合法 JSON。
+- 同步响应输出非法时失败；流式响应输出非法时改写为终止 `response.failed` 事件。
+
+校验器只检查 JSON 语法，不执行完整 JSON Schema 校验。
+
+## 会话
+
+Responses 可以通过 `previous_response_id` 保存并回放上下文。
+
+- `session.backend: memory` 使用进程内存。
+- `session.backend: sqlite` 持久化到 SQLite。
+- `store: false` 跳过当前轮保存。
+- session chain 保存 request snapshot 和 response output item，下一轮再重建 provider-neutral history。
+
+## Trace 数据库
+
+Trace 默认开启，默认写入 `./data/trace.db`。
+
+Trace 记录包括：
+
+- provider request 元数据
+- provider request / response body 的摘要 payload
+- 原始和转换后的 stream event
+- usage 详情，包括上游返回的 cached tokens
+- route error 和 provider error
+
+设置 `trace.capture_payload: true` 会保存 payload JSON，最多 `trace.payload_max_bytes` 字节。敏感环境建议保持关闭。
 
 ## 开发
 
 ```bash
 bun install                  # 安装依赖
-bun run dev                  # 热重载开发服务器（端口 13145）
-bun run test                 # 单元 + 集成测试
-bun run test:e2e             # 模拟上游的端到端测试
-bun run build                # 为当前平台编译原生二进制
+bun run dev                  # 热重载开发服务器，端口 13145
+bun run start                # 从源码启动服务
+bun run build                # 为当前平台编译二进制
+bun run compile:all          # 交叉编译所有支持平台
+```
+
+质量门禁：
+
+```bash
+bun run typecheck            # TypeScript
+bun run lint                 # Biome check
+bun run lint:fix             # Biome 自动修复
+bun run format               # Biome 格式化
+bun run test                 # 单元和集成测试，不含 src/e2e
+bun run test:e2e             # mock 上游端到端测试
+bun run test:zhipu           # 智谱 live 测试，需要 ZHIPU_API_KEY
 bun run check                # typecheck + lint + test
-bun run ci                   # 完整 CI 流水线
+bun run ci                   # typecheck + biome ci + test + e2e
 ```
 
-## 发布
+## 源码地图
 
-`@ahoo-wang/godex` 是一个轻量 npm 外壳。原生二进制文件以平台特定的可选依赖发布：
+```text
+src/
+  cli/          Commander CLI, init wizard, runtime config loading
+  config/       godex.yaml schema, defaults, env interpolation
+  context/      ApplicationContext and per-request ResponsesContext
+  bridge/       Provider-agnostic Responses-to-Chat planning and reconstruction
+  providers/    Built-in provider specs, hooks, clients, and registry
+  responses/    Sync and stream request pipelines
+  server/       Bun routes for /health, /v1/models, /v1/responses
+  session/      Memory and SQLite response session stores
+  trace/        SQLite trace recorder and usage/error/event mappers
+  protocol/     OpenAI protocol type definitions
+  error/        GodeXError hierarchy and domain codes
+```
 
+## Provider 开发
+
+Provider 目录形态：
+
+```text
+src/providers/<name>/
+  spec.ts       ProviderSpec declaration
+  client.ts     ProviderEdge construction with ChatProviderClient
+  hooks.ts      Provider-specific patching, accessors, usage, stream deltas
+  protocol/     Provider DTOs when needed
+  index.ts      Public exports
 ```
-@ahoo-wang/godex
-├── @ahoo-wang/godex-darwin-arm64     ← macOS Apple Silicon
-├── @ahoo-wang/godex-darwin-x64       ← macOS Intel
-├── @ahoo-wang/godex-linux-x64        ← Linux x86_64
-├── @ahoo-wang/godex-linux-arm64      ← Linux ARM64
-├── @ahoo-wang/godex-win32-x64        ← Windows x86_64
-└── @ahoo-wang/godex-win32-arm64      ← Windows ARM64
-```
+
+共享兼容性策略放到 `src/bridge`；共享 provider transport 或协议 helper 放到 `src/providers/shared`。
 
 ## 许可证
 
-[Apache License 2.0](LICENSE)
+Apache-2.0. See [LICENSE](./LICENSE).

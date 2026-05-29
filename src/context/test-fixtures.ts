@@ -32,7 +32,7 @@ export const baseConfig: GodeXConfig = {
 };
 
 export function createRegistrar(
-	names: string[] = ["zhipu", "deepseek"],
+	names: string[] = ["deepseek", "zhipu"],
 ): Registrar {
 	const registrar = new Registrar();
 	for (const name of names) {

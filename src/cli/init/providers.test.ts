@@ -16,8 +16,8 @@ import {
 describe("INIT_PROVIDER_DEFINITIONS", () => {
 	test("includes only bridge providers in wizard order", () => {
 		expect(INIT_PROVIDER_DEFINITIONS.map((provider) => provider.id)).toEqual([
-			ZHIPU_PROVIDER_NAME,
 			DEEPSEEK_PROVIDER_NAME,
+			ZHIPU_PROVIDER_NAME,
 		]);
 	});
 

@@ -28,17 +28,17 @@ function listProviderFiles(provider: string): string[] {
 
 describe("ProviderSpec runtime conformance", () => {
 	test("built-in providers use ProviderSpec package shape", () => {
-		for (const provider of ["example", "zhipu", "deepseek"]) {
+		for (const provider of ["example", "deepseek", "zhipu"]) {
 			expect(
 				validateProviderPackageShape(provider, listProviderFiles(provider)),
 			).toEqual([]);
 		}
 	});
 
-	test("built-in provider specs include example, zhipu, and deepseek with unique names", () => {
+	test("built-in provider specs include example, deepseek, and zhipu with unique names", () => {
 		const names = BUILTIN_PROVIDER_SPECS.map((spec) => spec.name);
 
-		expect(names).toEqual(["example", "zhipu", "deepseek"]);
+		expect(names).toEqual(["example", "deepseek", "zhipu"]);
 		expect(new Set(names).size).toBe(names.length);
 	});
 
