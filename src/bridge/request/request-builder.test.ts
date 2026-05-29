@@ -826,6 +826,29 @@ describe("buildChatCompletionRequest", () => {
 			"Provider-native tool rendering is not implemented",
 		);
 	});
+
+	test("merges consecutive assistant text messages", () => {
+		const messages = buildChatMessages([
+			{
+				role: "assistant",
+				content: "Earlier answer.",
+				reasoning_content: "First thought.",
+			},
+			{
+				role: "assistant",
+				content: "Continue answer.",
+				reasoning_content: "Second thought.",
+			},
+		]);
+
+		expect(messages).toEqual([
+			{
+				role: "assistant",
+				content: "Earlier answer.\nContinue answer.",
+				reasoning_content: "First thought.\nSecond thought.",
+			},
+		]);
+	});
 });
 
 describe("normalizeCurrentInput", () => {

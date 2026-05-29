@@ -25,6 +25,16 @@ export function buildChatMessages(
 		}
 		if (
 			isAssistantTurnPrefixMessage(previous) &&
+			isAssistantTurnPrefixMessage(next)
+		) {
+			messages[messages.length - 1] = mergeAssistantTextMessages(
+				previous,
+				next,
+			);
+			continue;
+		}
+		if (
+			isAssistantTurnPrefixMessage(previous) &&
 			isAssistantToolCallMessage(next)
 		) {
 			messages[messages.length - 1] = mergeAssistantTurnPrefix(previous, next);
@@ -52,6 +62,21 @@ function cloneMessage(
 		return { ...message, tool_calls: [...message.tool_calls] };
 	}
 	return { ...message };
+}
+
+function mergeAssistantTextMessages(
+	left: ChatCompletionAssistantMessageParam,
+	right: ChatCompletionAssistantMessageParam,
+): ChatCompletionAssistantMessageParam {
+	const reasoningContent = mergeReasoningContent(
+		left.reasoning_content,
+		right.reasoning_content,
+	);
+	return {
+		...left,
+		content: mergeAssistantContent(left.content, right.content),
+		...(reasoningContent ? { reasoning_content: reasoningContent } : {}),
+	};
 }
 
 function mergeAssistantTurnPrefix(
