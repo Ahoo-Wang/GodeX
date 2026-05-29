@@ -1,7 +1,7 @@
 ---
 title: "Installation & Setup"
 description: "Install GodeX, create configuration, and start the server."
-keywords: "GodeX, installation, setup, npm, binary, configuration"
+keywords: "GodeX, installation, setup, npm, binary, configuration, Docker"
 ---
 
 # Installation & Setup
@@ -18,6 +18,38 @@ npm install -g @ahoo-wang/godex
 ```
 
 GodeX ships as a **standalone native binary** with zero runtime dependencies. npm's `postinstall` automatically selects the correct binary for your platform.
+
+## Docker
+
+Pre-built multi-arch images are published to Docker Hub and GitHub Container Registry:
+
+```bash
+docker pull ahoowang/godex:latest
+# or
+docker pull ghcr.io/ahoo-wang/godex:latest
+```
+
+Run with a config file:
+
+```bash
+docker run -d \
+  --name godex \
+  -p 5678:5678 \
+  -e ZHIPU_API_KEY=your-key \
+  -e DEEPSEEK_API_KEY=your-key \
+  -v ./godex.yaml:/etc/godex/godex.yaml:ro \
+  -v godex-data:/data \
+  ahoowang/godex:latest
+```
+
+The image supports `linux/amd64` and `linux/arm64`.
+
+| Path | Description |
+|------|-------------|
+| `/etc/godex/godex.yaml` | Configuration file (default) |
+| `/data` | Data directory (sessions, trace) |
+
+Default port: `5678`.
 
 ## Build from Source
 
