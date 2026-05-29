@@ -48,6 +48,7 @@ export function mapTraceRecordToRow(
 				output_tokens: event.usage.output_tokens ?? null,
 				total_tokens: event.usage.total_tokens ?? null,
 				cached_tokens: event.usage.cached_tokens ?? null,
+				reasoning_tokens: event.usage.reasoning_tokens ?? null,
 				cache_hit_ratio: event.usage.cache_hit_ratio ?? null,
 			};
 		}

@@ -46,6 +46,7 @@ describe("SQLiteTraceStore", () => {
 			"output_tokens",
 			"total_tokens",
 			"cached_tokens",
+			"reasoning_tokens",
 			"cache_hit_ratio",
 		]);
 		const indexes = store.db
@@ -87,6 +88,7 @@ describe("SQLiteTraceStore", () => {
 				output_tokens: 20,
 				total_tokens: 120,
 				cached_tokens: 40,
+				reasoning_tokens: 8,
 				cache_hit_ratio: 0.4,
 			},
 			{
@@ -110,8 +112,10 @@ describe("SQLiteTraceStore", () => {
 				.get(),
 		).toMatchObject({ count: 1, requested_prompt_cache_key: "client-key" });
 		expect(
-			store.db.query("SELECT cached_tokens FROM trace_usage").get(),
-		).toMatchObject({ cached_tokens: 40 });
+			store.db
+				.query("SELECT cached_tokens, reasoning_tokens FROM trace_usage")
+				.get(),
+		).toMatchObject({ cached_tokens: 40, reasoning_tokens: 8 });
 		expect(
 			store.db.query("SELECT event_name FROM trace_events").get(),
 		).toMatchObject({ event_name: "provider.response.body" });
@@ -143,10 +147,13 @@ describe("SQLiteTraceStore", () => {
 
 		expect(
 			store.db
-				.query("SELECT cached_tokens, cache_hit_ratio FROM trace_usage")
+				.query(
+					"SELECT cached_tokens, reasoning_tokens, cache_hit_ratio FROM trace_usage",
+				)
 				.get(),
 		).toEqual({
 			cached_tokens: null,
+			reasoning_tokens: null,
 			cache_hit_ratio: null,
 		});
 		expect(

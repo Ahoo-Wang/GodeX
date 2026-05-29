@@ -622,8 +622,8 @@ describe("E2E: sync response", () => {
 		expect(upstream.tools).toMatchObject([
 			{ type: "function", function: { name: "local_shell" } },
 			{ type: "function", function: { name: "apply_patch" } },
-			{ type: "function", function: { name: "read_file" } },
-			{ type: "function", function: { name: "workspace__list_files" } },
+			{ type: "function", function: { name: "read-file" } },
+			{ type: "function", function: { name: "workspace__list-files" } },
 		]);
 		expect(upstreamMessages()).toEqual([
 			{

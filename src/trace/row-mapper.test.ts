@@ -53,6 +53,7 @@ describe("mapTraceRecordToRow", () => {
 					output_tokens: 20,
 					total_tokens: 120,
 					cached_tokens: 40,
+					reasoning_tokens: 8,
 					cache_hit_ratio: 0.4,
 				},
 			},
@@ -66,6 +67,7 @@ describe("mapTraceRecordToRow", () => {
 			output_tokens: 20,
 			total_tokens: 120,
 			cached_tokens: 40,
+			reasoning_tokens: 8,
 			cache_hit_ratio: 0.4,
 		});
 	});

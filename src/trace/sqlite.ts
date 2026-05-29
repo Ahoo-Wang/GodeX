@@ -31,6 +31,7 @@ export interface TraceUsageRow {
 	output_tokens?: number | null;
 	total_tokens?: number | null;
 	cached_tokens?: number | null;
+	reasoning_tokens?: number | null;
 	cache_hit_ratio?: number | null;
 }
 
@@ -109,6 +110,7 @@ export class SQLiteTraceStore {
                 output_tokens INTEGER NULL,
                 total_tokens INTEGER NULL,
                 cached_tokens INTEGER NULL,
+                reasoning_tokens INTEGER NULL,
                 cache_hit_ratio REAL NULL
             );
             CREATE INDEX IF NOT EXISTS idx_trace_usage_request_id
@@ -171,11 +173,11 @@ export class SQLiteTraceStore {
 					`INSERT INTO trace_usage (
                     request_id, response_id, provider, model, created_at,
                     input_tokens, output_tokens, total_tokens, cached_tokens,
-                    cache_hit_ratio
+                    reasoning_tokens, cache_hit_ratio
                 ) VALUES (
                     $request_id, $response_id, $provider, $model, $created_at,
                     $input_tokens, $output_tokens, $total_tokens, $cached_tokens,
-                    $cache_hit_ratio
+                    $reasoning_tokens, $cache_hit_ratio
 	                )`,
 				)
 				.run({
@@ -188,6 +190,7 @@ export class SQLiteTraceStore {
 					output_tokens: values.output_tokens ?? null,
 					total_tokens: values.total_tokens ?? null,
 					cached_tokens: values.cached_tokens ?? null,
+					reasoning_tokens: values.reasoning_tokens ?? null,
 					cache_hit_ratio: values.cache_hit_ratio ?? null,
 				});
 			return;
