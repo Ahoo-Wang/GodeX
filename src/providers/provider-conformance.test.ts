@@ -207,6 +207,24 @@ describe("ProviderSpec runtime conformance", () => {
 		expect(unsupported).not.toHaveProperty("reasoning_effort");
 	});
 
+	test("DeepSeek provider patch preserves historical reasoning content", () => {
+		const patched = DEEPSEEK_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "deepseek-chat",
+			messages: [
+				{
+					role: "assistant",
+					content: "Earlier answer.",
+					reasoning_content: "Earlier thought.",
+				},
+			],
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(patched).toMatchObject({
+			thinking: { type: "enabled" },
+		});
+		expect(patched).not.toHaveProperty("reasoning_effort");
+	});
+
 	test("provider patch hooks reject malformed chat completion requests", () => {
 		for (const spec of [ZHIPU_PROVIDER_SPEC, DEEPSEEK_PROVIDER_SPEC]) {
 			expect(() =>

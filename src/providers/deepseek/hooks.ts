@@ -116,17 +116,34 @@ export function deepSeekPatchRequest(
 	assertProviderChatRequest("deepseek", request);
 	const effort = deepSeekReasoningEffort(request.reasoning_effort);
 	const { reasoning_effort: _reasoningEffort, ...providerRequest } = request;
-	if (!effort) {
+	if (effort) {
 		return {
 			...providerRequest,
-			thinking: { type: "disabled" },
+			thinking: { type: "enabled" },
+			reasoning_effort: effort,
+		} as unknown as ChatCompletionRequest;
+	}
+	if (hasHistoricalReasoningContent(providerRequest.messages)) {
+		return {
+			...providerRequest,
+			thinking: { type: "enabled" },
 		} as unknown as ChatCompletionRequest;
 	}
 	return {
 		...providerRequest,
-		thinking: { type: "enabled" },
-		reasoning_effort: effort,
+		thinking: { type: "disabled" },
 	} as unknown as ChatCompletionRequest;
+}
+
+function hasHistoricalReasoningContent(
+	messages: BridgeChatCompletionCreateRequest["messages"],
+): boolean {
+	return messages.some(
+		(message) =>
+			message.role === "assistant" &&
+			typeof message.reasoning_content === "string" &&
+			message.reasoning_content.length > 0,
+	);
 }
 
 export function deepSeekStreamDeltas(
