@@ -50,13 +50,17 @@ default_provider: zhipu
 
 models:
   aliases:
-    "gpt-4o": zhipu/glm-4.7
-    "*": zhipu/glm-5.1
+    "gpt-5.5": deepseek/deepseek-v4-pro
+    "glm": zhipu/glm-5.1
+    "*": deepseek/deepseek-v4-flash
 
 providers:
   zhipu:
-    api_key: ${ZHIPU_API_KEY}
-    base_url: https://open.bigmodel.cn/api/coding/paas/v4
+    spec: zhipu
+    credentials:
+      api_key: ${ZHIPU_API_KEY}
+    endpoint:
+      base_url: https://open.bigmodel.cn/api/coding/paas/v4
 
 session:
   backend: sqlite
