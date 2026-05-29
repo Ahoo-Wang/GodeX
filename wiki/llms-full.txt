@@ -1,5 +1,191 @@
-# 01-getting-started/installation-setup.md
+---
+layout: home
+title: GodeX
+description: OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents. Translate /v1/responses into upstream Chat Completions API calls.
+head:
+  - - meta
+    - name: keywords
+      content: GodeX, OpenAI, Responses API, gateway, Codex, CLI, LLM, proxy, Chat Completions, provider, streaming, SSE
 
+hero:
+  name: GodeX
+  text: Make every model a Codex engine.
+  tagline: OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents.
+  image:
+    src: /godex-logo-hero.svg
+    alt: GodeX Logo
+  actions:
+    - theme: brand
+      text: Getting Started
+      link: /01-getting-started/overview
+    - theme: alt
+      text: GitHub
+      link: https://github.com/Ahoo-Wang/GodeX
+    - theme: alt
+      text: Gitee
+      link: https://gitee.com/AhooWang/GodeX
+features:
+  - icon: 🧭
+    title: Intelligent Compatibility Planning
+    details: Every request parameter, tool type, and output format is planned against the provider's declared capabilities. Unsupported features are gracefully degraded or rejected with structured diagnostics — not silently dropped.
+  - icon: 🔧
+    title: Rich Tool Identity Mapping
+    details: Codex built-in tools (shell, apply_patch, local_shell) and provider-native tools (web_search, file_search, mcp) are automatically mapped through identity codecs with degradation fallbacks. Tool calls are restored to their original types in responses.
+  - icon: ⚡
+    title: Formal Stream State Machine
+    details: Streaming responses are driven by a rigorous phase-based state machine (IDLE → IN_PROGRESS → terminal) that auto-closes output blocks, validates transitions, and produces a live snapshot at every event — ensuring robust SSE delivery even on provider failures.
+  - icon: 📐
+    title: Output Contract with Schema Degradation
+    details: Structured output requests are automatically downgraded when providers lack json_schema support. GodeX injects schema instructions and validates the response, so json_schema works even with providers that only support json_object.
+  - icon: 🔗
+    title: Safe Session Chain Resolution
+    details: Multi-turn conversations are rebuilt from parent-pointer chains with cycle detection, depth limiting, and completion validation. History forking is first-class — multiple responses can share the same parent.
+  - icon: 🧩
+    title: Declarative Provider Spec
+    details: Providers are fully described by immutable specs — capabilities, accessors, tool codecs, and hooks. The bridge kernel handles all compatibility, routing, and reconstruction. New providers need zero changes to shared infrastructure.
+---
+
+## How It Works
+
+```mermaid
+flowchart LR
+  subgraph Client["Client"]
+    Codex["Codex CLI"]
+    SDK["OpenAI SDK"]
+    IDE["IDE / Tools"]
+  end
+
+  subgraph GodeX["GodeX Gateway"]
+    B["Bridge Kernel"]
+    R["Response Stream State Machine"]
+    S["Session Store"]
+  end
+
+  subgraph Providers["Providers"]
+    DS["DeepSeek"]
+    ZP["Zhipu"]
+    Custom["Custom"]
+  end
+
+  Client -- POST /v1/responses --> GodeX
+  B -- Compatibility Planning --> R
+  R -- Tool & Output Contracts --> S
+  GodeX -- POST /chat/completions --> Providers
+  Providers -- SSE / JSON --> GodeX
+  GodeX -- SSE / JSON --> Client
+```
+
+GodeX sits between your tools and upstream model providers. It accepts OpenAI Responses API requests, translates them to Chat Completions API calls via the bridge kernel and provider specs, and streams results back — preserving the full protocol semantics that Codex expects.
+
+## Quick Start
+
+```bash
+# Install — no Bun required at runtime
+npm install -g @ahoo-wang/godex
+
+# Create config interactively
+godex init
+
+# Start the gateway
+godex serve
+```
+
+Point Codex CLI at your GodeX instance:
+
+```bash
+export OPENAI_BASE_URL=http://localhost:5678/v1
+export OPENAI_API_KEY=any-value
+codex
+```
+
+---
+
+::: info
+Read the full [Getting Started guide](/01-getting-started/overview) or explore the [Architecture](/02-architecture/overview).
+:::
+---
+title: "Overview"
+description: "Introduction to GodeX — what it is, why it exists, and how to get started."
+keywords: "GodeX, getting started, overview, OpenAI, Responses API, gateway"
+---
+
+# Overview
+
+GodeX is an **OpenAI Responses API gateway** built with [Bun](https://bun.sh) and **TypeScript**. It translates standard `/v1/responses` requests into upstream Chat Completions API calls, allowing any LLM provider to serve as a backend for tools that speak the OpenAI protocol — including the Codex CLI.
+
+## Why GodeX?
+
+- **Protocol translation**: Tools like Codex expect the OpenAI Responses API, but many providers only offer Chat Completions. GodeX bridges this gap.
+- **Provider-agnostic**: A spec-based provider system means adding a new provider requires declaring capabilities and writing small hooks, not rewriting the server.
+- **Streaming-first**: The entire pipeline is built around `ReadableStream` and `TransformStream`, ensuring low-latency SSE delivery to clients.
+- **Session history**: Built-in `previous_response_id` chain resolution with SQLite or in-memory backends.
+
+## System Context
+
+```mermaid
+C4Context
+  title GodeX — System Context
+
+  Person(user, "Developer / Codex CLI", "Sends Responses API requests via the OpenAI-compatible endpoint")
+  System(godex_svr, "GodeX Server", "Translates Responses API to Chat Completions API. Bun HTTP server on configurable port")
+  SystemDb(sessions, "Session Store", "Stores response history for previous_response_id chain resolution. SQLite or In-Memory")
+  SystemDb(trace, "Trace DB", "Records request, usage, event, and error rows in SQLite")
+  System_Ext(deepseek, "DeepSeek", "Chat Completions API provider")
+  System_Ext(zhipu, "Zhipu", "Chat Completions API provider")
+  System_Ext(other, "Custom Provider", "Any Chat Completions compatible backend")
+
+  Rel(user, godex_svr, "POST /v1/responses, GET /v1/models, GET /health", "HTTP/SSE")
+  Rel(godex_svr, sessions, "save / resolve chains")
+  Rel(godex_svr, trace, "record request, usage, events, errors")
+  Rel(godex_svr, deepseek, "POST /chat/completions", "HTTPS")
+  Rel(godex_svr, zhipu, "POST /chat/completions", "HTTPS")
+  Rel(godex_svr, other, "POST /chat/completions", "HTTPS")
+```
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Bun runtime | Native `ReadableStream`, fast startup, built-in SQLite |
+| Bridge kernel | Clean separation between protocol translation and provider logic |
+| Immutable capability sets | Prevent runtime mutation of provider feature flags |
+| Session store abstraction | Swap between memory and SQLite without touching business logic |
+| Composable stream transformers | Each concern (trace, log, persist, validate) is a separate stage |
+
+## Project Structure
+
+```
+src/
+├── cli/              Commander CLI (serve, config, init)
+├── config/           godex.yaml schema, env interpolation, defaults
+├── context/          ApplicationContext (DI), ResponsesContext (per-request)
+├── bridge/           Provider-agnostic Responses-to-Chat bridge kernel
+│   ├── compatibility/  Parameter and response-format compatibility planning
+│   ├── request/        Input normalization and message building
+│   ├── tools/          Tool declarations, tool_choice, identity mapping
+│   ├── output/         Structured-output contract planning and validation
+│   ├── response/       Sync ResponseObject reconstruction
+│   ├── stream/         Stream state machine and delta mapping
+│   ├── provider-spec/  ProviderSpec, ProviderEdge, factory helpers
+│   └── finish-reason/  Provider finish reason mapping
+├── providers/        Provider registry, specs, hooks, clients
+│   ├── deepseek/      DeepSeek provider
+│   ├── zhipu/         Zhipu provider
+│   ├── example/       Spec-only example provider
+│   └── shared/        Shared provider utilities (ChatProviderClient, etc.)
+├── responses/        Sync and stream orchestration pipelines
+│   └── stream-transforms/  Composable TransformStream stages
+├── server/           Bun routes for /health, /v1/models, /v1/responses
+├── resolver/         ModelResolver (model selector to provider + model)
+├── session/          Memory and SQLite response session stores
+├── trace/            SQLite trace recorder and usage/error/event mappers
+├── error/            GodeXError hierarchy with domain codes
+├── protocol/         OpenAI protocol type definitions
+├── tools/            Built-in tool definitions (shell, apply_patch, etc.)
+└── e2e/              End-to-end tests with mocked upstream
+```
+
+[Installation & Setup](/01-getting-started/installation-setup)
 ---
 title: "Installation & Setup"
 description: "Install GodeX, create configuration, and start the server."
@@ -110,97 +296,6 @@ codex
 | Windows ARM64 | `@ahoo-wang/godex-win32-arm64` |
 
 [Quick Reference](/01-getting-started/quick-reference)
-
-
-# 01-getting-started/overview.md
-
----
-title: "Overview"
-description: "Introduction to GodeX — what it is, why it exists, and how to get started."
-keywords: "GodeX, getting started, overview, OpenAI, Responses API, gateway"
----
-
-# Overview
-
-GodeX is an **OpenAI Responses API gateway** built with [Bun](https://bun.sh) and **TypeScript**. It translates standard `/v1/responses` requests into upstream Chat Completions API calls, allowing any LLM provider to serve as a backend for tools that speak the OpenAI protocol — including the Codex CLI.
-
-## Why GodeX?
-
-- **Protocol translation**: Tools like Codex expect the OpenAI Responses API, but many providers only offer Chat Completions. GodeX bridges this gap.
-- **Provider-agnostic**: A spec-based provider system means adding a new provider requires declaring capabilities and writing small hooks, not rewriting the server.
-- **Streaming-first**: The entire pipeline is built around `ReadableStream` and `TransformStream`, ensuring low-latency SSE delivery to clients.
-- **Session history**: Built-in `previous_response_id` chain resolution with SQLite or in-memory backends.
-
-## System Context
-
-```mermaid
-C4Context
-  title GodeX — System Context
-
-  Person(user, "Developer / Codex CLI", "Sends Responses API requests via the OpenAI-compatible endpoint")
-  System(godex_svr, "GodeX Server", "Translates Responses API to Chat Completions API. Bun HTTP server on configurable port")
-  SystemDb(sessions, "Session Store", "Stores response history for previous_response_id chain resolution. SQLite or In-Memory")
-  SystemDb(trace, "Trace DB", "Records request, usage, event, and error rows in SQLite")
-  System_Ext(deepseek, "DeepSeek", "Chat Completions API provider")
-  System_Ext(zhipu, "Zhipu", "Chat Completions API provider")
-  System_Ext(other, "Custom Provider", "Any Chat Completions compatible backend")
-
-  Rel(user, godex_svr, "POST /v1/responses, GET /v1/models, GET /health", "HTTP/SSE")
-  Rel(godex_svr, sessions, "save / resolve chains")
-  Rel(godex_svr, trace, "record request, usage, events, errors")
-  Rel(godex_svr, deepseek, "POST /chat/completions", "HTTPS")
-  Rel(godex_svr, zhipu, "POST /chat/completions", "HTTPS")
-  Rel(godex_svr, other, "POST /chat/completions", "HTTPS")
-```
-
-## Key Design Decisions
-
-| Decision | Rationale |
-|----------|-----------|
-| Bun runtime | Native `ReadableStream`, fast startup, built-in SQLite |
-| Bridge kernel | Clean separation between protocol translation and provider logic |
-| Immutable capability sets | Prevent runtime mutation of provider feature flags |
-| Session store abstraction | Swap between memory and SQLite without touching business logic |
-| Composable stream transformers | Each concern (trace, log, persist, validate) is a separate stage |
-
-## Project Structure
-
-```
-src/
-├── cli/              Commander CLI (serve, config, init)
-├── config/           godex.yaml schema, env interpolation, defaults
-├── context/          ApplicationContext (DI), ResponsesContext (per-request)
-├── bridge/           Provider-agnostic Responses-to-Chat bridge kernel
-│   ├── compatibility/  Parameter and response-format compatibility planning
-│   ├── request/        Input normalization and message building
-│   ├── tools/          Tool declarations, tool_choice, identity mapping
-│   ├── output/         Structured-output contract planning and validation
-│   ├── response/       Sync ResponseObject reconstruction
-│   ├── stream/         Stream state machine and delta mapping
-│   ├── provider-spec/  ProviderSpec, ProviderEdge, factory helpers
-│   └── finish-reason/  Provider finish reason mapping
-├── providers/        Provider registry, specs, hooks, clients
-│   ├── deepseek/      DeepSeek provider
-│   ├── zhipu/         Zhipu provider
-│   ├── example/       Spec-only example provider
-│   └── shared/        Shared provider utilities (ChatProviderClient, etc.)
-├── responses/        Sync and stream orchestration pipelines
-│   └── stream-transforms/  Composable TransformStream stages
-├── server/           Bun routes for /health, /v1/models, /v1/responses
-├── resolver/         ModelResolver (model selector to provider + model)
-├── session/          Memory and SQLite response session stores
-├── trace/            SQLite trace recorder and usage/error/event mappers
-├── error/            GodeXError hierarchy with domain codes
-├── protocol/         OpenAI protocol type definitions
-├── tools/            Built-in tool definitions (shell, apply_patch, etc.)
-└── e2e/              End-to-end tests with mocked upstream
-```
-
-[Installation & Setup](/01-getting-started/installation-setup)
-
-
-# 01-getting-started/quick-reference.md
-
 ---
 title: "Quick Reference"
 description: "Common commands, environment variables, and API endpoints."
@@ -265,104 +360,6 @@ const response = await client.responses.create({
 ```
 
 [Architecture Overview](/02-architecture/overview)
-
-
-# 02-architecture/bridge-kernel.md
-
----
-title: "Bridge Kernel"
-description: "How the bridge layer translates between Responses API and provider Chat Completions without provider-specific logic."
-keywords: "GodeX, bridge kernel, compatibility, tools, output contract, request builder"
----
-
-# Bridge Kernel
-
-The bridge kernel (`src/bridge/`) is the core translation engine. It sits between the responses orchestration layer and provider implementations, converting between the OpenAI Responses API protocol and Chat Completions formats in a provider-agnostic way.
-
-## Submodule Responsibilities
-
-| Submodule | Role |
-|-----------|------|
-| `compatibility/` | Plans supported, degraded, ignored, and rejected request features |
-| `request/` | Normalizes Responses input and session history into Chat Completions messages |
-| `tools/` | Plans tool declarations, `tool_choice`, degradation, identity mapping, and call restoration |
-| `output/` | Plans structured-output contracts and validates strict downgraded JSON output |
-| `response/` | Reconstructs sync `ResponseObject` results from provider responses |
-| `stream/` | Maps provider deltas into Responses SSE events through a state machine |
-| `provider-spec/` | Defines `ProviderSpec`, `ProviderEdge`, provider constants, and package shape checks |
-| `finish-reason/` | Maps provider finish reasons to Responses terminal states |
-
-## Request Building
-
-The `buildChatCompletionRequest()` function in `bridge/request/` is the main entry point. It composes four planning steps:
-
-1. **Compatibility planning** — `planBridgeCompatibility()` checks each request parameter against the provider's capabilities and records supported, degraded, ignored, or rejected decisions.
-2. **Tool planning** — `planTools()` maps tool definitions to provider tool declarations, handles tool type degradation (e.g., `local_shell` to `function`), and computes the effective `tool_choice`.
-3. **Output contract planning** — `planOutputContract()` decides how structured output should be handled, including degrading `json_schema` to `json_object` when the provider does not support native schemas.
-4. **Message building** — Normalizes the current input and session history into Chat Completions messages, injecting synthetic preamble instructions for downgraded output formats.
-
-```mermaid
-flowchart LR
-  subgraph input["Input"]
-    CTX["ResponsesContext"]
-  end
-  subgraph bridge["Bridge Kernel"]
-    COMPAT["compatibility/"]
-    TOOLS["tools/"]
-    OUTPUT["output/"]
-    MSG["request/"]
-  end
-  subgraph result["Build Result"]
-    REQ["ChatCompletionRequest"]
-    PLAN["CompatibilityPlan"]
-    TOOL_PLAN["ToolPlan"]
-    OUT_PLAN["OutputContractPlan"]
-  end
-
-  CTX --> COMPAT --> PLAN
-  CTX --> TOOLS --> TOOL_PLAN
-  CTX --> OUTPUT --> OUT_PLAN
-  CTX --> MSG --> REQ
-```
-
-## Compatibility Planning
-
-```mermaid
-flowchart TD
-  INPUT["ResponseCreateRequest"]
-  CAPS["ProviderCapabilities"]
-  PLAN["CompatibilityPlan"]
-  PARAMS["Parameter decisions"]
-  RF["Response format decision"]
-
-  INPUT --> PLAN
-  CAPS --> PLAN
-  PLAN --> PARAMS
-  PLAN --> RF
-```
-
-Each parameter is checked against the provider's capability set and produces a `CompatibilityDecision`:
-
-| Action | Meaning |
-|--------|---------|
-| `supported` | Parameter is forwarded as-is |
-| `degraded` | Parameter is transformed to a lower-fidelity equivalent |
-| `ignored` | Parameter is consumed by GodeX and not forwarded |
-| `rejected` | Parameter is not supported; the request fails with a `BridgeError` |
-
-Diagnostics are accumulated in `ResponsesContext.diagnostics` and logged after the response completes.
-
-## Provider Edge
-
-The `ProviderEdge` interface is the bridge's contract with providers. Each provider implements a `ProviderSpec` that declares capabilities, accessors for reading responses and stream chunks, and optional hooks for request patching.
-
-Provider-specific differences belong in each provider's `spec.ts`, `hooks.ts`, protocol types, and HTTP client. The bridge kernel itself never contains provider-specific logic.
-
-[Stream Pipeline](/02-architecture/stream-pipeline)
-
-
-# 02-architecture/overview.md
-
 ---
 title: "System Overview"
 description: "High-level architecture of GodeX — component model, dependency graph, and design patterns."
@@ -512,10 +509,6 @@ flowchart TD
 ```
 
 [Request Flow](/02-architecture/request-flow)
-
-
-# 02-architecture/request-flow.md
-
 ---
 title: "Request Flow"
 description: "End-to-end journey of a /v1/responses request through GodeX."
@@ -620,10 +613,176 @@ sequenceDiagram
 7. **Response reconstruction**: The sync pipeline reconstructs a `ResponseObject` via `reconstructResponseObject()`. The stream pipeline maps deltas through `ResponseStreamStateMachine`.
 
 [Bridge Kernel](/02-architecture/bridge-kernel)
+---
+title: "Model Resolver"
+description: "How GodeX resolves model names to provider and model pairs through aliases, wildcards, and default provider fallback."
+keywords: "GodeX, model resolver, model aliases, provider selection, wildcard"
+---
 
+# Model Resolver
 
-# 02-architecture/stream-pipeline.md
+The model resolver (`src/resolver/`) translates the `model` field from incoming requests into a concrete `(provider, model)` pair. This determines which provider handles the request and which upstream model name to use.
 
+## Resolution Algorithm
+
+```mermaid
+flowchart TD
+  INPUT["model field from request"]
+  SLASH{"Contains '/'?"}
+  EXPLICIT["Parse as provider/model"]
+  BARE["Look up in aliases"]
+  ALIAS_HIT{"Exact alias match?"}
+  WILDCARD{"Wildcard '*' alias?"}
+  DEFAULT["Use default_provider + bare model"]
+  RESULT["ResolvedModel"]
+
+  INPUT --> SLASH
+  SLASH -->|Yes| EXPLICIT --> RESULT
+  SLASH -->|No| BARE --> ALIAS_HIT
+  ALIAS_HIT -->|Yes| RESULT
+  ALIAS_HIT -->|No| WILDCARD
+  WILDCARD -->|Yes| RESULT
+  WILDCARD -->|No| DEFAULT --> RESULT
+```
+
+### Resolution Order
+
+1. **Explicit selector** — If `model` contains a `/`, it is parsed as `provider/model` and used directly.
+2. **Exact alias match** — The bare model name is looked up in `models.aliases` for an exact key match.
+3. **Wildcard fallback** — If no exact match, the `*` alias is used as a catch-all.
+4. **Default provider** — If no alias matches, the model name is paired with `default_provider`.
+
+## Configuration
+
+Model aliases are configured in `godex.yaml`:
+
+```yaml
+default_provider: deepseek
+
+models:
+  aliases:
+    "gpt-5.5": deepseek/deepseek-v4-pro
+    "glm": zhipu/glm-5.1
+    "*": deepseek/deepseek-v4-flash
+```
+
+### Resolution Examples
+
+| Input `model` | Resolution | Explanation |
+|---------------|------------|-------------|
+| `"gpt-5.5"` | `{ provider: "deepseek", model: "deepseek-v4-pro" }` | Exact alias match |
+| `"glm"` | `{ provider: "zhipu", model: "glm-5.1" }` | Exact alias match |
+| `"claude-4"` | `{ provider: "deepseek", model: "deepseek-v4-flash" }` | No exact match, wildcard `*` alias |
+| `"zhipu/glm-5.1"` | `{ provider: "zhipu", model: "glm-5.1" }` | Explicit `provider/model` selector |
+| `"unknown-model"` (no `*` alias) | `{ provider: "deepseek", model: "unknown-model" }` | No alias, default provider fallback |
+
+## Module Structure
+
+```
+src/resolver/
+├── model-resolver.ts    # ModelResolver class with resolve() and listAliases()
+├── model-aliases.ts     # ModelAliasCatalog with exact, wildcard, and listing logic
+├── model-selector.ts    # parseModelSelector() for provider/model string parsing
+├── model-reference.ts   # ResolvedModel type definition
+└── index.ts             # Barrel exports
+```
+
+## API Endpoints
+
+The `/v1/models` endpoint uses `ModelResolver.listAliases()` to return the configured model list, filtered to only include aliases whose provider is registered.
+
+[Bridge Kernel](/02-architecture/bridge-kernel)
+[Request Flow](/02-architecture/request-flow)
+---
+title: "Bridge Kernel"
+description: "How the bridge layer translates between Responses API and provider Chat Completions without provider-specific logic."
+keywords: "GodeX, bridge kernel, compatibility, tools, output contract, request builder"
+---
+
+# Bridge Kernel
+
+The bridge kernel (`src/bridge/`) is the core translation engine. It sits between the responses orchestration layer and provider implementations, converting between the OpenAI Responses API protocol and Chat Completions formats in a provider-agnostic way.
+
+## Submodule Responsibilities
+
+| Submodule | Role |
+|-----------|------|
+| `compatibility/` | Plans supported, degraded, ignored, and rejected request features |
+| `request/` | Normalizes Responses input and session history into Chat Completions messages |
+| `tools/` | Plans tool declarations, `tool_choice`, degradation, identity mapping, and call restoration |
+| `output/` | Plans structured-output contracts and validates strict downgraded JSON output |
+| `response/` | Reconstructs sync `ResponseObject` results from provider responses |
+| `stream/` | Maps provider deltas into Responses SSE events through a state machine |
+| `provider-spec/` | Defines `ProviderSpec`, `ProviderEdge`, provider constants, and package shape checks |
+| `finish-reason/` | Maps provider finish reasons to Responses terminal states |
+
+## Request Building
+
+The `buildChatCompletionRequest()` function in `bridge/request/` is the main entry point. It composes four planning steps:
+
+1. **Compatibility planning** — `planBridgeCompatibility()` checks each request parameter against the provider's capabilities and records supported, degraded, ignored, or rejected decisions.
+2. **Tool planning** — `planTools()` maps tool definitions to provider tool declarations, handles tool type degradation (e.g., `local_shell` to `function`), and computes the effective `tool_choice`.
+3. **Output contract planning** — `planOutputContract()` decides how structured output should be handled, including degrading `json_schema` to `json_object` when the provider does not support native schemas.
+4. **Message building** — Normalizes the current input and session history into Chat Completions messages, injecting synthetic preamble instructions for downgraded output formats.
+
+```mermaid
+flowchart LR
+  subgraph input["Input"]
+    CTX["ResponsesContext"]
+  end
+  subgraph bridge["Bridge Kernel"]
+    COMPAT["compatibility/"]
+    TOOLS["tools/"]
+    OUTPUT["output/"]
+    MSG["request/"]
+  end
+  subgraph result["Build Result"]
+    REQ["ChatCompletionRequest"]
+    PLAN["CompatibilityPlan"]
+    TOOL_PLAN["ToolPlan"]
+    OUT_PLAN["OutputContractPlan"]
+  end
+
+  CTX --> COMPAT --> PLAN
+  CTX --> TOOLS --> TOOL_PLAN
+  CTX --> OUTPUT --> OUT_PLAN
+  CTX --> MSG --> REQ
+```
+
+## Compatibility Planning
+
+```mermaid
+flowchart TD
+  INPUT["ResponseCreateRequest"]
+  CAPS["ProviderCapabilities"]
+  PLAN["CompatibilityPlan"]
+  PARAMS["Parameter decisions"]
+  RF["Response format decision"]
+
+  INPUT --> PLAN
+  CAPS --> PLAN
+  PLAN --> PARAMS
+  PLAN --> RF
+```
+
+Each parameter is checked against the provider's capability set and produces a `CompatibilityDecision`:
+
+| Action | Meaning |
+|--------|---------|
+| `supported` | Parameter is forwarded as-is |
+| `degraded` | Parameter is transformed to a lower-fidelity equivalent |
+| `ignored` | Parameter is consumed by GodeX and not forwarded |
+| `rejected` | Parameter is not supported; the request fails with a `BridgeError` |
+
+Diagnostics are accumulated in `ResponsesContext.diagnostics` and logged after the response completes.
+
+## Provider Edge
+
+The `ProviderEdge` interface is the bridge's contract with providers. Each provider implements a `ProviderSpec` that declares capabilities, accessors for reading responses and stream chunks, and optional hooks for request patching.
+
+Provider-specific differences belong in each provider's `spec.ts`, `hooks.ts`, protocol types, and HTTP client. The bridge kernel itself never contains provider-specific logic.
+
+[Stream Pipeline](/02-architecture/stream-pipeline)
 ---
 title: "Stream Pipeline"
 description: "How the StreamPipeline converts upstream SSE chunks into Responses API events through composable transformers."
@@ -702,10 +861,163 @@ The `ResponseSessionPersistenceTransformer` passes all events through transparen
 When `store === false` on the request, this transformer is bypassed entirely.
 
 [Provider Interface](/03-provider-development/provider-interface)
+---
+title: "Provider Interface"
+description: "Core interfaces every provider must implement: ProviderSpec, ProviderEdge, hooks, and capabilities."
+keywords: "GodeX, provider interface, ProviderSpec, ProviderEdge, ProviderHooks, development"
+---
 
+# Provider Interface
 
-# 03-provider-development/deepseek-reference.md
+Adding a new LLM provider to GodeX means declaring a `ProviderSpec` with capabilities, response/stream accessors, optional hooks, and wiring up an HTTP client. The bridge kernel handles routing, session management, compatibility planning, and SSE encoding — providers only deal with protocol differences and HTTP calls.
 
+## Core Interfaces
+
+```mermaid
+classDiagram
+  direction TB
+
+  class ProviderSpec~TReq TRes TChunk~ {
+    +name: string
+    +protocol: ProviderProtocol
+    +capabilities: ProviderCapabilities
+    +endpoint: ProviderEndpointSpec
+    +auth: ProviderAuthSpec
+    +toolName: ToolNameCodec
+    +response: ChatCompletionResponseAccessor~TRes~
+    +stream: ChatCompletionStreamAccessor~TChunk~
+    +hooks?: ProviderHooks
+  }
+
+  class ProviderEdge~TReq TRes TChunk~ {
+    <<interface>>
+    +name: string
+    +spec: ProviderSpec
+    +request(body) Promise~TRes~
+    +stream(body) Promise~ReadableStream~
+  }
+
+  class ProviderHooks~TReq TRes TChunk~ {
+    +patchRequest?(request) TProviderRequest
+    +normalizeResponse?(response) TResponse
+    +normalizeChunk?(chunk) TChunk
+  }
+
+  class ProviderCapabilities {
+    +parameters: ParameterCapabilities
+    +tools: ToolCapabilities
+    +toolChoice: ToolChoiceCapabilities
+    +responseFormats: ResponseFormatCapabilities
+    +reasoning: ReasoningCapabilities
+    +streaming: StreamingCapabilities
+  }
+
+  class ToolNameCodec {
+    +toProviderName(name) string
+    +fromProviderName(name) string or undefined
+  }
+
+  ProviderEdge --> ProviderSpec
+  ProviderSpec --> ProviderCapabilities
+  ProviderSpec --> ToolNameCodec
+  ProviderSpec --> ProviderHooks
+```
+
+## ProviderCapabilities
+
+Capabilities are declared as immutable sets and flags. They tell the bridge kernel what the provider supports so it can plan compatibility decisions.
+
+```ts
+const capabilities: ProviderCapabilities = {
+  parameters: {
+    supported: new Set([
+      "stream", "temperature", "top_p", "max_output_tokens",
+      "reasoning", "safety_identifier", "user",
+      "text.format",
+    ]),
+  },
+  tools: {
+    supported: new Set(["function"]),
+    degraded: new Map([["local_shell", "function"]]),
+    maxTools: 128,
+  },
+  toolChoice: {
+    supported: new Set(["auto", "none", "required", "function"]),
+  },
+  responseFormats: {
+    supported: new Set(["text", "json_object"]),
+  },
+  reasoning: { effort: "native" },
+  streaming: { usage: true },
+};
+```
+
+### Capability Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `parameters.supported` | `Set<string>` | Request parameters the provider accepts |
+| `tools.supported` | `Set<string>` | Tool types the provider can handle |
+| `tools.degraded` | `Map<string, string>` | Tool types that degrade to another type |
+| `tools.maxTools` | `number` | Maximum number of tools per request |
+| `toolChoice.supported` | `Set<string>` | `tool_choice` modes the provider supports |
+| `responseFormats.supported` | `Set<string>` | Response format types (`text`, `json_object`, `json_schema`) |
+| `reasoning.effort` | `"none" \| "boolean" \| "native"` | How the provider handles reasoning effort |
+| `streaming.usage` | `boolean` | Whether the provider returns usage in stream chunks |
+
+## Response Accessors
+
+The spec declares typed accessors so the bridge can read provider responses without knowing the concrete type:
+
+```ts
+interface ChatCompletionResponseAccessor<TResponse> {
+  firstChoice(response: TResponse): unknown | undefined;
+  finishReason(response: TResponse): string | undefined;
+  outputText(response: TResponse): string;
+  usage(response: TResponse): ResponseUsage | null;
+}
+```
+
+## Stream Accessors
+
+```ts
+interface ChatCompletionStreamAccessor<TChunk> {
+  deltas(chunk: TChunk): ProviderSpecStreamDelta[];
+}
+```
+
+Each stream chunk may produce zero or more typed deltas (text, reasoning, tool calls, usage, finish reason).
+
+## Provider Hooks
+
+Hooks allow provider-specific behavior without polluting the bridge kernel:
+
+| Hook | When Called | Purpose |
+|------|-----------|---------|
+| `patchRequest` | After bridge builds the Chat Completions request | Transform the request for provider-specific quirks |
+| `normalizeResponse` | After receiving a sync response | Normalize provider response shape |
+| `normalizeChunk` | After receiving a stream chunk | Normalize provider chunk shape |
+
+## Registration
+
+Register a provider definition in `src/providers/builtin.ts`:
+
+```ts
+const MY_PROVIDER_DEFINITION = createProviderDefinition(
+  "myprovider",
+  createMyProviderEdge,
+);
+
+export const BUILTIN_PROVIDER_DEFINITIONS = [
+  DEEPSEEK_PROVIDER_DEFINITION,
+  ZHIPU_PROVIDER_DEFINITION,
+  MY_PROVIDER_DEFINITION,
+] as const satisfies readonly ProviderDefinition[];
+```
+
+The `Registrar` iterates all configured providers in `godex.yaml`, matches by the `spec` field to the factory, and builds `ProviderEdge` instances. Providers without a matching factory are listed as unsupported.
+
+[DeepSeek Reference](/03-provider-development/deepseek-reference)
 ---
 title: "DeepSeek Reference Implementation"
 description: "Walkthrough of the DeepSeek provider — demonstrating native reasoning effort, cached token usage, and content array handling."
@@ -848,10 +1160,162 @@ The default DeepSeek base URL is `https://api.deepseek.com`. The default model i
 DeepSeek may return `message.content` as either a string or an array of content parts. The `deepSeekOutputText` accessor handles both cases, extracting text from `type: "text"` parts in array content.
 
 [Zhipu Reference](/03-provider-development/zhipu-reference)
+---
+title: "Zhipu Reference Implementation"
+description: "Walkthrough of the Zhipu provider — a reference implementation that demonstrates all provider interfaces."
+keywords: "GodeX, Zhipu, provider reference, implementation"
+---
 
+# Zhipu Reference Implementation
 
-# 03-provider-development/message-tool-mapping.md
+The Zhipu provider is one of the bundled reference implementations in GodeX. It demonstrates how to build a complete provider using `ProviderSpec`, `ProviderHooks`, and `ChatProviderClient`, including web search, file search, and MCP tool support.
 
+## Module Structure
+
+```
+src/providers/zhipu/
+├── spec.ts         # ZHIPU_PROVIDER_SPEC declaration with capabilities and accessors
+├── client.ts       # createZhipuProviderEdge() factory
+├── hooks.ts        # Provider-specific hooks (patchRequest, usage mapping, deltas)
+├── protocol/       # Zhipu-specific type definitions
+│   ├── completions.ts  # Request/response DTOs
+│   ├── models.ts       # Model list types
+│   └── index.ts        # Barrel exports
+└── index.ts        # Public exports
+```
+
+## Spec Declaration
+
+The `ZHIPU_PROVIDER_SPEC` in `spec.ts` declares all capabilities, accessors, and hooks:
+
+```ts
+export const ZHIPU_PROVIDER_SPEC: ProviderSpec<
+  BridgeChatCompletionCreateRequest,
+  ChatCompletionResponse,
+  ChatCompletionChunk,
+  ChatCompletionCreateRequest
+> = {
+  name: ZHIPU_PROVIDER_NAME,
+  protocol: CHAT_COMPLETIONS_PROTOCOL,
+  capabilities: ZHIPU_SPEC_CAPABILITIES,
+  endpoint: { defaultBaseURL: DEFAULT_ZHIPU_BASE_URL },
+  auth: BEARER_AUTH,
+  toolName: DEFAULT_TOOL_NAME_CODEC,
+  response: {
+    firstChoice: zhipuFirstChoice,
+    finishReason: zhipuFinishReason,
+    outputText: zhipuOutputText,
+    usage: zhipuResponseUsage,
+  },
+  stream: { deltas: zhipuStreamDeltas },
+  hooks: { patchRequest: zhipuPatchRequest },
+};
+```
+
+## Capabilities
+
+```ts
+const ZHIPU_SPEC_CAPABILITIES: ProviderCapabilities = {
+  parameters: {
+    supported: new Set([
+      "stream", "temperature", "top_p", "max_output_tokens",
+      "safety_identifier", "user", "reasoning", "text.format",
+    ]),
+  },
+  tools: {
+    supported: new Set([
+      "function", "web_search", "web_search_2025_08_26",
+      "web_search_preview", "web_search_preview_2025_03_11",
+      "file_search", "mcp",
+      "local_shell", "shell", "apply_patch",
+      "custom", "tool_search", "namespace",
+    ]),
+    degraded: new Map([
+      ["web_search_2025_08_26", "web_search"],
+      ["web_search_preview", "web_search"],
+      ["web_search_preview_2025_03_11", "web_search"],
+      ["file_search", "retrieval"],
+      ["local_shell", "function"],
+      ["shell", "function"],
+      ["apply_patch", "function"],
+      ["custom", "function"],
+      ["tool_search", "function"],
+      ["namespace", "function"],
+    ]),
+    maxTools: 128,
+  },
+  toolChoice: { supported: new Set(["auto", "none"]) },
+  responseFormats: { supported: new Set(["text", "json_object"]) },
+  reasoning: { effort: "boolean" },
+  streaming: { usage: true },
+};
+```
+
+Notable capability details:
+
+- **Boolean reasoning effort**: Zhipu uses `reasoning.effort: "boolean"`, meaning the bridge maps reasoning to a boolean on/off toggle rather than a multi-level effort value.
+- **Rich tool support**: Zhipu supports `web_search` (with versioned variants), `file_search` (degraded to `retrieval`), `mcp`, and all standard Codex built-in tools.
+- **Limited tool choice**: Only `auto` and `none` are supported — `required` and `function` modes are not available.
+- **Max 128 tools**: Zhipu accepts up to 128 tools per request.
+- **Cached tokens**: Zhipu reports cached tokens via `prompt_tokens_details.cached_tokens`.
+
+## Hooks
+
+### `zhipuPatchRequest`
+
+Transforms the bridge's Chat Completions request for Zhipu-specific behavior:
+
+1. If `reasoning_effort` is present, removes it from the request (Zhipu uses boolean reasoning).
+2. If `thinking` is already configured, merges `clear_thinking: false` to preserve reasoning context.
+3. If historical messages contain `reasoning_content`, enables thinking with `clear_thinking: false`.
+4. Otherwise, passes the request through as-is.
+
+### `zhipuStreamDeltas`
+
+Extracts typed deltas from Zhipu's SSE chunks:
+
+- `content` → text delta
+- `tool_calls` → tool call deltas (via shared `mapCommonChatStreamDelta`)
+- `usage` → usage delta (with cached token mapping)
+- `finish_reason` → finish reason delta
+
+### `mapZhipuUsage`
+
+Maps Zhipu's usage format to the standard `ResponseUsage` type, including:
+
+- `prompt_tokens_details.cached_tokens` → `input_tokens_details.cached_tokens`
+
+## Client Construction
+
+The `createZhipuProviderEdge()` function in `client.ts` builds the `ProviderEdge`:
+
+1. Creates a `ChatProviderClient` with the provider's base URL, API key, and timeout.
+2. Uses `createProviderEdge()` from the bridge kernel to wrap the spec, config, and HTTP methods.
+
+## Registration
+
+The provider is registered in `src/providers/builtin.ts`:
+
+```ts
+export const ZHIPU_PROVIDER_DEFINITION = createProviderDefinition(
+  ZHIPU_PROVIDER_NAME,
+  createZhipuProviderEdge,
+);
+```
+
+## Base URLs
+
+Zhipu has two base URLs:
+
+| URL | Use Case |
+|-----|----------|
+| `https://open.bigmodel.cn/api/paas/v4` | Standard API endpoint |
+| `https://open.bigmodel.cn/api/coding/paas/v4` | Coding plan endpoint (default) |
+
+The default base URL is the coding plan endpoint. The default model is `glm-5.1`.
+
+[Message & Tool Mapping](/03-provider-development/message-tool-mapping)
+[DeepSeek Reference](/03-provider-development/deepseek-reference)
 ---
 title: "Message & Tool Mapping"
 description: "How Responses API messages and tools are translated to provider-specific formats through the bridge kernel."
@@ -931,256 +1395,98 @@ When the provider returns tool calls in its response, the bridge restores them:
 Every compatibility decision — degraded tools, ignored parameters, rejected formats — produces a `CompatibilityDiagnostic` that is accumulated in `ResponsesContext.diagnostics` and logged after the response completes.
 
 [Session Store](/04-session-management/session-store)
-
-
-# 03-provider-development/provider-interface.md
-
 ---
-title: "Provider Interface"
-description: "Core interfaces every provider must implement: ProviderSpec, ProviderEdge, hooks, and capabilities."
-keywords: "GodeX, provider interface, ProviderSpec, ProviderEdge, ProviderHooks, development"
+title: "Session Store"
+description: "ResponseSessionStore interface and the Memory and SQLite implementations."
+keywords: "GodeX, session store, SQLite, memory, ResponseSessionStore"
 ---
 
-# Provider Interface
+# Session Store
 
-Adding a new LLM provider to GodeX means declaring a `ProviderSpec` with capabilities, response/stream accessors, optional hooks, and wiring up an HTTP client. The bridge kernel handles routing, session management, compatibility planning, and SSE encoding — providers only deal with protocol differences and HTTP calls.
+The session store persists response snapshots to support the `previous_response_id` chain resolution pattern. Each completed response is saved with enough data to reconstruct the conversation history later.
 
-## Core Interfaces
+## Interface
 
 ```mermaid
 classDiagram
   direction TB
 
-  class ProviderSpec~TReq TRes TChunk~ {
-    +name: string
-    +protocol: ProviderProtocol
-    +capabilities: ProviderCapabilities
-    +endpoint: ProviderEndpointSpec
-    +auth: ProviderAuthSpec
-    +toolName: ToolNameCodec
-    +response: ChatCompletionResponseAccessor~TRes~
-    +stream: ChatCompletionStreamAccessor~TChunk~
-    +hooks?: ProviderHooks
+ class ResponseSessionStore {
+   <<interface>>
+   +get(id) Promise~StoredResponseSession or null~
+   +save(session, opts) Promise~void~
+   +resolveChain(id, opts) Promise~ResponseSessionSnapshot~
+   +delete(id) Promise~void~
+    +close?() void
+ }
+
+  class MemoryResponseSessionStore {
+    -sessions: Map
   }
 
-  class ProviderEdge~TReq TRes TChunk~ {
-    <<interface>>
-    +name: string
-    +spec: ProviderSpec
-    +request(body) Promise~TRes~
-    +stream(body) Promise~ReadableStream~
+  class SQLiteResponseSessionStore {
+    +db: Database
+    -ownsDatabase: boolean
   }
 
-  class ProviderHooks~TReq TRes TChunk~ {
-    +patchRequest?(request) TProviderRequest
-    +normalizeResponse?(response) TResponse
-    +normalizeChunk?(chunk) TChunk
-  }
-
-  class ProviderCapabilities {
-    +parameters: ParameterCapabilities
-    +tools: ToolCapabilities
-    +toolChoice: ToolChoiceCapabilities
-    +responseFormats: ResponseFormatCapabilities
-    +reasoning: ReasoningCapabilities
-    +streaming: StreamingCapabilities
-  }
-
-  class ToolNameCodec {
-    +toProviderName(name) string
-    +fromProviderName(name) string or undefined
-  }
-
-  ProviderEdge --> ProviderSpec
-  ProviderSpec --> ProviderCapabilities
-  ProviderSpec --> ToolNameCodec
-  ProviderSpec --> ProviderHooks
+  ResponseSessionStore <|.. MemoryResponseSessionStore
+  ResponseSessionStore <|.. SQLiteResponseSessionStore
 ```
 
-## ProviderCapabilities
+## Stored Data
 
-Capabilities are declared as immutable sets and flags. They tell the bridge kernel what the provider supports so it can plan compatibility decisions.
+Each `StoredResponseSession` contains:
 
-```ts
-const capabilities: ProviderCapabilities = {
-  parameters: {
-    supported: new Set([
-      "stream", "temperature", "top_p", "max_output_tokens",
-      "reasoning", "safety_identifier", "user",
-    ]),
-  },
-  tools: {
-    supported: new Set(["function"]),
-    degraded: new Map([["local_shell", "function"]]),
-    maxTools: 128,
-  },
-  toolChoice: {
-    supported: new Set(["auto", "none", "required", "function"]),
-  },
-  responseFormats: {
-    supported: new Set(["text", "json_object"]),
-  },
-  reasoning: { effort: "native" },
-  streaming: { usage: true },
-};
+| Field | Description |
+|-------|-------------|
+| `id` | Response ID (e.g., `resp_abc123`) |
+| `previous_response_id` | Parent pointer for chain traversal |
+| `conversation_id` | Reserved for future Conversation API compatibility |
+| `created_at` / `completed_at` | Unix timestamps |
+| `status` | Response status (`completed`, etc.) |
+| `request` | Snapshot of input, instructions, model, tools |
+| `response` | Snapshot of output, usage, error |
+| `metadata` | Optional arbitrary key-value metadata |
+
+## Backend Selection
+
+```yaml
+session:
+  backend: sqlite          # or "memory"
+  sqlite:
+    path: ./data/sessions.db
 ```
 
-### Capability Fields
+| Backend | Use Case |
+|---------|----------|
+| `memory` | Tests, demos, single-process ephemeral deployments |
+| `sqlite` | Production, persistent history across restarts |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `parameters.supported` | `Set<string>` | Request parameters the provider accepts |
-| `tools.supported` | `Set<string>` | Tool types the provider can handle |
-| `tools.degraded` | `Map<string, string>` | Tool types that degrade to another type |
-| `tools.maxTools` | `number` | Maximum number of tools per request |
-| `toolChoice.supported` | `Set<string>` | `tool_choice` modes the provider supports |
-| `responseFormats.supported` | `Set<string>` | Response format types (`text`, `json_object`, `json_schema`) |
-| `reasoning.effort` | `"none" \| "boolean" \| "native"` | How the provider handles reasoning effort |
-| `streaming.usage` | `boolean` | Whether the provider returns usage in stream chunks |
+## Implementation Details
 
-## Response Accessors
+**Memory store**: Uses a `Map` with `structuredClone()` on read/write to prevent reference mutation. No resource cleanup needed.
 
-The spec declares typed accessors so the bridge can read provider responses without knowing the concrete type:
+**SQLite store**: Auto-creates the database file and schema on construction. Uses `bun:sqlite` for synchronous reads within the async chain resolution algorithm. Creates indexes on `previous_response_id` and `conversation_id` for chain traversal performance.
+
+## Save Policy
+
+Before persisting a session, the `assertCanSaveSession()` policy in `src/session/save-policy.ts` validates:
+
+| Check | Error Code | When |
+|-------|-----------|------|
+| Parent pointer mismatch | `session.store.conflict` | `expected_previous_response_id` does not match the session's actual `previous_response_id` |
+| Duplicate ID | `session.store.conflict` | A session with the same ID already exists and `overwrite` is not set |
+
+### Save Options
 
 ```ts
-interface ChatCompletionResponseAccessor<TResponse> {
-  firstChoice(response: TResponse): unknown | undefined;
-  finishReason(response: TResponse): string | undefined;
-  outputText(response: TResponse): string;
-  usage(response: TResponse): ResponseUsage | null;
+interface SaveResponseSessionOptions {
+  overwrite?: boolean;                        // Allow replacing an existing stored response
+  expected_previous_response_id?: string | null; // Guard against saving under an unexpected parent
 }
 ```
 
-## Stream Accessors
-
-```ts
-interface ChatCompletionStreamAccessor<TChunk> {
-  deltas(chunk: TChunk): ProviderSpecStreamDelta[];
-}
-```
-
-Each stream chunk may produce zero or more typed deltas (text, reasoning, tool calls, usage, finish reason).
-
-## Provider Hooks
-
-Hooks allow provider-specific behavior without polluting the bridge kernel:
-
-| Hook | When Called | Purpose |
-|------|-----------|---------|
-| `patchRequest` | After bridge builds the Chat Completions request | Transform the request for provider-specific quirks |
-| `normalizeResponse` | After receiving a sync response | Normalize provider response shape |
-| `normalizeChunk` | After receiving a stream chunk | Normalize provider chunk shape |
-
-## Registration
-
-Register a provider definition in `src/providers/builtin.ts`:
-
-```ts
-const MY_PROVIDER_DEFINITION = createProviderDefinition(
-  "myprovider",
-  createMyProviderEdge,
-);
-
-export const BUILTIN_PROVIDER_DEFINITIONS = [
-  DEEPSEEK_PROVIDER_DEFINITION,
-  ZHIPU_PROVIDER_DEFINITION,
-  MY_PROVIDER_DEFINITION,
-] as const satisfies readonly ProviderDefinition[];
-```
-
-The `Registrar` iterates all configured providers in `godex.yaml`, matches by the `spec` field to the factory, and builds `ProviderEdge` instances. Providers without a matching factory are listed as unsupported.
-
-[DeepSeek Reference](/03-provider-development/deepseek-reference)
-
-
-# 03-provider-development/zhipu-reference.md
-
----
-title: "Zhipu Reference Implementation"
-description: "Walkthrough of the Zhipu provider — a reference implementation that demonstrates all provider interfaces."
-keywords: "GodeX, Zhipu, provider reference, implementation"
----
-
-# Zhipu Reference Implementation
-
-The Zhipu provider is one of the bundled reference implementations in GodeX. It demonstrates how to build a complete provider using `ProviderSpec`, `ProviderHooks`, and `ChatProviderClient`.
-
-## Module Structure
-
-```
-src/providers/zhipu/
-├── spec.ts         # ZHIPU_PROVIDER_SPEC declaration with capabilities and accessors
-├── client.ts       # createZhipuProviderEdge() factory
-├── hooks.ts        # Provider-specific hooks (patchRequest, usage mapping, deltas)
-├── protocol/       # Zhipu-specific type definitions
-│   ├── completions.ts  # Request/response DTOs
-│   ├── models.ts       # Model list types
-│   └── index.ts        # Barrel exports
-└── index.ts        # Public exports
-```
-
-## Spec Declaration
-
-The `ZHIPU_PROVIDER_SPEC` in `spec.ts` declares all capabilities, accessors, and hooks:
-
-```ts
-export const ZHIPU_PROVIDER_SPEC: ProviderSpec<
-  BridgeChatCompletionCreateRequest,
-  ChatCompletionResponse,
-  ChatCompletionChunk,
-  ChatCompletionCreateRequest
-> = {
-  name: ZHIPU_PROVIDER_NAME,
-  protocol: CHAT_COMPLETIONS_PROTOCOL,
-  capabilities: ZHIPU_SPEC_CAPABILITIES,
-  endpoint: { defaultBaseURL: DEFAULT_ZHIPU_BASE_URL },
-  auth: BEARER_AUTH,
-  toolName: DEFAULT_TOOL_NAME_CODEC,
-  response: {
-    firstChoice: zhipuFirstChoice,
-    finishReason: zhipuFinishReason,
-    outputText: zhipuOutputText,
-    usage: zhipuResponseUsage,
-  },
-  stream: { deltas: zhipuStreamDeltas },
-  hooks: { patchRequest: zhipuPatchRequest },
-};
-```
-
-## Client Construction
-
-The `createZhipuProviderEdge()` function in `client.ts` builds the `ProviderEdge`:
-
-1. Creates a `ChatProviderClient` with the provider's base URL, API key, and timeout.
-2. Uses `createProviderEdge()` from the bridge kernel to wrap the spec, config, and HTTP methods.
-
-## Hooks
-
-The `hooks.ts` file contains provider-specific behavior:
-
-- **`zhipuPatchRequest`** — Transforms the bridge's Chat Completions request into Zhipu's native format when needed.
-- **`zhipuStreamDeltas`** — Extracts typed deltas from Zhipu's SSE chunks (text, tool calls, usage, finish reason).
-- **`mapZhipuUsage`** — Maps Zhipu's usage format to the standard `ResponseUsage` type.
-
-## Registration
-
-The provider is registered in `src/providers/builtin.ts`:
-
-```ts
-export const ZHIPU_PROVIDER_DEFINITION = createProviderDefinition(
-  ZHIPU_PROVIDER_NAME,
-  createZhipuProviderEdge,
-);
-```
-
-The default Zhipu base URL is `https://open.bigmodel.cn/api/coding/paas/v4` (coding plan endpoint). The default model is `glm-5.1`.
-
-[Message & Tool Mapping](/03-provider-development/message-tool-mapping)
-[DeepSeek Reference](/03-provider-development/deepseek-reference)
-
-
-# 04-session-management/chain-resolution.md
-
+[Chain Resolution](/04-session-management/chain-resolution)
 ---
 title: "Chain Resolution"
 description: "How previous_response_id chains are traversed, validated, and reconstructed."
@@ -1228,6 +1534,15 @@ flowchart TD
 | Depth exceeded | `session.chain.depth_exceeded` | 64 hops |
 | Incomplete status | `session.chain.unavailable` | Only completed turns |
 
+## Resolution Options
+
+```ts
+interface ResolveResponseSessionOptions {
+  max_depth?: number;           // Maximum parent hops (default: 64)
+  include_incomplete?: boolean; // Include non-completed responses (default: false)
+}
+``+
+
 ## Result Structure
 
 `ResponseSessionSnapshot` contains:
@@ -1236,86 +1551,6 @@ flowchart TD
 - `input_items`: Flattened array of all input and output items across turns, ready for provider message construction
 
 [Transformers](/05-streaming-pipeline/transformers)
-
-
-# 04-session-management/session-store.md
-
----
-title: "Session Store"
-description: "ResponseSessionStore interface and the Memory and SQLite implementations."
-keywords: "GodeX, session store, SQLite, memory, ResponseSessionStore"
----
-
-# Session Store
-
-The session store persists response snapshots to support the `previous_response_id` chain resolution pattern. Each completed response is saved with enough data to reconstruct the conversation history later.
-
-## Interface
-
-```mermaid
-classDiagram
-  direction TB
-
-  class ResponseSessionStore {
-    <<interface>>
-    +get(id) Promise~StoredResponseSession or null~
-    +save(session, opts) Promise~void~
-    +resolveChain(id, opts) Promise~ResponseSessionSnapshot~
-    +delete(id) Promise~void~
-    +close() void
-  }
-
-  class MemoryResponseSessionStore {
-    -sessions: Map
-  }
-
-  class SQLiteResponseSessionStore {
-    +db: Database
-    -ownsDatabase: boolean
-  }
-
-  ResponseSessionStore <|.. MemoryResponseSessionStore
-  ResponseSessionStore <|.. SQLiteResponseSessionStore
-```
-
-## Stored Data
-
-Each `StoredResponseSession` contains:
-
-| Field | Description |
-|-------|-------------|
-| `id` | Response ID (e.g., `resp_abc123`) |
-| `previous_response_id` | Parent pointer for chain traversal |
-| `created_at` / `completed_at` | Unix timestamps |
-| `status` | Response status (`completed`, etc.) |
-| `request` | Snapshot of input, instructions, model, tools |
-| `response` | Snapshot of output, usage, error |
-
-## Backend Selection
-
-```yaml
-session:
-  backend: sqlite          # or "memory"
-  sqlite:
-    path: ./data/sessions.db
-```
-
-| Backend | Use Case |
-|---------|----------|
-| `memory` | Tests, demos, single-process ephemeral deployments |
-| `sqlite` | Production, persistent history across restarts |
-
-## Implementation Details
-
-**Memory store**: Uses a `Map` with `structuredClone()` on read/write to prevent reference mutation. No resource cleanup needed.
-
-**SQLite store**: Auto-creates the database file and schema on construction. Uses `bun:sqlite` for synchronous reads within the async chain resolution algorithm. Creates indexes on `previous_response_id` and `conversation_id` for chain traversal performance.
-
-[Chain Resolution](/04-session-management/chain-resolution)
-
-
-# 05-streaming-pipeline/stream-state.md
-
 ---
 title: "Stream State"
 description: "How ResponseStreamStateMachine manages output blocks and produces ResponseStreamEvents during streaming."
@@ -1426,10 +1661,6 @@ The state machine validates phase transitions and throws `BridgeError` for:
 | `bridge.stream.incomplete_tool_call` | Stream ended with an unfinished tool call |
 
 [Error Hierarchy](/06-error-handling/error-hierarchy)
-
-
-# 05-streaming-pipeline/transformers.md
-
 ---
 title: "Transformers"
 description: "The composable TransformStream stages that process streaming events."
@@ -1522,76 +1753,6 @@ data: {"type":"response.output_item.added","output_index":0,"item":{...}}
 ```
 
 [Stream State](/05-streaming-pipeline/stream-state)
-
-
-# 06-error-handling/error-codes.md
-
----
-title: "Error Codes"
-description: "Complete reference of domain-specific error codes used throughout GodeX."
-keywords: "GodeX, error codes, domain codes, diagnostics"
----
-
-# Error Codes
-
-## Bridge Domain
-
-| Code | Description |
-|------|-------------|
-| `bridge.request.unsupported_parameter` | Request contains a parameter not supported by the provider |
-| `bridge.request.tool_skipped` | A tool was skipped because it is not supported |
-| `bridge.request.unsupported_input_item` | Input item type not supported by the provider |
-| `bridge.request.unsupported_input_content` | Input content type not supported |
-| `bridge.request.unsupported_tool` | Tool type not in the provider's supported or degraded sets |
-| `bridge.response.invalid_output_format` | Structured output validation failed (JSON not valid for degraded schema) |
-
-## Bridge Stream Domain
-
-| Code | Description |
-|------|-------------|
-| `bridge.stream.not_initialized` | Stream state machine accessed before creation |
-| `bridge.stream.already_initialized` | Stream state machine created twice |
-| `bridge.stream.invalid_transition` | Method called from an unexpected phase |
-| `bridge.stream.output_before_start` | Delta received before `start()` was called |
-| `bridge.stream.delta_after_terminal` | Delta received after stream reached terminal phase |
-| `bridge.stream.missing_options` | Stream options not provided when required |
-| `bridge.stream.missing_output_block` | Expected output block not found |
-| `bridge.stream.incomplete_tool_call` | Stream ended with an unfinished tool call |
-
-## Provider Domain
-
-| Code | Description |
-|------|-------------|
-| `provider.upstream.rate_limit` | Upstream API rate limit exceeded |
-| `provider.upstream.timeout` | Upstream API request timed out |
-| `provider.upstream.server_error` | Upstream returned a 5xx error |
-| `provider.upstream.error` | Generic upstream communication failure |
-
-## Session Domain
-
-| Code | Description |
-|------|-------------|
-| `session.chain.not_found` | Referenced response ID does not exist |
-| `session.chain.cycle_detected` | Chain traversal found a cycle |
-| `session.chain.depth_exceeded` | Chain depth exceeded the limit (default: 64) |
-| `session.chain.unavailable` | Referenced response is not completed |
-| `session.store.conflict` | Duplicate save or parent pointer mismatch |
-
-## Server Domain
-
-| Code | Description |
-|------|-------------|
-| `server.request.invalid_json` | Request body is not valid JSON |
-| `server.request.missing_model` | Required `model` field is missing |
-| `server.request.invalid_parameter` | Parameter validation failed |
-| `server.provider.not_registered` | Provider has no registered factory |
-| `server_error` | Catch-all server error |
-
-[Configuration](/07-configuration/config-schema)
-
-
-# 06-error-handling/error-hierarchy.md
-
 ---
 title: "Error Hierarchy"
 description: "Structured error types with domain codes for consistent error handling and logging."
@@ -1670,74 +1831,68 @@ Every `GodeXError` produces a structured log entry via `toLogEntry()`:
 ```
 
 [Error Codes](/06-error-handling/error-codes)
-
-
-# 07-configuration/cli-commands.md
-
 ---
-title: "CLI Commands"
-description: "Command-line interface reference for the godex binary."
-keywords: "GodeX, CLI commands, serve, init, config"
+title: "Error Codes"
+description: "Complete reference of domain-specific error codes used throughout GodeX."
+keywords: "GodeX, error codes, domain codes, diagnostics"
 ---
 
-# CLI Commands
+# Error Codes
 
-GodeX ships as a single binary (`godex`) with three subcommands.
+## Bridge Domain
 
-## `godex serve`
+| Code | Description |
+|------|-------------|
+| `bridge.request.unsupported_parameter` | Request contains a parameter not supported by the provider |
+| `bridge.request.tool_skipped` | A tool was skipped because it is not supported |
+| `bridge.request.unsupported_input_item` | Input item type not supported by the provider |
+| `bridge.request.unsupported_input_content` | Input content type not supported |
+| `bridge.request.unsupported_tool` | Tool type not in the provider's supported or degraded sets |
+| `bridge.response.invalid_output_format` | Structured output validation failed (JSON not valid for degraded schema) |
 
-Start the gateway HTTP server.
+## Bridge Stream Domain
 
-```bash
-godex serve                    # Start with default config
-godex serve -c /path/to.yaml  # Use a custom config file
-```
+| Code | Description |
+|------|-------------|
+| `bridge.stream.not_initialized` | Stream state machine accessed before creation |
+| `bridge.stream.already_initialized` | Stream state machine created twice |
+| `bridge.stream.invalid_transition` | Method called from an unexpected phase |
+| `bridge.stream.output_before_start` | Delta received before `start()` was called |
+| `bridge.stream.delta_after_terminal` | Delta received after stream reached terminal phase |
+| `bridge.stream.missing_options` | Stream options not provided when required |
+| `bridge.stream.missing_output_block` | Expected output block not found |
+| `bridge.stream.incomplete_tool_call` | Stream ended with an unfinished tool call |
 
-Reads `godex.yaml` from the current directory (or the path specified by `-c`), initializes all components, and starts listening.
+## Provider Domain
 
-## `godex init`
+| Code | Description |
+|------|-------------|
+| `provider.upstream.rate_limit` | Upstream API rate limit exceeded |
+| `provider.upstream.timeout` | Upstream API request timed out |
+| `provider.upstream.server_error` | Upstream returned a 5xx error |
+| `provider.upstream.error` | Generic upstream communication failure |
 
-Create a `godex.yaml` configuration file interactively.
+## Session Domain
 
-```bash
-godex init
-```
+| Code | Description |
+|------|-------------|
+| `session.chain.not_found` | Referenced response ID does not exist |
+| `session.chain.cycle_detected` | Chain traversal found a cycle |
+| `session.chain.depth_exceeded` | Chain depth exceeded the limit (default: 64) |
+| `session.chain.unavailable` | Referenced response is not completed |
+| `session.store.conflict` | Duplicate save or parent pointer mismatch |
 
-Prompts for:
-- Server port
-- Default provider
-- Provider API key and base URL
-- Model mappings
-- Session backend (memory or SQLite)
-- Log level
+## Server Domain
 
-## `godex config check`
+| Code | Description |
+|------|-------------|
+| `server.request.invalid_json` | Request body is not valid JSON |
+| `server.request.missing_model` | Required `model` field is missing |
+| `server.request.invalid_parameter` | Parameter validation failed |
+| `server.provider.not_registered` | Provider has no registered factory |
+| `server_error` | Catch-all server error |
 
-Validate the current configuration without starting the server.
-
-```bash
-godex config check
-```
-
-Checks:
-- YAML syntax validity
-- Required fields presence
-- Provider configuration completeness
-- Model mapping format
-
-## Build Commands (Development)
-
-```bash
-bun run dev          # Hot-reload dev server on port 13145
-bun run build        # Compile native binary for current platform
-bun run compile:all  # Cross-compile all 6 platform binaries
-```
-
-[Testing Guide](/08-testing/testing-guide)
-
-
-# 07-configuration/config-schema.md
-
+[Configuration](/07-configuration/config-schema)
 ---
 title: "Config Schema"
 description: "Complete reference for godex.yaml configuration options."
@@ -1755,6 +1910,7 @@ server:
   port: 5678              # HTTP listen port
   host: "0.0.0.0"         # Listen address
   idle_timeout: 30000     # Idle connection timeout (ms)
+                         # Default: 0 (disabled)
 
 default_provider: deepseek   # Provider used when model has no slash prefix
 
@@ -1802,11 +1958,11 @@ logging:
 trace:
   enabled: true
   path: ./data/trace.db
-  max_queue_size: 1000
+  max_queue_size: 10000
   flush_interval_ms: 1000
-  batch_size: 50
+  batch_size: 100
   capture_payload: false
-  payload_max_bytes: 102400
+  payload_max_bytes: 65536
 ```
 
 ## Type Definitions
@@ -1900,11 +2056,105 @@ providers:
 
 Values like `${DEEPSEEK_API_KEY}` are resolved at load time from environment variables. Missing variables produce a startup error.
 
+## Environment Variable Overrides
+
+BESIDES YAML interpolation, these environment variables directly override config fields at load time (CLI flags take precedence over both):
+
+| Variable | Config Field | Notes |
+|----------|-------------|-------|
+| `GODEX_PORT` | `server.port` | Overrides the listen port |
+| `GODEX_HOST` | `server.host` | Overrides the bind address |
+| `GODEX_LOG_LEVEL` | `logging.level` | Overrides the log level |
+| `GODEX_DEFAULT_PROVIDER` | `default_provider` | Falls back to `zhipu` if both are unset |
+
 [CLI Commands](/07-configuration/cli-commands)
+---
+title: "CLI Commands"
+description: "Command-line interface reference for the godex binary."
+keywords: "GodeX, CLI commands, serve, init, config"
+---
 
+# CLI Commands
 
-# 08-testing/testing-guide.md
+GodeX ships as a single binary (`godex`) with three subcommands. `godex serve` is the default — running `godex` without arguments is equivalent to `godex serve`.
 
+## `godex serve`
+
+Start the gateway HTTP server.
+
+```bash
+godex serve                    # Start with default config
+godex serve -c /path/to.yaml  # Use a custom config file
+godex serve --port 8080       # Override port
+godex serve --host 127.0.0.1  # Override bind address
+godex serve --log-level debug # Override log level
+```
+
+Reads `godex.yaml` from the current directory (or the path specified by `-c`), initializes all components, and starts listening.
+
+## `godex init`
+
+Create a `godex.yaml` configuration file interactively.
+
+```bash
+godex init                     # Interactive wizard
+godex init --config ~/.godex/config.yaml  # Specify output path
+```
+
+Prompts for:
+- LLM providers to configure (DeepSeek, Zhipu, or both)
+- Per-provider API key and base URL
+- Default provider selection (when multiple providers are configured)
+- Server port
+- Session backend (SQLite or in-memory)
+- Log level
+- Config output path (home directory or working directory)
+
+The generated config includes a wildcard model alias (`"*"`) pointing to the default provider's default model.
+
+## `godex config check`
+
+Validate the current configuration without starting the server.
+
+```bash
+godex config check
+godex config check -c /path/to.yaml
+```
+
+Checks:
+- YAML syntax validity
+- Required fields presence
+- Provider configuration completeness
+- Model mapping format
+
+## `godex config print`
+
+Print the effective configuration with secrets redacted.
+
+```bash
+godex config print
+```
+
+Outputs the resolved config as JSON with API keys replaced by `***`.
+
+## Build Commands (Development)
+
+```bash
+bun run dev          # Hot-reload dev server on port 13145
+bun run build        # Compile native binary for current platform
+bun run compile:all  # Cross-compile all 6 platform binaries
+```
+
+## Environment Variable Overrides
+
+| Variable | Description |
+|----------|-------------|
+| `GODEX_PORT` | Override server port |
+| `GODEX_HOST` | Override bind address |
+| `GODEX_LOG_LEVEL` | Override log level |
+| `GODEX_DEFAULT_PROVIDER` | Override default provider (falls back to `zhipu` if unset) |
+
+[Testing Guide](/08-testing/testing-guide)
 ---
 title: "Testing Guide"
 description: "Unit, integration, and end-to-end testing strategies in GodeX."
@@ -1987,10 +2237,6 @@ src/
 Coverage is tracked via [Codecov](https://codecov.io/gh/Ahoo-Wang/GodeX).
 
 [CI/CD & Publishing](/09-deployment/ci-cd)
-
-
-# 09-deployment/ci-cd.md
-
 ---
 title: "CI/CD & Publishing"
 description: "GitHub Actions CI pipeline and multi-platform binary publishing workflow."
@@ -2047,10 +2293,6 @@ The release workflow:
 5. Publishes platform packages first, then `@ahoo-wang/godex`
 
 [Back to Overview](/01-getting-started/overview)
-
-
-# 10-trace/trace-recording.md
-
 ---
 title: "Trace Recording"
 description: "How GodeX records request, usage, event, and error rows in SQLite for observability and diagnostics."
@@ -2219,10 +2461,6 @@ trace:
 ```
 
 [Testing Guide](/08-testing/testing-guide)
-
-
-# AGENTS.md
-
 # AGENTS.md — GodeX Wiki
 
 AI agent instructions for the GodeX VitePress wiki.
@@ -2254,6 +2492,7 @@ wiki/
 ├── 07-configuration/         # Config schema, CLI commands
 ├── 08-testing/               # Testing guide
 ├── 09-deployment/            # CI/CD, publishing
+├── 10-trace/                 # Trace recording, SQLite schema, payload capture
 ├── index.md                  # Landing page
 ├── llms.txt                  # LLM-friendly index
 └── llms-full.txt             # Full inlined content
@@ -2298,616 +2537,3 @@ Never:
 - Add light-mode styles that break dark theme
 - Remove Mermaid dark-mode CSS overrides
 - Reference `src/adapter/`, `DefaultAdapter`, `ProviderMapper`, `RequestMapper`, `ResponseMapper`, `StreamMapper`, `AdapterError`, or `StreamResponseState` — these no longer exist
-
-
-# CLAUDE.md
-
-# CLAUDE.md — GodeX Wiki
-
-> This file was generated automatically. For full agent instructions, see [AGENTS.md](./AGENTS.md).
-
-
-# index.md
-
----
-layout: home
-title: GodeX
-description: OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents. Translate /v1/responses into upstream Chat Completions API calls.
-head:
-  - - meta
-    - name: keywords
-      content: GodeX, OpenAI, Responses API, gateway, Codex, CLI, LLM, proxy, Chat Completions, provider, streaming, SSE
-
-hero:
-  name: GodeX
-  text: Make every model a Codex engine.
-  tagline: OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents.
-  image:
-    src: /godex-logo-hero.svg
-    alt: GodeX Logo
-  actions:
-    - theme: brand
-      text: Getting Started
-      link: /01-getting-started/overview
-    - theme: alt
-      text: GitHub
-      link: https://github.com/Ahoo-Wang/GodeX
-    - theme: alt
-      text: Gitee
-      link: https://gitee.com/AhooWang/GodeX
-features:
-  - icon: 🔄
-    title: Protocol Translation
-    details: Bridges OpenAI Responses API and provider-specific Chat Completions APIs. Codex and OpenAI SDK tools work out of the box.
-  - icon: 🔌
-    title: Provider-agnostic
-    details: Spec-based provider system. Add a new provider by declaring capabilities and writing small hooks — no server rewrite needed.
-  - icon: ⚡
-    title: Streaming-first
-    details: Built on ReadableStream and TransformStream for low-latency SSE delivery. Three-stage transformer pipeline with automatic session persistence.
-  - icon: 💾
-    title: Session History
-    details: Built-in previous_response_id chain resolution with SQLite or in-memory backends. Automatic cycle detection and depth limiting.
-  - icon: 🛡️
-    title: Structured Errors
-    details: Domain-specific error hierarchy with structured codes. Every error carries context for diagnostics and logging.
-  - icon: 📦
-    title: Standalone Binary
-    details: Ships as a native binary with zero runtime dependencies. Six platform builds via GitHub Actions CI/CD.
----
-
-## How It Works
-
-```
-Codex / CLI / IDE
-      │
-      ▼  POST /v1/responses
-┌─────────────────┐
-│   GodeX Gateway │
-└────────┬────────┘
-         │  Provider Bridge
-         ▼
-┌─────────────────────────┐
-│  Chat Completions API   │
-│  (any compatible model) │
-└─────────────────────────┘
-```
-
-GodeX sits between your tools and upstream model providers. It accepts OpenAI Responses API requests, translates them to Chat Completions API calls via the bridge kernel and provider specs, and streams results back — preserving the full protocol semantics that Codex expects.
-
-## Quick Start
-
-```bash
-# Install — no Bun required at runtime
-npm install -g @ahoo-wang/godex
-
-# Create config interactively
-godex init
-
-# Start the gateway
-godex serve
-```
-
-Point Codex CLI at your GodeX instance:
-
-```bash
-export OPENAI_BASE_URL=http://localhost:5678/v1
-export OPENAI_API_KEY=any-value
-codex
-```
-
----
-
-::: info
-Read the full [Getting Started guide](/01-getting-started/overview) or explore the [Architecture](/02-architecture/overview).
-:::
-
-
-# onboarding/contributor-guide.md
-
----
-title: "Contributor Guide"
-description: "Practical guide for developers contributing to GodeX."
-keywords: "GodeX, contributor, development, getting started"
----
-
-# Contributor Guide
-
-Welcome to GodeX. This guide gets you from clone to first contribution.
-
-## Setup
-
-```bash
-git clone https://github.com/Ahoo-Wang/GodeX.git
-cd GodeX
-bun install
-bun run check        # typecheck + lint + test
-```
-
-## Project Layout
-
-```
-src/
-├── bridge/          Provider-agnostic Responses-to-Chat bridge kernel
-│   ├── compatibility/  Parameter and response-format planning
-│   ├── request/        Input normalization and message building
-│   ├── tools/          Tool declarations, tool_choice, identity mapping
-│   ├── output/         Structured-output contract planning and validation
-│   ├── response/       Sync ResponseObject reconstruction
-│   ├── stream/         Stream state machine and delta mapping
-│   ├── provider-spec/  ProviderSpec, ProviderEdge, factory helpers
-│   └── finish-reason/  Provider finish reason mapping
-├── providers/        Provider registry, specs, hooks, clients
-│   ├── deepseek/      DeepSeek provider
-│   ├── zhipu/         Zhipu provider
-│   ├── example/       Spec-only example provider
-│   └── shared/        Shared utilities (ChatProviderClient, stream delta mapper)
-├── responses/        Sync and stream orchestration pipelines
-│   └── stream-transforms/  Composable TransformStream stages
-├── server/           Bun routes (/health, /v1/models, /v1/responses)
-├── context/          ApplicationContext and per-request ResponsesContext
-├── resolver/         Model selector and alias resolution
-├── session/          Memory and SQLite session stores
-├── trace/            SQLite trace recorder
-├── config/           godex.yaml parsing and validation
-├── error/            GodeXError hierarchy with domain codes
-├── protocol/         OpenAI protocol type definitions
-├── tools/            Built-in tool definitions
-├── cli/              Commander CLI
-└── e2e/              End-to-end tests with mocked upstream
-```
-
-## Key Concepts
-
-### Bridge Kernel
-
-The bridge kernel (`src/bridge/`) is the provider-agnostic translation layer. It plans compatibility, builds Chat Completions requests, and reconstructs Responses API output. Never put provider-specific logic here.
-
-### ProviderEdge
-
-Each provider implements `ProviderEdge` — a combination of a `ProviderSpec` (capabilities, accessors, hooks) and HTTP methods (`request`, `stream`). Provider-specific logic belongs in `src/providers/<name>/`.
-
-### Stream Pipeline
-
-The streaming pipeline chains composable `TransformStream` stages: trace raw events, bridge deltas through the state machine, validate output contracts, trace transformed events, log, persist sessions, and log diagnostics.
-
-## Development Workflow
-
-```bash
-bun run dev           # Hot-reload dev server on port 13145
-bun run check         # typecheck + lint + test
-bun run test:e2e      # End-to-end tests
-bun run test:coverage # Coverage report
-```
-
-### Before Committing
-
-- Run `bun run check` — must pass.
-- Run `bun run test:e2e` if you changed routing, providers, sessions, streams, or trace behavior.
-- Add tests for behavior changes.
-
-## Error Handling
-
-Use the `GodeXError` hierarchy from `src/error/`:
-
-| Class | Domain | When |
-|-------|--------|------|
-| `ServerError` | `server` | Route/request/config validation |
-| `BridgeError` | `bridge` | Compatibility, stream state, output contracts |
-| `ProviderError` | `provider` | Upstream HTTP/fetch failures |
-| `SessionError` | `session` | Chain and persistence errors |
-
-Never throw raw `Error` for expected runtime failures.
-
-## Adding a Provider
-
-1. Create `src/providers/<name>/` with `spec.ts`, `client.ts`, `hooks.ts`, and `protocol/`.
-2. Declare `ProviderSpec` with capabilities, accessors, and hooks.
-3. Create `ProviderEdge` factory using `ChatProviderClient`.
-4. Register in `src/providers/builtin.ts`.
-5. Add conformance tests.
-
-## Key Files
-
-| Component | Path | Purpose |
-|-----------|------|---------|
-| `ProviderSpec` | [src/bridge/provider-spec/contract.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts) | Provider interface contract |
-| `buildChatCompletionRequest` | [src/bridge/request/request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts) | Bridge request building |
-| `ResponseStreamStateMachine` | [src/bridge/stream/response-stream-state-machine.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts) | Stream event state machine |
-| `ResponsesBridgeRuntime` | [src/responses/runtime.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/runtime.ts) | Orchestration runtime |
-| `StreamPipeline` | [src/responses/stream-pipeline.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts) | Stream orchestration |
-| `SyncRequestPipeline` | [src/responses/sync-request-pipeline.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts) | Sync orchestration |
-
-[Staff Engineer Guide](/onboarding/staff-engineer-guide)
-
-
-# onboarding/executive-guide.md
-
----
-title: "Executive Guide"
-description: "Strategic overview for engineering leaders — capabilities, risks, and investment thesis."
-keywords: "GodeX, executive guide, product overview"
----
-
-# Executive Guide
-
-## System Overview
-
-GodeX is an **API gateway** that translates OpenAI's Responses API into provider-specific Chat Completions API calls. It enables organizations to use Codex and other OpenAI-compatible clients with any configured LLM provider, without modifying client code. Built with TypeScript on Bun for high throughput and low latency.
-
-## Capability Map
-
-| Capability | Status | Maturity | Dependencies |
-|-----------|--------|----------|-------------|
-| OpenAI Responses API proxy | Built | Stable | Upstream provider API |
-| Streaming (SSE) | Built | Stable | Upstream SSE support |
-| Multi-provider routing | Built | Stable | Provider configuration |
-| Model name aliasing | Built | Stable | — |
-| Session chain resolution | Built | Stable | SQLite or memory backend |
-| Tool/function calling | Built | Stable | Upstream tool support |
-| Structured output | Built | Beta | Upstream JSON schema support |
-| Reasoning/thinking tokens | Built | Beta | Upstream thinking support |
-| Web search passthrough | Planned | — | Upstream web search API |
-| Multi-tenant isolation | Not built | — | — |
-
-## Architecture at a Glance
-
-```mermaid
-graph LR
-    CLIENT["OpenAI SDK<br>Codex"] --> GODEX["GodeX Gateway"]
-    GODEX --> ZHIPU["Zhipu GLM"]
-    GODEX --> FUTURE["Future Providers"]
-    GODEX --> SESSION["Session Store<br>(SQLite/Memory)"]
-    CONFIG["godex.yaml"] --> GODEX
-
-    style CLIENT fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style GODEX fill:#161b22,stroke:#6d5dfc,color:#e6edf3
-    style ZHIPU fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style FUTURE fill:#2d333b,stroke:#30363d,color:#e6edf3
-    style SESSION fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style CONFIG fill:#2d333b,stroke:#8b949e,color:#e6edf3
-```
-
-<!-- Sources: src/server/index.ts, src/providers/builtin.ts -->
-
-## Technology Investment Thesis
-
-| Technology | Purpose | Alternatives Considered | Risk Level |
-|-----------|---------|------------------------|-----------|
-| Bun runtime | Performance, native TS, single-binary compilation | Node.js, Deno | Low — Bun is production-ready |
-| TypeScript | Type safety across provider specs | JavaScript, Go | Low — industry standard |
-| SQLite (bun:sqlite) | Session persistence with zero external deps | Redis, PostgreSQL | Low — embedded, ACID |
-| Web Streams API | Streaming pipeline composition | RxJS, custom event system | Low — native platform API |
-| Biome | Linting + formatting (single tool) | ESLint + Prettier | Low — active development |
-
-## Risk Assessment
-
-| Risk | Likelihood | Impact | Mitigation | Owner |
-|------|-----------|--------|------------|-------|
-| Upstream provider API changes | Medium | High | Provider abstraction isolates changes | Contributor |
-| Single provider dependency (Zhipu) | Low | High | Provider interface designed for extensibility | Contributor |
-| Bun runtime regression | Low | Medium | Bun maintains Node.js compatibility | External |
-| Session data loss (SQLite) | Low | Medium | ACID transactions, can add backup | Operator |
-
-## Dependency Map
-
-```mermaid
-graph TB
-    GODEX["GodeX"]
-    BUN["Bun Runtime"]
-    ZHIPU["Zhipu API"]
-    FETCHER["@ahoo-wang/fetcher"]
-
-    GODEX --> BUN
-    GODEX --> ZHIPU
-    GODEX --> FETCHER
-
-    style GODEX fill:#161b22,stroke:#6d5dfc,color:#e6edf3
-    style BUN fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style ZHIPU fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style FETCHER fill:#2d333b,stroke:#8b949e,color:#e6edf3
-```
-
-<!-- Sources: package.json -->
-
-## Key Metrics & Observability
-
-| Metric | Current State | Notes |
-|--------|--------------|-------|
-| Health endpoint | Built | `GET /health` returns 200 |
-| Structured logging | Built | JSON logger with log levels |
-| Error codes | Built | Domain-specific error codes per layer |
-| Request tracing | Partial | `requestId` via nanoid per request |
-
-## Technical Debt Summary
-
-| Issue | Business Impact | Effort to Fix | Priority |
-|-------|----------------|---------------|----------|
-| Single provider (Zhipu only) | Limits provider choice | Medium | High |
-| No admin API for config reload | Requires restart for changes | Low | Medium |
-| No rate limiting | Vulnerable to abuse | Low | Medium |
-
-## Recommendations
-
-1. **Add a second provider** (e.g., OpenAI, DeepSeek) to validate the bridge pattern and reduce single-provider risk
-2. **Add request-level metrics** (latency histograms, error rates) for production observability
-3. **Implement rate limiting** before exposing the gateway to external traffic
-4. **Add hot config reload** to avoid downtime during provider configuration changes
-
-[Contributor Guide](./contributor-guide.md) · [Staff Engineer Guide](./staff-engineer-guide.md)
-
-
-# onboarding/index.md
-
----
-title: "Onboarding"
-description: "Audience-tailored guides to help you understand GodeX."
----
-
-# Onboarding
-
-GodeX is an OpenAI Responses API gateway that translates `/v1/responses` requests into upstream Chat Completions API calls, letting any LLM provider drive Codex and other OpenAI-compatible clients.
-
-Choose the guide that matches your role:
-
-| Guide | Audience | What You'll Learn | Time |
-|-------|----------|-------------------|------|
-| [Contributor Guide](./contributor-guide.md) | New contributors with TypeScript/JS experience | Setup, first PR, codebase patterns | ~30 min |
-| [Staff Engineer Guide](./staff-engineer-guide.md) | Staff/principal engineers | Architecture, design decisions, system boundaries | ~45 min |
-| [Executive Guide](./executive-guide.md) | VP/directors of engineering | Capabilities, risks, investment thesis | ~20 min |
-| [Product Manager Guide](./product-manager-guide.md) | Product managers | Features, user journeys, constraints, FAQ | ~20 min |
-
-[Getting Started](/01-getting-started/overview)
-
-
-# onboarding/product-manager-guide.md
-
----
-title: "Product Manager Guide"
-description: "Feature-focused overview for product managers — what GodeX does, what's possible, and where the boundaries are."
-keywords: "GodeX, product manager guide, features, roadmap"
----
-
-# Product Manager Guide
-
-## What This System Does
-
-GodeX is a **translator** between two AI API formats. Your team writes code using OpenAI's Responses API once, and GodeX automatically converts those requests to work with different AI providers (like DeepSeek, Zhipu GLM). Think of it as a universal bridge — plug in any AI model, and your existing tools (like Codex) just work.
-
-## User Journey
-
-```mermaid
-graph LR
-    DEV["Developer"] -->|"Configure godex.yaml"| GODEX["GodeX Gateway"]
-    GODEX -->|"Route to provider"| PROVIDER["AI Provider"]
-    PROVIDER -->|"Response"| GODEX
-    GODEX -->|"OpenAI format"| DEV
-
-    style DEV fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style GODEX fill:#161b22,stroke:#6d5dfc,color:#e6edf3
-    style PROVIDER fill:#2d333b,stroke:#8b949e,color:#e6edf3
-```
-
-<!-- Sources: src/server/routes/responses/index.ts -->
-
-## Feature Capability Map
-
-| Feature | Status | User-Facing Behavior | Limitations |
-|---------|--------|---------------------|-------------|
-| Text generation | Live | Send messages, get AI responses | Depends on provider model |
-| Streaming responses | Live | See responses appear in real-time | SSE only, no WebSocket |
-| Multi-turn conversations | Live | Continue previous chats using `previous_response_id` | Session stored locally |
-| Function/tool calling | Live | AI can call tools you define | Limited to provider-supported types |
-| Model routing | Live | Use `"provider/model"` to pick provider and model | Must be pre-configured |
-| Model aliases | Live | Map friendly names like `"gpt-4"` to actual models | Static config, no auto-discovery |
-| Reasoning/thinking | Beta | See AI's reasoning process | Only if provider supports it |
-| Structured output | Beta | Force AI to respond in JSON schema | Only if provider supports it |
-| Web search | Not available | — | Planned |
-| Image generation | Not available | — | Planned |
-
-## Configuration & Setup
-
-| Setting | What It Controls | Default | Who Can Change |
-|---------|-----------------|---------|---------------|
-| `server.port` | Which port the gateway listens on | `13145` | Operator (config file) |
-| `default_provider` | Which AI provider to use when model name has no prefix | — | Operator (config file) |
-| `providers.*.api_key` | Authentication key for each AI provider | — | Operator (env var or config) |
-| `models.aliases` | Model name aliases and mappings | — | Operator (config file) |
-| `session.backend` | Where conversation history is stored | `memory` | Operator (config file) |
-
-## API Capabilities
-
-| Endpoint | Method | Purpose | Authentication |
-|----------|--------|---------|---------------|
-| `/v1/responses` | POST | Main AI request endpoint | None (local gateway) |
-| `/v1/models` | GET | List available models | None |
-| `/health` | GET | Check if gateway is running | None |
-
-## Performance & SLAs
-
-| Operation | Expected Latency | Notes |
-|-----------|-----------------|-------|
-| Non-streaming request | Upstream + ~5ms overhead | Gateway adds minimal latency |
-| Streaming first token | Upstream time-to-first-token | Gateway is pass-through |
-| Session chain resolution | <10ms | Local SQLite lookup |
-
-## Known Limitations
-
-| Limitation | User Impact | Workaround | Planned Fix |
-|-----------|-------------|------------|-------------|
-| Single provider out-of-the-box | Can only use Zhipu by default | Implement additional providers | Yes |
-| No built-in authentication | Cannot restrict who uses the gateway | Deploy behind a reverse proxy with auth | Yes |
-| No rate limiting | Gateway vulnerable to excessive requests | External rate limiter | Yes |
-| Sessions lost on memory backend restart | Conversation history disappears | Use SQLite backend | By design |
-| No admin UI | Configuration requires file editing | CLI commands for basic ops | Under consideration |
-
-## Glossary
-
-| Term | Plain Language |
-|------|---------------|
-| **Gateway** | A service that sits between your app and the AI provider, translating requests |
-| **Provider** | An AI service (like Zhipu GLM) that actually generates responses |
-| **Session** | A saved conversation that can be continued later |
-| **Streaming** | Getting the AI's response piece by piece in real-time instead of waiting for the full answer |
-| **Tool calling** | Letting the AI trigger actions (like searching a database) during a conversation |
-| **Model** | A specific version of an AI (like "glm-4-plus") |
-| **SSE** | Server-Sent Events — a way to stream data from server to client |
-
-## FAQ
-
-**Q: Do I need to change my OpenAI SDK code to use GodeX?**
-A: No. Just point your OpenAI SDK's `baseURL` to GodeX and configure the provider in `godex.yaml`.
-
-**Q: Can I use multiple AI providers at the same time?**
-A: Yes. Use `"provider/model"` syntax in the model field to route to different providers.
-
-**Q: What happens if the upstream AI provider goes down?**
-A: GodeX returns a structured error with a provider-specific error code. It does not currently retry or failover to another provider.
-
-**Q: Is my data sent anywhere besides the configured AI provider?**
-A: No. GodeX is a pass-through gateway. Session data is stored locally in memory or SQLite.
-
-**Q: Can I deploy GodeX in production?**
-A: Yes. GodeX compiles to a standalone binary. You can run it on any server. For production, consider adding authentication and rate limiting via a reverse proxy.
-
-**Q: How do I add a new AI provider?**
-A: A developer needs to implement the Provider interface. See the [Contributor Guide](./contributor-guide.md) for details.
-
-[Contributor Guide](./contributor-guide.md) · [Getting Started](/01-getting-started/overview)
-
-
-# onboarding/staff-engineer-guide.md
-
----
-title: "Staff Engineer Guide"
-description: "Architectural deep-dive for senior engineers evaluating or extending GodeX."
-keywords: "GodeX, architecture, staff engineer, design decisions, type safety"
----
-
-# Staff Engineer Guide
-
-This guide covers the architectural decisions, type safety model, and design patterns that shape GodeX. It is written for senior engineers who need to understand the system deeply before extending or modifying it.
-
-## Type Safety Model
-
-The bridge kernel uses a small set of generic type parameters on `ProviderSpec` and `ProviderEdge`:
-
-```ts
-ProviderSpec<TBridgeRequest, TResponse, TChunk, TProviderRequest>
-ProviderEdge<TBridgeRequest, TResponse, TChunk, TProviderRequest>
-```
-
-- `TBridgeRequest` — The bridge's Chat Completions request type (usually `ChatCompletionCreateRequest`).
-- `TResponse` — The provider's response type.
-- `TChunk` — The provider's stream chunk type.
-- `TProviderRequest` — The provider's native request type (when `hooks.patchRequest` transforms it).
-
-The bridge kernel works against `TBridgeRequest` and the `ProviderSpec` accessors. The `Registrar` erases generics to `ProviderEdge<unknown, unknown, unknown>` for runtime storage. Type safety is preserved at the provider boundary through the spec's typed accessors.
-
-## Architecture Layers
-
-```mermaid
-flowchart TD
-  subgraph server["Server Layer"]
-    ROUTES["Bun routes<br>/health, /v1/models, /v1/responses"]
-  end
-
-  subgraph context["Context Layer"]
-    APP["ApplicationContext<br>config, logger, resolver, registrar,<br>responses, sessionStore, traceRecorder"]
-    RCTX["ResponsesContext<br>request, session, resolved model,<br>provider, diagnostics, outputContract"]
-  end
-
-  subgraph responses["Responses Layer"]
-    RUNTIME["ResponsesBridgeRuntime"]
-    SYNC["SyncRequestPipeline"]
-    STREAM["StreamPipeline"]
-    EXCHANGE["ProviderExchange"]
-  end
-
-  subgraph bridge["Bridge Kernel"]
-    COMPAT["compatibility/"]
-    TOOLS["tools/"]
-    OUTPUT["output/"]
-    REQUEST["request/"]
-    RESPONSE["response/"]
-    STM["stream/"]
-  end
-
-  subgraph providers["Provider Layer"]
-    SPEC["ProviderSpec"]
-    HOOKS["ProviderHooks"]
-    CLIENT["ChatProviderClient"]
-  end
-
-  ROUTES --> APP
-  ROUTES --> RCTX
-  APP --> RUNTIME
-  RUNTIME --> SYNC
-  RUNTIME --> STREAM
-  SYNC --> EXCHANGE
-  STREAM --> EXCHANGE
-  EXCHANGE --> REQUEST
-  EXCHANGE --> SPEC
-  REQUEST --> COMPAT
-  REQUEST --> TOOLS
-  REQUEST --> OUTPUT
-  SPEC --> HOOKS
-  SPEC --> CLIENT
-```
-
-## Key Design Decisions
-
-| Decision | Rationale |
-|----------|-----------|
-| Bridge kernel owns all compatibility policy | Prevents duplication across providers; providers only expose protocol differences |
-| `ProviderSpec` is a data object, not a class | Easy to compose, test, and serialize; no inheritance hierarchies |
-| Composable `TransformStream` stages | Zero-dependency, native platform API; each concern is isolated |
-| `ResponseStreamStateMachine` owns event production | Single source of truth for stream state; providers only provide deltas |
-| `OutputContractSlot` pattern | Lazy output contract initialization that the bridge sets and the pipeline reads |
-| Compatibility diagnostics accumulated per-request | Non-intrusive logging; no side-channel coupling between bridge and logging |
-
-<!-- Sources: src/context/application-context.ts, src/responses/runtime.ts -->
-
-## Stream Pipeline Topology
-
-The stream pipeline connects eight stages via `pipeTransform()`:
-
-```
-provider SSE stream
-  → TraceTransformer (raw)
-  → ProviderStreamEventBridge (state machine)
-  → StreamErrorHandler
-  → ResponseOutputContractValidationTransformer
-  → TraceTransformer (transformed)
-  → ResponseLogTransformer
-  → ResponseSessionPersistenceTransformer (optional)
-  → CompatibilityLogTransformer
-  → ResponseSseEncoder (in server route)
-```
-
-Pipeline order matters: provider events are bridged first, output contracts validated before logging and persistence, then SSE encoding in the server route.
-
-<!-- Sources: src/responses/stream-pipeline.ts, src/responses/stream-transforms/ -->
-
-## Testing Strategy
-
-| Level | Scope | Tool |
-|-------|-------|------|
-| Unit | Individual functions and classes | `bun test` (colocated `*.test.ts`) |
-| Contract | Shared interfaces (session store, provider) | Parameterized test fixtures |
-| Integration | Module interactions (pipeline + bridge) | `bun test` with mocks |
-| E2E | Full server with mocked upstream | `bun test src/e2e` |
-
-Module boundary tests (`module-boundaries.test.ts`) enforce import restrictions at the type level.
-
-## Critical Code Paths
-
-1. [src/bridge/request/request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts) — request building with compatibility, tools, and output planning
-2. [src/responses/stream-pipeline.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts) — stream orchestration
-3. [src/bridge/stream/response-stream-state-machine.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts) — stream state machine
-4. [src/responses/sync-request-pipeline.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts) — sync orchestration
-5. [src/responses/stream-transforms/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/) — composable transformer stages
-
-[Architecture Overview](/02-architecture/overview) · [Stream Pipeline](/02-architecture/stream-pipeline) · [Bridge Kernel](/02-architecture/bridge-kernel)
-
-

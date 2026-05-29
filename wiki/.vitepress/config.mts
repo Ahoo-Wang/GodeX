@@ -47,6 +47,7 @@ const enSidebar = [
     items: [
       { text: 'System Overview', link: '/02-architecture/overview' },
       { text: 'Request Flow', link: '/02-architecture/request-flow' },
+      { text: 'Model Resolver', link: '/02-architecture/model-resolver' },
       { text: 'Bridge Kernel', link: '/02-architecture/bridge-kernel' },
       { text: 'Stream Pipeline', link: '/02-architecture/stream-pipeline' },
     ],
@@ -142,6 +143,7 @@ const zhSidebar = [
     items: [
       { text: '系统总览', link: '/zh/02-architecture/overview' },
       { text: '请求流程', link: '/zh/02-architecture/request-flow' },
+      { text: '模型解析', link: '/zh/02-architecture/model-resolver' },
       { text: 'Bridge 内核', link: '/zh/02-architecture/bridge-kernel' },
       { text: '流式管道', link: '/zh/02-architecture/stream-pipeline' },
     ],

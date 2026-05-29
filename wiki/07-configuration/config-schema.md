@@ -15,6 +15,7 @@ server:
   port: 5678              # HTTP listen port
   host: "0.0.0.0"         # Listen address
   idle_timeout: 30000     # Idle connection timeout (ms)
+                         # Default: 0 (disabled)
 
 default_provider: deepseek   # Provider used when model has no slash prefix
 
@@ -62,11 +63,11 @@ logging:
 trace:
   enabled: true
   path: ./data/trace.db
-  max_queue_size: 1000
+  max_queue_size: 10000
   flush_interval_ms: 1000
-  batch_size: 50
+  batch_size: 100
   capture_payload: false
-  payload_max_bytes: 102400
+  payload_max_bytes: 65536
 ```
 
 ## Type Definitions
@@ -159,5 +160,16 @@ providers:
 ## Environment Interpolation
 
 Values like `${DEEPSEEK_API_KEY}` are resolved at load time from environment variables. Missing variables produce a startup error.
+
+## Environment Variable Overrides
+
+BESIDES YAML interpolation, these environment variables directly override config fields at load time (CLI flags take precedence over both):
+
+| Variable | Config Field | Notes |
+|----------|-------------|-------|
+| `GODEX_PORT` | `server.port` | Overrides the listen port |
+| `GODEX_HOST` | `server.host` | Overrides the bind address |
+| `GODEX_LOG_LEVEL` | `logging.level` | Overrides the log level |
+| `GODEX_DEFAULT_PROVIDER` | `default_provider` | Falls back to `zhipu` if both are unset |
 
 [CLI Commands](/07-configuration/cli-commands)
