@@ -1,7 +1,7 @@
 import { SafeTransformer } from "@ahoo-wang/fetcher-eventstream";
-import { logDiagnostics } from "../../bridge/compatibility";
 import type { ResponsesContext } from "../../context/responses-context";
 import type { ResponseStreamEvent } from "../../protocol/openai/responses";
+import { logDiagnostics } from "../compatibility-diagnostics";
 
 export class CompatibilityLogTransformer extends SafeTransformer<
 	ResponseStreamEvent,

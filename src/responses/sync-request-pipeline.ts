@@ -1,10 +1,10 @@
-import { logDiagnostics } from "../bridge/compatibility";
 import { reconstructResponseObject } from "../bridge/response";
 import { ensureOutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore } from "../session";
 import { cacheHitRatioFromResponseUsage, recordTraceUsage } from "../trace";
+import { logDiagnostics } from "./compatibility-diagnostics";
 import {
 	ProviderExchange,
 	type ProviderRequestExchangeResult,

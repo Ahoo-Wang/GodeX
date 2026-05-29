@@ -1,26 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { BridgeError } from "../../error";
-import type { ResponseTool } from "../../protocol/openai/responses";
-import type { BridgeDialectProfile } from "../dialect";
 import {
 	renderFunctionDeclarations,
 	renderProviderToolDeclarations,
 } from "./declaration-renderer";
 import { ToolIdentityMap } from "./tool-identity";
 import type { ToolPlanningProfile } from "./tool-plan";
-import { planBridgeTools, planTools } from "./tool-plan";
-
-const deepseekLikeProfile: BridgeDialectProfile = {
-	provider: "deepseek",
-	tools: {
-		native: new Set(["function"]),
-		degraded: new Map([["custom", "function"]]),
-		maxTools: 128,
-	},
-	toolChoice: {
-		supported: new Set(["auto", "none", "required", "function"]),
-	},
-};
+import { planTools } from "./tool-plan";
 
 const kernelProfile: ToolPlanningProfile = {
 	provider: "kernel-test",
@@ -385,96 +371,5 @@ describe("planTools", () => {
 				},
 			}),
 		).toThrow(BridgeError);
-	});
-});
-
-describe("planBridgeTools", () => {
-	test("degrades custom tools and matching custom tool_choice to function", () => {
-		const tools: ResponseTool[] = [
-			{
-				type: "custom",
-				name: "raw_sql",
-				description: "Run SQL.",
-				format: { type: "text" },
-			},
-		];
-
-		const plan = planBridgeTools({
-			tools,
-			toolChoice: { type: "custom", name: "raw_sql" },
-			profile: deepseekLikeProfile,
-		});
-
-		expect(plan.enabled).toBe(true);
-		expect(plan.entries).toEqual([
-			expect.objectContaining({
-				requestedType: "custom",
-				effectiveType: "function",
-				action: "degraded",
-			}),
-		]);
-		expect(plan.toolChoice).toEqual(
-			expect.objectContaining({
-				action: "degraded",
-				effectiveType: "function",
-				effectiveValue: { type: "function", name: "raw_sql" },
-			}),
-		);
-		expect(plan.diagnostics).toContainEqual(
-			expect.objectContaining({
-				path: "tools[type=custom]",
-				action: "degraded",
-			}),
-		);
-	});
-
-	test("disables declarations when tool_choice is none", () => {
-		const plan = planBridgeTools({
-			tools: [
-				{
-					type: "function",
-					name: "lookup",
-					parameters: {},
-					strict: true,
-				},
-			],
-			toolChoice: "none",
-			profile: deepseekLikeProfile,
-		});
-
-		expect(plan.enabled).toBe(false);
-		expect(plan.entries).toEqual([]);
-		expect(plan.toolChoice).toEqual(
-			expect.objectContaining({ action: "supported", effectiveValue: "none" }),
-		);
-	});
-
-	test("rejects explicit tool_choice when the selected tool cannot be declared", () => {
-		const plan = planBridgeTools({
-			tools: [
-				{
-					type: "mcp",
-					server_label: "repo",
-					server_url: "https://repo.example.test/mcp",
-				},
-			],
-			toolChoice: { type: "mcp", server_label: "repo", name: "list_files" },
-			profile: deepseekLikeProfile,
-		});
-
-		expect(plan.entries).toEqual([]);
-		expect(plan.toolChoice).toEqual(
-			expect.objectContaining({
-				action: "rejected",
-				requestedType: "mcp",
-			}),
-		);
-		expect(plan.diagnostics).toContainEqual(
-			expect.objectContaining({
-				severity: "error",
-				path: "tool_choice",
-				action: "rejected",
-			}),
-		);
 	});
 });
