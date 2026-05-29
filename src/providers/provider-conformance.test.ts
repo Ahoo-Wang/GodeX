@@ -116,15 +116,17 @@ describe("ProviderSpec runtime conformance", () => {
 		});
 	});
 
-	test("Zhipu provider patch maps bridge reasoning to native thinking", () => {
+	test("Zhipu provider patch strips bridge-only native reasoning fields", () => {
 		const enabled = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
 			model: "glm-5.1",
 			messages: [{ role: "user", content: "think" }],
+			thinking: { type: "enabled" },
 			reasoning_effort: "medium",
 		} as never) as Record<string, unknown> | undefined;
 		const disabled = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
 			model: "glm-5.1",
 			messages: [{ role: "user", content: "answer directly" }],
+			thinking: { type: "disabled" },
 			reasoning_effort: "none",
 		} as never) as Record<string, unknown> | undefined;
 
@@ -136,6 +138,42 @@ describe("ProviderSpec runtime conformance", () => {
 			thinking: { type: "disabled" },
 		});
 		expect(disabled).not.toHaveProperty("reasoning_effort");
+	});
+
+	test("Zhipu provider patch preserves normalized boolean thinking", () => {
+		const patched = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "glm-5.1",
+			messages: [{ role: "user", content: "answer directly" }],
+			thinking: { type: "disabled" },
+			reasoning_effort: "medium",
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(patched).toMatchObject({
+			thinking: { type: "disabled" },
+		});
+		expect(patched).not.toHaveProperty("reasoning_effort");
+	});
+
+	test("DeepSeek provider patch normalizes native reasoning effort", () => {
+		const max = DEEPSEEK_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "deepseek-chat",
+			messages: [{ role: "user", content: "think deeply" }],
+			reasoning_effort: "xhigh",
+		} as never) as Record<string, unknown> | undefined;
+		const unsupported = DEEPSEEK_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "deepseek-chat",
+			messages: [{ role: "user", content: "think a little" }],
+			reasoning_effort: "medium",
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(max).toMatchObject({
+			thinking: { type: "enabled" },
+			reasoning_effort: "max",
+		});
+		expect(unsupported).toMatchObject({
+			thinking: { type: "disabled" },
+		});
+		expect(unsupported).not.toHaveProperty("reasoning_effort");
 	});
 
 	test("built-in provider specs reject malformed sync usage", () => {

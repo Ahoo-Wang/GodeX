@@ -314,6 +314,40 @@ describe("buildChatCompletionRequest", () => {
 		});
 	});
 
+	test("maps boolean reasoning capabilities to provider thinking", () => {
+		const enabled = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities: {
+				...capabilities,
+				parameters: { supported: new Set(["reasoning"]) },
+				reasoning: { effort: "boolean" },
+			},
+			profile: toolProfile,
+			request: request({ reasoning: { effort: "medium" } }),
+		});
+		const disabled = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities: {
+				...capabilities,
+				parameters: { supported: new Set(["reasoning"]) },
+				reasoning: { effort: "boolean" },
+			},
+			profile: toolProfile,
+			request: request({ reasoning: { effort: "none" } }),
+		});
+
+		expect(enabled.request).toMatchObject({
+			thinking: { type: "enabled" },
+		});
+		expect(enabled.request).not.toHaveProperty("reasoning_effort");
+		expect(disabled.request).toMatchObject({
+			thinking: { type: "disabled" },
+		});
+		expect(disabled.request).not.toHaveProperty("reasoning_effort");
+	});
+
 	test("maps Responses safety identifiers to provider user_id", () => {
 		const safeIdentifier = buildChatCompletionRequest({
 			provider: "acme",

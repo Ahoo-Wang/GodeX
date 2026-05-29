@@ -24,6 +24,7 @@ interface ReconstructResponseObjectInput<TResponse> {
 	readonly requestId: string;
 	readonly responseId: string;
 	readonly createdAt: number;
+	readonly completedAt: number;
 	readonly provider: string;
 	readonly model: string;
 	readonly providerResponse: TResponse;
@@ -31,7 +32,6 @@ interface ReconstructResponseObjectInput<TResponse> {
 	readonly toolIdentity?: unknown;
 	readonly outputContract: { readonly requiresValidJson: boolean };
 	readonly echo?: Partial<ResponseObject>;
-	readonly nowSeconds?: () => number;
 }
 
 interface ResponseStatusFields {
@@ -152,7 +152,7 @@ function buildResponseObject<TResponse>(
 		id: input.responseId,
 		object: "response",
 		created_at: input.createdAt,
-		completed_at: input.nowSeconds?.() ?? Math.floor(Date.now() / 1000),
+		completed_at: input.completedAt,
 		status: parts.status,
 		model: input.model,
 		...input.echo,

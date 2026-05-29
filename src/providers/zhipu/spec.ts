@@ -1,5 +1,6 @@
 import type { ProviderSpec } from "../../bridge/provider-spec";
 import { DEFAULT_TOOL_NAME_CODEC } from "../../bridge/tools";
+import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
 import {
 	mapZhipuUsage,
 	ZHIPU_SPEC_CAPABILITIES,
@@ -23,9 +24,10 @@ export const DEFAULT_ZHIPU_BASE_URL = ZHIPU_CODING_PLAN_BASE_URL;
 export const ZHIPU_PROVIDER_NAME = "zhipu";
 
 export const ZHIPU_PROVIDER_SPEC: ProviderSpec<
-	ChatCompletionCreateRequest,
+	BridgeChatCompletionCreateRequest,
 	ChatCompletionResponse,
-	ChatCompletionChunk
+	ChatCompletionChunk,
+	ChatCompletionCreateRequest
 > = {
 	name: ZHIPU_PROVIDER_NAME,
 	protocol: "chat_completions",

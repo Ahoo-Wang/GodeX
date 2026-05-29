@@ -1,5 +1,6 @@
 import type { ProviderSpec } from "../../bridge/provider-spec";
 import { DEFAULT_TOOL_NAME_CODEC } from "../../bridge/tools";
+import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
 import {
 	DEEPSEEK_SPEC_CAPABILITIES,
 	deepSeekFinishReason,
@@ -20,9 +21,10 @@ export const DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 export const DEEPSEEK_PROVIDER_NAME = "deepseek";
 
 export const DEEPSEEK_PROVIDER_SPEC: ProviderSpec<
-	ChatCompletionRequest,
+	BridgeChatCompletionCreateRequest,
 	ChatCompletion,
-	ChatCompletionChunk
+	ChatCompletionChunk,
+	ChatCompletionRequest
 > = {
 	name: DEEPSEEK_PROVIDER_NAME,
 	protocol: "chat_completions",

@@ -35,13 +35,23 @@ export interface ChatCompletionStreamAccessor<TChunk> {
 	deltas(chunk: TChunk): ProviderSpecStreamDelta[];
 }
 
-export interface ProviderHooks<TRequest, TResponse, TChunk> {
-	patchRequest?(request: TRequest): TRequest;
+export interface ProviderHooks<
+	TBridgeRequest,
+	TResponse,
+	TChunk,
+	TProviderRequest = TBridgeRequest,
+> {
+	patchRequest?(request: TBridgeRequest): TProviderRequest;
 	normalizeResponse?(response: TResponse): TResponse;
 	normalizeChunk?(chunk: TChunk): TChunk;
 }
 
-export interface ProviderSpec<TRequest, TResponse, TChunk> {
+export interface ProviderSpec<
+	TBridgeRequest,
+	TResponse,
+	TChunk,
+	TProviderRequest = TBridgeRequest,
+> {
 	readonly name: string;
 	readonly protocol: "chat_completions";
 	readonly capabilities: ProviderCapabilities;
@@ -50,12 +60,29 @@ export interface ProviderSpec<TRequest, TResponse, TChunk> {
 	readonly toolName: ToolNameCodec;
 	readonly response: ChatCompletionResponseAccessor<TResponse>;
 	readonly stream: ChatCompletionStreamAccessor<TChunk>;
-	readonly hooks?: ProviderHooks<TRequest, TResponse, TChunk>;
+	readonly hooks?: ProviderHooks<
+		TBridgeRequest,
+		TResponse,
+		TChunk,
+		TProviderRequest
+	>;
 }
 
-export interface ProviderEdge<TRequest, TResponse, TChunk> {
+export interface ProviderEdge<
+	TBridgeRequest,
+	TResponse,
+	TChunk,
+	TProviderRequest = TBridgeRequest,
+> {
 	readonly name: string;
-	readonly spec: ProviderSpec<TRequest, TResponse, TChunk>;
-	request(body: TRequest): Promise<TResponse>;
-	stream(body: TRequest): Promise<ReadableStream<JsonServerSentEvent<TChunk>>>;
+	readonly spec: ProviderSpec<
+		TBridgeRequest,
+		TResponse,
+		TChunk,
+		TProviderRequest
+	>;
+	request(body: TBridgeRequest): Promise<TResponse>;
+	stream(
+		body: TBridgeRequest,
+	): Promise<ReadableStream<JsonServerSentEvent<TChunk>>>;
 }

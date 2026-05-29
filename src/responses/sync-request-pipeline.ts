@@ -31,10 +31,12 @@ export class SyncRequestPipeline {
 
 	async request(ctx: ResponsesContext): Promise<ResponseObject> {
 		const { providerResponse, built } = await this.exchange.request(ctx);
+		const completedAt = Math.floor(Date.now() / 1000);
 		const response = reconstructResponseObject({
 			requestId: ctx.requestId,
 			responseId: ctx.responseId,
 			createdAt: ctx.createdAt,
+			completedAt,
 			provider: ctx.provider.name,
 			model: ctx.resolved.model,
 			providerResponse,

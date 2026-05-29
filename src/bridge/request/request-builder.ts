@@ -190,8 +190,7 @@ function applyRequestOptions(
 		source.reasoning?.effort &&
 		capabilities.parameters.supported.has("reasoning")
 	) {
-		request.reasoning_effort = source.reasoning
-			.effort as ChatCompletionCreateRequest["reasoning_effort"];
+		applyReasoningOption(request, source, capabilities);
 	}
 	if (
 		source.safety_identifier &&
@@ -202,6 +201,28 @@ function applyRequestOptions(
 	}
 	if (source.user && capabilities.parameters.supported.has("user")) {
 		request.user_id = source.user;
+	}
+}
+
+function applyReasoningOption(
+	request: ChatCompletionCreateRequest,
+	source: ResponseCreateRequest,
+	capabilities: ProviderCapabilities,
+): void {
+	const effort = source.reasoning?.effort;
+	if (!effort) return;
+	switch (capabilities.reasoning.effort) {
+		case "native":
+			request.reasoning_effort =
+				effort as ChatCompletionCreateRequest["reasoning_effort"];
+			return;
+		case "boolean":
+			request.thinking = {
+				type: effort === "none" ? "disabled" : "enabled",
+			};
+			return;
+		case "none":
+			return;
 	}
 }
 

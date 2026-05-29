@@ -1,14 +1,15 @@
 import type { ProviderCapabilities } from "../../bridge/compatibility";
 import type { ProviderStreamDelta } from "../../bridge/stream/stream-delta";
 import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
+import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
 import type { ResponseUsage } from "../../protocol/openai/responses";
 import type {
 	ChatCompletionChunk,
-	ChatCompletionCreateRequest,
 	ChatCompletionResponse,
 	ChatCompletionResponseMessage,
 	ChatCompletionStreamDelta,
 	CompletionUsage,
+	ChatCompletionCreateRequest as ZhipuChatCompletionCreateRequest,
 } from "./protocol";
 
 export const ZHIPU_SUPPORTED_TOOL_TYPES: ReadonlySet<string> = new Set([
@@ -110,19 +111,10 @@ export function zhipuResponseUsage(
 }
 
 export function zhipuPatchRequest(
-	request: ChatCompletionCreateRequest,
-): ChatCompletionCreateRequest {
-	const bridgeRequest = request as ChatCompletionCreateRequest & {
-		readonly reasoning_effort?: unknown;
-	};
-	if (bridgeRequest.reasoning_effort === undefined) return request;
-	const { reasoning_effort, ...providerRequest } = bridgeRequest;
-	return {
-		...providerRequest,
-		thinking: {
-			type: reasoning_effort === "none" ? "disabled" : "enabled",
-		},
-	} as ChatCompletionCreateRequest;
+	request: BridgeChatCompletionCreateRequest,
+): ZhipuChatCompletionCreateRequest {
+	const { reasoning_effort: _reasoningEffort, ...providerRequest } = request;
+	return providerRequest as unknown as ZhipuChatCompletionCreateRequest;
 }
 
 export function zhipuStreamDeltas(

@@ -14,16 +14,36 @@ export type ProviderStreamImplementation<TRequest, TChunk> = (
 	body: TRequest,
 ) => Promise<ReadableStream<JsonServerSentEvent<TChunk>>>;
 
-export interface CreateProviderEdgeOptions<TRequest, TResponse, TChunk> {
-	readonly spec: ProviderSpec<TRequest, TResponse, TChunk>;
+export interface CreateProviderEdgeOptions<
+	TBridgeRequest,
+	TResponse,
+	TChunk,
+	TProviderRequest = TBridgeRequest,
+> {
+	readonly spec: ProviderSpec<
+		TBridgeRequest,
+		TResponse,
+		TChunk,
+		TProviderRequest
+	>;
 	readonly config: ProviderRuntimeConfig;
-	readonly request?: ProviderRequestImplementation<TRequest, TResponse>;
-	readonly stream?: ProviderStreamImplementation<TRequest, TChunk>;
+	readonly request?: ProviderRequestImplementation<TProviderRequest, TResponse>;
+	readonly stream?: ProviderStreamImplementation<TProviderRequest, TChunk>;
 }
 
-export function createProviderEdge<TRequest, TResponse, TChunk>(
-	input: CreateProviderEdgeOptions<TRequest, TResponse, TChunk>,
-): ProviderEdge<TRequest, TResponse, TChunk> {
+export function createProviderEdge<
+	TBridgeRequest,
+	TResponse,
+	TChunk,
+	TProviderRequest = TBridgeRequest,
+>(
+	input: CreateProviderEdgeOptions<
+		TBridgeRequest,
+		TResponse,
+		TChunk,
+		TProviderRequest
+	>,
+): ProviderEdge<TBridgeRequest, TResponse, TChunk, TProviderRequest> {
 	const { spec } = input;
 	const endpointBaseURL =
 		input.config.endpoint?.base_url ?? spec.endpoint.defaultBaseURL;
@@ -31,7 +51,9 @@ export function createProviderEdge<TRequest, TResponse, TChunk>(
 		name: spec.name,
 		spec,
 		request: async (body) => {
-			const patched = spec.hooks?.patchRequest?.(body) ?? body;
+			const patched =
+				spec.hooks?.patchRequest?.(body) ??
+				(body as unknown as TProviderRequest);
 			if (!input.request) {
 				throw notConfiguredError({
 					provider: spec.name,
@@ -45,7 +67,9 @@ export function createProviderEdge<TRequest, TResponse, TChunk>(
 			return spec.hooks?.normalizeResponse?.(response) ?? response;
 		},
 		stream: async (body) => {
-			const patched = spec.hooks?.patchRequest?.(body) ?? body;
+			const patched =
+				spec.hooks?.patchRequest?.(body) ??
+				(body as unknown as TProviderRequest);
 			if (!input.stream) {
 				throw notConfiguredError({
 					provider: spec.name,

@@ -265,6 +265,10 @@ export interface ChatCompletionStreamOptions {
 	include_usage?: boolean;
 }
 
+export interface ChatCompletionThinking {
+	type: "enabled" | "disabled";
+}
+
 // ============================================================
 // Web Search Options
 // ============================================================
@@ -357,6 +361,8 @@ export interface ChatCompletionCreateRequest {
 	user?: string;
 	/** Provider extension used by bridge providers for end-user identifiers. */
 	user_id?: string;
+	/** Provider extension used by bridge providers with boolean reasoning. */
+	thinking?: ChatCompletionThinking;
 	/** Constrains the verbosity of the model's response. */
 	verbosity?: Verbosity;
 	/** Web search tool configuration. */

@@ -1,6 +1,7 @@
 import type { ProviderCapabilities } from "../../bridge/compatibility";
 import type { ProviderStreamDelta } from "../../bridge/stream/stream-delta";
 import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
+import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
 import type { ResponseUsage } from "../../protocol/openai/responses";
 import type {
 	ChatCompletion,
@@ -110,17 +111,21 @@ export function deepSeekResponseUsage(
 }
 
 export function deepSeekPatchRequest(
-	request: ChatCompletionRequest,
+	request: BridgeChatCompletionCreateRequest,
 ): ChatCompletionRequest {
 	const effort = deepSeekReasoningEffort(request.reasoning_effort);
+	const { reasoning_effort: _reasoningEffort, ...providerRequest } = request;
 	if (!effort) {
-		return { ...request, thinking: { type: "disabled" } };
+		return {
+			...providerRequest,
+			thinking: { type: "disabled" },
+		} as unknown as ChatCompletionRequest;
 	}
 	return {
-		...request,
+		...providerRequest,
 		thinking: { type: "enabled" },
 		reasoning_effort: effort,
-	};
+	} as unknown as ChatCompletionRequest;
 }
 
 export function deepSeekStreamDeltas(

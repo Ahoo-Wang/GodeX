@@ -10,9 +10,16 @@ export interface ProviderDefinition {
 	): ProviderEdge<unknown, unknown, unknown>;
 }
 
-export function createProviderDefinition<TReq, TRes, TChunk>(
+export function createProviderDefinition<
+	TBridgeRequest,
+	TRes,
+	TChunk,
+	TProviderRequest = TBridgeRequest,
+>(
 	name: string,
-	create: (config: ProviderRuntimeConfig) => ProviderEdge<TReq, TRes, TChunk>,
+	create: (
+		config: ProviderRuntimeConfig,
+	) => ProviderEdge<TBridgeRequest, TRes, TChunk, TProviderRequest>,
 ): ProviderDefinition {
 	return {
 		name,

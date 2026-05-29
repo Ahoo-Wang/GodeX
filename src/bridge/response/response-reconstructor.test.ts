@@ -67,7 +67,7 @@ function reconstruct(response: ExampleResponse) {
 		accessor,
 		toolIdentity: undefined,
 		outputContract: { requiresValidJson: false },
-		nowSeconds: () => 1710000000,
+		completedAt: 1710000000,
 	});
 }
 
@@ -103,13 +103,13 @@ describe("reconstructResponseObject", () => {
 			requestId: "req_123",
 			responseId: "resp_123",
 			createdAt: 1710000000,
+			completedAt: 1710000012,
 			provider: "deepseek",
 			model: "deepseek-chat",
 			providerResponse: providerResponse("stop", "hello"),
 			accessor,
 			toolIdentity: undefined,
 			outputContract: { requiresValidJson: false },
-			nowSeconds: () => 1710000012,
 		});
 
 		expect(response.created_at).toBe(1710000000);
@@ -211,6 +211,7 @@ describe("reconstructResponseObject", () => {
 			requestId: "req_123",
 			responseId: "resp_123",
 			createdAt: 1710000000,
+			completedAt: 1710000000,
 			provider: "deepseek",
 			model: "deepseek-chat",
 			providerResponse: providerResponse("tool_calls", "tool text"),
@@ -257,6 +258,7 @@ describe("reconstructResponseObject", () => {
 				requestId: "req_123",
 				responseId: "resp_123",
 				createdAt: 1710000000,
+				completedAt: 1710000000,
 				provider: "deepseek",
 				model: "deepseek-chat",
 				providerResponse: providerResponse("stop", "not json"),
@@ -278,6 +280,7 @@ describe("reconstructResponseObject", () => {
 			requestId: "req_123",
 			responseId: "resp_123",
 			createdAt: 1710000000,
+			completedAt: 1710000000,
 			provider: "deepseek",
 			model: "deepseek-chat",
 			providerResponse: providerResponse("stop", '{"ok":true}'),
