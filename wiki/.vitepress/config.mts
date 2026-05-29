@@ -93,15 +93,22 @@ const enSidebar = [
       { text: 'CLI Commands', link: '/07-configuration/cli-commands' },
     ],
   },
-  {
-    text: 'Testing',
-    collapsed: true,
-    items: [
-      { text: 'Testing Guide', link: '/08-testing/testing-guide' },
-    ],
-  },
-  {
-    text: 'Deployment',
+ {
+   text: 'Testing',
+   collapsed: true,
+   items: [
+     { text: 'Testing Guide', link: '/08-testing/testing-guide' },
+   ],
+ },
+ {
+   text: 'Trace',
+   collapsed: true,
+   items: [
+     { text: 'Trace Recording', link: '/10-trace/trace-recording' },
+   ],
+ },
+ {
+   text: 'Deployment',
     collapsed: true,
     items: [
       { text: 'CI/CD & Publishing', link: '/09-deployment/ci-cd' },
@@ -185,11 +192,18 @@ const zhSidebar = [
     text: '测试',
     collapsed: true,
     items: [
-      { text: '测试指南', link: '/zh/08-testing/testing-guide' },
-    ],
-  },
-  {
-    text: '部署',
+     { text: '测试指南', link: '/zh/08-testing/testing-guide' },
+   ],
+ },
+ {
+   text: '追踪',
+   collapsed: true,
+   items: [
+     { text: '追踪记录', link: '/zh/10-trace/trace-recording' },
+   ],
+ },
+ {
+   text: '部署',
     collapsed: true,
     items: [
       { text: 'CI/CD 与发布', link: '/zh/09-deployment/ci-cd' },

@@ -29,6 +29,7 @@ wiki/
 ├── 07-configuration/         # Config schema, CLI commands
 ├── 08-testing/               # Testing guide
 ├── 09-deployment/            # CI/CD, publishing
+├── 10-trace/                 # Trace recording, SQLite schema, payload capture
 ├── index.md                  # Landing page
 ├── llms.txt                  # LLM-friendly index
 └── llms-full.txt             # Full inlined content

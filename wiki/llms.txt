@@ -37,4 +37,5 @@
 - [Config Schema](07-configuration/config-schema.md): godex.yaml configuration reference
 - [CLI Commands](07-configuration/cli-commands.md): Command-line interface reference
 - [Testing Guide](08-testing/testing-guide.md): Unit, E2E, and live provider tests
+- [Trace Recording](10-trace/trace-recording.md): SQLite trace database, record types, async recorder, payload capture
 - [CI/CD & Publishing](09-deployment/ci-cd.md): CI pipeline, cross-compilation, npm publishing
