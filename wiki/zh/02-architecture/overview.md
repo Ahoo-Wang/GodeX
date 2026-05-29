@@ -8,6 +8,42 @@ keywords: "GodeX, 架构, 系统总览, 组件模型, 设计模式"
 
 GodeX 采用分层架构，关注点清晰分离：协议处理在边界层，桥接逻辑在中间层，提供商特定代码封装在 spec 和 hooks 中。
 
+## 架构全景
+
+```mermaid
+flowchart TB
+  Client["Client<br>Codex, SDK, CLI, IDE"] --> Routes["Bun server routes<br>/health<br>/v1/models<br>/v1/responses"]
+  Routes --> Ctx["ResponsesContext<br>request id, response id, resolved model,<br>provider, session, diagnostics"]
+
+  Ctx --> Resolver["ModelResolver<br>alias and provider/model selection"]
+  Ctx --> Session["ResponseSessionStore<br>memory or SQLite<br>previous_response_id chains"]
+  Ctx --> Registrar["Registrar<br>built-in ProviderEdge factories"]
+  Ctx --> Runtime["ResponsesBridgeRuntime"]
+
+  Runtime --> Sync["SyncRequestPipeline"]
+  Runtime --> Stream["StreamPipeline"]
+  Sync --> Exchange["ProviderExchange"]
+  Stream --> Exchange
+
+  Exchange --> Builder["bridge/request<br>buildChatCompletionRequest"]
+  Builder --> Compat["bridge/compatibility<br>parameter and response-format decisions"]
+  Builder --> Tools["bridge/tools<br>tool declarations, tool_choice,<br>identity restoration"]
+  Builder --> Output["bridge/output<br>structured-output contract"]
+
+  Exchange --> Edge["ProviderEdge<br>ProviderSpec + hooks"]
+  Edge --> ClientHttp["ChatProviderClient<br>Fetcher HTTP boundary"]
+  ClientHttp --> Upstream["Chat Completions upstream<br>DeepSeek, Zhipu, custom"]
+
+  Upstream --> SyncRecon["bridge/response<br>reconstructResponseObject"]
+  Upstream --> StreamRecon["bridge/stream<br>ResponseStreamStateMachine"]
+  SyncRecon --> ResponseJson["ResponseObject JSON"]
+  StreamRecon --> StreamTransforms["stream transforms<br>validate, trace, log, persist, diagnostics"]
+  StreamTransforms --> Sse["Responses SSE"]
+
+  Ctx --> Trace["trace recorder<br>request, usage, event, error rows"]
+  Ctx --> Logger["structured logger"]
+```
+
 ## 组件模型
 
 ```mermaid

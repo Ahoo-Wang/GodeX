@@ -8,6 +8,42 @@ keywords: "GodeX, architecture, system overview, component model, design pattern
 
 GodeX follows a layered architecture with clear separation of concerns: protocol handling at the boundary, bridge logic in the middle, and provider-specific code isolated in specs and hooks.
 
+## Architecture Overview
+
+```mermaid
+flowchart TB
+  Client["Client<br>Codex, SDK, CLI, IDE"] --> Routes["Bun server routes<br>/health<br>/v1/models<br>/v1/responses"]
+  Routes --> Ctx["ResponsesContext<br>request id, response id, resolved model,<br>provider, session, diagnostics"]
+
+  Ctx --> Resolver["ModelResolver<br>alias and provider/model selection"]
+  Ctx --> Session["ResponseSessionStore<br>memory or SQLite<br>previous_response_id chains"]
+  Ctx --> Registrar["Registrar<br>built-in ProviderEdge factories"]
+  Ctx --> Runtime["ResponsesBridgeRuntime"]
+
+  Runtime --> Sync["SyncRequestPipeline"]
+  Runtime --> Stream["StreamPipeline"]
+  Sync --> Exchange["ProviderExchange"]
+  Stream --> Exchange
+
+  Exchange --> Builder["bridge/request<br>buildChatCompletionRequest"]
+  Builder --> Compat["bridge/compatibility<br>parameter and response-format decisions"]
+  Builder --> Tools["bridge/tools<br>tool declarations, tool_choice,<br>identity restoration"]
+  Builder --> Output["bridge/output<br>structured-output contract"]
+
+  Exchange --> Edge["ProviderEdge<br>ProviderSpec + hooks"]
+  Edge --> ClientHttp["ChatProviderClient<br>Fetcher HTTP boundary"]
+  ClientHttp --> Upstream["Chat Completions upstream<br>DeepSeek, Zhipu, custom"]
+
+  Upstream --> SyncRecon["bridge/response<br>reconstructResponseObject"]
+  Upstream --> StreamRecon["bridge/stream<br>ResponseStreamStateMachine"]
+  SyncRecon --> ResponseJson["ResponseObject JSON"]
+  StreamRecon --> StreamTransforms["stream transforms<br>validate, trace, log, persist, diagnostics"]
+  StreamTransforms --> Sse["Responses SSE"]
+
+  Ctx --> Trace["trace recorder<br>request, usage, event, error rows"]
+  Ctx --> Logger["structured logger"]
+```
+
 ## Component Model
 
 ```mermaid
