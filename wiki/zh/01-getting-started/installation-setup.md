@@ -1,7 +1,7 @@
 ---
 title: "安装与配置"
 description: "安装 GodeX、创建配置文件并启动服务器。"
-keywords: "GodeX, 安装, 配置, npm, 二进制"
+keywords: "GodeX, 安装, 配置, npm, 二进制, Docker"
 ---
 
 # 安装与配置
@@ -18,6 +18,38 @@ npm install -g @ahoo-wang/godex
 ```
 
 GodeX 以**独立原生二进制文件**发布，零运行时依赖。npm 的 `postinstall` 自动选择适合您平台的二进制文件。
+
+## Docker
+
+预构建的多架构镜像发布到 Docker Hub 和 GitHub Container Registry：
+
+```bash
+docker pull ahoowang/godex:latest
+# 或
+docker pull ghcr.io/ahoo-wang/godex:latest
+```
+
+使用配置文件运行：
+
+```bash
+docker run -d \
+  --name godex \
+  -p 5678:5678 \
+  -e ZHIPU_API_KEY=your-key \
+  -e DEEPSEEK_API_KEY=your-key \
+  -v ./godex.yaml:/etc/godex/godex.yaml:ro \
+  -v godex-data:/data \
+  ahoowang/godex:latest
+```
+
+镜像支持 `linux/amd64` 和 `linux/arm64`。
+
+| 路径 | 说明 |
+|------|------|
+| `/etc/godex/godex.yaml` | 配置文件（默认） |
+| `/data` | 数据目录（会话、Trace） |
+
+默认端口：`5678`。
 
 ## 从源码构建
 
