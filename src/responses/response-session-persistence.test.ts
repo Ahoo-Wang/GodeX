@@ -49,6 +49,8 @@ function createMockCtx(
 			],
 			tool_choice: "auto",
 			parallel_tool_calls: true,
+			reasoning: { effort: "medium", summary: "auto" },
+			text: { format: { type: "json_object" }, verbosity: "low" },
 			truncation: "auto",
 		},
 		logger,
@@ -100,6 +102,8 @@ describe("saveResponseSession", () => {
 					],
 					tool_choice: "auto",
 					parallel_tool_calls: true,
+					reasoning: { effort: "medium", summary: "auto" },
+					text: { format: { type: "json_object" }, verbosity: "low" },
 					truncation: "auto",
 				},
 				response: {

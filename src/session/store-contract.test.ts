@@ -141,8 +141,18 @@ for (const storeCase of storeCases) {
 					previous_response_id: "resp_2",
 					turns: [first, second],
 					input_items: [
+						{
+							type: "message",
+							role: "system",
+							content: [{ type: "input_text", text: "You are helpful." }],
+						},
 						userInput,
 						...first.response.output,
+						{
+							type: "message",
+							role: "system",
+							content: [{ type: "input_text", text: "You are helpful." }],
+						},
 						secondInput,
 						...second.response.output,
 					],

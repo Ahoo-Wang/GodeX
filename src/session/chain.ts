@@ -91,10 +91,32 @@ export async function resolveResponseSessionChain(
 		previous_response_id: previousResponseId,
 		turns,
 		input_items: turns.flatMap((turn) => [
-			...requestInputItems(turn.request.input),
+			...requestHistoryItems(turn.request),
 			...turn.response.output,
 		]),
 	};
+}
+
+function requestHistoryItems(
+	request: StoredResponseRequestSnapshot,
+): ResponseItem[] {
+	return [
+		...instructionInputItems(request.instructions),
+		...requestInputItems(request.input),
+	];
+}
+
+function instructionInputItems(
+	instructions: StoredResponseRequestSnapshot["instructions"],
+): ResponseItem[] {
+	if (!instructions) return [];
+	return [
+		{
+			type: "message",
+			role: "system",
+			content: [{ type: "input_text", text: instructions }],
+		},
+	];
 }
 
 export function requestInputItems(

@@ -348,6 +348,31 @@ describe("buildChatCompletionRequest", () => {
 		expect(disabled.request).not.toHaveProperty("reasoning_effort");
 	});
 
+	test("rejects invalid runtime reasoning effort values", () => {
+		const error = captureBridgeError(() =>
+			buildChatCompletionRequest({
+				provider: "acme",
+				model: "acme-chat",
+				capabilities: {
+					...capabilities,
+					parameters: { supported: new Set(["reasoning"]) },
+					reasoning: { effort: "boolean" },
+				},
+				profile: toolProfile,
+				request: request({
+					reasoning: { effort: "extreme" } as never,
+				}),
+			}),
+		);
+
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_PARAMETER);
+		expect(error.context).toMatchObject({
+			provider: "acme",
+			model: "acme-chat",
+			parameter: "reasoning.effort",
+		});
+	});
+
 	test("maps Responses safety identifiers to provider user_id", () => {
 		const safeIdentifier = buildChatCompletionRequest({
 			provider: "acme",
@@ -529,10 +554,11 @@ describe("normalizeCurrentInput", () => {
 			role: "assistant",
 			content: "Earlier answer.",
 		});
-		expect(
-			(normalized[0] as { readonly reasoning_content?: string })
-				.reasoning_content,
-		).toBe("Earlier thought.");
+		expect(normalized[0]?.role).toBe("assistant");
+		if (normalized[0]?.role !== "assistant") {
+			throw new Error("Expected assistant message.");
+		}
+		expect(normalized[0].reasoning_content).toBe("Earlier thought.");
 		expect(normalized[1]).toEqual({ role: "user", content: "Continue." });
 	});
 

@@ -25,8 +25,18 @@ describe("resolveResponseSessionChain", () => {
 			previous_response_id: "resp_2",
 			turns: [first, second],
 			input_items: [
+				{
+					type: "message",
+					role: "system",
+					content: [{ type: "input_text", text: "You are helpful." }],
+				},
 				userInput,
 				...first.response.output,
+				{
+					type: "message",
+					role: "system",
+					content: [{ type: "input_text", text: "You are helpful." }],
+				},
 				secondInput,
 				...second.response.output,
 			],
@@ -43,6 +53,11 @@ describe("resolveResponseSessionChain", () => {
 			}),
 		).resolves.toMatchObject({
 			input_items: [
+				{
+					type: "message",
+					role: "system",
+					content: [{ type: "input_text", text: "You are helpful." }],
+				},
 				{
 					type: "message",
 					role: "user",

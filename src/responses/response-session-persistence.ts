@@ -22,6 +22,8 @@ export async function saveResponseSession(
 			tools: ctx.request.tools,
 			tool_choice: ctx.request.tool_choice,
 			parallel_tool_calls: ctx.request.parallel_tool_calls,
+			reasoning: ctx.request.reasoning,
+			text: ctx.request.text,
 			truncation: ctx.request.truncation,
 		},
 		response: {

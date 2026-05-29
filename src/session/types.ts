@@ -50,6 +50,8 @@ export interface StoredResponseRequestSnapshot {
 	tools?: ResponseCreateRequest["tools"];
 	tool_choice?: ResponseCreateRequest["tool_choice"];
 	parallel_tool_calls?: ResponseCreateRequest["parallel_tool_calls"];
+	reasoning?: ResponseCreateRequest["reasoning"];
+	text?: ResponseCreateRequest["text"];
 	truncation?: ResponseCreateRequest["truncation"];
 }
 

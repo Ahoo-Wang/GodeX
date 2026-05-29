@@ -12,6 +12,7 @@ import type {
 	ResponseCreateRequest,
 	ResponseToolChoice,
 } from "../../protocol/openai/responses";
+import type { ReasoningEffort } from "../../protocol/openai/shared";
 import type { ResponseSessionSnapshot } from "../../session";
 import {
 	type ProviderCapabilities,
@@ -79,7 +80,13 @@ export function buildChatCompletionRequest(
 		request.response_format =
 			output.providerResponseFormat as ChatCompletionCreateRequest["response_format"];
 	}
-	applyRequestOptions(request, input.request, input.capabilities);
+	applyRequestOptions(
+		request,
+		input.request,
+		input.capabilities,
+		input.provider,
+		input.model,
+	);
 
 	return { request, compatibility, tools, output };
 }
@@ -158,6 +165,8 @@ function applyRequestOptions(
 	request: ChatCompletionCreateRequest,
 	source: ResponseCreateRequest,
 	capabilities: ProviderCapabilities,
+	provider: string,
+	model: string,
 ): void {
 	if (
 		source.stream === true &&
@@ -190,7 +199,7 @@ function applyRequestOptions(
 		source.reasoning?.effort &&
 		capabilities.parameters.supported.has("reasoning")
 	) {
-		applyReasoningOption(request, source, capabilities);
+		applyReasoningOption(request, source, capabilities, provider, model);
 	}
 	if (
 		source.safety_identifier &&
@@ -208,9 +217,18 @@ function applyReasoningOption(
 	request: ChatCompletionCreateRequest,
 	source: ResponseCreateRequest,
 	capabilities: ProviderCapabilities,
+	provider: string,
+	model: string,
 ): void {
 	const effort = source.reasoning?.effort;
 	if (!effort) return;
+	if (!isReasoningEffort(effort)) {
+		throw new BridgeError(
+			BRIDGE_REQUEST_UNSUPPORTED_PARAMETER,
+			`Unsupported reasoning.effort value for provider ${provider}: ${String(effort)}.`,
+			{ provider, model, parameter: "reasoning.effort", value: effort },
+		);
+	}
 	switch (capabilities.reasoning.effort) {
 		case "native":
 			request.reasoning_effort =
@@ -224,6 +242,21 @@ function applyReasoningOption(
 		case "none":
 			return;
 	}
+}
+
+const REASONING_EFFORTS = new Set<ReasoningEffort>([
+	"none",
+	"minimal",
+	"low",
+	"medium",
+	"high",
+	"xhigh",
+]);
+
+function isReasoningEffort(value: unknown): value is ReasoningEffort {
+	return (
+		typeof value === "string" && REASONING_EFFORTS.has(value as ReasoningEffort)
+	);
 }
 
 function chatToolChoice(

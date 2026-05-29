@@ -154,6 +154,37 @@ describe("ProviderSpec runtime conformance", () => {
 		expect(patched).not.toHaveProperty("reasoning_effort");
 	});
 
+	test("Zhipu provider patch preserves historical reasoning content", () => {
+		const explicit = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "glm-5.1",
+			messages: [
+				{
+					role: "assistant",
+					content: "Earlier answer.",
+					reasoning_content: "Earlier thought.",
+				},
+			],
+			thinking: { type: "disabled" },
+		} as never) as Record<string, unknown> | undefined;
+		const inferred = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "glm-5.1",
+			messages: [
+				{
+					role: "assistant",
+					content: "Earlier answer.",
+					reasoning_content: "Earlier thought.",
+				},
+			],
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(explicit).toMatchObject({
+			thinking: { type: "disabled", clear_thinking: false },
+		});
+		expect(inferred).toMatchObject({
+			thinking: { type: "enabled", clear_thinking: false },
+		});
+	});
+
 	test("DeepSeek provider patch normalizes native reasoning effort", () => {
 		const max = DEEPSEEK_PROVIDER_SPEC.hooks?.patchRequest?.({
 			model: "deepseek-chat",

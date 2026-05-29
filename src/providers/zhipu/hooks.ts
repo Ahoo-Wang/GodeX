@@ -114,7 +114,33 @@ export function zhipuPatchRequest(
 	request: BridgeChatCompletionCreateRequest,
 ): ZhipuChatCompletionCreateRequest {
 	const { reasoning_effort: _reasoningEffort, ...providerRequest } = request;
+	if (providerRequest.thinking) {
+		return {
+			...providerRequest,
+			thinking: {
+				...providerRequest.thinking,
+				clear_thinking: false,
+			},
+		} as unknown as ZhipuChatCompletionCreateRequest;
+	}
+	if (hasHistoricalReasoningContent(providerRequest.messages)) {
+		return {
+			...providerRequest,
+			thinking: { type: "enabled", clear_thinking: false },
+		} as unknown as ZhipuChatCompletionCreateRequest;
+	}
 	return providerRequest as unknown as ZhipuChatCompletionCreateRequest;
+}
+
+function hasHistoricalReasoningContent(
+	messages: BridgeChatCompletionCreateRequest["messages"],
+): boolean {
+	return messages.some(
+		(message) =>
+			message.role === "assistant" &&
+			typeof message.reasoning_content === "string" &&
+			message.reasoning_content.length > 0,
+	);
 }
 
 export function zhipuStreamDeltas(

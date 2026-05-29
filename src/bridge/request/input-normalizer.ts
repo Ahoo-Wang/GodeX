@@ -62,7 +62,7 @@ function normalizeInputItems(
 			itemMessages[0] = {
 				...itemMessages[0],
 				reasoning_content: pendingReasoning,
-			} as NormalizedChatMessage;
+			};
 			pendingReasoning = undefined;
 		}
 		messages.push(...itemMessages);

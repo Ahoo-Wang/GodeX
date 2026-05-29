@@ -124,6 +124,8 @@ export interface ChatCompletionAssistantMessageParam {
 	role: "assistant";
 	content?: string | ChatCompletionAssistantContentPart[];
 	name?: string;
+	/** Provider extension used by reasoning-capable chat completion providers. */
+	reasoning_content?: string | null;
 	refusal?: string;
 	audio?: { id: string };
 	function_call?: {
@@ -267,6 +269,7 @@ export interface ChatCompletionStreamOptions {
 
 export interface ChatCompletionThinking {
 	type: "enabled" | "disabled";
+	clear_thinking?: boolean;
 }
 
 // ============================================================
@@ -404,6 +407,8 @@ export interface ChatCompletionMessage {
 	content: string | null;
 	refusal: string | null;
 	role: "assistant";
+	/** Provider extension used by reasoning-capable chat completion providers. */
+	reasoning_content?: string | null;
 	annotations?: ChatCompletionAnnotation[];
 	audio?: ChatCompletionAudio;
 	function_call?: {

@@ -1,11 +1,13 @@
 import { SERVER_ERROR } from "../../error";
 import type {
-	ResponseIncompleteDetails,
 	ResponseObject,
-	ResponseStatus,
 	ResponseUsage,
 } from "../../protocol/openai/responses";
-import type { ResponseError } from "../../protocol/openai/shared";
+import {
+	mapProviderFinishReason,
+	type ProviderFinishReasonFields,
+	type TerminalResponseStatus,
+} from "../finish-reason";
 import { validateOutputContract } from "../output";
 import type { ChatCompletionResponseAccessor } from "../provider-spec";
 import {
@@ -14,11 +16,6 @@ import {
 } from "../tools/call-restorer";
 import { ToolIdentityMap } from "../tools/tool-identity";
 import type { ToolPlan } from "../tools/tool-plan";
-
-type TerminalResponseStatus = Extract<
-	ResponseStatus,
-	"completed" | "incomplete" | "failed"
->;
 
 interface ReconstructResponseObjectInput<TResponse> {
 	readonly requestId: string;
@@ -32,12 +29,6 @@ interface ReconstructResponseObjectInput<TResponse> {
 	readonly toolIdentity?: unknown;
 	readonly outputContract: { readonly requiresValidJson: boolean };
 	readonly echo?: Partial<ResponseObject>;
-}
-
-interface ResponseStatusFields {
-	readonly status: TerminalResponseStatus;
-	readonly error: ResponseError | null;
-	readonly incomplete_details: ResponseIncompleteDetails | null;
 }
 
 export function reconstructResponseObject<TResponse>(
@@ -70,7 +61,7 @@ export function reconstructResponseObject<TResponse>(
 		responseId: input.responseId,
 	});
 
-	const statusFields = mapFinishReason(
+	const statusFields = mapProviderFinishReason(
 		input.provider,
 		input.accessor.finishReason(input.providerResponse),
 	);
@@ -87,54 +78,6 @@ export function reconstructResponseObject<TResponse>(
 	});
 }
 
-function mapFinishReason(
-	provider: string,
-	finishReason: string | null | undefined,
-): ResponseStatusFields {
-	switch (finishReason) {
-		case "stop":
-		case "tool_calls":
-			return {
-				status: "completed",
-				error: null,
-				incomplete_details: null,
-			};
-		case undefined:
-		case null:
-			return {
-				status: "failed",
-				error: {
-					code: SERVER_ERROR,
-					message: `Provider ${provider} returned no finish reason.`,
-				},
-				incomplete_details: null,
-			};
-		case "length":
-		case "model_context_window_exceeded":
-			return {
-				status: "incomplete",
-				error: null,
-				incomplete_details: { reason: "max_output_tokens" },
-			};
-		case "content_filter":
-		case "sensitive":
-			return {
-				status: "incomplete",
-				error: null,
-				incomplete_details: { reason: "content_filter" },
-			};
-		default:
-			return {
-				status: "failed",
-				error: {
-					code: SERVER_ERROR,
-					message: `Provider ${provider} returned unexpected finish reason: ${finishReason}.`,
-				},
-				incomplete_details: null,
-			};
-	}
-}
-
 function buildResponseObject<TResponse>(
 	input: ReconstructResponseObjectInput<TResponse>,
 	parts: {
@@ -144,7 +87,7 @@ function buildResponseObject<TResponse>(
 		readonly includeAssistantMessage: boolean;
 		readonly toolCalls?: readonly ProviderFunctionCall[];
 		readonly reasoningText?: string;
-		readonly statusFields: ResponseStatusFields;
+		readonly statusFields: ProviderFinishReasonFields;
 	},
 ): ResponseObject {
 	const output = responseOutput(input, parts);

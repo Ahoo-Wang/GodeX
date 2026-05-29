@@ -7,7 +7,6 @@ import {
 	SERVER_ERROR,
 } from "../../error";
 import type {
-	ResponseIncompleteDetails,
 	ResponseItem,
 	ResponseObject,
 	ResponseOutputContent,
@@ -20,6 +19,10 @@ import type {
 	ResponseError,
 	ResponseErrorCode,
 } from "../../protocol/openai/shared";
+import {
+	mapProviderFinishReason,
+	type ProviderFinishReasonFields,
+} from "../finish-reason";
 import {
 	type ProviderFunctionCall,
 	restoreToolCall,
@@ -75,12 +78,6 @@ interface ToolCallBlock {
 	providerName: string;
 	arguments: string;
 	done: boolean;
-}
-
-interface TerminalFields {
-	readonly status: "completed" | "incomplete" | "failed";
-	readonly error: ResponseError | null;
-	readonly incomplete_details: ResponseIncompleteDetails | null;
 }
 
 export class ResponseStreamStateMachine {
@@ -252,7 +249,10 @@ export class ResponseStreamStateMachine {
 	): ResponseStreamEvent[] {
 		this.assertActive("finish");
 		this.pendingFinishReason = undefined;
-		const terminal = mapFinishReason(this.options.provider, finishReason);
+		const terminal = mapProviderFinishReason(
+			this.options.provider,
+			finishReason,
+		);
 		const closeEvents = this.closeActiveBlocks();
 		this.currentPhase = terminalPhase(terminal.status);
 		this.refreshSnapshot();
@@ -628,54 +628,6 @@ function providerFunctionCall(block: ToolCallBlock): ProviderFunctionCall {
 	};
 }
 
-function mapFinishReason(
-	provider: string,
-	finishReason: ProviderStreamFinishReason | null | undefined,
-): TerminalFields {
-	switch (finishReason) {
-		case "stop":
-		case "tool_calls":
-			return {
-				status: "completed",
-				error: null,
-				incomplete_details: null,
-			};
-		case "length":
-		case "model_context_window_exceeded":
-			return {
-				status: "incomplete",
-				error: null,
-				incomplete_details: { reason: "max_output_tokens" },
-			};
-		case "content_filter":
-		case "sensitive":
-			return {
-				status: "incomplete",
-				error: null,
-				incomplete_details: { reason: "content_filter" },
-			};
-		case undefined:
-		case null:
-			return {
-				status: "failed",
-				error: {
-					code: SERVER_ERROR,
-					message: `Provider ${provider} returned no finish reason.`,
-				},
-				incomplete_details: null,
-			};
-		default:
-			return {
-				status: "failed",
-				error: {
-					code: SERVER_ERROR,
-					message: `Provider ${provider} returned unexpected finish reason: ${finishReason}.`,
-				},
-				incomplete_details: null,
-			};
-	}
-}
-
 function normalizeError(error: ProviderStreamError): ResponseError {
 	return {
 		code: normalizeResponseErrorCode(error.code),
@@ -710,7 +662,9 @@ function normalizeResponseErrorCode(code: string): ResponseErrorCode {
 		: SERVER_ERROR;
 }
 
-function terminalPhase(status: TerminalFields["status"]): ResponseStreamPhase {
+function terminalPhase(
+	status: ProviderFinishReasonFields["status"],
+): ResponseStreamPhase {
 	switch (status) {
 		case "completed":
 			return ResponseStreamPhase.COMPLETED;
@@ -722,7 +676,7 @@ function terminalPhase(status: TerminalFields["status"]): ResponseStreamPhase {
 }
 
 function terminalEventType(
-	status: TerminalFields["status"],
+	status: ProviderFinishReasonFields["status"],
 ): ResponseStreamEvent["type"] {
 	switch (status) {
 		case "completed":
