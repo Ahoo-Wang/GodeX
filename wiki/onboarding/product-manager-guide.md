@@ -8,7 +8,7 @@ keywords: "GodeX, product manager guide, features, roadmap"
 
 ## What This System Does
 
-GodeX is a **translator** between two AI API formats. Your team writes code using OpenAI's Responses API once, and GodeX automatically converts those requests to work with different AI providers (like Zhipu GLM). Think of it as a universal adapter — plug in any AI model, and your existing tools (like Codex) just work.
+GodeX is a **translator** between two AI API formats. Your team writes code using OpenAI's Responses API once, and GodeX automatically converts those requests to work with different AI providers (like DeepSeek, Zhipu GLM). Think of it as a universal bridge — plug in any AI model, and your existing tools (like Codex) just work.
 
 ## User Journey
 

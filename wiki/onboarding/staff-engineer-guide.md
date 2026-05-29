@@ -1,182 +1,131 @@
 ---
 title: "Staff Engineer Guide"
-description: "Architecture deep-dive for staff/principal engineers — design decisions, boundaries, and tradeoffs."
-keywords: "GodeX, staff engineer guide, architecture review"
+description: "Architectural deep-dive for senior engineers evaluating or extending GodeX."
+keywords: "GodeX, architecture, staff engineer, design decisions, type safety"
 ---
 
 # Staff Engineer Guide
 
-## Executive Summary
+This guide covers the architectural decisions, type safety model, and design patterns that shape GodeX. It is written for senior engineers who need to understand the system deeply before extending or modifying it.
 
-GodeX is a **protocol translation gateway** that accepts OpenAI Responses API requests (`/v1/responses`) and translates them into upstream provider-specific Chat Completions API calls. It owns request mapping, streaming pipeline orchestration, session persistence, and model resolution — it delegates HTTP transport to providers and stores sessions in pluggable backends (memory or SQLite).
+## Type Safety Model
 
-## The Core Architectural Insight
+The bridge kernel uses a small set of generic type parameters on `ProviderSpec` and `ProviderEdge`:
 
-The entire system revolves around **three generic type parameters** — `TReq`, `TRes`, `TChunk` — that bind a provider's specific types through the full adapter chain. This is the compile-time guarantee that mapping errors are caught before runtime:
-
-```python
-# Pseudocode (Python) — the type contract
-class ProviderMapper[TReq, TRes, TChunk]:
-    request:  RequestMapper[TReq]      # ResponsesContext → TReq
-    response: ResponseMapper[TRes]      # (ctx, TRes) → ResponseObject
-    stream:   StreamMapper[TChunk]      # (ctx, TChunk) → list[StreamEvent]
-
-class Provider[TReq, TRes, TChunk]:
-    mapper:     ProviderMapper[TReq, TRes, TChunk]
-    chatClient: ChatClient[TReq, TRes, TChunk]
-    capabilities: ProviderCapabilities
+```ts
+ProviderSpec<TBridgeRequest, TResponse, TChunk, TProviderRequest>
+ProviderEdge<TBridgeRequest, TResponse, TChunk, TProviderRequest>
 ```
 
-Adding a new provider means filling in these three types with concrete upstream types, and the compiler catches every mismatch.
+- `TBridgeRequest` — The bridge's Chat Completions request type (usually `ChatCompletionCreateRequest`).
+- `TResponse` — The provider's response type.
+- `TChunk` — The provider's stream chunk type.
+- `TProviderRequest` — The provider's native request type (when `hooks.patchRequest` transforms it).
 
-## System Architecture
+The bridge kernel works against `TBridgeRequest` and the `ProviderSpec` accessors. The `Registrar` erases generics to `ProviderEdge<unknown, unknown, unknown>` for runtime storage. Type safety is preserved at the provider boundary through the spec's typed accessors.
+
+## Architecture Layers
 
 ```mermaid
-graph TB
-    subgraph Client["Client Layer"]
-        SDK["OpenAI SDK / HTTP Client"]
-    end
+flowchart TD
+  subgraph server["Server Layer"]
+    ROUTES["Bun routes<br>/health, /v1/models, /v1/responses"]
+  end
 
-    subgraph Gateway["GodeX Gateway"]
-        CLI["CLI"]
-        APP["ApplicationContext"]
-        ROUTER["Bun HTTP Server"]
-        CTX["ResponsesContext"]
-        RESOLVER["ModelResolver"]
-        REGISTRAR["Registrar"]
-        ADAPTER["DefaultAdapter"]
-        SESSION["ResponseSessionStore"]
-    end
+  subgraph context["Context Layer"]
+    APP["ApplicationContext<br>config, logger, resolver, registrar,<br>responses, sessionStore, traceRecorder"]
+    RCTX["ResponsesContext<br>request, session, resolved model,<br>provider, diagnostics, outputContract"]
+  end
 
-    subgraph Provider["Provider Layer"]
-        MAPPER["ProviderMapper"]
-        CHAT["ChatClient"]
-    end
+  subgraph responses["Responses Layer"]
+    RUNTIME["ResponsesBridgeRuntime"]
+    SYNC["SyncRequestPipeline"]
+    STREAM["StreamPipeline"]
+    EXCHANGE["ProviderExchange"]
+  end
 
-    subgraph Upstream["Upstream"]
-        API["Provider API"]
-    end
+  subgraph bridge["Bridge Kernel"]
+    COMPAT["compatibility/"]
+    TOOLS["tools/"]
+    OUTPUT["output/"]
+    REQUEST["request/"]
+    RESPONSE["response/"]
+    STM["stream/"]
+  end
 
-    SDK -->|POST /v1/responses| ROUTER
-    CLI --> APP
-    APP --> ROUTER
-    APP --> RESOLVER
-    APP --> REGISTRAR
-    APP --> ADAPTER
-    APP --> SESSION
-    ROUTER --> CTX
-    CTX --> RESOLVER
-    CTX --> REGISTRAR
-    CTX --> ADAPTER
-    CTX --> SESSION
-    ADAPTER --> MAPPER
-    ADAPTER --> CHAT
-    CHAT --> API
+  subgraph providers["Provider Layer"]
+    SPEC["ProviderSpec"]
+    HOOKS["ProviderHooks"]
+    CLIENT["ChatProviderClient"]
+  end
 
-    style Gateway fill:#161b22,stroke:#6d5dfc,color:#e6edf3
-    style Client fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Provider fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style Upstream fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style SDK fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style CLI fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style APP fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style ROUTER fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style CTX fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style RESOLVER fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style REGISTRAR fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style ADAPTER fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style SESSION fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style MAPPER fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style CHAT fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style API fill:#2d333b,stroke:#8b949e,color:#e6edf3
+  ROUTES --> APP
+  ROUTES --> RCTX
+  APP --> RUNTIME
+  RUNTIME --> SYNC
+  RUNTIME --> STREAM
+  SYNC --> EXCHANGE
+  STREAM --> EXCHANGE
+  EXCHANGE --> REQUEST
+  EXCHANGE --> SPEC
+  REQUEST --> COMPAT
+  REQUEST --> TOOLS
+  REQUEST --> OUTPUT
+  SPEC --> HOOKS
+  SPEC --> CLIENT
 ```
 
-<!-- Sources: src/context/application-context.ts, src/adapter/default-adapter.ts -->
+## Key Design Decisions
 
-## Key Abstractions
+| Decision | Rationale |
+|----------|-----------|
+| Bridge kernel owns all compatibility policy | Prevents duplication across providers; providers only expose protocol differences |
+| `ProviderSpec` is a data object, not a class | Easy to compose, test, and serialize; no inheritance hierarchies |
+| Composable `TransformStream` stages | Zero-dependency, native platform API; each concern is isolated |
+| `ResponseStreamStateMachine` owns event production | Single source of truth for stream state; providers only provide deltas |
+| `OutputContractSlot` pattern | Lazy output contract initialization that the bridge sets and the pipeline reads |
+| Compatibility diagnostics accumulated per-request | Non-intrusive logging; no side-channel coupling between bridge and logging |
 
-| Abstraction | File | Purpose |
-|-------------|------|---------|
-| `ApplicationContext` | [src/context/application-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts) | Composition root, assembles all components |
-| `ResponsesContext` | [src/context/responses-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/responses-context.ts) | Per-request context, validation, attribute bag |
-| `Adapter` | [src/adapter/adapter.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/adapter.ts) | Orchestrates request/stream paths |
-| `Provider<TReq, TRes, TChunk>` | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) | Bundles mapper + client + capabilities |
-| `ProviderMapper<TReq, TRes, TChunk>` | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) | Protocol translation (3 maps) |
-| `ModelResolver` | [src/resolver/index.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/resolver/index.ts) | Parses "provider/model" selectors |
-| `Registrar` | [src/providers/registrar.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/registrar.ts) | Two-phase provider lifecycle |
+<!-- Sources: src/context/application-context.ts, src/responses/runtime.ts -->
 
-## Decision Log
+## Stream Pipeline Topology
 
-| Decision | Alternatives Considered | Rationale | Source |
-|----------|------------------------|-----------|--------|
-| Bun runtime | Node.js, Deno | Native TS, `Bun.serve()` routing, `bun:sqlite` for sessions, single-binary compilation | [package.json](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json) |
-| Tab indentation | Spaces | Biome default, consistency with existing codebase | [biome.json](https://github.com/Ahoo-Wang/GodeX/blob/main/biome.json) |
-| Web Streams TransformStream | RxJS, custom EventEmitter | Zero-dependency, native platform API, composable pipe() | [src/adapter/transformers/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/transformers/) |
-| SQLite session backend | Redis, file-per-session | Zero external deps via `bun:sqlite`, ACID, simple deployment | [src/session/sqlite.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/session/sqlite.ts) |
-| Three-generic Provider type | any/dynamic typing | Compile-time safety across entire adapter chain | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) |
-| `nanoid` for IDs | UUID v4 | Shorter, URL-safe, sufficient entropy | [src/context/responses-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/responses-context.ts) |
+The stream pipeline connects eight stages via `pipeTransform()`:
 
-## Stream Pipeline
-
-The streaming path is the most complex subsystem — a three-stage `TransformStream` pipeline:
-
-```mermaid
-graph LR
-    UPSTREAM["Upstream SSE"] --> T1["ProviderEventToResponseTransformer"]
-    T1 --> T2["ResponseSessionPersistenceTransformer"]
-    T2 --> T3["ResponseSseEncodeTransformer"]
-    T3 --> CLIENT["Client Response"]
-
-    style UPSTREAM fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style T1 fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style T2 fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style T3 fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style CLIENT fill:#2d333b,stroke:#8b949e,color:#e6edf3
+```
+provider SSE stream
+  → TraceTransformer (raw)
+  → ProviderStreamEventBridge (state machine)
+  → StreamErrorHandler
+  → ResponseOutputContractValidationTransformer
+  → TraceTransformer (transformed)
+  → ResponseLogTransformer
+  → ResponseSessionPersistenceTransformer (optional)
+  → CompatibilityLogTransformer
+  → ResponseSseEncoder (in server route)
 ```
 
-<!-- Sources: src/adapter/transformers/stream-utils.ts -->
+Pipeline order matters: provider events are bridged first, output contracts validated before logging and persistence, then SSE encoding in the server route.
 
-Each transformer has a single responsibility:
-1. **Protocol translation** — upstream SSE chunks → `ResponseStreamEvent[]`
-2. **Session persistence** — intercept terminal events, save session
-3. **SSE encoding** — `ResponseStreamEvent` → `event: type\ndata: JSON\n\n`
-
-## Failure Modes
-
-| Failure | Handling | Code |
-|---------|----------|------|
-| Invalid JSON body | `ServerError` → 400 | `server.request.invalid_json` |
-| Missing model | `ServerError` → 400 | `server.request.missing_model` |
-| Unknown provider | `ServerError` → 400 | `server.request.missing_model` |
-| Upstream timeout | `ProviderError` → 504 | `provider.upstream.timeout` |
-| Upstream rate limit | `ProviderError` → 429 | `provider.upstream.rate_limit` |
-| Session chain not found | `SessionError` → 404 | `session.chain.not_found` |
-| Session chain cycle | `SessionError` → 400 | `session.chain.cycle_detected` |
+<!-- Sources: src/responses/stream-pipeline.ts, src/responses/stream-transforms/ -->
 
 ## Testing Strategy
 
-| Layer | Tool | Scope |
-|-------|------|-------|
-| Unit | `bun test` | Individual functions, mappers |
-| Integration | `bun test` (mocked upstream) | Adapter with mocked ChatClient |
-| E2E | `bun test src/e2e` | Full server with HTTP mock |
-| Live provider | `ZHIPU_LIVE_TESTS=1` | Real upstream API (CI only on main) |
+| Level | Scope | Tool |
+|-------|-------|------|
+| Unit | Individual functions and classes | `bun test` (colocated `*.test.ts`) |
+| Contract | Shared interfaces (session store, provider) | Parameterized test fixtures |
+| Integration | Module interactions (pipeline + bridge) | `bun test` with mocks |
+| E2E | Full server with mocked upstream | `bun test src/e2e` |
 
-## Known Technical Debt
+Module boundary tests (`module-boundaries.test.ts`) enforce import restrictions at the type level.
 
-| Issue | Risk Level | Affected Files | Source |
-|-------|-----------|----------------|--------|
-| Single provider (Zhipu only) | Medium | `src/providers/` | Only one builtin factory |
-| `ignoreDeadLinks: true` in wiki | Low | `wiki/.vitepress/config.mts` | Masks broken links |
-| No structured logging output format | Low | `src/logger/` | Plain JSON, no standard schema |
+## Critical Code Paths
 
-## Where to Go Deep
+1. [src/bridge/request/request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts) — request building with compatibility, tools, and output planning
+2. [src/responses/stream-pipeline.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts) — stream orchestration
+3. [src/bridge/stream/response-stream-state-machine.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts) — stream state machine
+4. [src/responses/sync-request-pipeline.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts) — sync orchestration
+5. [src/responses/stream-transforms/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/) — composable transformer stages
 
-Recommended reading order:
-1. [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) — the core type contract
-2. [src/adapter/default-adapter.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/default-adapter.ts) — orchestration logic
-3. [src/context/application-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts) — how everything wires together
-4. [src/providers/zhipu/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/) — complete provider reference
-5. [src/adapter/transformers/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/transformers/) — stream pipeline internals
-
-[Architecture Overview](/02-architecture/overview) · [Stream Pipeline](/02-architecture/stream-pipeline) · [Adapter Pattern](/02-architecture/adapter-pattern)
+[Architecture Overview](/02-architecture/overview) · [Stream Pipeline](/02-architecture/stream-pipeline) · [Bridge Kernel](/02-architecture/bridge-kernel)

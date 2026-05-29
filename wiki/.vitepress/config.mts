@@ -47,7 +47,7 @@ const enSidebar = [
     items: [
       { text: 'System Overview', link: '/02-architecture/overview' },
       { text: 'Request Flow', link: '/02-architecture/request-flow' },
-      { text: 'Adapter Pattern', link: '/02-architecture/adapter-pattern' },
+      { text: 'Bridge Kernel', link: '/02-architecture/bridge-kernel' },
       { text: 'Stream Pipeline', link: '/02-architecture/stream-pipeline' },
     ],
   },
@@ -56,6 +56,7 @@ const enSidebar = [
     collapsed: false,
     items: [
       { text: 'Provider Interface', link: '/03-provider-development/provider-interface' },
+      { text: 'DeepSeek Reference', link: '/03-provider-development/deepseek-reference' },
       { text: 'Zhipu Reference', link: '/03-provider-development/zhipu-reference' },
       { text: 'Message & Tool Mapping', link: '/03-provider-development/message-tool-mapping' },
     ],
@@ -92,15 +93,22 @@ const enSidebar = [
       { text: 'CLI Commands', link: '/07-configuration/cli-commands' },
     ],
   },
-  {
-    text: 'Testing',
-    collapsed: true,
-    items: [
-      { text: 'Testing Guide', link: '/08-testing/testing-guide' },
-    ],
-  },
-  {
-    text: 'Deployment',
+ {
+   text: 'Testing',
+   collapsed: true,
+   items: [
+     { text: 'Testing Guide', link: '/08-testing/testing-guide' },
+   ],
+ },
+ {
+   text: 'Trace',
+   collapsed: true,
+   items: [
+     { text: 'Trace Recording', link: '/10-trace/trace-recording' },
+   ],
+ },
+ {
+   text: 'Deployment',
     collapsed: true,
     items: [
       { text: 'CI/CD & Publishing', link: '/09-deployment/ci-cd' },
@@ -134,7 +142,7 @@ const zhSidebar = [
     items: [
       { text: '系统总览', link: '/zh/02-architecture/overview' },
       { text: '请求流程', link: '/zh/02-architecture/request-flow' },
-      { text: '适配器模式', link: '/zh/02-architecture/adapter-pattern' },
+      { text: 'Bridge 内核', link: '/zh/02-architecture/bridge-kernel' },
       { text: '流式管道', link: '/zh/02-architecture/stream-pipeline' },
     ],
   },
@@ -143,6 +151,7 @@ const zhSidebar = [
     collapsed: false,
     items: [
       { text: 'Provider 接口', link: '/zh/03-provider-development/provider-interface' },
+      { text: 'DeepSeek 参考', link: '/zh/03-provider-development/deepseek-reference' },
       { text: '智谱参考实现', link: '/zh/03-provider-development/zhipu-reference' },
       { text: '消息与工具映射', link: '/zh/03-provider-development/message-tool-mapping' },
     ],
@@ -183,11 +192,18 @@ const zhSidebar = [
     text: '测试',
     collapsed: true,
     items: [
-      { text: '测试指南', link: '/zh/08-testing/testing-guide' },
-    ],
-  },
-  {
-    text: '部署',
+     { text: '测试指南', link: '/zh/08-testing/testing-guide' },
+   ],
+ },
+ {
+   text: '追踪',
+   collapsed: true,
+   items: [
+     { text: '追踪记录', link: '/zh/10-trace/trace-recording' },
+   ],
+ },
+ {
+   text: '部署',
     collapsed: true,
     items: [
       { text: 'CI/CD 与发布', link: '/zh/09-deployment/ci-cd' },

@@ -1,12 +1,12 @@
 ---
 title: "Stream Pipeline"
-description: "Three-stage transformer pipeline that converts upstream SSE chunks into Responses API events."
+description: "How the StreamPipeline converts upstream SSE chunks into Responses API events through composable transformers."
 keywords: "GodeX, stream pipeline, TransformStream, SSE, transformers"
 ---
 
 # Stream Pipeline
 
-The streaming pipeline is the heart of GodeX's real-time delivery. It chains three `TransformStream` stages to convert provider-specific SSE chunks into OpenAI Responses API events, while persisting session state along the way.
+The streaming pipeline is the heart of GodeX's real-time delivery. It chains composable `TransformStream` stages to convert provider-specific SSE chunks into OpenAI Responses API events, while validating output contracts, recording traces, logging diagnostics, and persisting sessions.
 
 ## Pipeline Overview
 
@@ -17,56 +17,62 @@ flowchart LR
   end
 
   subgraph godex["GodeX Stream Pipeline"]
-    T1["ProviderEventToResponseTransformer"]
-    T2["ResponseSessionPersistenceTransformer"]
-    T3["ResponseSseEncodeTransformer"]
+    T0["TraceTransformer (raw)"]
+    T1["ProviderStreamEventBridge"]
+    ERR["StreamErrorHandler"]
+    T2["ResponseOutputContractValidationTransformer"]
+    T3["TraceTransformer (transformed)"]
+    T4["ResponseLogTransformer"]
+    T5["ResponseSessionPersistenceTransformer"]
+    T6["CompatibilityLogTransformer"]
+  end
+
+  subgraph server["Server Route"]
+    SSE_ENC["ResponseSseEncoder"]
   end
 
   subgraph client["Client"]
     BYTES["SSE Bytes"]
   end
 
-  SSE -->|"pipeThrough(TransformStream)"| T1
-  T1 -->|"per-event map()"| T2
-  T2 -->|"intercept terminal events, save session"| T3
-  T3 -->|"serialize to SSE wire format"| BYTES
+  SSE --> T0 --> T1 --> ERR --> T2 --> T3 --> T4 --> T5 --> T6 --> SSE_ENC --> BYTES
 ```
 
 ## Transformer Roles
 
 | Stage | Transformer | Input | Output | Side Effects |
 |-------|------------|-------|--------|-------------|
-| 1 | `ProviderEventToResponseTransformer` | `JsonServerSentEvent` | `ResponseStreamEvent` | Calls `StreamMapper.map()` per event |
-| 2 | `ResponseSessionPersistenceTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Passes events through; on terminal events, saves the response via session store |
-| 3 | `ResponseSseEncodeTransformer` | `ResponseStreamEvent` | `Uint8Array` | Serializes to `event:` / `data:` lines |
+| 1 | `TraceTransformer (raw)` | `JsonServerSentEvent` | `JsonServerSentEvent` | Records raw upstream events to trace |
+| 2 | `ProviderStreamEventBridge` | `JsonServerSentEvent` | `ResponseStreamEvent` | Maps provider deltas through `ResponseStreamStateMachine` |
+| 3 | `StreamErrorHandler` | `ResponseStreamEvent` | `ResponseStreamEvent` | Catches stream errors, emits `response.failed` |
+| 4 | `ResponseOutputContractValidationTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Validates structured output on terminal events |
+| 5 | `TraceTransformer (transformed)` | `ResponseStreamEvent` | `ResponseStreamEvent` | Records transformed events to trace |
+| 6 | `ResponseLogTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Logs completion/incomplete/failed events |
+| 7 | `ResponseSessionPersistenceTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Saves session on terminal events |
+| 8 | `CompatibilityLogTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Logs compatibility diagnostics at stream end |
+| - | `ResponseSseEncoder` (in server route) | `ResponseStreamEvent` | `Uint8Array` | Serializes to SSE wire format |
 
-## Stream State Management
+## ProviderStreamEventBridge
 
-The `StreamResponseState` (from `src/adapter/mapper/stream-response-state.ts`) is a state machine that produces `ResponseStreamEvent` arrays from each method call. It is created by the provider's `StreamMapper` at the start of streaming and stored in `ResponsesContext.attributes` under the key `"stream-response-state"`.
+This is the core bridging transformer. For each incoming SSE chunk from the provider:
 
-The state tracks:
-- Active output blocks (text, reasoning, refusal) currently accumulating deltas
-- Tool call accumulators per call index
-- Completed output items via `OutputCollectionState`
-- A live `snapshot: ResponseObject` property that is always current
+1. Calls `ctx.provider.spec.stream.deltas(event.data)` to extract typed deltas from the raw chunk.
+2. Feeds deltas into `ResponseStreamStateMachine` which produces `ResponseStreamEvent` arrays.
+
+```mermaid
+flowchart LR
+  INPUT["JsonServerSentEvent"]
+  DELTAS["spec.stream.deltas()"]
+  MACHINE["ResponseStreamStateMachine"]
+  OUTPUT["ResponseStreamEvent[]"]
+
+  INPUT --> DELTAS --> MACHINE --> OUTPUT
+```
 
 ### Session Persistence
 
-The `ResponseSessionPersistenceTransformer`:
-
-- Passes all events through transparently
-- On terminal events (`response.completed`, `response.incomplete`, `response.failed`), extracts the complete `ResponseObject` from the event and saves it via `SessionStore.save()`
-- In `flush()`, if no terminal event was seen but the state has reached a terminal phase, saves the `StreamResponseState.snapshot`
+The `ResponseSessionPersistenceTransformer` passes all events through transparently. On terminal events (`response.completed`, `response.incomplete`, `response.failed`), it extracts the complete `ResponseObject` from the event and saves it via `SessionStore.save()`.
 
 When `store === false` on the request, this transformer is bypassed entirely.
-
-## Phase Lifecycle
-
-```
-IDLE --> start() --> IN_PROGRESS --> onFinish() --> COMPLETED/INCOMPLETE
-                              \--> onError()  --> FAILED
-```
-
-Each phase transition is validated; calls from an unexpected phase throw an `AdapterError` with appropriate error codes (`ADAPTER_STREAM_INVALID_TRANSITION`, `ADAPTER_STREAM_DELTA_AFTER_TERMINAL`, etc.).
 
 [Provider Interface](/03-provider-development/provider-interface)

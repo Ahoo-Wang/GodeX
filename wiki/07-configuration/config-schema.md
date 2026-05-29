@@ -16,17 +16,30 @@ server:
   host: "0.0.0.0"         # Listen address
   idle_timeout: 30000     # Idle connection timeout (ms)
 
-default_provider: zhipu   # Provider used when model has no slash prefix
+default_provider: deepseek   # Provider used when model has no slash prefix
 
 models:
   aliases:
-    "gpt-4o": zhipu/glm-4.7   # Maps gpt-4o to provider-native glm-4.7
-    "*": zhipu/glm-5.1         # Catch-all fallback
+    "gpt-5.5": deepseek/deepseek-v4-pro   # Maps alias to provider/model
+    "glm": zhipu/glm-5.1                   # Maps alias to provider/model
+    "*": deepseek/deepseek-v4-flash        # Catch-all fallback
 
 providers:
+  deepseek:
+    spec: deepseek                      # Provider spec name (required)
+    credentials:
+      api_key: ${DEEPSEEK_API_KEY}
+    endpoint:
+      base_url: https://api.deepseek.com
+    timeout_ms: 30000
+
   zhipu:
-    api_key: ${ZHIPU_API_KEY}
-    base_url: https://open.bigmodel.cn/api/coding/paas/v4
+    spec: zhipu                         # Provider spec name (required)
+    credentials:
+      api_key: ${ZHIPU_API_KEY}
+    endpoint:
+      base_url: https://open.bigmodel.cn/api/coding/paas/v4
+    timeout_ms: 30000
 
 session:
   backend: sqlite         # "sqlite" or "memory"
@@ -45,6 +58,15 @@ logging:
     filename: godex.log
     max_size: 10485760    # 10MB
     max_files: 5
+
+trace:
+  enabled: true
+  path: ./data/trace.db
+  max_queue_size: 1000
+  flush_interval_ms: 1000
+  batch_size: 50
+  capture_payload: false
+  payload_max_bytes: 102400
 ```
 
 ## Type Definitions
@@ -60,6 +82,7 @@ classDiagram
     +providers: Record~string, ProviderConfig~
     +session: SessionConfig
     +logging: LoggingConfig
+    +trace: TraceConfig
   }
 
   class ServerConfig {
@@ -69,7 +92,17 @@ classDiagram
   }
 
   class ProviderConfig {
+    +spec: string
+    +credentials: CredentialsConfig
+    +endpoint: EndpointConfig
+    +timeout_ms: number
+  }
+
+  class CredentialsConfig {
     +api_key: string
+  }
+
+  class EndpointConfig {
     +base_url: string
   }
 
@@ -88,15 +121,43 @@ classDiagram
     +file: FileLoggingConfig
   }
 
+  class TraceConfig {
+    +enabled: boolean
+    +path: string
+    +max_queue_size: number
+    +flush_interval_ms: number
+    +batch_size: number
+    +capture_payload: boolean
+    +payload_max_bytes: number
+  }
+
   GodeXConfig --> ServerConfig
   GodeXConfig --> ModelsConfig
   GodeXConfig --> ProviderConfig
   GodeXConfig --> SessionConfig
   GodeXConfig --> LoggingConfig
+  GodeXConfig --> TraceConfig
+  ProviderConfig --> CredentialsConfig
+  ProviderConfig --> EndpointConfig
+```
+
+## Provider Config
+
+Each provider entry must include a `spec` field that matches a registered provider definition name. Legacy provider config without `spec` is rejected at startup.
+
+```yaml
+providers:
+  myprovider:
+    spec: myprovider           # Required: matches registered definition
+    credentials:
+      api_key: ${MY_API_KEY}
+    endpoint:
+      base_url: https://api.example.com/v1
+    timeout_ms: 30000
 ```
 
 ## Environment Interpolation
 
-Values like `${ZHIPU_API_KEY}` are resolved at load time from `process.env`. Missing variables produce a startup error.
+Values like `${DEEPSEEK_API_KEY}` are resolved at load time from environment variables. Missing variables produce a startup error.
 
 [CLI Commands](/07-configuration/cli-commands)

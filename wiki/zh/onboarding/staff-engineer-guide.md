@@ -1,85 +1,116 @@
 ---
 title: "架构师指南"
-description: "面向资深/首席工程师的架构深度分析 — 设计决策、边界和权衡。"
-keywords: "GodeX, 架构师指南, 架构评审"
+description: "面向评估或扩展 GodeX 的高级工程师的架构深入分析。"
+keywords: "GodeX, 架构, 高级工程师, 设计决策, 类型安全"
 ---
 
-# 架构师指南
+# 架师指南
 
-## 概要
+本指南涵盖塑造 GodeX 的架构决策、类型安全模型和设计模式。面向需要深入了解系统后再进行扩展或修改的高级工程师。
 
-GodeX 是一个**协议翻译网关**，接受 OpenAI Responses API 请求（`/v1/responses`）并转换为上游提供商的 Chat Completions API 调用。它负责请求映射、流式管道编排、会话持久化和模型解析——将 HTTP 传输委托给 provider，将会话存储委托给可插拔后端（内存或 SQLite）。
+## 类型安全模型
 
-## 核心架构洞察
+Bridge 内核在 `ProviderSpec` 和 `ProviderEdge` 上使用少量泛型类型参数：
 
-整个系统围绕**三个泛型参数**——`TReq`、`TRes`、`TChunk`——构建，通过完整的 adapter 链绑定 provider 的具体类型。这是编译时保证映射错误在运行时之前被捕获的关键：
-
-```python
-# 伪代码（Python）— 类型契约
-class ProviderMapper[TReq, TRes, TChunk]:
-    request:  RequestMapper[TReq]      # ResponsesContext → TReq
-    response: ResponseMapper[TRes]      # (ctx, TRes) → ResponseObject
-    stream:   StreamMapper[TChunk]      # (ctx, TChunk) → list[StreamEvent]
+```ts
+ProviderSpec<TBridgeRequest, TResponse, TChunk, TProviderRequest>
+ProviderEdge<TBridgeRequest, TResponse, TChunk, TProviderRequest>
 ```
 
-## 关键抽象
+- `TBridgeRequest` — bridge 的 Chat Completions 请求类型（通常为 `ChatCompletionCreateRequest`）。
+- `TResponse` — 提供商的响应类型。
+- `TChunk` — 提供商的流块类型。
+- `TProviderRequest` — 提供商的原生请求类型（当 `hooks.patchRequest` 转换时）。
 
-| 抽象 | 文件 | 职责 |
-|------|------|------|
-| `ApplicationContext` | [src/context/application-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts) | 组合根，组装所有组件 |
-| `ResponsesContext` | [src/context/responses-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/responses-context.ts) | 每请求上下文、校验、属性袋 |
-| `Adapter` | [src/adapter/adapter.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/adapter.ts) | 编排请求/流路径 |
-| `Provider<TReq, TRes, TChunk>` | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) | 打包 mapper + client + capabilities |
-| `ModelResolver` | [src/resolver/index.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/resolver/index.ts) | 解析 "provider/model" 选择器 |
+Bridge 内核针对 `TBridgeRequest` 和 `ProviderSpec` 访问器工作。`Registrar` 将泛型擦除为 `ProviderEdge<unknown, unknown, unknown>` 进行运行时存储。类型安全通过 spec 的类型化访问器在提供商边界处保留。
 
-## 技术决策日志
-
-| 决策 | 备选方案 | 理由 | 来源 |
-|------|---------|------|------|
-| Bun 运行时 | Node.js, Deno | 原生 TS、`Bun.serve()` 路由、`bun:sqlite`、单二进制编译 | [package.json](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json) |
-| Web Streams TransformStream | RxJS、自定义 EventEmitter | 零依赖、原生平台 API、可组合 pipe() | [src/adapter/transformers/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/transformers/) |
-| SQLite 会话后端 | Redis、文件存储 | 通过 `bun:sqlite` 零外部依赖、ACID、部署简单 | [src/session/sqlite.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/session/sqlite.ts) |
-| 三泛型 Provider 类型 | any/动态类型 | 编译时安全覆盖整个 adapter 链 | [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) |
-
-## 流式管道
+## 架构层
 
 ```mermaid
-graph LR
-    UPSTREAM["上游 SSE"] --> T1["ProviderEventToResponseTransformer"]
-    T1 --> T2["ResponseSessionPersistenceTransformer"]
-    T2 --> T3["ResponseSseEncodeTransformer"]
-    T3 --> CLIENT["客户端响应"]
+flowchart TD
+  subgraph server["服务器层"]
+    ROUTES["Bun 路由<br>/health, /v1/models, /v1/responses"]
+  end
 
-    style UPSTREAM fill:#2d333b,stroke:#8b949e,color:#e6edf3
-    style T1 fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style T2 fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style T3 fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style CLIENT fill:#2d333b,stroke:#8b949e,color:#e6edf3
+  subgraph context["上下文层"]
+    APP["ApplicationContext<br>config, logger, resolver, registrar,<br>responses, sessionStore, traceRecorder"]
+    RCTX["ResponsesContext<br>request, session, resolved model,<br>provider, diagnostics, outputContract"]
+  end
+
+  subgraph responses["Responses 层"]
+    RUNTIME["ResponsesBridgeRuntime"]
+    SYNC["SyncRequestPipeline"]
+    STREAM["StreamPipeline"]
+    EXCHANGE["ProviderExchange"]
+  end
+
+  subgraph bridge["Bridge 内核"]
+    COMPAT["compatibility/"]
+    TOOLS["tools/"]
+    OUTPUT["output/"]
+    REQUEST["request/"]
+    RESPONSE["response/"]
+    STM["stream/"]
+  end
+
+  subgraph providers["提供商层"]
+    SPEC["ProviderSpec"]
+    HOOKS["ProviderHooks"]
+    CLIENT["ChatProviderClient"]
+  end
+
+  ROUTES --> APP
+  ROUTES --> RCTX
+  APP --> RUNTIME
+  RUNTIME --> SYNC
+  RUNTIME --> STREAM
+  SYNC --> EXCHANGE
+  STREAM --> EXCHANGE
+  EXCHANGE --> REQUEST
+  EXCHANGE --> SPEC
+  REQUEST --> COMPAT
+  REQUEST --> TOOLS
+  REQUEST --> OUTPUT
+  SPEC --> HOOKS
+  SPEC --> CLIENT
 ```
 
-<!-- Sources: src/adapter/transformers/stream-utils.ts -->
+## 关键设计决策
 
-每个转换器单一职责：
-1. **协议翻译** — 上游 SSE chunk → `ResponseStreamEvent[]`
-2. **会话持久化** — 拦截终止事件，保存会话
-3. **SSE 编码** — `ResponseStreamEvent` → `event: type\ndata: JSON\n\n`
+| 决策 | 理由 |
+|------|------|
+| Bridge 内核拥有所有兼容性策略 | 防止跨提供商重复；提供商只暴露协议差异 |
+| `ProviderSpec` 是数据对象，不是类 | 易于组合、测试和序列化；无继承层次 |
+| 可组合 `TransformStream` 阶段 | 零依赖、原生平台 API；每个关注点隔离 |
+| `ResponseStreamStateMachine` 拥有事件生产 | 流状态的单一事实来源；提供商只提供增量 |
+| `OutputContractSlot` 模式 | 延迟输出合约初始化，bridge 设置、管道读取 |
+| 每请求累积兼容性诊断 | 非侵入式日志记录；bridge 和日志之间无侧通道耦合 |
 
-## 故障模式
+## 流式管道拓扑
 
-| 故障 | 处理 | 错误码 |
-|------|------|--------|
-| 无效 JSON body | `ServerError` → 400 | `server.request.invalid_json` |
-| 缺少 model | `ServerError` → 400 | `server.request.missing_model` |
-| 上游超时 | `ProviderError` → 504 | `provider.upstream.timeout` |
-| 上游限流 | `ProviderError` → 429 | `provider.upstream.rate_limit` |
-| 会话链未找到 | `SessionError` → 404 | `session.chain.not_found` |
+流式管道通过 `pipeTransform()` 连接八个阶段：
 
-## 深入阅读推荐
+```
+提供商 SSE 流
+  → TraceTransformer (原始)
+  → ProviderStreamEventBridge (状态机)
+  → StreamErrorHandler
+  → OutputContractValidation
+  → TraceTransformer (转换后)
+  → ResponseLogTransformer
+  → SessionPersistence (可选)
+  → CompatibilityLog
+  → ResponseSseEncoder (在服务器路由中)
+```
 
-1. [src/adapter/provider.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/provider.ts) — 核心类型契约
-2. [src/adapter/default-adapter.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/default-adapter.ts) — 编排逻辑
-3. [src/context/application-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts) — 组件组装
-4. [src/providers/zhipu/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/) — 完整参考实现
-5. [src/adapter/transformers/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/transformers/) — 流式管道内部
+管道顺序很重要：提供商事件先被桥接，输出合约在日志和持久化之前验证，然后 SSE 编码在服务器路由中完成。
 
-[架构概览](/zh/02-architecture/overview) · [流式管道](/zh/02-architecture/stream-pipeline) · [适配器模式](/zh/02-architecture/adapter-pattern)
+## 关键代码路径
+
+1. [src/bridge/request/request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts) — 带兼容性、工具和输出规划的请求构建
+2. [src/responses/stream-pipeline.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts) — 流式编排
+3. [src/bridge/stream/response-stream-state-machine.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts) — 流状态机
+4. [src/responses/sync-request-pipeline.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts) — 同步编排
+5. [src/responses/stream-transforms/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/) — 可组合转换器阶段
+
+[系统总览](/zh/02-architecture/overview) · [流式管道](/zh/02-architecture/stream-pipeline) · [Bridge 内核](/zh/02-architecture/bridge-kernel)

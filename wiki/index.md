@@ -30,7 +30,7 @@ features:
     details: Bridges OpenAI Responses API and provider-specific Chat Completions APIs. Codex and OpenAI SDK tools work out of the box.
   - icon: 🔌
     title: Provider-agnostic
-    details: Plugin-based adapter system. Add a new provider by implementing a small set of interfaces — no server rewrite needed.
+    details: Spec-based provider system. Add a new provider by declaring capabilities and writing small hooks — no server rewrite needed.
   - icon: ⚡
     title: Streaming-first
     details: Built on ReadableStream and TransformStream for low-latency SSE delivery. Three-stage transformer pipeline with automatic session persistence.
@@ -54,7 +54,7 @@ Codex / CLI / IDE
 ┌─────────────────┐
 │   GodeX Gateway │
 └────────┬────────┘
-         │  Provider Adapter
+         │  Provider Bridge
          ▼
 ┌─────────────────────────┐
 │  Chat Completions API   │
@@ -62,7 +62,7 @@ Codex / CLI / IDE
 └─────────────────────────┘
 ```
 
-GodeX sits between your tools and upstream model providers. It accepts OpenAI Responses API requests, translates them to Chat Completions API calls via pluggable provider adapters, and streams results back — preserving the full protocol semantics that Codex expects.
+GodeX sits between your tools and upstream model providers. It accepts OpenAI Responses API requests, translates them to Chat Completions API calls via the bridge kernel and provider specs, and streams results back — preserving the full protocol semantics that Codex expects.
 
 ## Quick Start
 
