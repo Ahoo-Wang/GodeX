@@ -1167,6 +1167,80 @@ describe("E2E: session chain via previous_response_id", () => {
 		]);
 	});
 
+	test("replays streamed parallel tool calls as one assistant message", async () => {
+		resetUpstreamRequests();
+		const tools = [
+			{
+				type: "function",
+				name: "get_weather",
+				description: "Get weather.",
+				parameters: { type: "object" },
+				strict: true,
+			},
+			{
+				type: "function",
+				name: "get_time",
+				description: "Get time.",
+				parameters: { type: "object" },
+				strict: true,
+			},
+		];
+		const events1 = await streamResponses({
+			model: "gpt-5",
+			input: "Stream two tools.",
+			stream: true,
+			store: true,
+			tools,
+		});
+		const responseId1 = events1.find((e) => e.type === "response.completed")
+			?.response?.id;
+		expect(responseId1).toMatch(/^resp_/);
+
+		resetUpstreamRequests();
+		const res2 = await postResponses({
+			model: "gpt-5",
+			previous_response_id: responseId1,
+			input: [
+				{
+					type: "function_call_output",
+					call_id: "call_weather",
+					output: "Sunny.",
+				},
+				{
+					type: "function_call_output",
+					call_id: "call_time",
+					output: "12:00 UTC.",
+				},
+				{ role: "user", content: "Summarize tool results." },
+			],
+			tools,
+		});
+
+		expect(res2.status).toBe(200);
+		expect(upstreamMessages()).toEqual([
+			{ role: "user", content: "Stream two tools." },
+			{
+				role: "assistant",
+				content: "",
+				tool_calls: [
+					{
+						id: "call_weather",
+						type: "function",
+						function: { name: "get_weather", arguments: '{"city":"Paris"}' },
+					},
+					{
+						id: "call_time",
+						type: "function",
+						function: { name: "get_time", arguments: '{"zone":"UTC"}' },
+					},
+				],
+			},
+			{ role: "tool", content: "Sunny.", tool_call_id: "call_weather" },
+			{ role: "tool", content: "12:00 UTC.", tool_call_id: "call_time" },
+			{ role: "user", content: "Summarize tool results." },
+		]);
+	});
+
 	test("replays namespace tool calls with provider names", async () => {
 		resetUpstreamRequests();
 		const tools = [

@@ -10,6 +10,7 @@ import type {
 } from "../../protocol/openai/completions";
 import type {
 	ResponseCreateRequest,
+	ResponseItem,
 	ResponseToolChoice,
 } from "../../protocol/openai/responses";
 import type { ReasoningEffort } from "../../protocol/openai/shared";
@@ -96,15 +97,16 @@ function chatMessages(
 	output: OutputContractPlan,
 	tools: ToolPlan,
 ): ChatCompletionMessageParam[] {
+	const context = normalizerContext(input, tools);
 	const messages = buildChatMessages([
 		...(input.session?.input_items
 			? normalizeResponseItems(
 					input.session.input_items,
 					input.request,
-					normalizerContext(input, tools),
+					context,
 				)
 			: []),
-		...normalizeCurrentInput(input.request, normalizerContext(input, tools)),
+		...normalizeCurrentInput(input.request, context),
 	]);
 	if (output.syntheticInstruction) {
 		messages.push({
@@ -287,5 +289,39 @@ function normalizerContext(
 	input: BuildChatCompletionRequestInput,
 	tools?: ToolPlan,
 ): InputNormalizerContext {
-	return { provider: input.provider, model: input.model, toolPlan: tools };
+	return {
+		provider: input.provider,
+		model: input.model,
+		toolPlan: tools,
+		toolCallIdsByItemId: toolCallIdsByItemId(input),
+	};
+}
+
+function toolCallIdsByItemId(
+	input: BuildChatCompletionRequestInput,
+): ReadonlyMap<string, string> {
+	const result = new Map<string, string>();
+	for (const item of replayableInputItems(input)) {
+		if (!isRecord(item)) continue;
+		if (typeof item.id !== "string" || typeof item.call_id !== "string") {
+			continue;
+		}
+		result.set(item.id, item.call_id);
+	}
+	return result;
+}
+
+function replayableInputItems(
+	input: BuildChatCompletionRequestInput,
+): ResponseItem[] {
+	return [
+		...(input.session?.input_items ?? []),
+		...(Array.isArray(input.request.input)
+			? (input.request.input as ResponseItem[])
+			: []),
+	];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
 }

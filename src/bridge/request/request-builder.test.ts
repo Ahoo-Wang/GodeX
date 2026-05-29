@@ -220,23 +220,134 @@ describe("buildChatCompletionRequest", () => {
 		expect(
 			result.tools.declarations.map((declaration) => declaration.providerName),
 		).toEqual(["weather_now", "weather_now_2"]);
-		expect(result.request.messages.slice(0, 2)).toEqual([
+		expect(result.request.messages[0]).toEqual(
 			expect.objectContaining({
 				role: "assistant",
 				tool_calls: [
 					expect.objectContaining({
 						function: expect.objectContaining({ name: "weather_now" }),
 					}),
-				],
-			}),
-			expect.objectContaining({
-				role: "assistant",
-				tool_calls: [
 					expect.objectContaining({
 						function: expect.objectContaining({ name: "weather_now_2" }),
 					}),
 				],
 			}),
+		);
+	});
+
+	test("maps local shell output item ids back to replayed tool call ids", () => {
+		const result = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities,
+			profile: toolProfile,
+			request: request({
+				input: [
+					{
+						id: "fc_previous",
+						type: "local_shell_call_output",
+						output: "/repo",
+					},
+					{ role: "user", content: "Continue." },
+				],
+			}),
+			session: {
+				previous_response_id: "resp_previous",
+				turns: [],
+				input_items: [
+					{
+						id: "fc_previous",
+						type: "local_shell_call",
+						call_id: "call_previous",
+						action: {
+							type: "exec",
+							command: ["pwd"],
+							env: {},
+						},
+						status: "completed",
+					},
+				],
+			},
+		});
+
+		expect(result.request.messages).toEqual([
+			expect.objectContaining({
+				role: "assistant",
+				tool_calls: [
+					expect.objectContaining({
+						id: "call_previous",
+						function: expect.objectContaining({
+							name: "local_shell",
+						}),
+					}),
+				],
+			}),
+			{ role: "tool", tool_call_id: "call_previous", content: "/repo" },
+			{ role: "user", content: "Continue." },
+		]);
+	});
+
+	test("groups adjacent replayed tool calls before their tool outputs", () => {
+		const result = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities,
+			profile: toolProfile,
+			request: request({ input: [] }),
+			session: {
+				previous_response_id: "resp_previous",
+				turns: [],
+				input_items: [
+					{
+						type: "function_call",
+						call_id: "call_a",
+						name: "lookup_a",
+						arguments: "{}",
+					},
+					{
+						type: "function_call",
+						call_id: "call_b",
+						name: "lookup_b",
+						arguments: "{}",
+					},
+					{
+						type: "function_call",
+						call_id: "call_c",
+						name: "lookup_c",
+						arguments: "{}",
+					},
+					{
+						type: "function_call_output",
+						call_id: "call_a",
+						output: "A",
+					},
+					{
+						type: "function_call_output",
+						call_id: "call_b",
+						output: "B",
+					},
+					{
+						type: "function_call_output",
+						call_id: "call_c",
+						output: "C",
+					},
+				],
+			},
+		});
+
+		expect(result.request.messages).toEqual([
+			{
+				role: "assistant",
+				content: "",
+				tool_calls: [
+					expect.objectContaining({ id: "call_a" }),
+					expect.objectContaining({ id: "call_b" }),
+					expect.objectContaining({ id: "call_c" }),
+				],
+			},
+			{ role: "tool", tool_call_id: "call_a", content: "A" },
+			{ role: "tool", tool_call_id: "call_b", content: "B" },
+			{ role: "tool", tool_call_id: "call_c", content: "C" },
 		]);
 	});
 
