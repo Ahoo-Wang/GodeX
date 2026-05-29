@@ -1,7 +1,7 @@
 import type { InitProviderId } from "./providers";
 
 export interface InitOptions {
-	configPath: string;
+	configPath?: string;
 }
 
 export interface InitProviderConfig {

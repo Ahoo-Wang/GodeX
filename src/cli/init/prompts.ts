@@ -1,4 +1,6 @@
+import { homedir } from "node:os";
 import * as clack from "@clack/prompts";
+import { CONFIG_SEARCH_PATHS } from "../../config";
 import { GODEX_BRAND_NAME } from "../../version";
 import { parsePort } from "../runtime-config";
 import { resolveDefaultProvider } from "./default-provider";
@@ -54,6 +56,31 @@ export async function promptInitConfig(): Promise<InitConfigYamlOptions | null> 
 		sessionBackend,
 		logLevel,
 	};
+}
+
+export async function promptConfigPath(): Promise<string | null> {
+	const homeConfig = CONFIG_SEARCH_PATHS[1];
+	const localConfig = CONFIG_SEARCH_PATHS[0];
+	const homeLabel = `~${homeConfig.slice(homedir().length)}`;
+
+	const savePath = await clack.select({
+		message: "Save config to:",
+		options: [
+			{
+				value: homeConfig,
+				label: homeLabel,
+				hint: "User directory (Recommended)",
+			},
+			{ value: localConfig, label: localConfig, hint: "Working directory" },
+		],
+		initialValue: homeConfig,
+	});
+
+	if (clack.isCancel(savePath)) {
+		clack.cancel("Operation cancelled");
+		return null;
+	}
+	return savePath as string;
 }
 
 async function promptProviderConfigs(
