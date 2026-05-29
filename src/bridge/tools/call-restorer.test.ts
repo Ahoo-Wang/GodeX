@@ -148,4 +148,40 @@ describe("restoreToolCall", () => {
 			},
 		});
 	});
+
+	test("restores apply_patch update operations with diff payloads", () => {
+		const identities = new ToolIdentityMap();
+		identities.add({
+			requestedName: "apply_patch",
+			providerName: "apply_patch",
+			requestedType: "apply_patch",
+			providerType: "function",
+		});
+
+		const item = restoreToolCall(
+			{
+				callId: "call_patch",
+				name: "apply_patch",
+				arguments: JSON.stringify({
+					operation: {
+						type: "update_file",
+						path: "src/index.ts",
+						diff: "@@ patch",
+					},
+				}),
+			},
+			identities,
+		);
+
+		expect(item).toEqual({
+			type: "apply_patch_call",
+			call_id: "call_patch",
+			status: "in_progress",
+			operation: {
+				type: "update_file",
+				path: "src/index.ts",
+				diff: "@@ patch",
+			},
+		});
+	});
 });

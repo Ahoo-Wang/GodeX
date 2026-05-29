@@ -276,6 +276,61 @@ describe("buildChatCompletionRequest", () => {
 		);
 	});
 
+	test("forwards supported chat options through the provider request", () => {
+		const result = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities: {
+				...capabilities,
+				parameters: {
+					supported: new Set([
+						"text.format",
+						"stream",
+						"temperature",
+						"top_p",
+						"max_output_tokens",
+						"reasoning",
+					]),
+				},
+				reasoning: { effort: "native" },
+			},
+			profile: toolProfile,
+			request: request({
+				stream: true,
+				temperature: 0.2,
+				top_p: 0.8,
+				max_output_tokens: 42,
+				reasoning: { effort: "medium" },
+			}),
+		});
+
+		expect(result.request).toMatchObject({
+			stream: true,
+			stream_options: { include_usage: true },
+			temperature: 0.2,
+			top_p: 0.8,
+			max_tokens: 42,
+			reasoning_effort: "medium",
+		});
+	});
+
+	test("omits stream usage options when the provider does not support them", () => {
+		const result = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities: {
+				...capabilities,
+				parameters: { supported: new Set(["stream"]) },
+				streaming: { usage: false },
+			},
+			profile: toolProfile,
+			request: request({ stream: true }),
+		});
+
+		expect(result.request.stream).toBe(true);
+		expect(result.request.stream_options).toBeUndefined();
+	});
+
 	test("throws when planned provider-native tool declarations cannot be rendered", () => {
 		const error = captureBridgeError(() =>
 			buildChatCompletionRequest({
@@ -432,6 +487,26 @@ describe("normalizeCurrentInput", () => {
 		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT);
 	});
 
+	test("throws BridgeError for unsupported non-array input content", () => {
+		const error = captureBridgeError(() =>
+			normalizeCurrentInput(
+				request({
+					input: [
+						{
+							role: "user",
+							content: { text: "Hello." } as never,
+						},
+					],
+				}),
+			),
+		);
+
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT);
+		expect(error.message).toContain(
+			"Unsupported Responses input content type: object",
+		);
+	});
+
 	test("throws BridgeError for unsupported input items", () => {
 		const error = captureBridgeError(() =>
 			normalizeCurrentInput(
@@ -471,6 +546,193 @@ describe("normalizeCurrentInput", () => {
 		expect(normalized).toEqual([
 			{ role: "assistant", content: "Earlier answer." },
 		]);
+	});
+
+	test("normalizes Responses tool history items into provider-neutral chat messages", () => {
+		const normalized = normalizeCurrentInput(
+			request({
+				input: [
+					{
+						type: "function_call",
+						call_id: "call_fn",
+						name: "lookup.weather",
+						arguments: '{"city":"Hangzhou"}',
+					},
+					{
+						type: "function_call_output",
+						call_id: "call_fn",
+						output: [{ type: "input_text", text: "Sunny." }],
+					},
+					{
+						type: "shell_call",
+						call_id: "call_shell",
+						action: { commands: ["bun test"] },
+						status: "completed",
+					},
+					{
+						type: "shell_call_output",
+						call_id: "call_shell",
+						output: [
+							{
+								outcome: { type: "exit", exit_code: 0 },
+								stdout: "ok",
+								stderr: "",
+							},
+							{
+								outcome: { type: "timeout" },
+								stdout: "",
+								stderr: "slow",
+							},
+						],
+					},
+					{
+						id: "call_local",
+						type: "local_shell_call",
+						call_id: "call_local",
+						action: {
+							type: "exec",
+							command: ["pwd"],
+							env: { CI: "true" },
+							timeout_ms: 1000,
+							user: "runner",
+							working_directory: "/repo",
+						},
+						status: "completed",
+					},
+					{
+						id: "call_local",
+						type: "local_shell_call_output",
+						output: "/repo",
+					},
+					{
+						type: "apply_patch_call",
+						call_id: "call_patch",
+						status: "completed",
+						operation: { type: "delete_file", path: "tmp.txt" },
+					},
+					{
+						type: "apply_patch_call_output",
+						call_id: "call_patch",
+						status: "completed",
+					},
+					{
+						type: "custom_tool_call",
+						call_id: "call_custom",
+						name: "search",
+						namespace: "workspace",
+						input: "src",
+					},
+					{
+						type: "custom_tool_call_output",
+						call_id: "call_custom",
+						output: [{ type: "input_text", text: "src/index.ts" }],
+					},
+				],
+			}),
+		);
+
+		expect(normalized).toEqual([
+			expect.objectContaining({
+				role: "assistant",
+				tool_calls: [
+					expect.objectContaining({
+						id: "call_fn",
+						function: {
+							name: "lookup.weather",
+							arguments: '{"city":"Hangzhou"}',
+						},
+					}),
+				],
+			}),
+			{ role: "tool", tool_call_id: "call_fn", content: "Sunny." },
+			expect.objectContaining({
+				role: "assistant",
+				tool_calls: [
+					expect.objectContaining({
+						id: "call_shell",
+						function: {
+							name: "shell",
+							arguments: JSON.stringify({ commands: ["bun test"] }),
+						},
+					}),
+				],
+			}),
+			{
+				role: "tool",
+				tool_call_id: "call_shell",
+				content:
+					"[exit 0]\nstdout:\nok\nstderr:\n\n[timeout]\nstdout:\n\nstderr:\nslow",
+			},
+			expect.objectContaining({
+				role: "assistant",
+				tool_calls: [
+					expect.objectContaining({
+						id: "call_local",
+						function: {
+							name: "local_shell",
+							arguments: JSON.stringify({
+								command: ["pwd"],
+								env: { CI: "true" },
+								timeout_ms: 1000,
+								user: "runner",
+								working_directory: "/repo",
+							}),
+						},
+					}),
+				],
+			}),
+			{ role: "tool", tool_call_id: "call_local", content: "/repo" },
+			expect.objectContaining({
+				role: "assistant",
+				tool_calls: [
+					expect.objectContaining({
+						id: "call_patch",
+						function: {
+							name: "apply_patch",
+							arguments: JSON.stringify({
+								operation: { type: "delete_file", path: "tmp.txt" },
+							}),
+						},
+					}),
+				],
+			}),
+			{ role: "tool", tool_call_id: "call_patch", content: "completed:" },
+			expect.objectContaining({
+				role: "assistant",
+				tool_calls: [
+					expect.objectContaining({
+						id: "call_custom",
+						function: {
+							name: "workspace__search",
+							arguments: JSON.stringify({ input: "src" }),
+						},
+					}),
+				],
+			}),
+			{ role: "tool", tool_call_id: "call_custom", content: "src/index.ts" },
+		]);
+	});
+
+	test("reports provider, model, and message fallback for unsupported input objects", () => {
+		const error = captureBridgeError(() =>
+			normalizeCurrentInput(
+				request({
+					model: "fallback-model",
+					input: [{ role: "user" } as never],
+				}),
+				{ provider: "zhipu", model: "glm-5.1" },
+			),
+		);
+
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_ITEM);
+		expect(error.message).toContain(
+			"Unsupported Responses input item type for zhipu: message.",
+		);
+		expect(error.context).toMatchObject({
+			provider: "zhipu",
+			model: "glm-5.1",
+			parameter: "input",
+		});
 	});
 });
 

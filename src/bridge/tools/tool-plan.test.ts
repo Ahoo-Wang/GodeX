@@ -4,6 +4,7 @@ import {
 	renderFunctionDeclarations,
 	renderProviderToolDeclarations,
 } from "./declaration-renderer";
+import { buildToolCatalog, flattenToolName } from "./tool-catalog";
 import { ToolIdentityMap } from "./tool-identity";
 import type { ToolPlanningProfile } from "./tool-plan";
 import { planTools } from "./tool-plan";
@@ -146,6 +147,46 @@ describe("planTools", () => {
 		});
 	});
 
+	test("keeps supported mode tool_choice unchanged and rejects it when no fallback exists", () => {
+		const supported = planTools({
+			tools: [
+				{
+					type: "function",
+					name: "lookup",
+					parameters: {},
+					strict: true,
+				},
+			],
+			toolChoice: "auto",
+			profile: kernelProfile,
+		});
+
+		expect(supported.providerToolChoice).toBe("auto");
+		expect(supported.decisions).toContainEqual({
+			path: "tool_choice",
+			action: "supported",
+			reason: "kernel-test supports tool_choice 'auto'.",
+		});
+
+		expect(() =>
+			planTools({
+				tools: [
+					{
+						type: "function",
+						name: "lookup",
+						parameters: {},
+						strict: true,
+					},
+				],
+				toolChoice: "required",
+				profile: {
+					...kernelProfile,
+					toolChoice: new Set(),
+				},
+			}),
+		).toThrow(BridgeError);
+	});
+
 	test("degrades explicit object tool_choice to auto when provider cannot force mapped type", () => {
 		const plan = planTools({
 			tools: [
@@ -184,6 +225,97 @@ describe("planTools", () => {
 			reason:
 				"kernel-test cannot force tool_choice 'custom'; downgraded to auto.",
 		});
+	});
+
+	test("rejects explicit mapped tool_choice when provider has no force or auto mode", () => {
+		expect(() =>
+			planTools({
+				tools: [
+					{
+						type: "custom",
+						name: "raw",
+						description: "Raw input",
+						format: { type: "text" },
+					},
+				],
+				toolChoice: { type: "custom", name: "raw" },
+				profile: {
+					...kernelProfile,
+					toolChoice: new Set(),
+				},
+			}),
+		).toThrow(BridgeError);
+	});
+
+	test("renders native object tool choices for mcp and shell declarations", () => {
+		const mcpChoice = planTools({
+			tools: [
+				{
+					type: "mcp",
+					server_label: "repo",
+					server_url: "https://mcp.example.com",
+				},
+			],
+			toolChoice: { type: "mcp", server_label: "repo", name: "list_files" },
+			profile: {
+				...kernelProfile,
+				nativeToolTypes: new Set(["mcp"]),
+				degradedToolTypes: new Map(),
+				toolChoice: new Set(["mcp"]),
+			},
+		});
+		const shellChoice = planTools({
+			tools: [{ type: "shell" }],
+			toolChoice: { type: "shell" },
+			profile: {
+				...kernelProfile,
+				nativeToolTypes: new Set(["shell"]),
+				degradedToolTypes: new Map(),
+				toolChoice: new Set(["shell"]),
+			},
+		});
+
+		expect(mcpChoice.providerToolChoice).toEqual({
+			type: "mcp",
+			server_label: "repo",
+			name: "list_files",
+		});
+		expect(mcpChoice.decisions).toContainEqual({
+			path: "tool_choice",
+			action: "supported",
+			reason: "kernel-test supports tool_choice 'mcp'.",
+		});
+		expect(shellChoice.providerToolChoice).toEqual({ type: "shell" });
+	});
+
+	test("renders provider-type-only tool_choice for non-function degraded object choices", () => {
+		const plan = planTools({
+			tools: [
+				{
+					type: "custom",
+					name: "raw",
+					description: "Raw input",
+					format: { type: "text" },
+				},
+			],
+			toolChoice: { type: "custom", name: "raw" },
+			profile: {
+				...kernelProfile,
+				nativeToolTypes: new Set(),
+				degradedToolTypes: new Map([["custom", "mcp"]]),
+				toolChoice: new Set(["mcp"]),
+			},
+		});
+
+		expect(plan.providerToolChoice as unknown).toEqual({ type: "mcp" });
+		expect(plan.decisions).toContainEqual(
+			expect.objectContaining({
+				path: "tool_choice",
+				action: "degraded",
+				reason:
+					"kernel-test maps tool_choice 'custom' to provider tool_choice 'mcp'.",
+			}),
+		);
 	});
 
 	test("uses planned provider name consistently for declarations and tool_choice", () => {
@@ -280,6 +412,32 @@ describe("planTools", () => {
 		).toThrow(BridgeError);
 	});
 
+	test("adds identity declarations in batches without changing identical mappings", () => {
+		const identities = new ToolIdentityMap();
+
+		identities.addDeclarations([
+			{
+				requestedName: "weather.now",
+				providerName: "weather_now",
+				requestedType: "function",
+				providerType: "function",
+			},
+		]);
+		identities.add({
+			requestedName: "weather.now",
+			providerName: "weather_now",
+			requestedType: "function",
+			providerType: "function",
+		});
+
+		expect(identities.get("weather_now")).toEqual({
+			requestedName: "weather.now",
+			providerName: "weather_now",
+			requestedType: "function",
+			providerType: "function",
+		});
+	});
+
 	test("renders built-in and custom function declarations with strict bridge schemas", () => {
 		const plan = planTools({
 			tools: [
@@ -345,6 +503,141 @@ describe("planTools", () => {
 					content_size: "high",
 				},
 			},
+		]);
+	});
+
+	test("renders native retrieval and mcp declarations from provider plans", () => {
+		const plan = planTools({
+			tools: [
+				{
+					type: "file_search",
+					vector_store_ids: ["knowledge_1"],
+				},
+				{
+					type: "mcp",
+					server_label: "repo",
+					server_url: "https://mcp.example.com",
+					allowed_tools: ["list_files"],
+					headers: { Authorization: "Bearer token" },
+				},
+			],
+			profile: {
+				...kernelProfile,
+				nativeToolTypes: new Set(["mcp"]),
+				degradedToolTypes: new Map([["file_search", "retrieval"]]),
+			},
+		});
+
+		expect(
+			plan.declarations.map((declaration) => declaration.requestedName),
+		).toEqual(["file_search_0", "mcp_1"]);
+		expect(renderProviderToolDeclarations(plan.declarations)).toEqual([
+			{
+				type: "retrieval",
+				retrieval: { knowledge_id: "knowledge_1" },
+			},
+			{
+				type: "mcp",
+				mcp: {
+					server_label: "repo",
+					server_url: "https://mcp.example.com",
+					allowed_tools: ["list_files"],
+					headers: { Authorization: "Bearer token" },
+				},
+			},
+		]);
+	});
+
+	test("omits unrenderable native declarations before request assembly", () => {
+		const plan = planTools({
+			tools: [
+				{
+					type: "file_search",
+					vector_store_ids: [],
+				},
+			],
+			profile: {
+				...kernelProfile,
+				nativeToolTypes: new Set(),
+				degradedToolTypes: new Map([["file_search", "retrieval"]]),
+			},
+		});
+
+		expect(plan.declarations).toHaveLength(1);
+		expect(renderProviderToolDeclarations(plan.declarations)).toEqual([]);
+	});
+
+	test("renders a generic function schema for degraded tools without a bridge schema", () => {
+		const plan = planTools({
+			tools: [
+				{
+					type: "file_search",
+					vector_store_ids: ["knowledge_1"],
+				},
+			],
+			profile: {
+				...kernelProfile,
+				nativeToolTypes: new Set(),
+				degradedToolTypes: new Map([["file_search", "function"]]),
+			},
+		});
+
+		expect(renderFunctionDeclarations(plan.declarations)).toEqual([
+			{
+				type: "function",
+				function: {
+					name: "file_search_0",
+					parameters: {
+						type: "object",
+						additionalProperties: true,
+					},
+				},
+			},
+		]);
+	});
+
+	test("builds catalog entries for namespace tools and fallback-named tools", () => {
+		expect(
+			flattenToolName({ namespace: "workspace", name: "list-files" }),
+		).toBe("workspace__list-files");
+		expect(buildToolCatalog(undefined)).toEqual([]);
+		expect(
+			buildToolCatalog([
+				{
+					type: "namespace",
+					name: "workspace",
+					description: "Workspace tools",
+					tools: [
+						{
+							type: "function",
+							name: "read.file",
+							parameters: { type: "object" },
+							strict: true,
+						},
+						{
+							type: "custom",
+							name: "search",
+							format: { type: "text" },
+						},
+					],
+				},
+				{ type: "web_search_preview" },
+			]),
+		).toEqual([
+			expect.objectContaining({
+				type: "function",
+				name: "workspace__read.file",
+				tool: expect.objectContaining({ name: "workspace__read.file" }),
+			}),
+			expect.objectContaining({
+				type: "custom",
+				name: "workspace__search",
+				tool: expect.objectContaining({ name: "workspace__search" }),
+			}),
+			expect.objectContaining({
+				type: "web_search_preview",
+				name: "web_search_preview_1",
+			}),
 		]);
 	});
 

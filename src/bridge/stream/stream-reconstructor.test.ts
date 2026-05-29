@@ -369,4 +369,94 @@ describe("mapProviderDeltasToEvents", () => {
 		]);
 		expect(state.snapshot.output_text).toBe("answer");
 	});
+
+	test("maps refusal deltas into refusal content blocks", () => {
+		const events = mapProviderDeltasToEvents({
+			machine: machine(),
+			deltas: [{ refusal: "I cannot help." }, { finishReason: "stop" }],
+		});
+
+		expect(events).toContainEqual(
+			expect.objectContaining({
+				type: "response.refusal.delta",
+				delta: "I cannot help.",
+			}),
+		);
+		expect(events).toContainEqual(
+			expect.objectContaining({
+				type: "response.refusal.done",
+				refusal: "I cannot help.",
+			}),
+		);
+		expect(events.at(-1)?.response?.output).toEqual([
+			expect.objectContaining({
+				type: "message",
+				status: "completed",
+				content: [{ type: "refusal", refusal: "I cannot help." }],
+			}),
+		]);
+	});
+
+	for (const [name, delta, parameter] of [
+		["non-object delta", null, "delta"],
+		["non-string refusal", { refusal: 1 }, "refusal"],
+		["non-string reasoning", { reasoning: false }, "reasoning"],
+		["empty tool call", { toolCall: {} }, "toolCall"],
+		["negative tool call index", { toolCall: { index: -1 } }, "toolCall.index"],
+		["non-string tool call id", { toolCall: { id: 1 } }, "toolCall.id"],
+		[
+			"unknown tool call field",
+			{ toolCall: { index: 0, extra: "x" } },
+			"toolCall.extra",
+		],
+		["non-object usage", { usage: "bad" }, "usage"],
+		[
+			"non-object output token details",
+			{
+				usage: {
+					input_tokens: 1,
+					output_tokens: 2,
+					total_tokens: 3,
+					output_tokens_details: "bad",
+				},
+			},
+			"usage.output_tokens_details",
+		],
+		["non-object error", { error: "bad" }, "error"],
+		[
+			"non-string error code",
+			{ error: { code: 1, message: "bad" } },
+			"error.code",
+		],
+		["missing error message", { error: { code: "bad" } }, "error.message"],
+		["non-string finish reason", { finishReason: 1 }, "finishReason"],
+	] as const) {
+		test(`rejects malformed stream delta: ${name}`, () => {
+			const state = machine();
+			const error = captureBridgeError(() =>
+				mapProviderDeltasToEvents({
+					machine: state,
+					deltas: [delta as never],
+				}),
+			);
+
+			expect(error.context).toMatchObject({
+				provider: "deepseek",
+				model: "resolved-model",
+				parameter,
+			});
+			expect(state.snapshot.status).toBe("queued");
+			expect(state.snapshot.output).toEqual([]);
+		});
+	}
 });
+
+function captureBridgeError(action: () => unknown): BridgeError {
+	try {
+		action();
+	} catch (error) {
+		if (error instanceof BridgeError) return error;
+		throw error;
+	}
+	throw new Error("Expected BridgeError.");
+}
