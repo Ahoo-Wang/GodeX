@@ -9,7 +9,7 @@ import { LOCAL_SHELL_TOOL_DEFINITION } from "./local-shell";
 import { SHELL_TOOL_DEFINITION } from "./shell";
 
 describe("builtin function definitions", () => {
-	test("exposes Codex built-in tool schemas from the adapter layer", () => {
+	test("exposes Codex built-in tool schemas from the bridge layer", () => {
 		expect(Object.keys(BUILTIN_FUNCTION_TOOL_DEFINITIONS).sort()).toEqual([
 			"apply_patch",
 			"local_shell",

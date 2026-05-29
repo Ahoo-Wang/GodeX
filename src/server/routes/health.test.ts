@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { GodeXConfig } from "../../config";
 import { ApplicationContext } from "../../context/application-context";
 import { Registrar } from "../../providers/registrar";
+import { createTestProviderEdge } from "../../testing/provider-edge";
 import { handleHealth } from "./health";
 
 const config: GodeXConfig = {
@@ -9,12 +10,14 @@ const config: GodeXConfig = {
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			api_key: "test-key",
-			base_url: "http://127.0.0.1:1",
+			spec: "zhipu",
+			credentials: { api_key: "test-key" },
+			endpoint: { base_url: "http://127.0.0.1:1" },
 		},
 		unsupported: {
-			api_key: "test-key",
-			base_url: "http://127.0.0.1:2",
+			spec: "unsupported",
+			credentials: { api_key: "test-key" },
+			endpoint: { base_url: "http://127.0.0.1:2" },
 		},
 	},
 	session: { backend: "memory" },
@@ -32,21 +35,9 @@ const config: GodeXConfig = {
 
 function createTestApp(): ApplicationContext {
 	const registrar = new Registrar();
-	registrar.registerFactory("zhipu", () => ({
-		name: "mock",
-		mapper: {
-			request: { map: () => ({}) },
-			response: { map: () => ({}) as never },
-			stream: {
-				map: () => [] as never[],
-				buildResponseObject: () => ({}) as never,
-			},
-		},
-		client: {
-			request: async () => ({}),
-			stream: async () => new ReadableStream(),
-		},
-	}));
+	registrar.registerFactory("zhipu", () =>
+		createTestProviderEdge({ name: "zhipu" }),
+	);
 	return new ApplicationContext(config, registrar);
 }
 

@@ -5,12 +5,12 @@ describe("ModelAliasCatalog", () => {
 	test("resolves exact aliases before wildcard aliases", () => {
 		const aliases = new ModelAliasCatalog({
 			"*": "zhipu/glm-5.1",
-			"gpt-5": "openai/gpt-5",
+			deepseek: "deepseek/chat",
 		});
 
-		expect(aliases.resolveBareModel("gpt-5")).toEqual({
-			provider: "openai",
-			model: "gpt-5",
+		expect(aliases.resolveBareModel("deepseek")).toEqual({
+			provider: "deepseek",
+			model: "chat",
 		});
 	});
 
@@ -57,19 +57,19 @@ describe("ModelAliasCatalog", () => {
 		const aliases = new ModelAliasCatalog({
 			"*": "zhipu/glm-5.1",
 			"gpt-5": "zhipu/glm-5.1",
-			"gpt-4o": "openai/gpt-4o",
+			deepseek: "deepseek/chat",
 		});
 
 		expect(aliases.list()).toEqual([
 			{ alias: "gpt-5", target: { provider: "zhipu", model: "glm-5.1" } },
-			{ alias: "gpt-4o", target: { provider: "openai", model: "gpt-4o" } },
+			{ alias: "deepseek", target: { provider: "deepseek", model: "chat" } },
 		]);
 	});
 
 	test("filters listed aliases by registered providers", () => {
 		const aliases = new ModelAliasCatalog({
 			"gpt-5": "zhipu/glm-5.1",
-			"gpt-4o": "openai/gpt-4o",
+			deepseek: "deepseek/chat",
 		});
 
 		expect(aliases.list(["zhipu"])).toEqual([

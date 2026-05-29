@@ -8,9 +8,18 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { GodeXConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
+import type {
+	ResponseCreateRequest,
+	ResponseStreamEvent,
+} from "../protocol/openai/responses";
 import { Registrar } from "../providers/registrar";
-import { createZhipuProvider } from "../providers/zhipu/factory";
+import { createZhipuProvider } from "../providers/zhipu";
 import { createBuiltinRoutes, startServer } from "../server";
+import {
+	collectGodexStreamEvents,
+	type GodeXClient,
+	godexClient,
+} from "./godex-client";
 import { getLoopbackPort } from "./ports";
 
 // ---------------------------------------------------------------------------
@@ -20,6 +29,7 @@ import { getLoopbackPort } from "./ports";
 let mockServer: ReturnType<typeof Bun.serve> | null = null;
 let godexServer: ReturnType<typeof Bun.serve> | null = null;
 let godexBase = "";
+let client: GodeXClient;
 let mockUpstreamBase = "";
 const upstreamRequests: Record<string, unknown>[] = [];
 
@@ -49,6 +59,42 @@ async function startMockUpstream() {
 }
 
 function handleMockChat(body: Record<string, unknown>) {
+	if (lastUserMessageContent(body) === "List workspace.") {
+		return new Response(
+			JSON.stringify({
+				id: "mock-task-id",
+				created: Math.floor(Date.now() / 1000),
+				model: "glm-5.1",
+				choices: [
+					{
+						index: 0,
+						finish_reason: "tool_calls",
+						message: {
+							role: "assistant",
+							content: null,
+							tool_calls: [
+								{
+									id: "call_workspace_list",
+									type: "function",
+									function: {
+										name: "workspace__list-files",
+										arguments: "{}",
+									},
+								},
+							],
+						},
+					},
+				],
+				usage: {
+					prompt_tokens: 10,
+					completion_tokens: 5,
+					total_tokens: 15,
+				},
+			}),
+			{ headers: { "Content-Type": "application/json" } },
+		);
+	}
+
 	if (lastUserMessageContent(body) === "Please inspect cwd.") {
 		return new Response(
 			JSON.stringify({
@@ -131,30 +177,148 @@ function lastUserMessageContent(body: Record<string, unknown>): unknown {
 	return undefined;
 }
 
-function handleMockStream(_body: Record<string, unknown>) {
+function handleMockStream(body: Record<string, unknown>) {
 	const taskId = "mock-stream-task";
 	const created = Math.floor(Date.now() / 1000);
 
-	const chunks = [
-		{
-			choices: [
-				{
-					index: 0,
-					delta: { role: "assistant", content: "Hello" },
-					finish_reason: null,
-				},
-			],
-		},
-		{
-			choices: [{ index: 0, delta: { content: " from" }, finish_reason: null }],
-		},
-		{
-			choices: [
-				{ index: 0, delta: { content: " mock!" }, finish_reason: null },
-			],
-		},
-		{ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] },
-	];
+	const chunks =
+		lastUserMessageContent(body) === "Stream inspect cwd."
+			? [
+					{
+						choices: [
+							{
+								index: 0,
+								delta: {
+									role: "assistant",
+									tool_calls: [
+										{
+											index: 0,
+											type: "function",
+											function: {
+												name: "local_shell",
+												arguments: '{"command"',
+											},
+										},
+									],
+								},
+								finish_reason: null,
+							},
+						],
+					},
+					{
+						choices: [
+							{
+								index: 0,
+								delta: {
+									tool_calls: [
+										{
+											index: 0,
+											id: "call_stream_shell",
+											function: { arguments: ':["pwd"],"env":{}' },
+										},
+									],
+								},
+								finish_reason: null,
+							},
+						],
+					},
+					{
+						choices: [
+							{
+								index: 0,
+								delta: {
+									tool_calls: [
+										{
+											index: 0,
+											function: { arguments: ',"working_directory":"/tmp"}' },
+										},
+									],
+								},
+								finish_reason: null,
+							},
+						],
+					},
+					{ choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] },
+				]
+			: lastUserMessageContent(body) === "Stream two tools."
+				? [
+						{
+							choices: [
+								{
+									index: 0,
+									delta: {
+										role: "assistant",
+										tool_calls: [
+											{
+												index: 0,
+												id: "call_weather",
+												type: "function",
+												function: {
+													name: "get_weather",
+													arguments: '{"city"',
+												},
+											},
+											{
+												index: 1,
+												id: "call_time",
+												type: "function",
+												function: {
+													name: "get_time",
+													arguments: '{"zone"',
+												},
+											},
+										],
+									},
+									finish_reason: null,
+								},
+							],
+						},
+						{
+							choices: [
+								{
+									index: 0,
+									delta: {
+										tool_calls: [
+											{
+												index: 0,
+												function: { arguments: ':"Paris"}' },
+											},
+											{
+												index: 1,
+												function: { arguments: ':"UTC"}' },
+											},
+										],
+									},
+									finish_reason: null,
+								},
+							],
+						},
+						{
+							choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
+						},
+					]
+				: [
+						{
+							choices: [
+								{
+									index: 0,
+									delta: { role: "assistant", content: "Hello" },
+									finish_reason: null,
+								},
+							],
+						},
+						{
+							choices: [
+								{ index: 0, delta: { content: " from" }, finish_reason: null },
+							],
+						},
+						{
+							choices: [
+								{ index: 0, delta: { content: " mock!" }, finish_reason: null },
+							],
+						},
+						{ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] },
+					];
 
 	const encoder = new TextEncoder();
 	const stream = new ReadableStream({
@@ -192,12 +356,14 @@ beforeAll(async () => {
 		models: { aliases: { "gpt-5": "zhipu/glm-5.1" } },
 		providers: {
 			zhipu: {
-				api_key: "test-key",
-				base_url: mockUpstreamBase,
+				spec: "zhipu",
+				credentials: { api_key: "test-key" },
+				endpoint: { base_url: mockUpstreamBase },
 			},
 			unregistered: {
-				api_key: "test-key",
-				base_url: "http://127.0.0.1:1",
+				spec: "unregistered",
+				credentials: { api_key: "test-key" },
+				endpoint: { base_url: "http://127.0.0.1:1" },
 			},
 		},
 		session: { backend: "memory" },
@@ -216,8 +382,9 @@ beforeAll(async () => {
 	const registrar = new Registrar();
 	registrar.registerFactory("zhipu", () =>
 		createZhipuProvider({
-			api_key: "test-key",
-			base_url: mockUpstreamBase,
+			spec: "zhipu",
+			credentials: { api_key: "test-key" },
+			endpoint: { base_url: mockUpstreamBase },
 		}),
 	);
 
@@ -230,6 +397,7 @@ beforeAll(async () => {
 		routes: createBuiltinRoutes(app),
 	});
 	godexBase = `http://127.0.0.1:${godexServer.port}`;
+	client = godexClient({ baseURL: godexBase, apiKey: "test-key" });
 });
 
 afterAll(() => {
@@ -242,11 +410,16 @@ afterAll(() => {
 // ---------------------------------------------------------------------------
 
 async function postResponses(body: Record<string, unknown>): Promise<Response> {
-	return fetch(`${godexBase}/v1/responses`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(body),
-	});
+	return client.responses.createRaw(body as unknown as ResponseCreateRequest);
+}
+
+async function streamResponses(
+	body: Record<string, unknown>,
+): Promise<ResponseStreamEvent[]> {
+	const stream = await client.responses.stream(
+		body as unknown as ResponseCreateRequest,
+	);
+	return collectGodexStreamEvents(stream);
 }
 
 function resetUpstreamRequests(): void {
@@ -275,32 +448,13 @@ function upstreamMessages(): Array<{
 	}>;
 }
 
-async function collectSSEEvents(
-	res: Response,
-): Promise<Record<string, unknown>[]> {
-	const text = await res.text();
-	const events: Record<string, unknown>[] = [];
-	for (const line of text.split("\n")) {
-		if (line.startsWith("data: ") && line !== "data: [DONE]") {
-			try {
-				events.push(JSON.parse(line.slice(6)) as Record<string, unknown>);
-			} catch {
-				// skip
-			}
-		}
-	}
-	return events;
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe("E2E: health check", () => {
 	test("GET /health returns ok", async () => {
-		const res = await fetch(`${godexBase}/health`);
-		expect(res.status).toBe(200);
-		const body = (await res.json()) as Record<string, unknown>;
+		const body = await client.health.get();
 		expect(body.status).toBe("ok");
 		expect(typeof body.timestamp).toBe("number");
 	});
@@ -308,12 +462,7 @@ describe("E2E: health check", () => {
 
 describe("E2E: models list", () => {
 	test("GET /v1/models returns configured models", async () => {
-		const res = await fetch(`${godexBase}/v1/models`);
-		expect(res.status).toBe(200);
-		const body = (await res.json()) as {
-			object: string;
-			data: { id: string; object: string; owned_by: string }[];
-		};
+		const body = await client.models.list();
 		expect(body.object).toBe("list");
 		expect(body.data.length).toBeGreaterThan(0);
 		expect(body.data.some((m) => m.id === "gpt-5")).toBe(true);
@@ -358,6 +507,25 @@ describe("E2E: sync response", () => {
 		const upstream = lastUpstreamRequest();
 		expect(upstream.model).toBe("glm-5.1");
 		expect(upstream.messages).toEqual([{ role: "user", content: "Hello!" }]);
+	});
+
+	test("maps reasoning and safety identifiers to Zhipu upstream fields", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "gpt-5",
+			input: "Think carefully.",
+			reasoning: { effort: "medium" },
+			safety_identifier: "safe-123",
+			user: "legacy-user",
+		});
+
+		expect(res.status).toBe(200);
+		const upstream = lastUpstreamRequest();
+		expect(upstream).toMatchObject({
+			thinking: { type: "enabled" },
+			user_id: "safe-123",
+		});
+		expect(upstream).not.toHaveProperty("reasoning_effort");
 	});
 
 	test("rejects missing model", async () => {
@@ -489,18 +657,42 @@ describe("E2E: sync response", () => {
 		const messages = upstreamMessages();
 		expect(messages).toEqual([
 			{ role: "system", content: "Return JSON only." },
-			{ role: "user", content: "Jane, 54 years old" },
 			{
-				role: "user",
-				content: expect.stringContaining(
-					"Return only JSON that conforms to the JSON Schema below.",
-				),
+				role: "system",
+				content: expect.stringContaining("Return only valid JSON."),
 			},
+			{ role: "user", content: "Jane, 54 years old" },
 		]);
-		expect(messages.at(-1)?.content).toEqual(
+		expect(messages[1]?.content).toEqual(
 			expect.stringContaining('"required":["name","age"]'),
 		);
 		expect(upstream.response_format).toEqual({ type: "json_object" });
+	});
+
+	test("rejects invalid strict json_schema output after json_object downgrade", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "gpt-5",
+			input: "Return a strict JSON object.",
+			text: {
+				format: {
+					type: "json_schema",
+					name: "payload",
+					schema: { type: "object" },
+					strict: true,
+				},
+			},
+		});
+
+		expect(res.status).toBe(400);
+		const body = (await res.json()) as {
+			error: { code: string; message: string };
+		};
+		expect(body.error.code).toBe("bridge.response.invalid_output_format");
+		expect(body.error.message).toContain("not valid JSON");
+		expect(lastUpstreamRequest().response_format).toEqual({
+			type: "json_object",
+		});
 	});
 
 	test("maps Responses function call items and text-array tool output", async () => {
@@ -603,8 +795,8 @@ describe("E2E: sync response", () => {
 		expect(upstream.tools).toMatchObject([
 			{ type: "function", function: { name: "local_shell" } },
 			{ type: "function", function: { name: "apply_patch" } },
-			{ type: "function", function: { name: "read_file" } },
-			{ type: "function", function: { name: "workspace__list_files" } },
+			{ type: "function", function: { name: "read-file" } },
+			{ type: "function", function: { name: "workspace__list-files" } },
 		]);
 		expect(upstreamMessages()).toEqual([
 			{
@@ -628,6 +820,43 @@ describe("E2E: sync response", () => {
 			},
 			{ role: "user", content: "What changed?" },
 		]);
+	});
+
+	test("treats tool_choice none as an explicit no-tools request", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "gpt-5",
+			input: "Do not call tools.",
+			tool_choice: "none",
+			tools: [{ type: "local_shell" }, { type: "apply_patch" }],
+		});
+
+		expect(res.status).toBe(200);
+		expect(lastUpstreamRequest()).not.toHaveProperty("tools");
+		expect(lastUpstreamRequest()).not.toHaveProperty("tool_choice");
+	});
+
+	test("rejects explicit tool_choice when the selected tool cannot be declared", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "gpt-5",
+			input: "Try to force an unavailable tool.",
+			tools: [
+				{
+					type: "code_interpreter",
+					container: { type: "auto" },
+				},
+			],
+			tool_choice: { type: "code_interpreter" },
+		});
+
+		expect(res.status).toBe(400);
+		const body = (await res.json()) as {
+			error: { code: string; message: string };
+		};
+		expect(body.error.code).toBe("bridge.request.unsupported_parameter");
+		expect(body.error.message).toContain("tool_choice");
+		expect(upstreamRequests).toHaveLength(0);
 	});
 
 	test("restores downgraded upstream tool calls to Codex built-in output items", async () => {
@@ -666,31 +895,31 @@ describe("E2E: sync response", () => {
 describe("E2E: stream response", () => {
 	test("streams SSE events through the full lifecycle", async () => {
 		resetUpstreamRequests();
-		const res = await postResponses({
+		const events = await streamResponses({
 			model: "gpt-5",
 			input: "Hello!",
 			stream: true,
 		});
-		expect(res.status).toBe(200);
-		expect(res.headers.get("Content-Type")).toBe("text/event-stream");
 
-		const text = await res.text();
-
-		// Should contain key lifecycle events
-		expect(text).toContain("response.created");
-		expect(text).toContain("response.in_progress");
-		expect(text).toContain("response.completed");
+		expect(events.some((event) => event.type === "response.created")).toBe(
+			true,
+		);
+		expect(events.some((event) => event.type === "response.in_progress")).toBe(
+			true,
+		);
+		expect(events.some((event) => event.type === "response.completed")).toBe(
+			true,
+		);
 		expect(lastUpstreamRequest().stream).toBe(true);
 	});
 
 	test("streams text deltas", async () => {
-		const res = await postResponses({
+		const events = await streamResponses({
 			model: "gpt-5",
 			input: "Hello!",
 			stream: true,
 		});
 
-		const events = await collectSSEEvents(res);
 		const deltas = events
 			.filter((e) => e.type === "response.output_text.delta")
 			.map((e) => e.delta as string);
@@ -703,6 +932,131 @@ describe("E2E: stream response", () => {
 			| undefined;
 		expect(completed?.response?.output_text).toBe("Hello from mock!");
 		expect(completed?.response?.output).toBeArray();
+	});
+
+	test("streams failed event for invalid strict json_schema output after downgrade", async () => {
+		resetUpstreamRequests();
+		const events = await streamResponses({
+			model: "gpt-5",
+			input: "Return a strict JSON object.",
+			stream: true,
+			text: {
+				format: {
+					type: "json_schema",
+					name: "payload",
+					schema: { type: "object" },
+					strict: true,
+				},
+			},
+		});
+
+		expect(events.some((event) => event.type === "response.completed")).toBe(
+			false,
+		);
+		const failed = events.find((event) => event.type === "response.failed") as
+			| { response?: { status?: string; error?: { message?: string } } }
+			| undefined;
+		expect(failed?.response?.status).toBe("failed");
+		expect(failed?.response?.error?.message).toContain(
+			"bridge.response.invalid_output_format",
+		);
+		expect(lastUpstreamRequest().response_format).toEqual({
+			type: "json_object",
+		});
+	});
+
+	test("streams tool call deltas into restored Responses output items", async () => {
+		resetUpstreamRequests();
+		const events = await streamResponses({
+			model: "gpt-5",
+			input: "Stream inspect cwd.",
+			stream: true,
+			tools: [{ type: "local_shell" }],
+		});
+
+		const added = events.find(
+			(event) => event.type === "response.output_item.added",
+		);
+		const argumentsDone = events.find(
+			(event) => event.type === "response.function_call_arguments.done",
+		);
+		const itemDone = events.find(
+			(event) => event.type === "response.output_item.done",
+		);
+		const completed = events.find(
+			(event) => event.type === "response.completed",
+		);
+		const addedItemId =
+			added?.item && "id" in added.item ? added.item.id : undefined;
+
+		expect(addedItemId).toEqual(expect.stringMatching(/^fc_/));
+		expect(added?.item).toMatchObject({
+			id: addedItemId,
+			type: "function_call",
+		});
+		expect(argumentsDone?.item_id).toBe(addedItemId);
+		expect(itemDone?.item).toMatchObject({
+			id: addedItemId,
+			type: "local_shell_call",
+			call_id: "call_stream_shell",
+			action: {
+				type: "exec",
+				command: ["pwd"],
+				env: {},
+				working_directory: "/tmp",
+			},
+			status: "completed",
+		});
+		expect(completed?.response?.output).toEqual([
+			expect.objectContaining({
+				id: addedItemId,
+				type: "local_shell_call",
+				call_id: "call_stream_shell",
+			}),
+		]);
+	});
+
+	test("streams multiple upstream tool calls independently", async () => {
+		resetUpstreamRequests();
+		const events = await streamResponses({
+			model: "gpt-5",
+			input: "Stream two tools.",
+			stream: true,
+			tools: [
+				{
+					type: "function",
+					name: "get_weather",
+					description: "Get weather.",
+					parameters: { type: "object" },
+				},
+				{
+					type: "function",
+					name: "get_time",
+					description: "Get time.",
+					parameters: { type: "object" },
+				},
+			],
+		});
+
+		const completed = events.find(
+			(event) => event.type === "response.completed",
+		);
+		expect(completed?.response?.output).toEqual([
+			expect.objectContaining({
+				id: "call_weather",
+				type: "function_call",
+				call_id: "call_weather",
+				name: "get_weather",
+				arguments: '{"city":"Paris"}',
+			}),
+			expect.objectContaining({
+				id: "call_time",
+				type: "function_call",
+				call_id: "call_time",
+				name: "get_time",
+				arguments: '{"zone":"UTC"}',
+			}),
+		]);
 	});
 });
 
@@ -735,6 +1089,7 @@ describe("E2E: session chain via previous_response_id", () => {
 			{ role: "assistant", content: "Hello from mock!" },
 			{ role: "user", content: "And its population?" },
 		]);
+		expect(lastUpstreamRequest()).not.toHaveProperty("previous_response_id");
 	});
 
 	test("rejects nonexistent previous_response_id", async () => {
@@ -786,35 +1141,12 @@ describe("E2E: session chain via previous_response_id", () => {
 	test("stream turn can be referenced in next sync turn", async () => {
 		resetUpstreamRequests();
 		// Turn 1: streaming
-		const res1 = await postResponses({
+		const events1 = await streamResponses({
 			model: "gpt-5",
 			input: "Stream question",
 			stream: true,
 			store: true,
 		});
-		expect(res1.status).toBe(200);
-		const text1 = await res1.text();
-		expect(text1).toContain("response.completed");
-
-		// Extract response ID from the completed event
-		const events1 = await (() => {
-			const result: { type: string; response?: { id: string } }[] = [];
-			for (const line of text1.split("\n")) {
-				if (line.startsWith("data: ") && line !== "data: [DONE]") {
-					try {
-						result.push(
-							JSON.parse(line.slice(6)) as {
-								type: string;
-								response?: { id: string };
-							},
-						);
-					} catch {
-						/* skip */
-					}
-				}
-			}
-			return result;
-		})();
 		const completedEvent = events1.find((e) => e.type === "response.completed");
 		const responseId1 = completedEvent?.response?.id;
 		expect(responseId1).toMatch(/^resp_/);
@@ -832,6 +1164,144 @@ describe("E2E: session chain via previous_response_id", () => {
 			{ role: "user", content: "Stream question" },
 			{ role: "assistant", content: "Hello from mock!" },
 			{ role: "user", content: "Follow-up question" },
+		]);
+	});
+
+	test("replays streamed parallel tool calls as one assistant message", async () => {
+		resetUpstreamRequests();
+		const tools = [
+			{
+				type: "function",
+				name: "get_weather",
+				description: "Get weather.",
+				parameters: { type: "object" },
+				strict: true,
+			},
+			{
+				type: "function",
+				name: "get_time",
+				description: "Get time.",
+				parameters: { type: "object" },
+				strict: true,
+			},
+		];
+		const events1 = await streamResponses({
+			model: "gpt-5",
+			input: "Stream two tools.",
+			stream: true,
+			store: true,
+			tools,
+		});
+		const responseId1 = events1.find((e) => e.type === "response.completed")
+			?.response?.id;
+		expect(responseId1).toMatch(/^resp_/);
+
+		resetUpstreamRequests();
+		const res2 = await postResponses({
+			model: "gpt-5",
+			previous_response_id: responseId1,
+			input: [
+				{
+					type: "function_call_output",
+					call_id: "call_weather",
+					output: "Sunny.",
+				},
+				{
+					type: "function_call_output",
+					call_id: "call_time",
+					output: "12:00 UTC.",
+				},
+				{ role: "user", content: "Summarize tool results." },
+			],
+			tools,
+		});
+
+		expect(res2.status).toBe(200);
+		expect(upstreamMessages()).toEqual([
+			{ role: "user", content: "Stream two tools." },
+			{
+				role: "assistant",
+				content: "",
+				tool_calls: [
+					{
+						id: "call_weather",
+						type: "function",
+						function: { name: "get_weather", arguments: '{"city":"Paris"}' },
+					},
+					{
+						id: "call_time",
+						type: "function",
+						function: { name: "get_time", arguments: '{"zone":"UTC"}' },
+					},
+				],
+			},
+			{ role: "tool", content: "Sunny.", tool_call_id: "call_weather" },
+			{ role: "tool", content: "12:00 UTC.", tool_call_id: "call_time" },
+			{ role: "user", content: "Summarize tool results." },
+		]);
+	});
+
+	test("replays namespace tool calls with provider names", async () => {
+		resetUpstreamRequests();
+		const tools = [
+			{
+				type: "namespace",
+				name: "workspace",
+				description: "Workspace tools",
+				tools: [
+					{
+						type: "function",
+						name: "list-files",
+						description: "List files",
+						parameters: { type: "object" },
+					},
+				],
+			},
+		];
+
+		const res1 = await postResponses({
+			model: "gpt-5",
+			input: "List workspace.",
+			tools,
+			store: true,
+		});
+		expect(res1.status).toBe(200);
+		const body1 = (await res1.json()) as { id: string };
+
+		const res2 = await postResponses({
+			model: "gpt-5",
+			previous_response_id: body1.id,
+			input: [
+				{
+					type: "function_call_output",
+					call_id: "call_workspace_list",
+					output: "src\nREADME.md",
+				},
+				{ role: "user", content: "Summarize listing." },
+			],
+			tools,
+		});
+
+		expect(res2.status).toBe(200);
+		expect(upstreamMessages()).toEqual([
+			{ role: "user", content: "List workspace." },
+			{
+				role: "assistant",
+				content: "",
+				tool_calls: [
+					{
+						id: "call_workspace_list",
+						type: "function",
+						function: { name: "workspace__list-files", arguments: "{}" },
+					},
+				],
+			},
+			{
+				role: "tool",
+				content: "src\nREADME.md",
+				tool_call_id: "call_workspace_list",
+			},
+			{ role: "user", content: "Summarize listing." },
 		]);
 	});
 });

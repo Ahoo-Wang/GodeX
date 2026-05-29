@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { AdapterError, ProviderError, SERVER_ERROR } from "../../../error";
+import { BridgeError, ProviderError, SERVER_ERROR } from "../../../error";
 import { responseRouteErrorToResponse } from "./error-handler";
 import {
 	type CapturedLog,
@@ -73,8 +73,8 @@ describe("responseRouteErrorToResponse", () => {
 		});
 
 		const res = responseRouteErrorToResponse(
-			new AdapterError(
-				"adapter.request.unsupported_input_content",
+			new BridgeError(
+				"bridge.request.unsupported_input_content",
 				"Unsupported input content",
 				{ provider: "zhipu", model: "glm-4" },
 			),
@@ -87,7 +87,7 @@ describe("responseRouteErrorToResponse", () => {
 		const body = (await res.json()) as {
 			error: { code: string; message: string };
 		};
-		expect(body.error.code).toBe("adapter.request.unsupported_input_content");
+		expect(body.error.code).toBe("bridge.request.unsupported_input_content");
 		expect(body.error.message).toBe("Unsupported input content");
 		expect(logs).toContainEqual(
 			expect.objectContaining({

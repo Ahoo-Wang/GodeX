@@ -1,25 +1,23 @@
 import { describe, expect, test } from "bun:test";
-import { createResponsesContext } from "../../../context/responses-context-factory";
-import { basicRequest, createTestApp, FakeMapper } from "./test-fixtures";
+import { createTestApp } from "./test-fixtures";
 
 describe("responses route test fixtures", () => {
-	test("FakeMapper default stream mapper returns no events", async () => {
+	test("createTestApp default provider maps empty stream chunks to empty deltas", async () => {
 		const app = createTestApp();
-		const ctx = await createResponsesContext(app, basicRequest);
-		const events = new FakeMapper().stream.map(ctx, {
-			event: "message",
-			data: {},
-		});
+		const provider = app.registrar.resolve("zhipu");
+		const deltas = provider.spec.stream.deltas("ignored");
 
-		expect(events).toEqual([]);
+		expect(deltas).toEqual([]);
 	});
 
-	test("createTestApp default client supports request and stream calls", async () => {
+	test("createTestApp default provider supports request and stream calls", async () => {
 		const app = createTestApp();
 		const provider = app.registrar.resolve("zhipu");
 
-		await expect(provider.client.request({})).resolves.toEqual({});
-		const stream = await provider.client.stream({});
+		await expect(provider.request({})).resolves.toMatchObject({
+			choices: [{ finish_reason: "stop" }],
+		});
+		const stream = await provider.stream({});
 		expect(stream).toBeInstanceOf(ReadableStream);
 
 		const reader = stream.getReader();

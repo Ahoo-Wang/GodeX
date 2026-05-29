@@ -3,8 +3,9 @@ import { BUILTIN_PROVIDER_DEFINITIONS } from "./builtin";
 
 function providerConfigFor(name: string) {
 	return {
-		api_key: `${name}-key`,
-		base_url: `https://${name}.example.test`,
+		spec: name,
+		credentials: { api_key: `${name}-key` },
+		endpoint: { base_url: `https://${name}.example.test` },
 	};
 }
 
@@ -23,11 +24,9 @@ describe("provider definitions", () => {
 
 			expect(provider.name).toBe(definition.name);
 			expect(Object.getPrototypeOf(provider)).toBe(Object.prototype);
-			expect(provider.client.request).toBeFunction();
-			expect(provider.client.stream).toBeFunction();
-			expect(provider.mapper.request.map).toBeFunction();
-			expect(provider.mapper.response.map).toBeFunction();
-			expect(provider.mapper.stream.map).toBeFunction();
+			expect(provider.spec.name).toBe(definition.name);
+			expect(provider.request).toBeFunction();
+			expect(provider.stream).toBeFunction();
 		}
 	});
 });

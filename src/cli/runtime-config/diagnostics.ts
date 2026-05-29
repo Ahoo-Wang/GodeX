@@ -53,29 +53,29 @@ export function collectConfigDiagnostics(
 	}
 
 	for (const [name, provider] of Object.entries(config.providers)) {
-		if (registrar && !registrar.hasFactory(name)) {
+		if (registrar && !registrar.hasFactory(provider.spec)) {
 			diagnostics.push({
 				message: `Provider is configured but not supported by this build: ${name}`,
 				fix: `remove providers.${name} or add a provider implementation.`,
 			});
 		}
 
-		if (!provider.api_key) {
+		if (!provider.credentials.api_key) {
 			diagnostics.push({
 				message: `Provider ${name} is missing api_key.`,
-				fix: `set providers.${name}.api_key or reference an environment variable.`,
+				fix: `set providers.${name}.credentials.api_key or reference an environment variable.`,
 			});
 		}
 
-		for (const envVar of unresolvedEnvVars(provider.api_key)) {
+		for (const envVar of unresolvedEnvVars(provider.credentials.api_key)) {
 			diagnostics.push({
-				message: `providers.${name}.api_key uses unresolved environment variable ${envVar}.`,
+				message: `providers.${name}.credentials.api_key uses unresolved environment variable ${envVar}.`,
 				fix: `export ${envVar}=...`,
 			});
 		}
-		for (const envVar of unresolvedEnvVars(provider.base_url)) {
+		for (const envVar of unresolvedEnvVars(provider.endpoint?.base_url ?? "")) {
 			diagnostics.push({
-				message: `providers.${name}.base_url uses unresolved environment variable ${envVar}.`,
+				message: `providers.${name}.endpoint.base_url uses unresolved environment variable ${envVar}.`,
 				fix: `export ${envVar}=...`,
 			});
 		}

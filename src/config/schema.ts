@@ -1,5 +1,7 @@
 // src/config/schema.ts
 
+import type { ProviderRuntimeConfig as BridgeProviderRuntimeConfig } from "../bridge/provider-spec";
+
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error";
 
 export interface ServerConfig {
@@ -8,9 +10,14 @@ export interface ServerConfig {
 	idle_timeout?: number;
 }
 
-export interface ProviderConfig {
+export type ProviderRuntimeConfig = BridgeProviderRuntimeConfig;
+
+export type ProviderConfig = ProviderRuntimeConfig;
+
+export interface LegacyProviderFactoryConfig {
 	api_key: string;
 	base_url: string;
+	timeout_ms?: number;
 }
 
 export interface ModelsConfig {

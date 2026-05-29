@@ -1,4 +1,5 @@
 export * from "./context";
+export * from "./error-recorder";
 export * from "./event-recorder";
 export * from "./payload";
 export * from "./recorder";

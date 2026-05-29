@@ -1,53 +1,27 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
-import type { ProviderMapper } from "../../../adapter/provider";
-import { ApplicationContext } from "../../../context/application-context";
-import type { ResponsesContext } from "../../../context/responses-context";
-import { AdapterError, ProviderError } from "../../../error";
+import { ProviderError } from "../../../error";
 import type { Logger } from "../../../logger";
-import type {
-	ResponseObject,
-	ResponseStreamEvent,
-} from "../../../protocol/openai/responses";
-import { Registrar } from "../../../providers/registrar";
 import { handleResponses } from "./index";
 import {
 	type CapturedLog,
 	createCapturingLogger,
 	createTestApp,
-	FakeMapper,
 	jsonRequest,
-	responseObject,
-	testConfig,
 } from "./test-fixtures";
 
 describe("handleResponses", () => {
-	test("maps sync requests exactly once through the adapter", async () => {
-		let requestMapCalls = 0;
-		const app = createTestApp(
-			{
-				...new FakeMapper(),
-				request: {
-					map(): Record<string, unknown> {
-						requestMapCalls++;
-						return {};
-					},
-				},
+	test("maps sync requests exactly once through the responses bridge", async () => {
+		let requestCalls = 0;
+		const app = createTestApp({
+			onRequest() {
+				requestCalls++;
 			},
-			{
-				async request(): Promise<Record<string, unknown>> {
-					return {};
-				},
-				async stream() {
-					return new ReadableStream();
-				},
-			},
-		);
+		});
 
 		const res = await handleResponses(jsonRequest(basicBody()), app);
 
 		expect(res.status).toBe(200);
-		expect(requestMapCalls).toBe(1);
+		expect(requestCalls).toBe(1);
 	});
 
 	test("rejects invalid model selectors as request errors", async () => {
@@ -110,10 +84,7 @@ describe("handleResponses", () => {
 
 	test("returns provider errors as HTTP status before SSE starts", async () => {
 		const logs: CapturedLog[] = [];
-		const app = createTestApp(new FakeMapper(), {
-			async request(): Promise<Record<string, unknown>> {
-				return {};
-			},
+		const app = createTestApp({
 			async stream() {
 				throw new ProviderError(
 					"provider.upstream.rate_limit",
@@ -147,8 +118,8 @@ describe("handleResponses", () => {
 
 	test("maps sync provider errors with request id header", async () => {
 		const logs: CapturedLog[] = [];
-		const app = createTestApp(new FakeMapper(), {
-			async request(): Promise<Record<string, unknown>> {
+		const app = createTestApp({
+			async request() {
 				throw new ProviderError(
 					"provider.upstream.timeout",
 					"Request timed out",
@@ -158,13 +129,6 @@ describe("handleResponses", () => {
 						upstreamStatus: 408,
 					},
 				);
-			},
-			async stream() {
-				return new ReadableStream({
-					start(controller) {
-						controller.close();
-					},
-				});
 			},
 		});
 		Object.defineProperty(app, "logger", {
@@ -179,11 +143,8 @@ describe("handleResponses", () => {
 		expect(body.error.code).toBe("request_timeout");
 	});
 
-	test("returns empty body on stream setup errors", async () => {
-		const app = createTestApp(new FakeMapper(), {
-			async request(): Promise<Record<string, unknown>> {
-				return {};
-			},
+	test("returns response.failed SSE on stream setup errors", async () => {
+		const app = createTestApp({
 			async stream() {
 				return new ReadableStream({
 					start(controller) {
@@ -213,7 +174,11 @@ describe("handleResponses", () => {
 		);
 
 		expect(res.status).toBe(200);
-		expect(await res.text()).toBe("");
+		const body = await res.text();
+		expect(body).toContain("event: response.created");
+		expect(body).toContain("event: response.in_progress");
+		expect(body).toContain("event: response.failed");
+		expect(body).toContain("ProviderError: Too many requests");
 	});
 
 	test("does not log errors after the SSE stream has completed", async () => {
@@ -229,54 +194,9 @@ describe("handleResponses", () => {
 				loggedErrors.push(event);
 			},
 		};
-		const mapper: ProviderMapper<
-			Record<string, unknown>,
-			Record<string, unknown>,
-			unknown
-		> = {
-			...new FakeMapper(),
-			stream: {
-				map: (
-					ctx: ResponsesContext,
-					_event: JsonServerSentEvent<unknown>,
-				): ResponseStreamEvent[] => [
-					{
-						type: "response.created",
-						response: {
-							...responseObject(ctx),
-							status: "in_progress",
-						},
-					},
-					{
-						type: "response.completed",
-						response: responseObject(ctx),
-					},
-				],
-			},
-		};
-
-		const registrar = new Registrar();
-		registrar.registerFactory("zhipu", () => ({
-			name: "mock",
-			mapper,
-			client: {
-				async request(): Promise<Record<string, unknown>> {
-					return {};
-				},
-				async stream() {
-					return new ReadableStream({
-						start(controller) {
-							controller.enqueue({ event: "message", data: {} });
-							controller.close();
-						},
-					});
-				},
-			} as never,
-		}));
-		const app = new ApplicationContext(
-			{ ...testConfig, logging: { level: "error" } },
-			registrar,
-		);
+		const app = createTestApp({
+			streamEvents: [{ event: "message", data: { finishReason: "stop" } }],
+		});
 		Object.defineProperty(app, "logger", { value: logger });
 
 		const res = await handleResponses(
@@ -314,24 +234,11 @@ describe("handleResponses", () => {
 
 	test("logs unexpected errors with dot-only event name and request_id", async () => {
 		const logs: CapturedLog[] = [];
-		const app = createTestApp(
-			{
-				...new FakeMapper(),
-				request: {
-					map() {
-						throw new Error("boom");
-					},
-				},
+		const app = createTestApp({
+			async request() {
+				throw new Error("boom");
 			},
-			{
-				async request(): Promise<Record<string, unknown>> {
-					return {};
-				},
-				async stream() {
-					return new ReadableStream();
-				},
-			},
-		);
+		});
 		Object.defineProperty(app, "logger", {
 			value: createCapturingLogger(logs),
 		});
@@ -344,42 +251,67 @@ describe("handleResponses", () => {
 		expect(errorLog?.attr).not.toHaveProperty("requestId");
 	});
 
-	test("maps adapter translation failures to invalid request errors", async () => {
-		const app = createTestApp(
-			{
-				request: {
-					map() {
-						throw new AdapterError(
-							"adapter.request.unsupported_input_content",
-							"Unsupported input content",
-							{ provider: "zhipu", model: "glm-4" },
-						);
-					},
-				},
-				response: {
-					map(ctx: ResponsesContext): ResponseObject {
-						return responseObject(ctx);
-					},
-				},
-				stream: {
-					map: () => [] as ResponseStreamEvent[],
-				},
+	test("records provider errors into trace when context exists", async () => {
+		const traceEvents: unknown[] = [];
+		const app = createTestApp({
+			async request() {
+				throw new ProviderError("provider.upstream.error", "Upstream failed", {
+					provider: "zhipu",
+					model: "glm-5.1",
+					upstreamStatus: 400,
+					upstreamBody: { error: { message: "bad request" } },
+				});
 			},
-			{
-				async request(): Promise<Record<string, unknown>> {
-					return {};
-				},
-				async stream() {
-					return new ReadableStream();
-				},
-			},
-		);
+		});
+		Object.defineProperty(app, "traceEnabled", { value: true });
+		Object.defineProperty(app, "traceRecorder", {
+			value: { record: (event: unknown) => traceEvents.push(event) },
+		});
 
 		const res = await handleResponses(jsonRequest(basicBody()), app);
 
+		expect(res.status).toBe(422);
+		expect(traceEvents).toContainEqual(
+			expect.objectContaining({
+				kind: "error",
+				event_name: "responses.request.provider.error",
+				provider: "zhipu",
+				model: "glm-5.1",
+				domain: "provider",
+				code: "provider.upstream.error",
+				message: "Upstream failed",
+				status: 502,
+				payload: {
+					payload: expect.objectContaining({
+						upstreamStatus: 400,
+						upstreamBody: { error: { message: "bad request" } },
+					}),
+				},
+			}),
+		);
+	});
+
+	test("maps bridge translation failures to invalid request errors", async () => {
+		const app = createTestApp();
+
+		const res = await handleResponses(
+			jsonRequest({
+				...basicBody(),
+				input: [
+					{
+						role: "user",
+						content: [
+							{ type: "input_image", image_url: "https://example.com" },
+						],
+					},
+				],
+			}),
+			app,
+		);
+
 		expect(res.status).toBe(400);
 		const body = (await res.json()) as { error: { code: string } };
-		expect(body.error.code).toBe("adapter.request.unsupported_input_content");
+		expect(body.error.code).toBe("bridge.request.unsupported_input_content");
 	});
 });
 

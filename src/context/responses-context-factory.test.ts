@@ -70,24 +70,24 @@ describe("createResponsesContext", () => {
 		});
 
 		const ctx = await createResponsesContext(app, {
-			model: "openai/gpt-4.1-mini",
+			model: "deepseek/deepseek-chat",
 			input: "hi",
 		});
 
 		expect(ctx.resolved).toEqual({
-			provider: "openai",
-			model: "gpt-4.1-mini",
+			provider: "deepseek",
+			model: "deepseek-chat",
 		});
-		expect(ctx.provider.name).toBe("openai");
+		expect(ctx.provider.name).toBe("deepseek");
 		expect(ctx.requestId).toMatch(/^req_/);
 		expect(ctx.responseId).toMatch(/^resp_/);
 		expect(logs).toContainEqual({
 			level: "debug",
 			event: "model.resolved",
 			attr: {
-				selector: "openai/gpt-4.1-mini",
-				provider: "openai",
-				model: "gpt-4.1-mini",
+				selector: "deepseek/deepseek-chat",
+				provider: "deepseek",
+				model: "deepseek-chat",
 			},
 		});
 	});
@@ -164,14 +164,14 @@ describe("createResponsesContext", () => {
 
 		await expect(
 			createResponsesContext(app, {
-				model: "openai/gpt-4.1-mini",
+				model: "deepseek/deepseek-chat",
 				input: "hi",
 			}),
 		).rejects.toMatchObject({
 			name: "ServerError",
 			code: SERVER_PROVIDER_NOT_REGISTERED,
-			message: "Provider is not registered: openai",
-			context: { provider: "openai" },
+			message: "Provider is not registered: deepseek",
+			context: { provider: "deepseek" },
 		});
 	});
 

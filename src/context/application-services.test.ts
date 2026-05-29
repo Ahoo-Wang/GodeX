@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { GodeXConfig } from "../config";
 import { Registrar } from "../providers/registrar";
 import { MemoryResponseSessionStore } from "../session/memory";
+import { createTestProviderEdge } from "../testing/provider-edge";
 import { NoopTraceRecorder } from "../trace";
 import { createApplicationServices } from "./application-services";
 
@@ -10,8 +11,9 @@ const config: GodeXConfig = {
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			api_key: "test-key",
-			base_url: "http://127.0.0.1:1",
+			spec: "zhipu",
+			credentials: { api_key: "test-key" },
+			endpoint: { base_url: "http://127.0.0.1:1" },
 		},
 	},
 	session: { backend: "memory" },
@@ -37,7 +39,7 @@ describe("createApplicationServices", () => {
 			model: "glm-5.1",
 		});
 		expect(services.registrar.resolve("zhipu")).toBeDefined();
-		expect(services.adapter).toBeDefined();
+		expect(services.responses).toBeDefined();
 		expect(services.sessionStore).toBeInstanceOf(MemoryResponseSessionStore);
 		expect(services.traceEnabled).toBe(false);
 		expect(services.traceRecorder).toBeInstanceOf(NoopTraceRecorder);
@@ -45,20 +47,9 @@ describe("createApplicationServices", () => {
 
 	test("reuses a supplied registrar", () => {
 		const registrar = new Registrar();
-		registrar.registerFactory("zhipu", () => ({
-			name: "mock",
-			mapper: {
-				request: { map: () => ({}) },
-				response: { map: () => ({}) as never },
-				stream: {
-					map: () => [] as never[],
-				},
-			},
-			client: {
-				request: async () => ({}),
-				stream: async () => new ReadableStream(),
-			},
-		}));
+		registrar.registerFactory("zhipu", () =>
+			createTestProviderEdge({ name: "mock" }),
+		);
 
 		const services = createApplicationServices(config, registrar);
 

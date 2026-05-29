@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { GodeXConfig } from "../config";
 import type { Logger } from "../logger";
 import { Registrar } from "../providers/registrar";
+import { createTestProviderEdge } from "../testing/provider-edge";
 import { createConfiguredRegistrar } from "./provider-bootstrap";
 
 const logger: Logger = {
@@ -15,7 +16,11 @@ const logger: Logger = {
 };
 
 const providers: GodeXConfig["providers"] = {
-	zhipu: { api_key: "test-key", base_url: "http://127.0.0.1:1" },
+	zhipu: {
+		spec: "zhipu",
+		credentials: { api_key: "test-key" },
+		endpoint: { base_url: "http://127.0.0.1:1" },
+	},
 };
 
 describe("createConfiguredRegistrar", () => {
@@ -31,20 +36,7 @@ describe("createConfiguredRegistrar", () => {
 		let calls = 0;
 		registrar.registerFactory("zhipu", () => {
 			calls++;
-			return {
-				name: "mock",
-				mapper: {
-					request: { map: () => ({}) },
-					response: { map: () => ({}) as never },
-					stream: {
-						map: () => [] as never[],
-					},
-				},
-				client: {
-					request: async () => ({}),
-					stream: async () => new ReadableStream(),
-				},
-			};
+			return createTestProviderEdge({ name: "mock" });
 		});
 
 		const configured = createConfiguredRegistrar(providers, logger, registrar);
@@ -56,7 +48,13 @@ describe("createConfiguredRegistrar", () => {
 
 	test("keeps unsupported provider reporting on the registrar", () => {
 		const registrar = createConfiguredRegistrar(
-			{ unsupported: { api_key: "k", base_url: "http://127.0.0.1" } },
+			{
+				unsupported: {
+					spec: "unsupported",
+					credentials: { api_key: "k" },
+					endpoint: { base_url: "http://127.0.0.1" },
+				},
+			},
 			logger,
 			new Registrar(),
 		);

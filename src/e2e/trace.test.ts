@@ -5,9 +5,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { GodeXConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
+import type {
+	ResponseCreateRequest,
+	ResponseStreamEvent,
+} from "../protocol/openai/responses";
 import { Registrar } from "../providers/registrar";
-import { createZhipuProvider } from "../providers/zhipu/factory";
+import { createZhipuProvider } from "../providers/zhipu";
 import { createBuiltinRoutes, startServer } from "../server";
+import {
+	collectGodexStreamEvents,
+	type GodeXClient,
+	godexClient,
+} from "./godex-client";
 import { getLoopbackPort } from "./ports";
 
 const encoder = new TextEncoder();
@@ -16,6 +25,7 @@ let godexServer: ReturnType<typeof Bun.serve> | undefined;
 let mockServer: ReturnType<typeof Bun.serve> | undefined;
 let app: ApplicationContext | undefined;
 let tempDir: string | undefined;
+let client: GodeXClient | undefined;
 
 interface TraceUsageRow {
 	request_id: string;
@@ -42,6 +52,21 @@ interface TraceRequestRow {
 	payload_truncated: number;
 }
 
+interface TraceErrorRow {
+	request_id: string;
+	response_id: string;
+	provider: string;
+	model: string;
+	event_name: string;
+	error_type: string | null;
+	domain: string | null;
+	code: string;
+	message: string;
+	status: number | null;
+	payload_json: string | null;
+	payload_truncated: number;
+}
+
 afterEach(async () => {
 	godexServer?.stop();
 	mockServer?.stop();
@@ -49,6 +74,7 @@ afterEach(async () => {
 	godexServer = undefined;
 	mockServer = undefined;
 	app = undefined;
+	client = undefined;
 	if (tempDir) rmSync(tempDir, { recursive: true, force: true });
 	tempDir = undefined;
 });
@@ -61,17 +87,12 @@ describe("E2E: trace recording", () => {
 		const tracePath = join(tempDir, "trace.db");
 		const godexBase = await startGodex(mockBase, tracePath);
 
-		const res = await fetch(`${godexBase}/v1/responses`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				model: "gpt-5",
-				input: "Return cache usage details.",
-			}),
+		const res = await clientFor(godexBase).responses.create({
+			model: "gpt-5",
+			input: "Return cache usage details.",
 		});
 
-		expect(res.status).toBe(200);
-		const body = (await res.json()) as {
+		const body = res as {
 			usage?: {
 				input_tokens: number;
 				output_tokens: number;
@@ -128,33 +149,27 @@ describe("E2E: trace recording", () => {
 		const tracePath = join(tempDir, "trace.db");
 		const godexBase = await startGodex(mockBase, tracePath);
 
-		const res = await fetch(`${godexBase}/v1/responses`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				model: "gpt-5",
-				stream: true,
-				prompt_cache_key: "trace-e2e-cache",
-				input: "Record trace usage from a streamed response.",
-				tools: [
-					{
-						type: "function",
-						name: "lookup_order",
-						description: "Look up an order by id.",
-						parameters: {
-							type: "object",
-							properties: { order_id: { type: "string" } },
-							required: ["order_id"],
-						},
-						strict: false,
+		const events = await streamResponses(godexBase, {
+			model: "gpt-5",
+			stream: true,
+			prompt_cache_key: "trace-e2e-cache",
+			input: "Record trace usage from a streamed response.",
+			tools: [
+				{
+					type: "function",
+					name: "lookup_order",
+					description: "Look up an order by id.",
+					parameters: {
+						type: "object",
+						properties: { order_id: { type: "string" } },
+						required: ["order_id"],
 					},
-					{ type: "web_search_preview", search_context_size: "low" },
-				],
-			}),
+					strict: false,
+				},
+				{ type: "web_search_preview", search_context_size: "low" },
+			],
 		});
 
-		expect(res.status).toBe(200);
-		const events = await collectSSEEvents(res);
 		expect(events.some((event) => event.type === "response.completed")).toBe(
 			true,
 		);
@@ -234,6 +249,56 @@ describe("E2E: trace recording", () => {
 			db.close();
 		}
 	});
+
+	test("records provider errors in SQLite", async () => {
+		tempDir = mkdtempSync(join(tmpdir(), "godex-trace-error-e2e-"));
+		const upstreamRequests: Record<string, unknown>[] = [];
+		const mockBase = await startMockZhipu(upstreamRequests);
+		const tracePath = join(tempDir, "trace.db");
+		const godexBase = await startGodex(mockBase, tracePath);
+
+		const res = await fetch(`${godexBase}/v1/responses`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: "Bearer test-key",
+			},
+			body: JSON.stringify({
+				model: "gpt-5",
+				input: "Trigger upstream error.",
+			}),
+		});
+
+		expect(res.status).toBe(422);
+		expect(upstreamRequests).toHaveLength(1);
+
+		await app?.close();
+		app = undefined;
+
+		const db = new Database(tracePath, { readonly: true, strict: true });
+		try {
+			const errorRow = db
+				.query("SELECT * FROM trace_errors")
+				.get() as TraceErrorRow | null;
+
+			expect(errorRow).toMatchObject({
+				provider: "zhipu",
+				model: "glm-5.1",
+				event_name: "responses.request.provider.error",
+				error_type: "ProviderError",
+				domain: "provider",
+				code: "provider.upstream.error",
+				message: "mock upstream rejected request",
+				status: 502,
+				payload_truncated: 0,
+			});
+			expect(errorRow?.payload_json).toBeNull();
+			expect(errorRow?.request_id).toMatch(/^req_/);
+			expect(errorRow?.response_id).toMatch(/^resp_/);
+		} finally {
+			db.close();
+		}
+	});
 });
 
 async function startMockZhipu(
@@ -250,6 +315,18 @@ async function startMockZhipu(
 			}
 			const body = (await req.json()) as Record<string, unknown>;
 			upstreamRequests.push(body);
+			if (JSON.stringify(body).includes("Trigger upstream error.")) {
+				return Response.json(
+					{
+						error: {
+							message: "mock upstream rejected request",
+							type: "invalid_request_error",
+							code: "invalid_request_error",
+						},
+					},
+					{ status: 400, statusText: "Bad Request" },
+				);
+			}
 			if (body.stream !== true) return handleMockChat();
 			return handleMockStream();
 		},
@@ -267,8 +344,9 @@ async function startGodex(
 		models: { aliases: { "gpt-5": "zhipu/glm-5.1" } },
 		providers: {
 			zhipu: {
-				api_key: "test-key",
-				base_url: mockBase,
+				spec: "zhipu",
+				credentials: { api_key: "test-key" },
+				endpoint: { base_url: mockBase },
 			},
 		},
 		session: { backend: "memory" },
@@ -286,8 +364,9 @@ async function startGodex(
 	const registrar = new Registrar();
 	registrar.registerFactory("zhipu", () =>
 		createZhipuProvider({
-			api_key: "test-key",
-			base_url: mockBase,
+			spec: "zhipu",
+			credentials: { api_key: "test-key" },
+			endpoint: { base_url: mockBase },
 		}),
 	);
 	app = new ApplicationContext(config, registrar);
@@ -298,6 +377,21 @@ async function startGodex(
 		routes: createBuiltinRoutes(app),
 	});
 	return `http://127.0.0.1:${godexServer.port}`;
+}
+
+function clientFor(godexBase: string): GodeXClient {
+	client ??= godexClient({ baseURL: godexBase, apiKey: "test-key" });
+	return client;
+}
+
+async function streamResponses(
+	godexBase: string,
+	body: Record<string, unknown>,
+): Promise<ResponseStreamEvent[]> {
+	const stream = await clientFor(godexBase).responses.stream(
+		body as unknown as ResponseCreateRequest,
+	);
+	return collectGodexStreamEvents(stream);
 }
 
 function handleMockStream(): Response {
@@ -376,14 +470,4 @@ function handleMockChat(): Response {
 			prompt_tokens_details: { cached_tokens: 60 },
 		},
 	});
-}
-
-async function collectSSEEvents(
-	res: Response,
-): Promise<Record<string, unknown>[]> {
-	const text = await res.text();
-	return text
-		.split("\n")
-		.filter((line) => line.startsWith("data: ") && line !== "data: [DONE]")
-		.map((line) => JSON.parse(line.slice(6)) as Record<string, unknown>);
 }

@@ -46,10 +46,10 @@ describe("parseModelSelector", () => {
 	});
 
 	test("allows extra separators inside provider-qualified model segment", () => {
-		expect(parseModelSelector("openai/fine_tuned/gpt-4.1")).toEqual({
+		expect(parseModelSelector("custom/fine_tuned/model")).toEqual({
 			kind: "provider_model",
-			selector: "openai/fine_tuned/gpt-4.1",
-			resolved: { provider: "openai", model: "fine_tuned/gpt-4.1" },
+			selector: "custom/fine_tuned/model",
+			resolved: { provider: "custom", model: "fine_tuned/model" },
 		});
 	});
 

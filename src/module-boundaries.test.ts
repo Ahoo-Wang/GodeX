@@ -145,6 +145,84 @@ describe("src module boundaries", () => {
 		expect(offenders).toEqual([]);
 	});
 
+	test("legacy runtime mapper and provider wrapper modules stay removed", () => {
+		const legacyRuntimeDir = ["adapt", "er"].join("");
+		const forbidden = [
+			legacyRuntimeDir,
+			[legacyRuntimeDir, "mapper"].join("/"),
+			[legacyRuntimeDir, "provider.ts"].join("/"),
+			[
+				legacyRuntimeDir,
+				"transformers",
+				"provider-event-to-response-transformer.ts",
+			].join("/"),
+			"providers/shared/response-message-payloads.ts",
+		].filter((path) => existsSync(join(SRC_ROOT, path)));
+
+		expect(forbidden).toEqual([]);
+	});
+
+	test("output contract slot is accessed as a ResponsesContext field", () => {
+		const source = readFileSync(
+			join(SRC_ROOT, "context", "output-contract-slot.ts"),
+			"utf-8",
+		);
+
+		expect(source).not.toContain("ensureOutputContractSlot");
+	});
+
+	test("bridge production modules do not import responses runtime context", () => {
+		const bridgeRoot = join(SRC_ROOT, "bridge");
+		const offenders = collectTypeScriptFiles(bridgeRoot)
+			.filter((path) => !path.endsWith(".test.ts"))
+			.map((path) => ({
+				path: srcRelative(path),
+				importLines: readFileSync(path, "utf-8")
+					.split("\n")
+					.filter((line) => /^\s*(import|export)\b/.test(line)),
+			}))
+			.filter((candidate) =>
+				candidate.importLines.some(
+					(line) =>
+						line.includes("/context/") || line.includes("responses-context"),
+				),
+			);
+
+		expect(offenders).toEqual([]);
+	});
+
+	test("legacy bridge planner APIs stay removed", () => {
+		const forbiddenSymbols = [
+			"BridgeCompatibilityProfile",
+			"BridgeIgnoredParameterRule",
+			"CHAT_COMPLETIONS_COMMON_IGNORED_PARAMETERS",
+			"RESPONSES_ENVELOPE_IGNORED_PARAMETERS",
+			"planBridgeCompatibilityFromInput",
+			"BridgeToolPlan",
+			"BridgeToolChoicePlan",
+			"planBridgeTools",
+			"recordBridgeToolPlan",
+		];
+		const offenders = collectTypeScriptFiles(join(SRC_ROOT, "bridge"))
+			.filter((path) => !path.endsWith(".test.ts"))
+			.flatMap((path) => {
+				const source = readFileSync(path, "utf-8");
+				return forbiddenSymbols
+					.filter((symbol) => source.includes(symbol))
+					.map((symbol) => ({ path: srcRelative(path), symbol }));
+			});
+
+		expect(offenders).toEqual([]);
+	});
+
+	test("unused bridge dialect and observation modules stay removed", () => {
+		const forbidden = ["bridge/dialect", "bridge/observation"].filter((path) =>
+			existsSync(join(SRC_ROOT, path)),
+		);
+
+		expect(forbidden).toEqual([]);
+	});
+
 	test("the root src/index.ts stays an executable entrypoint", () => {
 		expect(basename(ROOT_INDEX)).toBe("index.ts");
 		expect(existsSync(ROOT_INDEX)).toBe(true);

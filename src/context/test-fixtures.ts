@@ -1,25 +1,21 @@
-import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
-import type { ProviderMapper } from "../adapter/provider";
 import type { GodeXConfig } from "../config";
 import type { LogAttr, Logger } from "../logger";
-import type {
-	ResponseObject,
-	ResponseStreamEvent,
-} from "../protocol/openai/responses";
 import { Registrar } from "../providers/registrar";
-import type { ResponsesContext } from "./responses-context";
+import { createTestProviderEdge } from "../testing/provider-edge";
 
 export const baseConfig: GodeXConfig = {
 	server: { port: 0, host: "127.0.0.1" },
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			api_key: "test-key",
-			base_url: "http://127.0.0.1:1",
+			spec: "zhipu",
+			credentials: { api_key: "test-key" },
+			endpoint: { base_url: "http://127.0.0.1:1" },
 		},
-		openai: {
-			api_key: "test-key",
-			base_url: "http://127.0.0.1:1",
+		deepseek: {
+			spec: "deepseek",
+			credentials: { api_key: "test-key" },
+			endpoint: { base_url: "http://127.0.0.1:1" },
 		},
 	},
 	session: { backend: "memory" },
@@ -35,54 +31,12 @@ export const baseConfig: GodeXConfig = {
 	},
 };
 
-export class FakeMapper
-	implements
-		ProviderMapper<Record<string, unknown>, Record<string, unknown>, unknown>
-{
-	readonly request = {
-		map: (): Record<string, unknown> => ({}),
-	};
-
-	readonly response = {
-		map: (ctx: ResponsesContext): ResponseObject => ({
-			id: ctx.responseId,
-			object: "response",
-			created_at: ctx.createdAt,
-			status: "completed",
-			model: ctx.resolved.model,
-			output: [],
-		}),
-	};
-
-	readonly stream = {
-		map: (
-			_ctx: ResponsesContext,
-			_event: JsonServerSentEvent<unknown>,
-		): ResponseStreamEvent[] => [],
-	};
-}
-
 export function createRegistrar(
-	names: string[] = ["zhipu", "openai"],
+	names: string[] = ["zhipu", "deepseek"],
 ): Registrar {
 	const registrar = new Registrar();
 	for (const name of names) {
-		registrar.registerFactory(name, () => ({
-			name,
-			mapper: new FakeMapper(),
-			client: {
-				async request(): Promise<Record<string, unknown>> {
-					return {};
-				},
-				async stream() {
-					return new ReadableStream<JsonServerSentEvent<unknown>>({
-						start(controller) {
-							controller.close();
-						},
-					});
-				},
-			},
-		}));
+		registrar.registerFactory(name, () => createTestProviderEdge({ name }));
 	}
 	return registrar;
 }

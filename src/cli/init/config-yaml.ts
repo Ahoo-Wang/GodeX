@@ -5,11 +5,19 @@ import type { InitConfigYamlOptions } from "./model";
 export function buildConfigYaml(opts: InitConfigYamlOptions): string {
 	assertDefaultProviderRendered(opts);
 
-	const providers: Record<string, { api_key: string; base_url: string }> = {};
+	const providers: Record<
+		string,
+		{
+			spec: string;
+			credentials: { api_key: string };
+			endpoint: { base_url: string };
+		}
+	> = {};
 	for (const provider of opts.providers) {
 		providers[provider.id] = {
-			api_key: provider.apiKey,
-			base_url: provider.baseUrl,
+			spec: provider.id,
+			credentials: { api_key: provider.apiKey },
+			endpoint: { base_url: provider.baseUrl },
 		};
 	}
 

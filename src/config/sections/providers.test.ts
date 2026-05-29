@@ -6,31 +6,39 @@ describe("parseProvidersConfig", () => {
 		expect(
 			parseProvidersConfig({
 				zhipu: {
-					api_key: "test-key",
-					base_url: "https://example.test/api",
+					spec: "zhipu",
+					credentials: { api_key: "test-key" },
+					endpoint: { base_url: "https://example.test/api" },
 				},
 			}),
 		).toEqual({
 			zhipu: {
-				api_key: "test-key",
-				base_url: "https://example.test/api",
+				spec: "zhipu",
+				credentials: { api_key: "test-key" },
+				endpoint: { base_url: "https://example.test/api" },
 			},
 		});
 	});
 
-	test("defaults missing api_key to an empty string", () => {
+	test("defaults missing credentials api_key to an empty string", () => {
 		expect(
 			parseProvidersConfig({
-				zhipu: { base_url: "https://example.test/api" },
-			}).zhipu?.api_key,
+				zhipu: {
+					spec: "zhipu",
+					endpoint: { base_url: "https://example.test/api" },
+				},
+			}).zhipu?.credentials.api_key,
 		).toBe("");
 	});
 
 	test("trims base_url before storing it", () => {
 		expect(
 			parseProvidersConfig({
-				zhipu: { base_url: " https://example.test/api " },
-			}).zhipu?.base_url,
+				zhipu: {
+					spec: "zhipu",
+					endpoint: { base_url: " https://example.test/api " },
+				},
+			}).zhipu?.endpoint?.base_url,
 		).toBe("https://example.test/api");
 	});
 
@@ -40,15 +48,16 @@ describe("parseProvidersConfig", () => {
 		).toThrow("Provider zhipu must be an object");
 	});
 
-	test("rejects providers without base_url", () => {
+	test("rejects legacy providers without spec", () => {
 		expect(() =>
-			parseProvidersConfig({ zhipu: { api_key: "test-key" } }),
-		).toThrow("Provider zhipu is missing required field: base_url");
-	});
-
-	test("rejects providers with whitespace-only base_url", () => {
-		expect(() => parseProvidersConfig({ zhipu: { base_url: "   " } })).toThrow(
-			"Provider zhipu is missing required field: base_url",
+			parseProvidersConfig({
+				zhipu: {
+					api_key: "legacy-key",
+					base_url: "https://legacy.example.test",
+				},
+			}),
+		).toThrow(
+			'Legacy provider config is no longer supported: providers.zhipu must declare "spec".',
 		);
 	});
 
@@ -56,19 +65,23 @@ describe("parseProvidersConfig", () => {
 		const protoKey = "__proto__";
 		const constructorKey = "constructor";
 		const raw = Object.create(null) as Record<string, unknown>;
-		raw[protoKey] = { base_url: "https://proto.example.test/api" };
+		raw[protoKey] = {
+			spec: "zhipu",
+			endpoint: { base_url: "https://proto.example.test/api" },
+		};
 		raw[constructorKey] = {
-			base_url: "https://constructor.example.test/api",
+			spec: "deepseek",
+			endpoint: { base_url: "https://constructor.example.test/api" },
 		};
 
 		const providers = parseProvidersConfig(raw);
 
 		expect(Object.getPrototypeOf(providers)).toBeNull();
 		expect(Object.hasOwn(providers, protoKey)).toBe(true);
-		expect(providers[protoKey]?.base_url).toBe(
+		expect(providers[protoKey]?.endpoint?.base_url).toBe(
 			"https://proto.example.test/api",
 		);
-		expect(providers[constructorKey]?.base_url).toBe(
+		expect(providers[constructorKey]?.endpoint?.base_url).toBe(
 			"https://constructor.example.test/api",
 		);
 	});

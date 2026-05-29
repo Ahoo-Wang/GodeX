@@ -1,10 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { GodeXConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
-import { createDeepSeekProvider } from "../providers/deepseek/factory";
-import { DEFAULT_DEEPSEEK_BASE_URL } from "../providers/deepseek/provider";
+import type { ResponseCreateRequest } from "../protocol/openai/responses";
+import {
+	createDeepSeekProvider,
+	DEFAULT_DEEPSEEK_BASE_URL,
+} from "../providers/deepseek";
 import { Registrar } from "../providers/registrar";
 import { createBuiltinRoutes, startServer } from "../server";
+import { type GodeXClient, godexClient } from "./godex-client";
 import { getLoopbackPort } from "./ports";
 
 const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -15,7 +19,7 @@ const deepSeekBaseUrl =
 const liveModel = process.env.DEEPSEEK_LIVE_MODEL ?? "deepseek-v4-flash";
 
 let godexServer: ReturnType<typeof Bun.serve> | null = null;
-let godexBase = "";
+let client: GodeXClient;
 
 function createLiveConfig(port: number): GodeXConfig {
 	return {
@@ -28,8 +32,9 @@ function createLiveConfig(port: number): GodeXConfig {
 		},
 		providers: {
 			deepseek: {
-				api_key: apiKey ?? "",
-				base_url: deepSeekBaseUrl,
+				spec: "deepseek",
+				credentials: { api_key: apiKey ?? "" },
+				endpoint: { base_url: deepSeekBaseUrl },
 			},
 		},
 		session: { backend: "memory" },
@@ -52,13 +57,12 @@ beforeAll(async () => {
 	const config = createLiveConfig(await getLoopbackPort());
 	const registrar = new Registrar();
 	registrar.registerFactory("deepseek", () =>
-		createDeepSeekProvider(
-			{
-				api_key: apiKey,
-				base_url: deepSeekBaseUrl,
-			},
-			{ timeout: 120_000 },
-		),
+		createDeepSeekProvider({
+			spec: "deepseek",
+			credentials: { api_key: apiKey },
+			endpoint: { base_url: deepSeekBaseUrl },
+			timeout_ms: 120_000,
+		}),
 	);
 
 	const app = new ApplicationContext(config, registrar);
@@ -69,7 +73,10 @@ beforeAll(async () => {
 		logger: app.logger,
 		routes: createBuiltinRoutes(app),
 	});
-	godexBase = `http://127.0.0.1:${godexServer.port}`;
+	client = godexClient({
+		baseURL: `http://127.0.0.1:${godexServer.port}`,
+		apiKey: "test-key",
+	});
 });
 
 afterAll(() => {
@@ -77,11 +84,7 @@ afterAll(() => {
 });
 
 async function postResponses(body: Record<string, unknown>): Promise<Response> {
-	return fetch(`${godexBase}/v1/responses`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(body),
-	});
+	return client.responses.createRaw(body as unknown as ResponseCreateRequest);
 }
 
 liveDescribe("DeepSeek live e2e", () => {

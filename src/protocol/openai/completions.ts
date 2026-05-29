@@ -124,6 +124,8 @@ export interface ChatCompletionAssistantMessageParam {
 	role: "assistant";
 	content?: string | ChatCompletionAssistantContentPart[];
 	name?: string;
+	/** Provider extension used by reasoning-capable chat completion providers. */
+	reasoning_content?: string | null;
 	refusal?: string;
 	audio?: { id: string };
 	function_call?: {
@@ -265,6 +267,11 @@ export interface ChatCompletionStreamOptions {
 	include_usage?: boolean;
 }
 
+export interface ChatCompletionThinking {
+	type: "enabled" | "disabled";
+	clear_thinking?: boolean;
+}
+
 // ============================================================
 // Web Search Options
 // ============================================================
@@ -355,6 +362,10 @@ export interface ChatCompletionCreateRequest {
 	top_p?: number;
 	/** Deprecated. Use prompt_cache_key and safety_identifier instead. */
 	user?: string;
+	/** Provider extension used by bridge providers for end-user identifiers. */
+	user_id?: string;
+	/** Provider extension used by bridge providers with boolean reasoning. */
+	thinking?: ChatCompletionThinking;
 	/** Constrains the verbosity of the model's response. */
 	verbosity?: Verbosity;
 	/** Web search tool configuration. */
@@ -396,6 +407,8 @@ export interface ChatCompletionMessage {
 	content: string | null;
 	refusal: string | null;
 	role: "assistant";
+	/** Provider extension used by reasoning-capable chat completion providers. */
+	reasoning_content?: string | null;
 	annotations?: ChatCompletionAnnotation[];
 	audio?: ChatCompletionAudio;
 	function_call?: {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { CompatibilityDiagnostic } from "../../adapter/compatibility";
+import type { CompatibilityDiagnostic } from "../../bridge/compatibility";
 import type {
 	ResponseCreateRequest,
 	ResponseTool,
@@ -53,7 +53,7 @@ export function describeCurrentInputContentCompatibility<TRequest>(
 			expect(options.getUserMessageContent(result.request)).toBe("Hello");
 			expect(result.diagnostics).toContainEqual(
 				expect.objectContaining({
-					code: "adapter.input.unsupported_content",
+					code: "bridge.input.unsupported_content",
 					severity: "warn",
 					path: "input[0].content[0]",
 					action: "ignored",
@@ -76,7 +76,7 @@ export function describeUnsupportedToolCompatibility<TRequest>(
 			options.expectNoProviderTools(result.request);
 			expect(result.diagnostics).toContainEqual(
 				expect.objectContaining({
-					code: "adapter.tool.unsupported",
+					code: "bridge.tool.unsupported",
 					severity: "warn",
 					path: `tools[type=${options.unsupportedTool.type}]`,
 					action: "ignored",

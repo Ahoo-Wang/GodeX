@@ -50,22 +50,25 @@ models:
 # ---------------------------------------------------------------------------
 # Provider 列表 — 已启用的上游 LLM 服务商
 # ---------------------------------------------------------------------------
-# 内置 provider 名称: zhipu, deepseek, openai。
+# 内置 provider 名称: zhipu, deepseek。
 # 只有在这里配置过的 provider 才能被模型别名或 "provider/model" 选择器使用。
-# base_url 使用上游 OpenAI-compatible Chat Completions 根地址；具体路径由 GodeX 拼接。
+# spec 指向 provider 实现；endpoint.base_url 使用上游 Chat Completions 根地址，
+# 具体路径由 GodeX 拼接。
 providers:
   zhipu:
+    spec: zhipu
     # 智谱 OpenAI-compatible 根地址
-    api_key: ${ZHIPU_API_KEY}
-    base_url: https://open.bigmodel.cn/api/coding/paas/v4
+    credentials:
+      api_key: ${ZHIPU_API_KEY}
+    endpoint:
+      base_url: https://open.bigmodel.cn/api/coding/paas/v4
   deepseek:
+    spec: deepseek
     # DeepSeek 根地址不要追加 /v1，GodeX 会拼接 chat/completions。
-    api_key: ${DEEPSEEK_API_KEY}
-    base_url: https://api.deepseek.com
-  # 可选: 直接转发到 OpenAI 官方 API
-  # openai:
-  #   api_key: ${OPENAI_API_KEY}
-  #   base_url: https://api.openai.com/v1
+    credentials:
+      api_key: ${DEEPSEEK_API_KEY}
+    endpoint:
+      base_url: https://api.deepseek.com
 
 # ---------------------------------------------------------------------------
 # 会话存储 — 多轮对话的 previous_response_id 链
@@ -93,10 +96,10 @@ trace:
   max_queue_size: 10000             # 异步队列最大长度，满时丢弃并 warn
   flush_interval_ms: 1000           # 后台批量 flush 间隔 (毫秒)
   batch_size: 100                   # 单次 flush 最大记录数
-  capture_payload: false            # 是否存储完整 payload JSON (默认 false)
+  capture_payload: true             # 是否存储完整 payload JSON (默认 false)
                                     #   false: 只记录 payload_hash + payload_bytes
                                     #   true:  超过 payload_max_bytes 时截断并标记
-  payload_max_bytes: 65536          # capture_payload=true 时单条 payload 最大字节数
+  payload_max_bytes: 1048576        # capture_payload=true 时单条 payload 最大字节数
 
 # ---------------------------------------------------------------------------
 # 日志

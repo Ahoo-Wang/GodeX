@@ -3,11 +3,11 @@ import * as clack from "@clack/prompts";
 import {
 	DEEPSEEK_PROVIDER_NAME,
 	DEFAULT_DEEPSEEK_BASE_URL,
-} from "../../providers/deepseek/provider";
+} from "../../providers/deepseek";
 import {
-	DEFAULT_OPENAI_BASE_URL,
-	OPENAI_PROVIDER_NAME,
-} from "../../providers/openai/provider";
+	ZHIPU_CODING_PLAN_BASE_URL,
+	ZHIPU_PROVIDER_NAME,
+} from "../../providers/zhipu";
 import { promptInitConfig } from "./prompts";
 
 afterEach(() => {
@@ -73,12 +73,12 @@ describe("promptInitConfig", () => {
 
 	test("returns config for multiple providers with the selected default provider", async () => {
 		stubPromptFlow({
-			selectedProviders: [DEEPSEEK_PROVIDER_NAME, OPENAI_PROVIDER_NAME],
-			textAnswers: ["deepseek-key", "openai-key", "6789"],
+			selectedProviders: [DEEPSEEK_PROVIDER_NAME, ZHIPU_PROVIDER_NAME],
+			textAnswers: ["deepseek-key", "zhipu-key", "6789"],
 			selectAnswers: [
 				DEFAULT_DEEPSEEK_BASE_URL,
-				DEFAULT_OPENAI_BASE_URL,
-				OPENAI_PROVIDER_NAME,
+				ZHIPU_CODING_PLAN_BASE_URL,
+				ZHIPU_PROVIDER_NAME,
 				"memory",
 				"debug",
 			],
@@ -87,7 +87,7 @@ describe("promptInitConfig", () => {
 		const config = await promptInitConfig();
 
 		expect(config).toEqual({
-			defaultProvider: OPENAI_PROVIDER_NAME,
+			defaultProvider: ZHIPU_PROVIDER_NAME,
 			providers: [
 				{
 					id: DEEPSEEK_PROVIDER_NAME,
@@ -95,9 +95,9 @@ describe("promptInitConfig", () => {
 					baseUrl: DEFAULT_DEEPSEEK_BASE_URL,
 				},
 				{
-					id: OPENAI_PROVIDER_NAME,
-					apiKey: "openai-key",
-					baseUrl: DEFAULT_OPENAI_BASE_URL,
+					id: ZHIPU_PROVIDER_NAME,
+					apiKey: "zhipu-key",
+					baseUrl: ZHIPU_CODING_PLAN_BASE_URL,
 				},
 			],
 			port: 6789,
@@ -164,11 +164,11 @@ describe("promptInitConfig", () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			selectedProviders: [DEEPSEEK_PROVIDER_NAME, OPENAI_PROVIDER_NAME],
-			textAnswers: ["deepseek-key", "openai-key"],
+			selectedProviders: [DEEPSEEK_PROVIDER_NAME, ZHIPU_PROVIDER_NAME],
+			textAnswers: ["deepseek-key", "zhipu-key"],
 			selectAnswers: [
 				DEFAULT_DEEPSEEK_BASE_URL,
-				DEFAULT_OPENAI_BASE_URL,
+				ZHIPU_CODING_PLAN_BASE_URL,
 				cancelToken,
 			],
 		});

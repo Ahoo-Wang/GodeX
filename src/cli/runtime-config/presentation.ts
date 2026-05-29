@@ -20,9 +20,11 @@ export function formatConfigSummary(loaded: LoadedConfig): string {
 
 export function redactConfig(config: GodeXConfig): GodeXConfig {
 	const redacted = structuredClone(config);
-	for (const provider of Object.values(redacted.providers)) {
-		if (provider.api_key) {
-			provider.api_key = "<redacted>";
+	for (const provider of Object.values(redacted.providers) as Array<{
+		credentials: { api_key: string };
+	}>) {
+		if (provider.credentials.api_key) {
+			provider.credentials.api_key = "<redacted>";
 		}
 	}
 	return redacted;

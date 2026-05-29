@@ -13,8 +13,9 @@ const validConfig = {
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			api_key: "secret-key",
-			base_url: "https://example.test/api",
+			spec: "zhipu",
+			credentials: { api_key: "secret-key" },
+			endpoint: { base_url: "https://example.test/api" },
 			models: { "gpt-5": "glm-5.1" },
 		},
 	},
@@ -129,7 +130,7 @@ describe("CLI command integration", () => {
 
 		expect(code).toBe(0);
 		const printed = JSON.parse(cli.stdout.join("")) as typeof validConfig;
-		expect(printed.providers.zhipu.api_key).toBe("<redacted>");
+		expect(printed.providers.zhipu.credentials.api_key).toBe("<redacted>");
 		expect(cli.stdout.join("")).not.toContain("secret-key");
 	});
 

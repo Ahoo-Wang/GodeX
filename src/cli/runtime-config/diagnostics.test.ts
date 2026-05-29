@@ -7,8 +7,9 @@ const baseRawConfig = {
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			api_key: "secret-key",
-			base_url: "https://example.test/api",
+			spec: "zhipu",
+			credentials: { api_key: "secret-key" },
+			endpoint: { base_url: "https://example.test/api" },
 		},
 	},
 	session: { backend: "memory" },
@@ -63,7 +64,8 @@ describe("collectConfigDiagnostics", () => {
 				...baseRawConfig,
 				providers: {
 					zhipu: {
-						base_url: "https://example.test/api",
+						spec: "zhipu",
+						endpoint: { base_url: "https://example.test/api" },
 					},
 				},
 			},
@@ -72,7 +74,7 @@ describe("collectConfigDiagnostics", () => {
 
 		expect(collectConfigDiagnostics(config)).toContainEqual({
 			message: "Provider zhipu is missing api_key.",
-			fix: "set providers.zhipu.api_key or reference an environment variable.",
+			fix: "set providers.zhipu.credentials.api_key or reference an environment variable.",
 		});
 	});
 
@@ -82,8 +84,9 @@ describe("collectConfigDiagnostics", () => {
 				...baseRawConfig,
 				providers: {
 					zhipu: {
-						api_key: "${MISSING_ZHIPU_API_KEY}",
-						base_url: "https://example.test/api",
+						spec: "zhipu",
+						credentials: { api_key: "${MISSING_ZHIPU_API_KEY}" },
+						endpoint: { base_url: "https://example.test/api" },
 					},
 				},
 			},
@@ -92,7 +95,7 @@ describe("collectConfigDiagnostics", () => {
 
 		expect(collectConfigDiagnostics(config)).toContainEqual({
 			message:
-				"providers.zhipu.api_key uses unresolved environment variable MISSING_ZHIPU_API_KEY.",
+				"providers.zhipu.credentials.api_key uses unresolved environment variable MISSING_ZHIPU_API_KEY.",
 			fix: "export MISSING_ZHIPU_API_KEY=...",
 		});
 	});
@@ -103,8 +106,9 @@ describe("collectConfigDiagnostics", () => {
 				...baseRawConfig,
 				providers: {
 					zhipu: {
-						api_key: "secret-key",
-						base_url: "${MISSING_ZHIPU_BASE_URL}",
+						spec: "zhipu",
+						credentials: { api_key: "secret-key" },
+						endpoint: { base_url: "${MISSING_ZHIPU_BASE_URL}" },
 					},
 				},
 			},
@@ -113,7 +117,7 @@ describe("collectConfigDiagnostics", () => {
 
 		expect(collectConfigDiagnostics(config)).toContainEqual({
 			message:
-				"providers.zhipu.base_url uses unresolved environment variable MISSING_ZHIPU_BASE_URL.",
+				"providers.zhipu.endpoint.base_url uses unresolved environment variable MISSING_ZHIPU_BASE_URL.",
 			fix: "export MISSING_ZHIPU_BASE_URL=...",
 		});
 	});

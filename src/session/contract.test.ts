@@ -39,7 +39,7 @@ const completedTurn = {
 		},
 	},
 	metadata: {
-		provider: "openai-compatible",
+		provider: "chat-completions-compatible",
 	},
 } satisfies StoredResponseSession;
 

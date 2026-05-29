@@ -19,28 +19,33 @@ bun run test:e2e                      # E2E with mocked upstream
 CLI → ApplicationContext → Bun HTTP server
   → POST /v1/responses → ResponsesContext
     → ModelResolver → Session chain → Registrar → DefaultAdapter
-      → CompatibilityNegotiator produces CompatibilityPlan
-      → ChatRequestMapper assembles upstream request from sub-mappers
-      → ProviderClient calls upstream
-      → ChatResponseMapper / ChatStreamMapper assembles response
+      → ProviderExchange builds Chat Completions request through bridge/request
+      → ProviderEdge calls upstream through ChatProviderClient
+      → bridge/response or bridge/stream reconstructs Responses output
       → Session saved
 ```
 
-### Mapper composition
+### Bridge kernel
 
-The `ProviderMapper` is built from sub-responsibility interfaces in `adapter/mapper/chat/contract.ts`:
+`src/bridge/` is the only place for provider-agnostic Responses→Chat policy:
 
-**Request:** `CompatibilityNegotiator` → `OutputFormatContract` → `ChatRequestFactory` → `ChatMessageMapper` → `ChatToolIndexBuilder` → `ChatToolChoiceMapper` → `ChatRequestOptionsMapper`
+- `compatibility/` — capability negotiation and diagnostics
+- `request/` — Responses input/session normalization and Chat Completions request assembly
+- `tools/` — tool/tool_choice support, downgrade, identity planning, and restoration
+- `output/` — output-format contract and strict downgraded JSON validation
+- `response/` — Chat Completions response reconstruction
+- `stream/` — provider delta validation and Responses SSE state machine
 
-**Response:** `ChatResponseAccessor` → `ChatResponseOutputMapper` + `ChatUsageMapper` + `ChatFinishReasonMapper` → `buildChatResponseObject`
-
-**Stream:** `ChatStreamDeltaMapper` + `ChatFinishReasonMapper` + `ChatToolCallRestorer` → `StreamResponseState`
-
-The composition classes (`ChatRequestMapper`, `ChatResponseMapper`, `ChatStreamMapper`) live in `adapter/mapper/chat/`.
+`src/adapter/` owns orchestration only: sync/stream pipelines, session persistence, logging, trace transforms, and compatibility logging. It must not reintroduce mapper wrapper contracts.
 
 ### Provider pattern
 
-Each provider in `providers/<name>/mapper/` implements the sub-responsibility interfaces in individual files — `messages.ts`, `tools.ts`, `request-options.ts`, `response-output.ts`, `usage.ts`, `finish-reason.ts`, `stream-delta.ts`, `tool-calls.ts`, `capabilities.ts`, `compatibility.ts` — wired together by a `createXxxMapper()` factory.
+Each provider now contributes a compact `ProviderSpec` and an edge client:
+
+- `spec.ts` — capabilities, endpoint, auth, tool-name codec, response/stream accessors, optional hooks
+- `client.ts` — creates `ProviderEdge` with `ChatProviderClient`
+- `hooks.ts` — provider-specific accessors, usage mapping, stream delta extraction, request patching
+- `protocol/` — provider-specific Chat Completions types when needed
 
 Shared provider utilities (`providers/shared/`):
 - `chat-provider-client.ts` — `ChatProviderClient` (HTTP boundary, wraps Fetcher)
@@ -48,12 +53,18 @@ Shared provider utilities (`providers/shared/`):
 - `chat-api.ts` — Fetcher-based `ChatApi` factory
 - `stream-result-extractor.ts` — SSE JSON parsing
 
+Provider-agnostic bridge decisions live in `bridge/`:
+- `compatibility/` — ignored parameter diagnostics and response-format planning
+- `tools/` — tool/tool_choice support, downgrade, and rejection planning
+- `output/` — output-format contracts and strict downgraded JSON validation
+
 ### Key rules
 
-- `adapter/mapper/chat/` must never import from `providers/` — it defines contracts, providers implement them
-- Shared logic between providers goes in `providers/shared/`, never duplicated
+- `adapter/mapper/` and `adapter/provider.ts` are legacy architecture and must stay removed
+- Shared protocol plumbing between providers goes in `providers/shared/`
+- Shared bridge decisions between providers go in `bridge/`, never duplicated
 - All errors use `GodeXError` hierarchy (`src/error/`) with domain codes from `error/codes.ts`
-- `CompatibilityNegotiator.negotiate()` is called once per request; `CompatibilityPlan` drives all downstream mapper decisions
+- Providers declare capabilities; bridge planners decide compatibility once per request and emit diagnostics
 
 ## Conventions
 
@@ -66,20 +77,20 @@ Shared provider utilities (`providers/shared/`):
 ## Boundaries
 
 ✅ Always:
-- Implement sub-responsibility interfaces when adding provider logic
 - Run `bun run check` before committing
 - Use domain error codes from `error/codes.ts`
-- Extract shared logic to `providers/shared/` before duplicating across providers
+- Extract shared bridge decisions to `bridge/` before duplicating across providers
+- Extract shared provider protocol plumbing to `providers/shared/`
 
 ⚠️ Ask first:
-- Modifying interfaces in `adapter/mapper/chat/contract.ts` (affects all providers)
-- Changing the `Adapter`, `Provider`, or stable mapper contract interfaces
+- Adding new provider implementations
+- Changing the `ProviderSpec` / `ProviderEdge` contract
 - Modifying the stream pipeline transformers
 - Changing the config schema
 
 🚫 Never:
-- Import from `providers/*/` inside `adapter/mapper/chat/` (layer boundary)
-- Duplicate mapper logic between providers without extracting to `providers/shared/`
+- Recreate `adapter/mapper/`, `adapter/provider.ts`, or provider-specific mapper forests
+- Duplicate bridge decisions between providers without extracting to `bridge/`
 - Throw raw `Error` in adapter/provider code — use the GodeXError hierarchy
 - Use Node.js APIs when Bun equivalents exist
 - Use external test frameworks (Bun's built-in runner only)

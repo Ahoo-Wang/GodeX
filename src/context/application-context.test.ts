@@ -7,8 +7,9 @@ const config: GodeXConfig = {
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			api_key: "test-key",
-			base_url: "http://127.0.0.1:1",
+			spec: "zhipu",
+			credentials: { api_key: "test-key" },
+			endpoint: { base_url: "http://127.0.0.1:1" },
 		},
 	},
 	session: { backend: "memory" },
@@ -31,7 +32,7 @@ describe("ApplicationContext", () => {
 		expect(app.logger.level).toBe("error");
 		expect(app.resolver).toBeDefined();
 		expect(app.registrar).toBeDefined();
-		expect(app.adapter).toBeDefined();
+		expect(app.responses).toBeDefined();
 		expect(app.sessionStore).toBeDefined();
 	});
 

@@ -1,5 +1,4 @@
 import { ExchangeError } from "@ahoo-wang/fetcher";
-import type { ProviderClient } from "../../adapter/provider";
 import {
 	PROVIDER_UPSTREAM_ERROR,
 	PROVIDER_UPSTREAM_RATE_LIMIT,
@@ -16,9 +15,7 @@ export interface ChatProviderClientOptions extends ChatApiOptions {
 
 type StreamableRequest = { stream?: boolean };
 
-export class ChatProviderClient<TReq extends StreamableRequest, TRes, TChunk>
-	implements ProviderClient<TReq, TRes, TChunk>
-{
+export class ChatProviderClient<TReq extends StreamableRequest, TRes, TChunk> {
 	private readonly api: ChatApi<TReq, TRes, TChunk>;
 	private readonly provider: string;
 

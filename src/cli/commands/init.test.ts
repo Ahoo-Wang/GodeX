@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as clack from "@clack/prompts";
 import { Command } from "commander";
-import { DEFAULT_DEEPSEEK_BASE_URL } from "../../providers/deepseek/provider";
+import { DEFAULT_DEEPSEEK_BASE_URL } from "../../providers/deepseek";
 import { registerInitCommand } from "./init";
 
 const tempDirs: string[] = [];

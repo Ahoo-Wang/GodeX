@@ -1,8 +1,8 @@
-import type { Adapter } from "../adapter/adapter";
 import type { GodeXConfig } from "../config";
 import type { Logger } from "../logger";
 import type { Registrar } from "../providers/registrar";
 import type { ModelResolver } from "../resolver";
+import type { ResponsesBridge } from "../responses/bridge";
 import type { ResponseSessionStore } from "../session";
 import type { TraceRecorder } from "../trace";
 import { createApplicationServices } from "./application-services";
@@ -12,7 +12,7 @@ export class ApplicationContext {
 	readonly logger: Logger;
 	readonly resolver: ModelResolver;
 	readonly registrar: Registrar;
-	readonly adapter: Adapter;
+	readonly responses: ResponsesBridge;
 	readonly sessionStore: ResponseSessionStore;
 	readonly traceRecorder: TraceRecorder;
 	readonly traceEnabled: boolean;
@@ -23,7 +23,7 @@ export class ApplicationContext {
 		this.logger = services.logger;
 		this.resolver = services.resolver;
 		this.registrar = services.registrar;
-		this.adapter = services.adapter;
+		this.responses = services.responses;
 		this.sessionStore = services.sessionStore;
 		this.traceRecorder = services.traceRecorder;
 		this.traceEnabled = services.traceEnabled;

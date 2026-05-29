@@ -7,8 +7,9 @@ const rawConfig = {
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			api_key: "secret-key",
-			base_url: "https://example.test/api",
+			spec: "zhipu",
+			credentials: { api_key: "secret-key" },
+			endpoint: { base_url: "https://example.test/api" },
 		},
 	},
 	session: { backend: "memory" },
@@ -38,7 +39,7 @@ describe("redactConfig", () => {
 
 		const redacted = redactConfig(config);
 
-		expect(redacted.providers.zhipu?.api_key).toBe("<redacted>");
-		expect(config.providers.zhipu?.api_key).toBe("secret-key");
+		expect(redacted.providers.zhipu?.credentials.api_key).toBe("<redacted>");
+		expect(config.providers.zhipu?.credentials.api_key).toBe("secret-key");
 	});
 });

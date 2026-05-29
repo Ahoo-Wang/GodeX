@@ -6,10 +6,21 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { GodeXConfig } from "../config";
 import { ApplicationContext } from "../context/application-context";
+import type {
+	ResponseCreateRequest,
+	ResponseStreamEvent,
+} from "../protocol/openai/responses";
 import { Registrar } from "../providers/registrar";
-import { createZhipuProvider } from "../providers/zhipu/factory";
-import { DEFAULT_ZHIPU_BASE_URL } from "../providers/zhipu/provider";
+import {
+	createZhipuProvider,
+	DEFAULT_ZHIPU_BASE_URL,
+} from "../providers/zhipu";
 import { createBuiltinRoutes, startServer } from "../server";
+import {
+	collectGodexStreamEvents,
+	type GodeXClient,
+	godexClient,
+} from "./godex-client";
 import { getLoopbackPort } from "./ports";
 
 const apiKey = process.env.ZHIPU_API_KEY;
@@ -22,7 +33,7 @@ const maxOutputTokens = Number(
 );
 
 let godexServer: ReturnType<typeof Bun.serve> | null = null;
-let godexBase = "";
+let client: GodeXClient;
 
 function createLiveConfig(port: number): GodeXConfig {
 	return {
@@ -37,8 +48,9 @@ function createLiveConfig(port: number): GodeXConfig {
 		},
 		providers: {
 			zhipu: {
-				api_key: apiKey ?? "",
-				base_url: zhipuBaseUrl,
+				spec: "zhipu",
+				credentials: { api_key: apiKey ?? "" },
+				endpoint: { base_url: zhipuBaseUrl },
 			},
 		},
 		session: { backend: "memory" },
@@ -61,13 +73,12 @@ beforeAll(async () => {
 	const config = createLiveConfig(await getLoopbackPort());
 	const registrar = new Registrar();
 	registrar.registerFactory("zhipu", () =>
-		createZhipuProvider(
-			{
-				api_key: apiKey,
-				base_url: zhipuBaseUrl,
-			},
-			{ timeout: 120_000 },
-		),
+		createZhipuProvider({
+			spec: "zhipu",
+			credentials: { api_key: apiKey },
+			endpoint: { base_url: zhipuBaseUrl },
+			timeout_ms: 120_000,
+		}),
 	);
 
 	const app = new ApplicationContext(config, registrar);
@@ -78,7 +89,10 @@ beforeAll(async () => {
 		logger: app.logger,
 		routes: createBuiltinRoutes(app),
 	});
-	godexBase = `http://127.0.0.1:${godexServer.port}`;
+	client = godexClient({
+		baseURL: `http://127.0.0.1:${godexServer.port}`,
+		apiKey: "test-key",
+	});
 });
 
 afterAll(() => {
@@ -86,26 +100,19 @@ afterAll(() => {
 });
 
 async function postResponses(body: Record<string, unknown>): Promise<Response> {
-	return fetch(`${godexBase}/v1/responses`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(body),
-	});
+	return client.responses.createRaw(body as unknown as ResponseCreateRequest);
 }
 
-async function collectSSEEvents(
-	res: Response,
-): Promise<Record<string, unknown>[]> {
-	const text = await res.text();
-	const events: Record<string, unknown>[] = [];
-	for (const line of text.split("\n")) {
-		if (!line.startsWith("data: ") || line === "data: [DONE]") continue;
-		events.push(JSON.parse(line.slice(6)) as Record<string, unknown>);
-	}
-	return events;
+async function collectResponseStreamEvents(
+	body: Record<string, unknown>,
+): Promise<ResponseStreamEvent[]> {
+	const stream = await client.responses.stream(
+		body as unknown as ResponseCreateRequest,
+	);
+	return collectGodexStreamEvents(stream);
 }
 
-liveDescribe("Live E2E: Zhipu adapter", () => {
+liveDescribe("Live E2E: Zhipu bridge", () => {
 	test("completes a synchronous Responses request", async () => {
 		const res = await postResponses({
 			model: liveModel,
@@ -133,7 +140,7 @@ liveDescribe("Live E2E: Zhipu adapter", () => {
 	}, 120_000);
 
 	test("streams Responses-compatible lifecycle events", async () => {
-		const res = await postResponses({
+		const events = await collectResponseStreamEvents({
 			model: liveModel,
 			input:
 				"Reply with one short sentence containing the token godex-live-stream.",
@@ -142,10 +149,6 @@ liveDescribe("Live E2E: Zhipu adapter", () => {
 			max_output_tokens: maxOutputTokens,
 		});
 
-		expect(res.status).toBe(200);
-		expect(res.headers.get("Content-Type")).toContain("text/event-stream");
-
-		const events = await collectSSEEvents(res);
 		expect(events.some((event) => event.type === "response.created")).toBe(
 			true,
 		);

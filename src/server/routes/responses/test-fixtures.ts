@@ -1,5 +1,3 @@
-import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
-import type { ProviderMapper } from "../../../adapter/provider";
 import type { GodeXConfig } from "../../../config";
 import { ApplicationContext } from "../../../context/application-context";
 import type { ResponsesContext } from "../../../context/responses-context";
@@ -7,17 +5,21 @@ import type { LogAttr, Logger } from "../../../logger";
 import type {
 	ResponseCreateRequest,
 	ResponseObject,
-	ResponseStreamEvent,
 } from "../../../protocol/openai/responses";
 import { Registrar } from "../../../providers/registrar";
+import {
+	type CreateTestProviderEdgeOptions,
+	createTestProviderEdge,
+} from "../../../testing/provider-edge";
 
 export const testConfig: GodeXConfig = {
 	server: { port: 0, host: "127.0.0.1" },
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			api_key: "test-key",
-			base_url: "http://127.0.0.1:1",
+			spec: "zhipu",
+			credentials: { api_key: "test-key" },
+			endpoint: { base_url: "http://127.0.0.1:1" },
 		},
 	},
 	session: { backend: "memory" },
@@ -33,26 +35,6 @@ export const testConfig: GodeXConfig = {
 	},
 };
 
-export class FakeMapper
-	implements
-		ProviderMapper<Record<string, unknown>, Record<string, unknown>, unknown>
-{
-	readonly request = {
-		map: (): Record<string, unknown> => ({}),
-	};
-
-	readonly response = {
-		map: (ctx: ResponsesContext): ResponseObject => responseObject(ctx),
-	};
-
-	readonly stream = {
-		map: (
-			_ctx: ResponsesContext,
-			_event: JsonServerSentEvent<unknown>,
-		): ResponseStreamEvent[] => [],
-	};
-}
-
 export function responseObject(ctx: ResponsesContext): ResponseObject {
 	return {
 		id: ctx.responseId,
@@ -65,26 +47,12 @@ export function responseObject(ctx: ResponsesContext): ResponseObject {
 }
 
 export function createTestApp(
-	mapper: ProviderMapper<unknown, unknown, unknown> = new FakeMapper(),
-	client: unknown = {
-		async request(): Promise<Record<string, unknown>> {
-			return {};
-		},
-		async stream() {
-			return new ReadableStream({
-				start(controller) {
-					controller.close();
-				},
-			});
-		},
-	},
+	options: CreateTestProviderEdgeOptions = {},
 ): ApplicationContext {
 	const registrar = new Registrar();
-	registrar.registerFactory("zhipu", () => ({
-		name: "mock",
-		mapper,
-		client: client as never,
-	}));
+	registrar.registerFactory("zhipu", () =>
+		createTestProviderEdge({ name: "zhipu", ...options }),
+	);
 	return new ApplicationContext(testConfig, registrar);
 }
 

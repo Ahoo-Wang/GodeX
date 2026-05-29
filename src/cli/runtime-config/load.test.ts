@@ -6,8 +6,9 @@ const validConfig = {
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			api_key: "secret-key",
-			base_url: "https://example.test/api",
+			spec: "zhipu",
+			credentials: { api_key: "secret-key" },
+			endpoint: { base_url: "https://example.test/api" },
 		},
 	},
 	session: { backend: "memory" },

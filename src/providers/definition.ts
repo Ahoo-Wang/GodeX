@@ -1,17 +1,29 @@
-import type { Provider } from "../adapter/provider";
-import type { ProviderConfig } from "../config";
+import type {
+	ProviderEdge,
+	ProviderRuntimeConfig,
+} from "../bridge/provider-spec";
 
 export interface ProviderDefinition {
 	readonly name: string;
-	create(config: ProviderConfig): Provider<unknown, unknown, unknown>;
+	create(
+		config: ProviderRuntimeConfig,
+	): ProviderEdge<unknown, unknown, unknown>;
 }
 
-export function createProviderDefinition<TReq, TRes, TChunk>(
+export function createProviderDefinition<
+	TBridgeRequest,
+	TRes,
+	TChunk,
+	TProviderRequest = TBridgeRequest,
+>(
 	name: string,
-	create: (config: ProviderConfig) => Provider<TReq, TRes, TChunk>,
+	create: (
+		config: ProviderRuntimeConfig,
+	) => ProviderEdge<TBridgeRequest, TRes, TChunk, TProviderRequest>,
 ): ProviderDefinition {
 	return {
 		name,
-		create: (config) => create(config) as Provider<unknown, unknown, unknown>,
+		create: (config) =>
+			create(config) as ProviderEdge<unknown, unknown, unknown>,
 	};
 }

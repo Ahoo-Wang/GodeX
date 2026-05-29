@@ -1,298 +1,381 @@
-// src/providers/provider-conformance.test.ts
 import { describe, expect, test } from "bun:test";
-import type { CompatibilityDiagnostic } from "../adapter/compatibility";
-import type { ProviderCapabilities } from "../adapter/mapper/chat/compatibility-plan";
-import type { ProviderMapper } from "../adapter/provider";
-import type { ApplicationContext } from "../context/application-context";
-import type { ResponsesContext } from "../context/responses-context";
-import { createLogger } from "../logger";
-import type { ResponseCreateRequest } from "../protocol/openai/responses";
-import { BUILTIN_PROVIDER_DEFINITIONS } from "./builtin";
-import { DEEPSEEK_CAPABILITIES } from "./deepseek/mapper/capabilities";
-import { createDeepSeekMapper } from "./deepseek/mapper/factory";
-import { OPENAI_CAPABILITIES } from "./openai/mapper/capabilities";
-import { createOpenAIMapper } from "./openai/mapper/factory";
-import { ZHIPU_CAPABILITIES } from "./zhipu/mapper/capabilities";
-import { createZhipuMapper } from "./zhipu/mapper/factory";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+import {
+	BEARER_AUTH,
+	CHAT_COMPLETIONS_PROTOCOL,
+	validateProviderPackageShape,
+} from "../bridge/provider-spec";
+import { DEFAULT_TOOL_NAME_CODEC } from "../bridge/tools";
+import { ProviderError } from "../error";
+import { BUILTIN_PROVIDER_SPECS } from "./builtin";
+import { DEEPSEEK_PROVIDER_SPEC } from "./deepseek/spec";
+import { ZHIPU_PROVIDER_SPEC } from "./zhipu/spec";
 
-type AnyProviderMapper = ProviderMapper<unknown, unknown, unknown>;
-
-function validateProviderMapperShape(mapper: AnyProviderMapper): void {
-	expect(mapper.request).toBeObject();
-	expect(mapper.response).toBeObject();
-	expect(mapper.stream).toBeObject();
-
-	expect(typeof mapper.request.map).toBe("function");
-	expect(typeof mapper.response.map).toBe("function");
-	expect(typeof mapper.stream.map).toBe("function");
+function listProviderFiles(provider: string): string[] {
+	const root = join(import.meta.dir, provider);
+	const out: string[] = [];
+	const walk = (dir: string) => {
+		for (const entry of readdirSync(dir, { withFileTypes: true })) {
+			const abs = join(dir, entry.name);
+			if (entry.isDirectory()) walk(abs);
+			else out.push(abs.slice(process.cwd().length + 1));
+		}
+	};
+	walk(root);
+	return out;
 }
 
-const providerMappers: [string, () => AnyProviderMapper][] = [
-	["OpenAI", () => createOpenAIMapper() as unknown as AnyProviderMapper],
-	["Zhipu", () => createZhipuMapper() as unknown as AnyProviderMapper],
-	["DeepSeek", () => createDeepSeekMapper() as unknown as AnyProviderMapper],
-];
+describe("ProviderSpec runtime conformance", () => {
+	test("built-in providers use ProviderSpec package shape", () => {
+		for (const provider of ["example", "zhipu", "deepseek"]) {
+			expect(
+				validateProviderPackageShape(provider, listProviderFiles(provider)),
+			).toEqual([]);
+		}
+	});
 
-const providerCapabilityCases: Array<{
-	name: string;
-	provider: string;
-	model: string;
-	capabilities: ProviderCapabilities;
-	mapper: () => AnyProviderMapper;
-}> = [
-	{
-		name: "OpenAI",
-		provider: "openai",
-		model: "gpt-4o",
-		capabilities: OPENAI_CAPABILITIES,
-		mapper: () => createOpenAIMapper() as unknown as AnyProviderMapper,
-	},
-	{
-		name: "Zhipu",
-		provider: "zhipu",
-		model: "glm-5.1",
-		capabilities: ZHIPU_CAPABILITIES,
-		mapper: () => createZhipuMapper() as unknown as AnyProviderMapper,
-	},
-	{
-		name: "DeepSeek",
-		provider: "deepseek",
-		model: "deepseek-v4-flash",
-		capabilities: DEEPSEEK_CAPABILITIES,
-		mapper: () => createDeepSeekMapper() as unknown as AnyProviderMapper,
-	},
-];
+	test("built-in provider specs include example, zhipu, and deepseek with unique names", () => {
+		const names = BUILTIN_PROVIDER_SPECS.map((spec) => spec.name);
 
-const jsonSchemaFormat = {
-	type: "json_schema" as const,
-	name: "person",
-	description: "A person payload.",
-	schema: {
-		type: "object",
-		properties: {
-			name: { type: "string" },
-			age: { type: "number" },
-		},
-		required: ["name", "age"],
-		additionalProperties: false,
-	},
-	strict: true,
-};
-
-const customTool = {
-	type: "custom" as const,
-	name: "raw_sql",
-	description: "Run raw SQL",
-	format: {
-		type: "grammar" as const,
-		syntax: "lark" as const,
-		definition: "start: /.+/",
-	},
-};
-
-function createRequestContext(
-	provider: string,
-	model: string,
-	request: Partial<ResponseCreateRequest> = {},
-): ResponsesContext {
-	const diagnostics: CompatibilityDiagnostic[] = [];
-	return {
-		request: {
-			model,
-			input: "Return Jane as JSON.",
-			text: { format: jsonSchemaFormat },
-			...request,
-		} as ResponseCreateRequest,
-		resolved: { provider, model },
-		session: null,
-		responseId: "resp_1",
-		requestId: "req_1",
-		createdAt: 1_764_000_000,
-		logger: createLogger({ level: "error" }),
-		app: {} as ApplicationContext,
-		provider: { name: provider, mapper: {} as never, client: {} as never },
-		diagnostics,
-		addDiagnostic(diagnostic: CompatibilityDiagnostic) {
-			diagnostics.push(diagnostic);
-		},
-		attributes: new Map(),
-	} as unknown as ResponsesContext;
-}
-
-describe("ProviderMapper conformance", () => {
-	for (const [name, factory] of providerMappers) {
-		describe(name, () => {
-			test("has all three mapper methods", () => {
-				const mapper = factory();
-				validateProviderMapperShape(mapper);
-			});
-
-			test("each sub-mapper is a distinct object", () => {
-				const mapper = factory();
-				// Verify identity — all three mappers are different objects
-				expect(mapper.request === (mapper.response as unknown)).toBeFalse();
-				expect(mapper.response === (mapper.stream as unknown)).toBeFalse();
-				expect(mapper.stream === (mapper.request as unknown)).toBeFalse();
-			});
-
-			test("factory returns fresh instances on each call", () => {
-				const a = factory();
-				const b = factory();
-				expect(a.request).not.toBe(b.request);
-				expect(a.response).not.toBe(b.response);
-				expect(a.stream).not.toBe(b.stream);
-			});
-
-			test("request mapper .map is callable", () => {
-				const mapper = factory();
-				expect(typeof mapper.request.map).toBe("function");
-			});
-
-			test("response mapper .map is callable", () => {
-				const mapper = factory();
-				expect(typeof mapper.response.map).toBe("function");
-			});
-
-			test("stream mapper .map is callable", () => {
-				const mapper = factory();
-				expect(typeof mapper.stream.map).toBe("function");
-			});
-		});
-	}
-});
-
-describe("Provider runtime conformance", () => {
-	test("built-in provider definitions have unique names", () => {
-		const names = BUILTIN_PROVIDER_DEFINITIONS.map(
-			(definition) => definition.name,
-		);
-
+		expect(names).toEqual(["example", "zhipu", "deepseek"]);
 		expect(new Set(names).size).toBe(names.length);
 	});
 
-	for (const definition of BUILTIN_PROVIDER_DEFINITIONS) {
-		test(`${definition.name} definition creates fresh provider contracts`, () => {
-			const config = {
-				api_key: `${definition.name}-key`,
-				base_url: `https://${definition.name}.example.test`,
-			};
-
-			const first = definition.create(config);
-			const second = definition.create(config);
-
-			expect(first.name).toBe(definition.name);
-			expect(first).not.toBe(second);
-			validateProviderMapperShape(first.mapper);
-			validateProviderMapperShape(second.mapper);
-			expect(first.client.request).toBeFunction();
-			expect(first.client.stream).toBeFunction();
+	for (const spec of BUILTIN_PROVIDER_SPECS) {
+		test(`${spec.name} spec exposes protocol, capabilities, accessors, and toolName`, () => {
+			expect(spec.protocol).toBe(CHAT_COMPLETIONS_PROTOCOL);
+			expect(spec.capabilities.parameters.supported.size).toBeGreaterThan(0);
+			expect(spec.capabilities.responseFormats.supported.size).toBeGreaterThan(
+				0,
+			);
+			expect(spec.endpoint.defaultBaseURL).toStartWith("https://");
+			expect(spec.auth).toBe(BEARER_AUTH);
+			expect(spec.toolName.toProviderName("local.shell")).toBeString();
+			expect(spec.toolName.fromProviderName("provider_name")).toBe(
+				"provider_name",
+			);
+			expect(spec.response.firstChoice).toBeFunction();
+			expect(spec.response.finishReason).toBeFunction();
+			expect(spec.response.outputText).toBeFunction();
+			expect(spec.response.usage).toBeFunction();
+			expect(spec.stream.deltas).toBeFunction();
 		});
 	}
-});
 
-describe("Provider capability conformance", () => {
-	for (const {
-		name,
-		provider,
-		model,
-		capabilities,
-		mapper,
-	} of providerCapabilityCases) {
-		test(`${name} response format degradations target supported formats`, () => {
-			for (const [from, to] of capabilities.responseFormats.degraded ?? []) {
-				expect(capabilities.responseFormats.supported.has(from)).toBeFalse();
-				expect(capabilities.responseFormats.supported.has(to)).toBeTrue();
-			}
+	test("Zhipu and DeepSeek share the same chat-completions function name codec constraints", () => {
+		expect(ZHIPU_PROVIDER_SPEC.toolName).toBe(DEFAULT_TOOL_NAME_CODEC);
+		expect(ZHIPU_PROVIDER_SPEC.toolName).toBe(DEEPSEEK_PROVIDER_SPEC.toolName);
+		for (const spec of [ZHIPU_PROVIDER_SPEC, DEEPSEEK_PROVIDER_SPEC]) {
+			expect(spec.toolName.toProviderName("abc-XYZ_09")).toBe("abc-XYZ_09");
+			expect(spec.toolName.toProviderName("")).toBe("tool");
+			expect(spec.toolName.toProviderName("x".repeat(65))).toBe("x".repeat(64));
+			expect(spec.toolName.toProviderName("weather.now")).toBe("weather_now");
+			expect(spec.toolName.toProviderName("weather.now")).toMatch(
+				/^[a-zA-Z0-9_-]{1,64}$/,
+			);
+		}
+	});
+
+	test("built-in provider specs preserve explicit zero usage details", () => {
+		expect(
+			ZHIPU_PROVIDER_SPEC.response.usage({
+				id: "zhipu-zero",
+				created: 1,
+				model: "glm-5.1",
+				choices: [],
+				usage: {
+					prompt_tokens: 1,
+					completion_tokens: 2,
+					total_tokens: 3,
+					prompt_tokens_details: { cached_tokens: 0 },
+				},
+			}),
+		).toEqual({
+			input_tokens: 1,
+			output_tokens: 2,
+			total_tokens: 3,
+			input_tokens_details: { cached_tokens: 0 },
 		});
+		expect(
+			DEEPSEEK_PROVIDER_SPEC.response.usage({
+				id: "deepseek-zero",
+				created: 1,
+				model: "deepseek-v4-flash",
+				choices: [],
+				usage: {
+					prompt_tokens: 1,
+					completion_tokens: 2,
+					total_tokens: 3,
+					prompt_cache_hit_tokens: 0,
+					completion_tokens_details: { reasoning_tokens: 0 },
+				},
+			}),
+		).toEqual({
+			input_tokens: 1,
+			output_tokens: 2,
+			total_tokens: 3,
+			input_tokens_details: { cached_tokens: 0 },
+			output_tokens_details: { reasoning_tokens: 0 },
+		});
+	});
 
-		test(`${name} response format capabilities match json_schema request mapping`, () => {
-			const ctx = createRequestContext(provider, model);
-			const request = mapper().request.map(ctx) as {
-				response_format?: unknown;
-				messages?: Array<{ role: string; content?: string }>;
-			};
-			const schemaDegradation =
-				capabilities.responseFormats.degraded?.get("json_schema");
+	test("Zhipu provider patch strips bridge-only native reasoning fields", () => {
+		const enabled = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "glm-5.1",
+			messages: [{ role: "user", content: "think" }],
+			thinking: { type: "enabled" },
+			reasoning_effort: "medium",
+		} as never) as Record<string, unknown> | undefined;
+		const disabled = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "glm-5.1",
+			messages: [{ role: "user", content: "answer directly" }],
+			thinking: { type: "disabled" },
+			reasoning_effort: "none",
+		} as never) as Record<string, unknown> | undefined;
 
-			if (capabilities.responseFormats.supported.has("json_schema")) {
-				expect(request.response_format).toMatchObject({
-					type: "json_schema",
-				});
-				expect(
-					request.messages?.some(
-						(message) =>
-							typeof message.content === "string" &&
-							message.content.includes("JSON Schema:"),
-					),
-				).toBeFalse();
-				expect(ctx.diagnostics).not.toContainEqual(
-					expect.objectContaining({
-						path: "text.format",
-						action: "degraded",
-					}),
+		expect(enabled).toMatchObject({
+			thinking: { type: "enabled" },
+		});
+		expect(enabled).not.toHaveProperty("reasoning_effort");
+		expect(disabled).toMatchObject({
+			thinking: { type: "disabled" },
+		});
+		expect(disabled).not.toHaveProperty("reasoning_effort");
+	});
+
+	test("Zhipu provider patch preserves normalized boolean thinking", () => {
+		const patched = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "glm-5.1",
+			messages: [{ role: "user", content: "answer directly" }],
+			thinking: { type: "disabled" },
+			reasoning_effort: "medium",
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(patched).toMatchObject({
+			thinking: { type: "disabled" },
+		});
+		expect(patched).not.toHaveProperty("reasoning_effort");
+	});
+
+	test("Zhipu provider patch preserves historical reasoning content", () => {
+		const explicit = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "glm-5.1",
+			messages: [
+				{
+					role: "assistant",
+					content: "Earlier answer.",
+					reasoning_content: "Earlier thought.",
+				},
+			],
+			thinking: { type: "disabled" },
+		} as never) as Record<string, unknown> | undefined;
+		const inferred = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "glm-5.1",
+			messages: [
+				{
+					role: "assistant",
+					content: "Earlier answer.",
+					reasoning_content: "Earlier thought.",
+				},
+			],
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(explicit).toMatchObject({
+			thinking: { type: "disabled", clear_thinking: false },
+		});
+		expect(inferred).toMatchObject({
+			thinking: { type: "enabled", clear_thinking: false },
+		});
+	});
+
+	test("DeepSeek provider patch normalizes native reasoning effort", () => {
+		const max = DEEPSEEK_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "deepseek-chat",
+			messages: [{ role: "user", content: "think deeply" }],
+			reasoning_effort: "xhigh",
+		} as never) as Record<string, unknown> | undefined;
+		const unsupported = DEEPSEEK_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "deepseek-chat",
+			messages: [{ role: "user", content: "think a little" }],
+			reasoning_effort: "medium",
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(max).toMatchObject({
+			thinking: { type: "enabled" },
+			reasoning_effort: "max",
+		});
+		expect(unsupported).toMatchObject({
+			thinking: { type: "disabled" },
+		});
+		expect(unsupported).not.toHaveProperty("reasoning_effort");
+	});
+
+	test("DeepSeek provider patch preserves historical reasoning content", () => {
+		const patched = DEEPSEEK_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "deepseek-chat",
+			messages: [
+				{
+					role: "assistant",
+					content: "Earlier answer.",
+					reasoning_content: "Earlier thought.",
+				},
+			],
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(patched).toMatchObject({
+			thinking: { type: "enabled" },
+		});
+		expect(patched).not.toHaveProperty("reasoning_effort");
+	});
+
+	test("provider patch hooks reject malformed chat completion requests", () => {
+		for (const spec of [ZHIPU_PROVIDER_SPEC, DEEPSEEK_PROVIDER_SPEC]) {
+			expect(() =>
+				spec.hooks?.patchRequest?.({
+					messages: [{ role: "user", content: "missing model" }],
+				} as never),
+			).toThrow(ProviderError);
+			expect(() =>
+				spec.hooks?.patchRequest?.({
+					model: `${spec.name}-chat`,
+					messages: "not messages",
+				} as never),
+			).toThrow(ProviderError);
+		}
+	});
+
+	test("built-in provider specs reject malformed sync usage", () => {
+		expect(() =>
+			ZHIPU_PROVIDER_SPEC.response.usage({
+				id: "zhipu-bad-usage",
+				created: 1,
+				model: "glm-5.1",
+				choices: [],
+				usage: {
+					prompt_tokens: "1",
+					completion_tokens: 2,
+					total_tokens: 3,
+				},
+			} as never),
+		).toThrow(ProviderError);
+		expect(() =>
+			DEEPSEEK_PROVIDER_SPEC.response.usage({
+				id: "deepseek-bad-usage",
+				created: 1,
+				model: "deepseek-v4-flash",
+				choices: [],
+				usage: {
+					prompt_tokens: 1,
+					completion_tokens: 2,
+					total_tokens: 3,
+					completion_tokens_details: { reasoning_tokens: "bad" },
+				},
+			} as never),
+		).toThrow(ProviderError);
+	});
+
+	test("deepseek provider spec extracts text from defensive array content", () => {
+		expect(
+			DEEPSEEK_PROVIDER_SPEC.response.outputText({
+				id: "deepseek-array-content",
+				created: 1,
+				model: "deepseek-v4-flash",
+				choices: [
+					{
+						index: 0,
+						finish_reason: "stop",
+						message: {
+							role: "assistant",
+							content: [
+								{ type: "text", text: "hello" },
+								{ type: "image_url", image_url: { url: "ignored" } },
+								{ type: "text", text: " world" },
+							],
+						},
+					},
+				],
+			} as never),
+		).toBe("hello world");
+	});
+
+	test("built-in provider spec stream deltas omit undefined fields", () => {
+		const cases = [
+			ZHIPU_PROVIDER_SPEC.stream.deltas({
+				id: "zhipu-stream",
+				created: 1,
+				model: "glm-5.1",
+				choices: [{ index: 0, delta: { content: "hello" } }],
+				usage: {
+					prompt_tokens: 0,
+					completion_tokens: 0,
+					total_tokens: 0,
+				},
+			}),
+			DEEPSEEK_PROVIDER_SPEC.stream.deltas({
+				choices: [
+					{
+						index: 0,
+						delta: { reasoning_content: "think" },
+						finish_reason: "stop",
+					},
+				],
+			}),
+		];
+
+		for (const deltas of cases) {
+			expect(deltas?.length).toBeGreaterThan(0);
+			for (const delta of deltas ?? []) {
+				expect(Object.values(delta as Record<string, unknown>)).not.toContain(
+					undefined,
 				);
-				return;
 			}
+		}
+	});
 
-			expect(schemaDegradation).toBe("json_object");
-			expect(request.response_format).toEqual({ type: "json_object" });
-			expect(ctx.diagnostics).toContainEqual(
-				expect.objectContaining({
-					path: "text.format",
-					action: "degraded",
-				}),
-			);
-			const schemaMessage = request.messages?.at(-1);
-			expect(schemaMessage?.role).toBe("user");
-			expect(schemaMessage?.content).toEqual(
-				expect.stringContaining(
-					"Return only JSON that conforms to the JSON Schema below.",
-				),
-			);
-			expect(schemaMessage?.content).toEqual(
-				expect.stringContaining('"required":["name","age"]'),
-			);
-		});
+	test("built-in provider spec stream deltas omit empty tool calls", () => {
+		expect(
+			ZHIPU_PROVIDER_SPEC.stream.deltas({
+				id: "zhipu-empty-tool",
+				created: 1,
+				model: "glm-5.1",
+				choices: [{ index: 0, delta: { tool_calls: [{}] } }],
+			}),
+		).toEqual([]);
+		expect(
+			DEEPSEEK_PROVIDER_SPEC.stream.deltas({
+				choices: [{ index: 0, delta: { tool_calls: [{}] } }],
+			}),
+		).toEqual([]);
+	});
 
-		test(`${name} tool degradations are declared for accepted lossy mappings`, () => {
-			for (const [from, to] of capabilities.tools.degraded ?? []) {
-				expect(capabilities.tools.supported.has(from)).toBeTrue();
-				expect(to.length).toBeGreaterThan(0);
-			}
-		});
-
-		test(`${name} custom tool capability matches request mapping`, () => {
-			const ctx = createRequestContext(provider, model, {
-				input: "Use raw_sql.",
-				text: undefined,
-				tools: [customTool],
-			});
-			const request = mapper().request.map(ctx) as {
-				tools?: Array<Record<string, unknown>>;
-			};
-			const customDegradation = capabilities.tools.degraded?.get("custom");
-
-			if (customDegradation) {
-				expect(request.tools?.length).toBeGreaterThan(0);
-				expect(ctx.diagnostics).toContainEqual(
-					expect.objectContaining({
-						path: "tools[type=custom]",
-						action: "degraded",
-					}),
-				);
-				return;
-			}
-
-			expect(capabilities.tools.supported.has("custom")).toBeTrue();
-			expect(request.tools).toContainEqual(
-				expect.objectContaining({ type: "custom" }),
-			);
-			expect(ctx.diagnostics).not.toContainEqual(
-				expect.objectContaining({
-					path: "tools[type=custom]",
-					action: "degraded",
-				}),
-			);
-		});
-	}
+	test("built-in provider spec stream deltas put usage before finish in the same chunk", () => {
+		expect(
+			ZHIPU_PROVIDER_SPEC.stream
+				.deltas({
+					id: "zhipu-usage-finish",
+					created: 1,
+					model: "glm-5.1",
+					choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+					usage: {
+						prompt_tokens: 1,
+						completion_tokens: 2,
+						total_tokens: 3,
+					},
+				})
+				.map((delta) => Object.keys(delta as Record<string, unknown>)[0]),
+		).toEqual(["usage", "finishReason"]);
+		expect(
+			DEEPSEEK_PROVIDER_SPEC.stream
+				.deltas({
+					choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+					usage: {
+						prompt_tokens: 1,
+						completion_tokens: 2,
+						total_tokens: 3,
+					},
+				})
+				.map((delta) => Object.keys(delta as Record<string, unknown>)[0]),
+		).toEqual(["usage", "finishReason"]);
+	});
 });

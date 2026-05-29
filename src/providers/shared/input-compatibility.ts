@@ -1,4 +1,4 @@
-import { isRecord } from "../../adapter/utils";
+import { isRecord } from "../../common";
 import type { ResponsesContext } from "../../context/responses-context";
 
 const TEXT_CONTENT_TYPES = new Set(["input_text", "output_text"]);
@@ -18,7 +18,7 @@ export function warnUnsupportedCurrentInputContent(
 			if (TEXT_CONTENT_TYPES.has(part.type)) return;
 
 			ctx.addDiagnostic({
-				code: "adapter.input.unsupported_content",
+				code: "bridge.input.unsupported_content",
 				severity: "warn",
 				path: `input[${itemIndex}].content[${partIndex}]`,
 				action: "ignored",

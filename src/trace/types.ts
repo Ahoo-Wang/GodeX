@@ -32,10 +32,11 @@ export interface TraceRequestRecordEvent extends TraceRecordBase {
 }
 
 export interface TraceUsageSnapshot {
-	input_tokens?: number;
-	output_tokens?: number;
-	total_tokens?: number;
+	input_tokens: number;
+	output_tokens: number;
+	total_tokens: number;
 	cached_tokens?: number;
+	reasoning_tokens?: number;
 	cache_hit_ratio?: number | null;
 }
 
@@ -55,7 +56,19 @@ export interface TraceEventRecordEvent extends TraceRecordBase {
 	payload?: TracePayloadInput;
 }
 
+export interface TraceErrorRecordEvent extends TraceRecordBase {
+	kind: "error";
+	event_name: string;
+	error_type?: string | null;
+	domain?: string | null;
+	code: string;
+	message: string;
+	status?: number | null;
+	payload?: TracePayloadInput;
+}
+
 export type TraceRecordEvent =
 	| TraceRequestRecordEvent
 	| TraceUsageRecordEvent
-	| TraceEventRecordEvent;
+	| TraceEventRecordEvent
+	| TraceErrorRecordEvent;

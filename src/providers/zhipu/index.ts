@@ -1,3 +1,5 @@
-export * from "./factory";
+export * from "./client";
+export { createZhipuProviderEdge as createZhipuProvider } from "./client";
+export * from "./hooks";
 export * from "./protocol";
-export * from "./provider";
+export * from "./spec";

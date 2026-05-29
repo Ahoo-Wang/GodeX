@@ -1,30 +1,25 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import type { Provider } from "../adapter/provider";
 import type { LogAttr, Logger } from "../logger";
+import { createTestProviderEdge } from "../testing/provider-edge";
 import type { ProviderDefinition } from "./definition";
 import { Registrar } from "./registrar";
 
-function stubProvider(name: string): Provider<unknown, unknown, unknown> {
-	return {
-		name,
-		mapper: {
-			request: { map: () => ({}) },
-			response: { map: () => ({}) as never },
-			stream: {
-				map: () => [] as never[],
-			},
-		},
-		client: {
-			request: async () => ({}),
-			stream: async () => new ReadableStream(),
-		},
-	};
+function stubProvider(name: string) {
+	return createTestProviderEdge({ name });
 }
 
 function stubDefinition(name: string): ProviderDefinition {
 	return {
 		name,
 		create: () => stubProvider(name),
+	};
+}
+
+function providerConfigFor(spec: string) {
+	return {
+		spec,
+		credentials: { api_key: "test" },
+		endpoint: { base_url: `http://${spec.replace(":", "-")}` },
 	};
 }
 
@@ -63,10 +58,55 @@ describe("Registrar", () => {
 		const provider = stubProvider("zhipu");
 		registrar.registerFactory("zhipu", () => provider);
 		registrar.registerProviders({
-			zhipu: { api_key: "test", base_url: "http://test" },
+			zhipu: providerConfigFor("zhipu"),
 		});
 
 		expect(registrar.resolve("zhipu")).toBe(provider);
+	});
+
+	test("resolves factories by exact spec while preserving configured provider alias", () => {
+		const registrar = new Registrar();
+		let receivedBaseUrl = "";
+		registrar.registerFactory("zhipu", (config) => {
+			receivedBaseUrl = config.endpoint?.base_url ?? "";
+			return stubProvider("zhipu");
+		});
+
+		registrar.registerProviders({
+			customAlias: {
+				spec: "zhipu",
+				credentials: { api_key: "test" },
+				endpoint: { base_url: "https://provider.example.test" },
+			},
+		});
+
+		expect(registrar.list()).toEqual(["customAlias"]);
+		expect(registrar.resolve("customAlias").name).toBe("zhipu");
+		expect(receivedBaseUrl).toBe("https://provider.example.test");
+	});
+
+	test("reports unsupported specs by configured provider alias", () => {
+		const registrar = new Registrar();
+		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
+
+		const result = registrar.registerProviders({
+			alias: providerConfigFor("missing"),
+		});
+
+		expect(result).toEqual({ registered: [], unsupported: ["alias"] });
+		expect(registrar.unsupported()).toEqual(["alias"]);
+	});
+
+	test("does not normalize legacy builtin spec prefixes", () => {
+		const registrar = new Registrar();
+		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
+
+		const result = registrar.registerProviders({
+			alias: providerConfigFor(["builtin", "zhipu"].join(":")),
+		});
+
+		expect(result).toEqual({ registered: [], unsupported: ["alias"] });
+		expect(registrar.unsupported()).toEqual(["alias"]);
 	});
 
 	test("reports whether a provider factory is registered", () => {
@@ -85,7 +125,7 @@ describe("Registrar", () => {
 
 		registrar.registerProviders(
 			{
-				zhipu: { api_key: "test", base_url: "http://test" },
+				zhipu: providerConfigFor("zhipu"),
 			},
 			captureLogger(events),
 		);
@@ -103,7 +143,7 @@ describe("Registrar", () => {
 
 		registrar.registerDefinition(stubDefinition("zhipu"));
 		registrar.registerProviders({
-			zhipu: { api_key: "test", base_url: "http://test" },
+			zhipu: providerConfigFor("zhipu"),
 		});
 
 		expect(registrar.resolve("zhipu").name).toBe("zhipu");
@@ -114,21 +154,21 @@ describe("Registrar", () => {
 
 		registrar.registerDefinitions([
 			stubDefinition("zhipu"),
-			stubDefinition("openai"),
+			stubDefinition("deepseek"),
 		]);
 		registrar.registerProviders({
-			openai: { api_key: "test", base_url: "http://openai" },
-			zhipu: { api_key: "test", base_url: "http://zhipu" },
+			deepseek: providerConfigFor("deepseek"),
+			zhipu: providerConfigFor("zhipu"),
 		});
 
-		expect(registrar.list()).toEqual(["openai", "zhipu"]);
+		expect(registrar.list()).toEqual(["deepseek", "zhipu"]);
 	});
 
 	test("resolve throws for unknown provider", () => {
 		const registrar = new Registrar();
 		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
 		registrar.registerProviders({
-			zhipu: { api_key: "test", base_url: "http://test" },
+			zhipu: providerConfigFor("zhipu"),
 		});
 
 		expect(() => registrar.resolve("missing")).toThrow(
@@ -140,7 +180,7 @@ describe("Registrar", () => {
 		const registrar = new Registrar();
 		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
 		registrar.registerProviders({
-			zhipu: { api_key: "test", base_url: "http://test" },
+			zhipu: providerConfigFor("zhipu"),
 		});
 
 		expect(registrar.list()).toEqual(["zhipu"]);
@@ -164,8 +204,8 @@ describe("Registrar", () => {
 		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
 
 		registrar.registerProviders({
-			zhipu: { api_key: "test", base_url: "http://test" },
-			unsupported: { api_key: "test", base_url: "http://unsupported" },
+			zhipu: providerConfigFor("zhipu"),
+			unsupported: providerConfigFor("unsupported"),
 		});
 
 		expect(registrar.list()).toEqual(["zhipu"]);
@@ -178,12 +218,12 @@ describe("Registrar", () => {
 		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
 
 		registrar.registerProviders({
-			unsupported: { api_key: "test", base_url: "http://unsupported" },
+			unsupported: providerConfigFor("unsupported"),
 		});
 		expect(registrar.unsupported()).toEqual(["unsupported"]);
 
 		registrar.registerProviders({
-			zhipu: { api_key: "test", base_url: "http://test" },
+			zhipu: providerConfigFor("zhipu"),
 		});
 		expect(registrar.unsupported()).toEqual([]);
 	});
@@ -193,8 +233,8 @@ describe("Registrar", () => {
 		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
 
 		const result = registrar.registerProviders({
-			zhipu: { api_key: "test", base_url: "http://test" },
-			unsupported: { api_key: "test", base_url: "http://unsupported" },
+			zhipu: providerConfigFor("zhipu"),
+			unsupported: providerConfigFor("unsupported"),
 		});
 
 		expect(result).toEqual({
@@ -207,17 +247,17 @@ describe("Registrar", () => {
 		const registrar = new Registrar();
 		registrar.registerDefinitions([
 			stubDefinition("zhipu"),
-			stubDefinition("openai"),
+			stubDefinition("deepseek"),
 		]);
 
 		registrar.registerProviders({
-			zhipu: { api_key: "test", base_url: "http://zhipu" },
+			zhipu: providerConfigFor("zhipu"),
 		});
 		registrar.registerProviders({
-			openai: { api_key: "test", base_url: "http://openai" },
+			deepseek: providerConfigFor("deepseek"),
 		});
 
-		expect(registrar.list()).toEqual(["openai"]);
+		expect(registrar.list()).toEqual(["deepseek"]);
 		expect(() => registrar.resolve("zhipu")).toThrow(
 			"Provider not registered: zhipu",
 		);

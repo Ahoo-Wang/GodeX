@@ -7,7 +7,7 @@ describe("recordTraceUsage", () => {
 		const ctx = {
 			requestId: "req_1",
 			responseId: "resp_1",
-			resolved: { provider: "openai", model: "gpt-test" },
+			resolved: { provider: "zhipu", model: "glm-test" },
 			app: {
 				traceEnabled: false,
 				traceRecorder: { record: (event: unknown) => events.push(event) },
@@ -28,7 +28,7 @@ describe("recordTraceUsage", () => {
 		const ctx = {
 			requestId: "req_1",
 			responseId: "resp_1",
-			resolved: { provider: "openai", model: "gpt-test" },
+			resolved: { provider: "zhipu", model: "glm-test" },
 			app: {
 				traceEnabled: true,
 				traceRecorder: { record: (event: unknown) => events.push(event) },
@@ -47,8 +47,8 @@ describe("recordTraceUsage", () => {
 			kind: "usage",
 			request_id: "req_1",
 			response_id: "resp_1",
-			provider: "openai",
-			model: "gpt-test",
+			provider: "zhipu",
+			model: "glm-test",
 			usage: { cached_tokens: 40, cache_hit_ratio: 0.4 },
 		});
 	});
