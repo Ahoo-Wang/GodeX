@@ -207,6 +207,22 @@ describe("ProviderSpec runtime conformance", () => {
 		expect(unsupported).not.toHaveProperty("reasoning_effort");
 	});
 
+	test("provider patch hooks reject malformed chat completion requests", () => {
+		for (const spec of [ZHIPU_PROVIDER_SPEC, DEEPSEEK_PROVIDER_SPEC]) {
+			expect(() =>
+				spec.hooks?.patchRequest?.({
+					messages: [{ role: "user", content: "missing model" }],
+				} as never),
+			).toThrow(ProviderError);
+			expect(() =>
+				spec.hooks?.patchRequest?.({
+					model: `${spec.name}-chat`,
+					messages: "not messages",
+				} as never),
+			).toThrow(ProviderError);
+		}
+	});
+
 	test("built-in provider specs reject malformed sync usage", () => {
 		expect(() =>
 			ZHIPU_PROVIDER_SPEC.response.usage({

@@ -46,8 +46,6 @@ export interface CompatibilityPlan {
 	capabilities: ProviderCapabilities;
 	diagnostics: CompatibilityDiagnostic[];
 	parameters: Record<string, CompatibilityDecision>;
-	tools: Map<string, CompatibilityDecision>;
-	toolChoice?: CompatibilityDecision;
 	responseFormat?: CompatibilityDecision;
 	reasoning?: CompatibilityDecision;
 }
@@ -59,6 +57,5 @@ export function supportedPlan(
 		capabilities,
 		diagnostics: [],
 		parameters: {},
-		tools: new Map(),
 	};
 }

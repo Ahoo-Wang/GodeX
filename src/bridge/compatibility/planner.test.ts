@@ -150,4 +150,16 @@ describe("planBridgeCompatibility", () => {
 			expect.objectContaining({ path: "background" }),
 		);
 	});
+
+	test("does not expose tool planning fields on compatibility plans", () => {
+		const plan = planBridgeCompatibility({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities,
+			request: request({}),
+		});
+
+		expect(Object.hasOwn(plan, "tools")).toBe(false);
+		expect(Object.hasOwn(plan, "toolChoice")).toBe(false);
+	});
 });
