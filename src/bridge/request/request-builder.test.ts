@@ -626,6 +626,30 @@ describe("buildChatCompletionRequest", () => {
 		});
 	});
 
+	test("rejects unhandled provider reasoning capability modes", () => {
+		const error = captureBridgeError(() =>
+			buildChatCompletionRequest({
+				provider: "acme",
+				model: "acme-chat",
+				capabilities: {
+					...capabilities,
+					parameters: { supported: new Set(["reasoning"]) },
+					reasoning: { effort: "future-mode" as never },
+				},
+				profile: toolProfile,
+				request: request({ reasoning: { effort: "medium" } }),
+			}),
+		);
+
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_PARAMETER);
+		expect(error.context).toMatchObject({
+			provider: "acme",
+			model: "acme-chat",
+			parameter: "reasoning.effort.mode",
+			value: "future-mode",
+		});
+	});
+
 	test("maps Responses safety identifiers to provider user_id", () => {
 		const safeIdentifier = buildChatCompletionRequest({
 			provider: "acme",

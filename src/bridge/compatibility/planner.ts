@@ -121,7 +121,7 @@ function recordParameterDecision(
 	},
 ): CompatibilityDecision {
 	const diagnostic: CompatibilityDiagnostic = {
-		code: "bridge.param.unsupported",
+		code: parameterDiagnosticCode(options.action),
 		severity: options.severity,
 		path: options.path,
 		action: options.action,
@@ -147,4 +147,17 @@ function recordParameterDecision(
 	plan.diagnostics.push(diagnostic);
 	plan.parameters[options.path] = decision;
 	return decision;
+}
+
+function parameterDiagnosticCode(
+	action: CompatibilityDiagnostic["action"],
+): string {
+	switch (action) {
+		case "ignored":
+			return "bridge.param.ignored";
+		case "degraded":
+			return "bridge.param.degraded";
+		case "rejected":
+			return "bridge.param.unsupported";
+	}
 }

@@ -52,7 +52,7 @@ describe("planBridgeCompatibility", () => {
 			effectiveValue: { type: "json_object" },
 		});
 		expect(plan.diagnostics).toContainEqual({
-			code: "bridge.param.unsupported",
+			code: "bridge.param.degraded",
 			severity: "warn",
 			path: "text.format",
 			action: "degraded",
@@ -118,7 +118,7 @@ describe("planBridgeCompatibility", () => {
 			reason: "background is owned by GodeX and is not forwarded upstream.",
 		});
 		expect(plan.diagnostics).toContainEqual({
-			code: "bridge.param.unsupported",
+			code: "bridge.param.ignored",
 			severity: "warn",
 			path: "metadata",
 			action: "ignored",

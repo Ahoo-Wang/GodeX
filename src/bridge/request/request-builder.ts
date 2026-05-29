@@ -242,7 +242,30 @@ function applyReasoningOption(
 			return;
 		case "none":
 			return;
+		default:
+			unsupportedReasoningCapabilityMode(
+				capabilities.reasoning.effort,
+				provider,
+				model,
+			);
 	}
+}
+
+function unsupportedReasoningCapabilityMode(
+	mode: never,
+	provider: string,
+	model: string,
+): never {
+	throw new BridgeError(
+		BRIDGE_REQUEST_UNSUPPORTED_PARAMETER,
+		`Unsupported provider reasoning.effort mode for ${provider}: ${String(mode)}.`,
+		{
+			provider,
+			model,
+			parameter: "reasoning.effort.mode",
+			value: mode,
+		},
+	);
 }
 
 const REASONING_EFFORTS = new Set<ReasoningEffort>([
