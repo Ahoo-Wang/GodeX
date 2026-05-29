@@ -6,7 +6,7 @@ keywords: "GodeX, architecture, system overview, component model, design pattern
 
 # System Overview
 
-GodeX follows a layered architecture with clear separation of concerns: protocol handling at the boundary, adapter logic in the middle, and provider-specific code isolated in plugins.
+GodeX follows a layered architecture with clear separation of concerns: protocol handling at the boundary, bridge logic in the middle, and provider-specific code isolated in specs and hooks.
 
 ## Component Model
 
@@ -19,8 +19,9 @@ classDiagram
     +logger: Logger
     +resolver: ModelResolver
     +registrar: Registrar
-    +adapter: Adapter
+    +responses: ResponsesBridge
     +sessionStore: ResponseSessionStore
+    +traceRecorder: TraceRecorder
   }
 
   class ResponsesContext {
@@ -28,11 +29,12 @@ classDiagram
     +request: ResponseCreateRequest
     +session: ResponseSessionSnapshot
     +resolved: ResolvedModel
-    +provider: Provider
+    +provider: ProviderEdge
     +responseId: string
     +requestId: string
-    +logger: Logger
-    +create(app, body)$ Promise~ResponsesContext~
+    +diagnostics: CompatibilityDiagnostic[]
+    +attributes: Map
+    +outputContract: OutputContractSlot
   }
 
   class ModelResolver {
@@ -42,43 +44,46 @@ classDiagram
   }
 
   class Registrar {
-    -factories: Map~string, ProviderFactory~
-    +registerFactory(name, factory)
-    +build(providers)
-    +resolve(name) Provider
+    -factories: Map
+    -providers: Map
+    +registerDefinitions(definitions)
+    +registerProviders(configs, logger)
+    +resolve(name) ProviderEdge
     +list() string[]
+    +unsupported() string[]
   }
 
-  class Adapter {
+  class ResponsesBridge {
     <<interface>>
     +request(ctx) Promise~ResponseObject~
     +stream(ctx) Promise~ReadableStream~
   }
 
-  class DefaultAdapter {
+  class ResponsesBridgeRuntime {
+    -syncPipeline: SyncRequestPipeline
+    -streamPipeline: StreamPipeline
     +request(ctx) Promise~ResponseObject~
     +stream(ctx) Promise~ReadableStream~
   }
 
-  class Provider {
+  class ProviderEdge {
     <<interface>>
     +name: string
-    +mapper: ProviderMapper
-    +chatClient: ChatClient
+    +spec: ProviderSpec
+    +request(body) Promise~TResponse~
+    +stream(body) Promise~ReadableStream~
+  }
+
+  class ProviderSpec {
+    +name: string
+    +protocol: ProviderProtocol
     +capabilities: ProviderCapabilities
-  }
-
-  class ProviderMapper {
-    <<interface>>
-    +request: RequestMapper
-    +response: ResponseMapper
-    +stream: StreamMapper
-  }
-
-  class ChatClient {
-    <<interface>>
-    +chat(req) Promise~TRes~
-    +streamChat(req) Promise~ReadableStream~
+    +endpoint: ProviderEndpointSpec
+    +auth: ProviderAuthSpec
+    +toolName: ToolNameCodec
+    +response: ChatCompletionResponseAccessor
+    +stream: ChatCompletionStreamAccessor
+    +hooks?: ProviderHooks
   }
 
   class ResponseSessionStore {
@@ -87,33 +92,33 @@ classDiagram
     +save(session, opts) Promise~void~
     +resolveChain(id, opts) Promise~ResponseSessionSnapshot~
     +delete(id) Promise~void~
-    +close() Promise~void~
+    +close() void
   }
 
   ApplicationContext --> ResponsesContext : creates
   ApplicationContext --> ModelResolver
   ApplicationContext --> Registrar
-  ApplicationContext --> Adapter
+  ApplicationContext --> ResponsesBridge
   ApplicationContext --> ResponseSessionStore
-  ResponsesContext --> Provider : uses
-  Provider --> ProviderMapper
-  Provider --> ChatClient
-  Adapter <|.. DefaultAdapter
-  DefaultAdapter --> ProviderMapper : calls
-  DefaultAdapter --> ChatClient : calls
-  DefaultAdapter --> ResponseSessionStore : saves
+  ResponsesContext --> ProviderEdge : uses
+  ProviderEdge --> ProviderSpec
+  ResponsesBridge <|.. ResponsesBridgeRuntime
+  ResponsesBridgeRuntime --> SyncRequestPipeline
+  ResponsesBridgeRuntime --> StreamPipeline
 ```
 
 ## Layer Responsibilities
 
 | Layer | Module | Role |
 |-------|--------|------|
-| Server | `src/server/` | HTTP routing, SSE encoding, request validation |
-| Context | `src/context/` | Per-request orchestration via `ResponsesContext` |
-| Adapter | `src/adapter/` | Protocol translation between Responses API and provider |
-| Provider | `src/providers/` | Provider-specific request/response/stream mapping |
+| Server | `src/server/` | HTTP routing, request parsing, SSE encoding, error handling |
+| Context | `src/context/` | `ApplicationContext` (app-wide services) and `ResponsesContext` (per-request state) |
+| Bridge | `src/bridge/` | Provider-agnostic Responses-to-Chat planning and reconstruction |
+| Responses | `src/responses/` | Sync and stream orchestration pipelines around the bridge |
+| Provider | `src/providers/` | Provider-specific specs, hooks, clients, and registry |
 | Session | `src/session/` | History persistence and `previous_response_id` chain resolution |
-| Config | `src/config/` | YAML schema, env interpolation, defaults |
+| Resolver | `src/resolver/` | Model alias and provider/model selector resolution |
+| Config | `src/config/` | YAML schema, env interpolation, defaults, validation |
 | Error | `src/error/` | Structured error hierarchy with domain codes |
 
 ## Dependency Flow
@@ -125,8 +130,9 @@ flowchart TD
   RCTX["ResponsesContext"]
   Resolver["ModelResolver"]
   Reg["Registrar"]
-  Adapt["DefaultAdapter"]
-  Prov["Provider"]
+  Bridge["ResponsesBridgeRuntime"]
+  Exchange["ProviderExchange"]
+  Prov["ProviderEdge"]
   Store["SessionStore"]
 
   Server --> CTX
@@ -134,9 +140,9 @@ flowchart TD
   RCTX --> Resolver
   RCTX --> Reg
   RCTX --> Store
-  Server --> Adapt
-  Adapt --> Prov
-  Adapt --> Store
+  CTX --> Bridge
+  Bridge --> Exchange
+  Exchange --> Prov
   Reg --> Prov
 ```
 

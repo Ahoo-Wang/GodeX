@@ -13,7 +13,7 @@
 
 - [System Overview](02-architecture/overview.md): Component model, C4 context, architectural decisions
 - [Request Flow](02-architecture/request-flow.md): Full request lifecycle from HTTP to upstream and back
-- [Adapter Pattern](02-architecture/adapter-pattern.md): Provider abstraction, mapper interfaces, capabilities
+- [Bridge Kernel](02-architecture/bridge-kernel.md): Provider-agnostic compatibility planning, tools, output contracts
 - [Stream Pipeline](02-architecture/stream-pipeline.md): TransformStream stages, SSE encoding, session persistence
 
 ## Getting Started
@@ -30,7 +30,7 @@
 - [Session Store](04-session-management/session-store.md): Response history storage backends
 - [Chain Resolution](04-session-management/chain-resolution.md): Multi-turn conversation chain traversal
 - [Transformers](05-streaming-pipeline/transformers.md): Stream pipeline transformer stages
-- [Stream State](05-streaming-pipeline/stream-state.md): Accumulation state during streaming
+- [Stream State](05-streaming-pipeline/stream-state.md): ResponseStreamStateMachine during streaming
 - [Error Hierarchy](06-error-handling/error-hierarchy.md): GodeXError class hierarchy and HTTP mapping
 - [Error Codes](06-error-handling/error-codes.md): Complete error code reference
 - [Config Schema](07-configuration/config-schema.md): godex.yaml configuration reference

@@ -1,12 +1,12 @@
 ---
 title: "系统总览"
-description: "GodeX 高层架构 — 组件模型、依赖关系图和设计模式。"
+description: "GodeX 的高层架构 — 组件模型、依赖关系与设计模式。"
 keywords: "GodeX, 架构, 系统总览, 组件模型, 设计模式"
 ---
 
 # 系统总览
 
-GodeX 采用分层架构，关注点清晰分离：协议处理在边界、适配器逻辑在中间、提供商特定代码隔离在插件中。
+GodeX 采用分层架构，关注点清晰分离：协议处理在边界层，桥接逻辑在中间层，提供商特定代码封装在 spec 和 hooks 中。
 
 ## 组件模型
 
@@ -19,8 +19,9 @@ classDiagram
     +logger: Logger
     +resolver: ModelResolver
     +registrar: Registrar
-    +adapter: Adapter
+    +responses: ResponsesBridge
     +sessionStore: ResponseSessionStore
+    +traceRecorder: TraceRecorder
   }
 
   class ResponsesContext {
@@ -28,11 +29,12 @@ classDiagram
     +request: ResponseCreateRequest
     +session: ResponseSessionSnapshot
     +resolved: ResolvedModel
-    +provider: Provider
+    +provider: ProviderEdge
     +responseId: string
     +requestId: string
-    +logger: Logger
-    +create(app, body)$ Promise~ResponsesContext~
+    +diagnostics: CompatibilityDiagnostic[]
+    +attributes: Map
+    +outputContract: OutputContractSlot
   }
 
   class ModelResolver {
@@ -42,37 +44,46 @@ classDiagram
   }
 
   class Registrar {
-    -factories: Map~string, ProviderFactory~
-    +registerFactory(name, factory)
-    +build(providers)
-    +resolve(name) Provider
+    -factories: Map
+    -providers: Map
+    +registerDefinitions(definitions)
+    +registerProviders(configs, logger)
+    +resolve(name) ProviderEdge
     +list() string[]
+    +unsupported() string[]
   }
 
-  class Adapter {
+  class ResponsesBridge {
     <<interface>>
     +request(ctx) Promise~ResponseObject~
     +stream(ctx) Promise~ReadableStream~
   }
 
-  class DefaultAdapter {
+  class ResponsesBridgeRuntime {
+    -syncPipeline: SyncRequestPipeline
+    -streamPipeline: StreamPipeline
     +request(ctx) Promise~ResponseObject~
     +stream(ctx) Promise~ReadableStream~
   }
 
-  class Provider {
+  class ProviderEdge {
     <<interface>>
     +name: string
-    +mapper: ProviderMapper
-    +chatClient: ChatClient
-    +capabilities: ProviderCapabilities
+    +spec: ProviderSpec
+    +request(body) Promise~TResponse~
+    +stream(body) Promise~ReadableStream~
   }
 
-  class ProviderMapper {
-    <<interface>>
-    +request: RequestMapper
-    +response: ResponseMapper
-    +stream: StreamMapper
+  class ProviderSpec {
+    +name: string
+    +protocol: ProviderProtocol
+    +capabilities: ProviderCapabilities
+    +endpoint: ProviderEndpointSpec
+    +auth: ProviderAuthSpec
+    +toolName: ToolNameCodec
+    +response: ChatCompletionResponseAccessor
+    +stream: ChatCompletionStreamAccessor
+    +hooks?: ProviderHooks
   }
 
   class ResponseSessionStore {
@@ -81,31 +92,58 @@ classDiagram
     +save(session, opts) Promise~void~
     +resolveChain(id, opts) Promise~ResponseSessionSnapshot~
     +delete(id) Promise~void~
-    +close() Promise~void~
+    +close() void
   }
 
-  ApplicationContext --> ResponsesContext : 创建
+  ApplicationContext --> ResponsesContext : creates
   ApplicationContext --> ModelResolver
   ApplicationContext --> Registrar
-  ApplicationContext --> Adapter
+  ApplicationContext --> ResponsesBridge
   ApplicationContext --> ResponseSessionStore
-  ResponsesContext --> Provider : 使用
-  Provider --> ProviderMapper
-  Adapter <|.. DefaultAdapter
-  DefaultAdapter --> ProviderMapper : 调用
-  DefaultAdapter --> ResponseSessionStore : 保存
+  ResponsesContext --> ProviderEdge : uses
+  ProviderEdge --> ProviderSpec
+  ResponsesBridge <|.. ResponsesBridgeRuntime
+  ResponsesBridgeRuntime --> SyncRequestPipeline
+  ResponsesBridgeRuntime --> StreamPipeline
 ```
 
 ## 层级职责
 
 | 层级 | 模块 | 职责 |
 |------|------|------|
-| 服务器 | `src/server/` | HTTP 路由、SSE 编码、请求验证 |
-| 上下文 | `src/context/` | 通过 `ResponsesContext` 编排每请求流程 |
-| 适配器 | `src/adapter/` | Responses API 与提供商之间的协议转换 |
-| 提供商 | `src/providers/` | 提供商特定的请求/响应/流映射 |
-| 会话 | `src/session/` | 历史持久化和 `previous_response_id` 链式解析 |
-| 配置 | `src/config/` | YAML Schema、环境变量插值、默认值 |
-| 错误 | `src/error/` | 带域代码的结构化错误层次 |
+| Server | `src/server/` | HTTP 路由、请求解析、SSE 编码、错误处理 |
+| Context | `src/context/` | `ApplicationContext`（应用级服务）和 `ResponsesContext`（请求级状态） |
+| Bridge | `src/bridge/` | 与提供商无关的 Responses-to-Chat 规划与重建 |
+| Responses | `src/responses/` | 同步和流式编排管道 |
+| Provider | `src/providers/` | 提供商 spec、hooks、客户端和注册表 |
+| Session | `src/session/` | 历史持久化和 `previous_response_id` 链式解析 |
+| Resolver | `src/resolver/` | 模型别名和 provider/model 选择器解析 |
+| Config | `src/config/` | YAML 模式、环境变量插值、默认值 |
+| Error | `src/error/` | 结构化错误层次与域代码 |
+
+## 依赖流
+
+```mermaid
+flowchart TD
+  Server["Server (路由)"]
+  CTX["ApplicationContext"]
+  RCTX["ResponsesContext"]
+  Resolver["ModelResolver"]
+  Reg["Registrar"]
+  Bridge["ResponsesBridgeRuntime"]
+  Exchange["ProviderExchange"]
+  Prov["ProviderEdge"]
+  Store["SessionStore"]
+
+  Server --> CTX
+  Server --> RCTX
+  RCTX --> Resolver
+  RCTX --> Reg
+  RCTX --> Store
+  CTX --> Bridge
+  Bridge --> Exchange
+  Exchange --> Prov
+  Reg --> Prov
+```
 
 [请求流程](/zh/02-architecture/request-flow)

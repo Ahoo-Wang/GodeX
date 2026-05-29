@@ -1,198 +1,103 @@
 ---
 title: "贡献者指南"
-description: "开始为 GodeX 贡献代码所需的一切。"
-keywords: "GodeX, 贡献者指南, 开发"
+description: "为 GodeX 贡献代码的开发者实用指南。"
+keywords: "GodeX, 贡献者, 开发, 快速开始"
 ---
 
 # 贡献者指南
 
-## 项目简介
+欢迎来到 GodeX。本指南带你从克隆到第一个贡献。
 
-GodeX 是一个 **OpenAI Responses API 网关**。它接受 OpenAI Responses API (`POST /v1/responses`) 请求，转换为上游提供商的 Chat Completions API 调用。一次编写客户端代码，GodeX 路由到任何已配置的提供商。
-
-## 环境准备
-
-| 工具 | 版本 | 安装 |
-|------|------|------|
-| [Bun](https://bun.sh/) | >= 1.2 | `curl -fsSL https://bun.sh/install \| bash` |
-| Node.js | >= 18 | （可选，用于 npm 发布） |
-| Git | 任意 | 系统包管理器 |
+## 环境搭建
 
 ```bash
 git clone https://github.com/Ahoo-Wang/GodeX.git
 cd GodeX
 bun install
-bun run dev          # 开发服务器，热重载，端口 13145
+bun run check        # typecheck + lint + test
 ```
 
-## 项目结构
+## 项目布局
 
 ```
 src/
-├── cli/              Commander CLI（serve, config, init）
-├── config/           godex.yaml 模式定义、环境变量插值、默认值
-├── context/          ApplicationContext（DI）、ResponsesContext（每请求上下文）
-├── adapter/          Adapter 接口、DefaultAdapter、流式转换器
-│   ├── mapper/       RequestMapper/ResponseMapper/StreamMapper 契约、StreamState
-│   └── transformers/ ProviderEvent → Response → SSE 编码管道
-├── providers/        Provider 注册表 + 内置工厂
-│   └── zhipu/        参考提供商实现
-├── resolver/         ModelResolver（模型选择器 → provider + model）
-├── server/           Bun HTTP 服务器、路由
-├── session/          ResponseSessionStore（Memory + SQLite）、链式解析
-├── error/            GodeXError 层次结构与领域错误码
-├── protocol/openai/  OpenAI Responses API 类型定义
-└── logger/           结构化 JSON 日志
+├── bridge/          与提供商无关的 Responses-to-Chat bridge 内核
+│   ├── compatibility/  参数和响应格式规划
+│   ├── request/        输入规范化和消息构建
+│   ├── tools/          工具声明、tool_choice、身份映射
+│   ├── output/         结构化输出合约规划和验证
+│   ├── response/       同步 ResponseObject 重建
+│   ├── stream/         流状态机和增量映射
+│   ├── provider-spec/  ProviderSpec、ProviderEdge、工厂辅助
+│   └── finish-reason/  提供商完成原因映射
+├── providers/        提供商注册表、spec、hooks、客户端
+│   ├── deepseek/      DeepSeek 提供商
+│   ├── zhipu/         智谱提供商
+│   ├── example/       仅 spec 的示例提供商
+│   └── shared/        共享工具（ChatProviderClient、流增量映射器）
+├── responses/        同步和流式编排管道
+│   └── stream-transforms/  可组合 TransformStream 阶段
+├── server/           Bun 路由（/health、/v1/models、/v1/responses）
+├── context/          ApplicationContext 和每请求 ResponsesContext
+├── resolver/         模型选择器和别名解析
+├── session/          内存和 SQLite 会话存储
+├── trace/            SQLite 追踪记录器
+├── config/           godex.yaml 解析和验证
+├── error/            GodeXError 层次与域代码
+├── protocol/         OpenAI 协议类型定义
+├── tools/            内置工具定义
+├── cli/              Commander CLI
+└── e2e/              使用模拟上游的端到端测试
 ```
 
-## 核心概念
+## 关键概念
 
-### Provider
+### Bridge 内核
 
-`Provider` 将三个关注点打包：
+Bridge 内核（`src/bridge/`）是与提供商无关的翻译层。它规划兼容性、构建 Chat Completions 请求并重建 Responses API 输出。不要在这里放置提供商特定逻辑。
 
-```mermaid
-classDiagram
-  direction LR
+### ProviderEdge
 
-  class Provider {
-    +mapper: ProviderMapper
-    +chatClient: ChatClient
-    +capabilities: ProviderCapabilities
-  }
+每个提供商实现 `ProviderEdge` — `ProviderSpec`（能力、访问器、hooks）和 HTTP 方法（`request`、`stream`）的组合。提供商特定逻辑属于 `src/providers/<name>/`。
 
-  class ProviderMapper~TReq_TRes_TChunk~ {
-    +request: RequestMapper
-    +response: ResponseMapper
-    +stream: StreamMapper
-  }
+### 流式管道
 
-  class ChatClient~TReq_TRes_TChunk~ {
-    +chat(req) Promise~TRes~
-    +streamChat(req) Promise~ReadableStream~
-  }
-
-  class ProviderCapabilities {
-    +streaming: boolean
-    +supportedToolTypes: ReadonlySet~string~
-    +reasoning: boolean
-  }
-
-  Provider --> ProviderMapper
-  Provider --> ChatClient
-  Provider --> ProviderCapabilities
-
-  style Provider fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-  style ProviderMapper fill:#2d333b,stroke:#8b949e,color:#e6edf3
-  style ChatClient fill:#2d333b,stroke:#8b949e,color:#e6edf3
-  style ProviderCapabilities fill:#2d333b,stroke:#8b949e,color:#e6edf3
-```
-
-<!-- Sources: src/adapter/provider.ts, src/adapter/mapper/contract.ts -->
-
-### 请求流程
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Client as 客户端
-    participant Server as Bun HTTP 服务器
-    participant Ctx as ResponsesContext
-    participant Resolver as ModelResolver
-    participant Adapter as DefaultAdapter
-    participant Provider as Provider
-    participant Upstream as 上游 API
-
-    Client->>Server: POST /v1/responses
-    Server->>Ctx: create(app, body)
-    Ctx->>Resolver: resolve(body.model)
-    Resolver-->>Ctx: ResolvedModel
-    Ctx-->>Server: 上下文就绪
-    Server->>Adapter: request(ctx) 或 stream(ctx)
-    Adapter->>Provider: mapper.request.map(ctx)
-    Provider->>Upstream: HTTP /chat/completions
-    Upstream-->>Provider: 响应
-    Provider-->>Adapter: 映射后的 ResponseObject
-    Adapter-->>Server: 结果
-   Server-->>Client: JSON 或 SSE 流
-```
-
-<!-- Sources: src/server/routes/responses/index.ts, src/adapter/default-adapter.ts -->
-
-### 错误层次
-
-所有领域错误继承自 `GodeXError`，使用 [src/error/codes.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts) 中的结构化错误码：
-
-| 错误类 | 领域 | 示例错误码 |
-|--------|------|-----------|
-| `ServerError` | server | `server.request.invalid_json` |
-| `AdapterError` | adapter | `adapter.request.unsupported_tool` |
-| `ProviderError` | provider | `provider.upstream.timeout` |
-| `SessionError` | session | `session.chain.not_found` |
+流式管道链接可组合的 `TransformStream` 阶段：追踪原始事件、通过状态机桥接增量、验证输出合约、追踪转换后事件、日志、持久化会话和日志诊断。
 
 ## 开发工作流
 
 ```bash
-bun run dev              # 开发服务器（热重载）
-bun run typecheck        # TypeScript 类型检查
-bun run lint             # Biome 检查
-bun run lint:fix         # Biome 自动修复
-bun run format           # Biome 格式化
-bun run check            # typecheck + lint + test（提交前运行）
-bun run ci               # 完整 CI：typecheck + biome ci + test + e2e
+bun run dev           # 端口 13145 上的热重载开发服务器
+bun run check         # typecheck + lint + test
+bun run test:e2e      # 端到端测试
+bun run test:coverage # 覆盖率报告
 ```
 
-### 运行测试
+### 提交前
 
-```bash
-bun test                           # 所有单元 + 集成测试
-bun test src/adapter/              # 测试特定模块
-bun run test:e2e                   # E2E 测试（模拟上游）
-bun run test:coverage              # 带覆盖率报告的测试
-```
+- 运行 `bun run check` — 必须通过。
+- 如果更改了路由、提供商、会话、流或追踪行为，运行 `bun run test:e2e`。
+- 为行为变更添加测试。
 
-### 添加新 Provider
+## 错误处理
 
-添加新 LLM 提供商（例如 "acme"）的步骤：
+使用 `src/error/` 中的 `GodeXError` 层次：
 
-1. 创建 `src/providers/acme/` 目录
-2. 实现 `Provider` 接口——需要：
-   - `ProviderMapper`（请求/响应/流映射）
-   - `ChatClient`（到上游的 HTTP 边界）
-   - `ProviderCapabilities`（功能声明）
-3. 创建 `ProviderFactory` 函数
-4. 在 [src/providers/builtin.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts) 中注册
-5. 在源文件旁添加测试（`*.test.ts`）
-6. 在 `godex.yaml` 中配置提供商
+| 类 | 域 | 触发时机 |
+|----|-----|---------|
+| `ServerError` | `server` | 路由/请求/配置验证 |
+| `BridgeError` | `bridge` | 兼容性、流状态、输出合约 |
+| `ProviderError` | `provider` | 上游 HTTP/fetch 失败 |
+| `SessionError` | `session` | 链和持久化错误 |
 
-`src/providers/zhipu/` 中的 Zhipu 提供商是完整的参考实现。
+预期的运行时失败不要抛出原始 `Error`。
 
-## 代码风格
+## 添加提供商
 
-- **TypeScript** strict 模式、ESNext 目标、ESM 模块
-- **Biome** 用于检查和格式化（Tab 缩进）
-- **Bun 测试运行器** — 不使用外部测试框架
-- **GodeXError 层次** 用于所有领域错误 — adapter/provider 代码中不抛出原生 `Error`
-- **不写注释** 除非解释为什么（WHY），而非是什么（WHAT）
+1. 创建 `src/providers/<name>/`，包含 `spec.ts`、`client.ts`、`hooks.ts` 和 `protocol/`。
+2. 声明 `ProviderSpec`，包含能力、访问器和 hooks。
+3. 使用 `ChatProviderClient` 创建 `ProviderEdge` 工厂。
+4. 在 `src/providers/builtin.ts` 中注册。
+5. 添加一致性测试。
 
-## 常见陷阱
-
-| 陷阱 | 解决方法 |
-|------|---------|
-| 使用 Node.js API 而非 Bun 等价物 | 使用 `Bun.serve()`、`bun:sqlite` 等 |
-| 在 provider 代码中抛出原生 `Error` | 使用 `ProviderError` 或 `AdapterError` 配合领域错误码 |
-| 忘记注册新 Provider 工厂 | 在 `src/providers/builtin.ts` 的 `createBuiltinRegistrar()` 中添加 |
-| 运行 Jest/Vitest 测试 | 使用 `bun test` — 项目使用 Bun 内置运行器 |
-
-## 关键文件参考
-
-| 路径 | 用途 |
-|------|------|
-| [src/index.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/index.ts) | 入口点，委托给 CLI |
-| [src/cli/serve.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/cli/serve.ts) | 服务器启动、配置加载 |
-| [src/context/application-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts) | DI 容器，组装所有组件 |
-| [src/adapter/default-adapter.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/adapter/default-adapter.ts) | 请求/流编排 |
-| [src/providers/zhipu/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/) | 参考提供商实现 |
-| [src/error/codes.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts) | 所有领域错误码 |
-
-[架构概览](/zh/02-architecture/overview) · [Provider 开发](/zh/03-provider-development/provider-interface) · [测试指南](/zh/08-testing/testing-guide)
+[架构师指南](/zh/onboarding/staff-engineer-guide)

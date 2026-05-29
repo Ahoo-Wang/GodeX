@@ -50,7 +50,7 @@ graph LR
 | Technology | Purpose | Alternatives Considered | Risk Level |
 |-----------|---------|------------------------|-----------|
 | Bun runtime | Performance, native TS, single-binary compilation | Node.js, Deno | Low — Bun is production-ready |
-| TypeScript | Type safety across provider adapters | JavaScript, Go | Low — industry standard |
+| TypeScript | Type safety across provider specs | JavaScript, Go | Low — industry standard |
 | SQLite (bun:sqlite) | Session persistence with zero external deps | Redis, PostgreSQL | Low — embedded, ACID |
 | Web Streams API | Streaming pipeline composition | RxJS, custom event system | Low — native platform API |
 | Biome | Linting + formatting (single tool) | ESLint + Prettier | Low — active development |
@@ -104,7 +104,7 @@ graph TB
 
 ## Recommendations
 
-1. **Add a second provider** (e.g., OpenAI, DeepSeek) to validate the adapter pattern and reduce single-provider risk
+1. **Add a second provider** (e.g., OpenAI, DeepSeek) to validate the bridge pattern and reduce single-provider risk
 2. **Add request-level metrics** (latency histograms, error rates) for production observability
 3. **Implement rate limiting** before exposing the gateway to external traffic
 4. **Add hot config reload** to avoid downtime during provider configuration changes

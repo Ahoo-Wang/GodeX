@@ -1,12 +1,12 @@
 ---
 title: "流状态"
-description: "StreamResponseState 如何在流式传输期间管理输出块并产生 ResponseStreamEvents。"
-keywords: "GodeX, 流状态, StreamResponseState, 状态机"
+description: "ResponseStreamStateMachine 如何在流式传输期间管理输出块并生成 ResponseStreamEvents。"
+keywords: "GodeX, 流状态, ResponseStreamStateMachine, 状态机"
 ---
 
 # 流状态
 
-`StreamResponseState` 是驱动流式管道的核心状态机。与简单的累积器不同，它在每次方法调用时产生 `ResponseStreamEvent` 数组，并维护一个实时 `snapshot` 属性，始终反映当前响应状态。
+`ResponseStreamStateMachine` 是驱动流式管道的核心状态机。它从每次方法调用中产生 `ResponseStreamEvent` 数组，并维护一个始终反映当前响应状态的 `snapshot` 属性。
 
 ## 状态结构
 
@@ -14,30 +14,23 @@ keywords: "GodeX, 流状态, StreamResponseState, 状态机"
 classDiagram
   direction TB
 
-  class StreamResponseState {
-    +phase: StreamResponsePhase
+  class ResponseStreamStateMachine {
+    +phase: ResponseStreamPhase
     +snapshot: ResponseObject
+    +provider: string
+    +model: string
     +start() ResponseStreamEvent[]
-    +onTextDelta(delta) ResponseStreamEvent[]
-    +onTextDone() ResponseStreamEvent[]
-    +onReasoningTextDelta(delta) ResponseStreamEvent[]
-    +onReasoningTextDone() ResponseStreamEvent[]
-    +onRefusalDelta(delta) ResponseStreamEvent[]
-    +onRefusalDone() ResponseStreamEvent[]
-    +onFunctionCallDelta(delta) ResponseStreamEvent[]
-    +onFunctionCallDone(index) ResponseStreamEvent[]
-    +onFinish(status) ResponseStreamEvent[]
-    +onError(error) ResponseStreamEvent[]
-    -activeText: MessageBlock?
-    -activeReasoning: ReasoningBlock?
-    -activeRefusal: MessageBlock?
-    -toolCalls: ToolCallOutputState
-    -output: OutputCollectionState
-    -currentPhase: StreamResponsePhase
-    -currentSnapshot: ResponseObject
+    +text(delta) ResponseStreamEvent[]
+    +refusal(delta) ResponseStreamEvent[]
+    +reasoning(delta) ResponseStreamEvent[]
+    +toolCall(delta) ResponseStreamEvent[]
+    +usage(usage) ResponseStreamEvent[]
+    +deferFinish(reason) ResponseStreamEvent[]
+    +finish(reason) ResponseStreamEvent[]
+    +fail(error) ResponseStreamEvent[]
   }
 
-  class StreamResponsePhase {
+  class ResponseStreamPhase {
     <<enumeration>>
     IDLE
     IN_PROGRESS
@@ -46,64 +39,55 @@ classDiagram
     FAILED
   }
 
-  StreamResponseState --> StreamResponsePhase
+  ResponseStreamStateMachine --> ResponseStreamPhase
 ```
 
 ## 生命周期阶段
 
-状态机有五个阶段，通过 `StreamResponsePhase` 跟踪：
+状态机有五个阶段：
 
 | 阶段 | 描述 |
 |------|------|
 | `IDLE` | `start()` 调用前的初始状态 |
 | `IN_PROGRESS` | 正在处理增量（文本、推理、拒绝、工具调用） |
-| `COMPLETED` | 通过 `onFinish({ status: "completed" })` 正常完成流 |
-| `INCOMPLETE` | 通过 `onFinish({ status: "incomplete" })` 以不完整输出结束 |
-| `FAILED` | 通过 `onError()` 因错误终止 |
+| `COMPLETED` | 通过 `finish()` 正常结束 |
+| `INCOMPLETE` | 通过 `finish()` 输出不完整 |
+| `FAILED` | 通过 `fail()` 因错误终止 |
 
-阶段转换经过验证 -- 从错误的阶段调用任何方法都会抛出带有适当错误代码的 `AdapterError`。
-
-## 实例管理
-
-`StreamResponseState` 提供三个静态方法用于生命周期控制：
-
-- **`StreamResponseState.create(ctx, options)`** -- 为请求创建新的状态实例。如果已存在则抛出异常（防止双重初始化）。
-- **`StreamResponseState.from(ctx)`** -- 检索现有状态实例。如果尚未创建状态则抛出异常。
-- **`StreamResponseState.get(ctx)`** -- 返回状态实例，不存在则返回 `undefined`。供持久化转换器进行防御性检查使用。
-
-状态存储在 `ResponsesContext.attributes` 中，键为 `"stream-response-state"`。
+阶段转换经过验证 — 从错误阶段调用会抛出带有适当代码的 `BridgeError`。
 
 ## 事件生产
 
-与旧的累积器模式不同，状态机直接从其方法产生事件。每个增量方法返回一个 `ResponseStreamEvent` 对象数组，供提供商的 `StreamMapper` 传递给管道。
-
-### 序列
-
 ```
 start() -> response.created, response.in_progress
-  ├── onTextDelta() -> output_item.added, content_part.added, output_text.delta
-  ├── onTextDone() -> output_text.done, content_part.done, output_item.done
-  ├── onReasoningTextDelta() -> output_item.added, reasoning_text_part.added, reasoning_text.delta
-  ├── onReasoningTextDone() -> reasoning_text.done, reasoning_text_part.done, output_item.done
-  ├── onRefusalDelta() -> output_item.added, content_part.added, refusal.delta
-  ├── onRefusalDone() -> refusal.done, content_part.done, output_item.done
-  ├── onFunctionCallDelta() -> output_item.added, function_call_arguments.delta
-  └── onFunctionCallDone() -> function_call_arguments.done, output_item.done
+  ├── text() -> output_item.added, content_part.added, output_text.delta
+  ├── refusal() -> output_item.added, content_part.added, refusal.delta
+  ├── reasoning() -> output_item.added, reasoning_text_part.added, reasoning_text.delta
+  ├── toolCall() -> output_item.added, function_call_arguments.delta
+  └── usage() -> (更新快照，不发射事件)
 
-onFinish() -> 关闭打开的块，发出终止事件 (response.completed/incomplete/failed)
-onError() -> response.failed
+deferFinish() -> (记录待定原因，不发射事件)
+finish() -> 关闭打开的块，发射终止事件 (response.completed/incomplete)
+fail() -> response.failed
 ```
 
-### onFinish 自动关闭
+### 完成时自动关闭
 
-当调用 `onFinish()` 时，状态机自动关闭任何打开的块（活跃的推理、文本、拒绝和工具调用），在终止事件之前发出所有剩余完成事件。
+当调用 `finish()` 时，状态机自动关闭所有打开的块（活动文本、拒绝、推理和工具调用），在终止事件之前发射所有剩余的完成事件。
 
 ## 快照
 
-`snapshot` getter 返回始终最新的 `ResponseObject` -- 它包括实时输出项、输出文本和终止状态字段（如果适用）。此快照由 `ResponseSessionPersistenceTransformer` 用于会话持久化，取代了旧的 `buildResponseObject()` 模式。
+`snapshot` getter 返回始终最新的 `ResponseObject`。此快照被 `ResponseSessionPersistenceTransformer` 用于会话持久化。
 
-## 工具调用状态
+## 错误处理
 
-工具调用通过 `ToolCallOutputState`（来自 `stream-response-tool-call.ts`）跟踪，为每个调用索引维护累积器。`onFunctionCallDelta()` 应用增量更改并在调用变得足够完整时发出事件。`onFunctionCallDone()` 标记调用完成并发出关闭事件。
+状态机验证阶段转换并抛出 `BridgeError`：
+
+| 代码 | 触发时机 |
+|------|---------|
+| `bridge.stream.output_before_start` | `start()` 之前收到增量 |
+| `bridge.stream.delta_after_terminal` | `finish()` 或 `fail()` 之后收到增量 |
+| `bridge.stream.invalid_transition` | 在意外阶段调用方法 |
+| `bridge.stream.incomplete_tool_call` | 流以未完成的工具调用结束 |
 
 [错误层次](/zh/06-error-handling/error-hierarchy)

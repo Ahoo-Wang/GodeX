@@ -1,7 +1,7 @@
 ---
 title: "Error Hierarchy"
 description: "Structured error types with domain codes for consistent error handling and logging."
-keywords: "GodeX, error hierarchy, GodeXError, ServerError, AdapterError, ProviderError"
+keywords: "GodeX, error hierarchy, GodeXError, ServerError, BridgeError, ProviderError"
 ---
 
 # Error Hierarchy
@@ -29,8 +29,8 @@ classDiagram
     +status: 400-499
   }
 
-  class AdapterError {
-    +domain: adapter
+  class BridgeError {
+    +domain: bridge
     +status: 400-499
   }
 
@@ -45,7 +45,7 @@ classDiagram
   }
 
   GodeXError <|-- ServerError
-  GodeXError <|-- AdapterError
+  GodeXError <|-- BridgeError
   GodeXError <|-- ProviderError
   GodeXError <|-- SessionError
 ```
@@ -54,10 +54,10 @@ classDiagram
 
 | Domain | Class | When It Occurs |
 |--------|-------|----------------|
-| `server` | `ServerError` | Invalid JSON, missing model, unknown provider |
-| `adapter` | `AdapterError` | Unsupported parameters, tools, or input items |
-| `provider` | `ProviderError` | Upstream rate limits, timeouts, 5xx errors |
-| `session` | `SessionError` | Chain not found, cycles, depth exceeded |
+| `server` | `ServerError` | Invalid JSON, missing model, unknown provider, config validation |
+| `bridge` | `BridgeError` | Unsupported parameters, tools, input items, stream state violations, output contract failures |
+| `provider` | `ProviderError` | Upstream rate limits, timeouts, 5xx errors, invalid usage data |
+| `session` | `SessionError` | Chain not found, cycles, depth exceeded, unavailable sessions |
 
 ## Structured Logging
 

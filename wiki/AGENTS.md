@@ -21,7 +21,7 @@ wiki/
 │   └── theme/          # Custom dark theme + zoom handlers
 ├── public/             # Static assets (CNAME)
 ├── 01-getting-started/ # Setup, installation, quick reference
-├── 02-architecture/    # System design, request flow, adapter, stream
+├── 02-architecture/    # System design, request flow, bridge kernel, stream pipeline
 ├── 03-provider-development/  # Provider interface, Zhipu reference, mapping
 ├── 04-session-management/    # Session store, chain resolution
 ├── 05-streaming-pipeline/    # Transformers, stream state
@@ -42,6 +42,14 @@ wiki/
 - **Self-closing tags**: Use `<br>` not `<br/>` in Mermaid blocks
 - **Sequence diagrams**: Always include `autonumber`
 
+## Terminology
+
+- **Bridge kernel** (`src/bridge/`) — Provider-agnostic Responses-to-Chat translation layer. Never use "adapter" or "DefaultAdapter".
+- **ProviderEdge** — The interface between the bridge and a provider implementation. Never use "Provider" (the old interface).
+- **ProviderSpec** — Provider capability and accessor declaration. Never use "ProviderMapper".
+- **BridgeError** — Error domain for bridge-layer failures. Never use "AdapterError".
+- **ResponseStreamStateMachine** — Stream event state machine. Never use "StreamResponseState".
+
 ## Documentation Sources
 
 - `wiki/llms.txt` — LLM-friendly link index
@@ -49,18 +57,19 @@ wiki/
 
 ## Boundaries
 
-✅ Always:
+Always:
 - Test Mermaid diagrams render correctly in dark mode
 - Maintain consistent citation format
 - Keep VitePress frontmatter on every page
 
-⚠️ Ask first:
+Ask first:
 - Modifying theme CSS or JavaScript
 - Changing VitePress configuration
 - Adding new sidebar sections
 
-🚫 Never:
+Never:
 - Delete generated wiki pages without understanding the structure
 - Modify theme zoom handlers without testing
 - Add light-mode styles that break dark theme
 - Remove Mermaid dark-mode CSS overrides
+- Reference `src/adapter/`, `DefaultAdapter`, `ProviderMapper`, `RequestMapper`, `ResponseMapper`, `StreamMapper`, `AdapterError`, or `StreamResponseState` — these no longer exist

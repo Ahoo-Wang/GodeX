@@ -6,15 +6,29 @@ keywords: "GodeX, error codes, domain codes, diagnostics"
 
 # Error Codes
 
-## Adapter Domain
+## Bridge Domain
 
 | Code | Description |
 |------|-------------|
-| `adapter.request.unsupported_parameter` | Request contains a parameter not supported by the provider |
-| `adapter.request.tool_skipped` | A tool was skipped because it is not supported |
-| `adapter.request.unsupported_input_item` | Input item type not supported by the provider |
-| `adapter.request.unsupported_input_content` | Input content type not supported |
-| `adapter.request.unsupported_tool` | Tool type not in the provider's `supportedToolTypes` |
+| `bridge.request.unsupported_parameter` | Request contains a parameter not supported by the provider |
+| `bridge.request.tool_skipped` | A tool was skipped because it is not supported |
+| `bridge.request.unsupported_input_item` | Input item type not supported by the provider |
+| `bridge.request.unsupported_input_content` | Input content type not supported |
+| `bridge.request.unsupported_tool` | Tool type not in the provider's supported or degraded sets |
+| `bridge.response.invalid_output_format` | Structured output validation failed (JSON not valid for degraded schema) |
+
+## Bridge Stream Domain
+
+| Code | Description |
+|------|-------------|
+| `bridge.stream.not_initialized` | Stream state machine accessed before creation |
+| `bridge.stream.already_initialized` | Stream state machine created twice |
+| `bridge.stream.invalid_transition` | Method called from an unexpected phase |
+| `bridge.stream.output_before_start` | Delta received before `start()` was called |
+| `bridge.stream.delta_after_terminal` | Delta received after stream reached terminal phase |
+| `bridge.stream.missing_options` | Stream options not provided when required |
+| `bridge.stream.missing_output_block` | Expected output block not found |
+| `bridge.stream.incomplete_tool_call` | Stream ended with an unfinished tool call |
 
 ## Provider Domain
 
