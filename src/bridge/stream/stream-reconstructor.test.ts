@@ -422,6 +422,77 @@ describe("mapProviderDeltasToEvents", () => {
 		]);
 	});
 
+	test("keeps downgraded apply_patch custom tool streams in the custom event family", () => {
+		const identities = new ToolIdentityMap();
+		identities.add({
+			requestedName: "apply_patch",
+			providerName: "apply_patch",
+			requestedType: "custom",
+			providerType: "function",
+		});
+
+		const events = mapProviderDeltasToEvents({
+			machine: machine(identities),
+			deltas: [
+				{
+					toolCall: {
+						index: 0,
+						id: "call_apply_patch",
+						name: "apply_patch",
+						type: "function",
+						arguments: '{"input":"*** Begin Patch\\n*** End Patch\\n"}',
+					},
+				},
+				{ finishReason: "tool_calls" },
+			],
+		});
+
+		expect(events.map((event) => event.type)).toEqual([
+			"response.created",
+			"response.in_progress",
+			"response.output_item.added",
+			"response.custom_tool_call_input.delta",
+			"response.custom_tool_call_input.done",
+			"response.output_item.done",
+			"response.completed",
+		]);
+		expect(events[2]).toMatchObject({
+			type: "response.output_item.added",
+			item: {
+				type: "custom_tool_call",
+				name: "apply_patch",
+				status: "in_progress",
+			},
+		});
+		expect(
+			events.find(
+				(event) => event.type === "response.function_call_arguments.delta",
+			),
+		).toBeUndefined();
+		expect(
+			events.find(
+				(event) => event.type === "response.function_call_arguments.done",
+			),
+		).toBeUndefined();
+		expect(events.at(-2)).toMatchObject({
+			type: "response.output_item.done",
+			item: {
+				type: "custom_tool_call",
+				name: "apply_patch",
+				input: "*** Begin Patch\n*** End Patch\n",
+				status: "completed",
+			},
+		});
+		expect(events.at(-1)?.response?.output).toEqual([
+			expect.objectContaining({
+				type: "custom_tool_call",
+				name: "apply_patch",
+				input: "*** Begin Patch\n*** End Patch\n",
+				status: "completed",
+			}),
+		]);
+	});
+
 	test("falls back to function call when custom stream arguments omit input", () => {
 		const identities = new ToolIdentityMap();
 		identities.add({
