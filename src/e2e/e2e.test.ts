@@ -356,12 +356,12 @@ beforeAll(async () => {
 		models: { aliases: { "gpt-5": "zhipu/glm-5.1" } },
 		providers: {
 			zhipu: {
-				spec: "builtin:zhipu",
+				spec: "zhipu",
 				credentials: { api_key: "test-key" },
 				endpoint: { base_url: mockUpstreamBase },
 			},
 			unregistered: {
-				spec: "builtin:unregistered",
+				spec: "unregistered",
 				credentials: { api_key: "test-key" },
 				endpoint: { base_url: "http://127.0.0.1:1" },
 			},
@@ -382,7 +382,7 @@ beforeAll(async () => {
 	const registrar = new Registrar();
 	registrar.registerFactory("zhipu", () =>
 		createZhipuProvider({
-			spec: "builtin:zhipu",
+			spec: "zhipu",
 			credentials: { api_key: "test-key" },
 			endpoint: { base_url: mockUpstreamBase },
 		}),

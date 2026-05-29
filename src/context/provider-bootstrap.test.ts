@@ -17,7 +17,7 @@ const logger: Logger = {
 
 const providers: GodeXConfig["providers"] = {
 	zhipu: {
-		spec: "builtin:zhipu",
+		spec: "zhipu",
 		credentials: { api_key: "test-key" },
 		endpoint: { base_url: "http://127.0.0.1:1" },
 	},
@@ -50,7 +50,7 @@ describe("createConfiguredRegistrar", () => {
 		const registrar = createConfiguredRegistrar(
 			{
 				unsupported: {
-					spec: "builtin:unsupported",
+					spec: "unsupported",
 					credentials: { api_key: "k" },
 					endpoint: { base_url: "http://127.0.0.1" },
 				},

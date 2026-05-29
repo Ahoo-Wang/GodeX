@@ -11,7 +11,7 @@ describe("buildConfig", () => {
 					default_provider: "zhipu",
 					providers: {
 						zhipu: {
-							spec: "builtin:zhipu",
+							spec: "zhipu",
 							credentials: { api_key: "${API_KEY}" },
 							endpoint: { base_url: "https://api.zhipu.test/v1" },
 						},
@@ -28,7 +28,7 @@ describe("buildConfig", () => {
 				default_provider: "zhipu",
 				providers: {
 					zhipu: {
-						spec: "builtin:zhipu",
+						spec: "zhipu",
 						credentials: { api_key: "secret123" },
 						endpoint: { base_url: "https://api.zhipu.test/v1" },
 					},
@@ -53,7 +53,7 @@ describe("buildConfig", () => {
 					{
 						providers: {
 							deepseek: {
-								spec: "builtin:deepseek",
+								spec: "deepseek",
 								credentials: { api_key: "key" },
 								endpoint: { base_url: "https://api.deepseek.test/v1" },
 							},

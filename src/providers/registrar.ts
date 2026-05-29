@@ -49,8 +49,7 @@ export class Registrar {
 		>();
 		const unsupportedProviders: string[] = [];
 		for (const [name, config] of Object.entries(providers)) {
-			const specName = normalizeSpecName(config.spec);
-			const factory = this.factories.get(specName);
+			const factory = this.factories.get(config.spec);
 			if (!factory) {
 				unsupportedProviders.push(name);
 				continue;
@@ -93,8 +92,4 @@ export class Registrar {
 	unsupported(): string[] {
 		return [...this.unsupportedProviders];
 	}
-}
-
-function normalizeSpecName(spec: string): string {
-	return spec.startsWith("builtin:") ? spec.slice("builtin:".length) : spec;
 }

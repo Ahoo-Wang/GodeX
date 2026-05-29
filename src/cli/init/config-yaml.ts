@@ -15,7 +15,7 @@ export function buildConfigYaml(opts: InitConfigYamlOptions): string {
 	> = {};
 	for (const provider of opts.providers) {
 		providers[provider.id] = {
-			spec: `builtin:${provider.id}`,
+			spec: provider.id,
 			credentials: { api_key: provider.apiKey },
 			endpoint: { base_url: provider.baseUrl },
 		};

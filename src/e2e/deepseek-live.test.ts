@@ -32,7 +32,7 @@ function createLiveConfig(port: number): GodeXConfig {
 		},
 		providers: {
 			deepseek: {
-				spec: "builtin:deepseek",
+				spec: "deepseek",
 				credentials: { api_key: apiKey ?? "" },
 				endpoint: { base_url: deepSeekBaseUrl },
 			},
@@ -58,7 +58,7 @@ beforeAll(async () => {
 	const registrar = new Registrar();
 	registrar.registerFactory("deepseek", () =>
 		createDeepSeekProvider({
-			spec: "builtin:deepseek",
+			spec: "deepseek",
 			credentials: { api_key: apiKey },
 			endpoint: { base_url: deepSeekBaseUrl },
 			timeout_ms: 120_000,

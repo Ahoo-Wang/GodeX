@@ -7,7 +7,7 @@ const rawConfig = {
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			spec: "builtin:zhipu",
+			spec: "zhipu",
 			credentials: { api_key: "secret-key" },
 			endpoint: { base_url: "https://example.test/api" },
 		},

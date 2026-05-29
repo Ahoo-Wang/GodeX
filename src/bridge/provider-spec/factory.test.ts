@@ -11,7 +11,7 @@ import { createProviderEdge } from "./factory";
 import { validateProviderPackageShape } from "./validation";
 
 const runtimeConfig = {
-	spec: "builtin:example",
+	spec: "example",
 	credentials: { api_key: "test-key" },
 	endpoint: { base_url: "https://example.test" },
 };
@@ -167,7 +167,7 @@ describe("createProviderEdge", () => {
 				model: "example/test",
 				upstreamStatus: 0,
 				operation: "request",
-				spec: "builtin:example",
+				spec: "example",
 				endpointBaseURL: "https://example.test",
 			},
 		});
@@ -191,7 +191,7 @@ describe("createProviderEdge", () => {
 				model: "example/test",
 				upstreamStatus: 0,
 				operation: "stream",
-				spec: "builtin:example",
+				spec: "example",
 				endpointBaseURL: "https://example.test",
 			},
 		});

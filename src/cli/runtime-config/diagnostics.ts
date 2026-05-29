@@ -53,7 +53,7 @@ export function collectConfigDiagnostics(
 	}
 
 	for (const [name, provider] of Object.entries(config.providers)) {
-		if (registrar && !registrar.hasFactory(normalizeSpecName(provider.spec))) {
+		if (registrar && !registrar.hasFactory(provider.spec)) {
 			diagnostics.push({
 				message: `Provider is configured but not supported by this build: ${name}`,
 				fix: `remove providers.${name} or add a provider implementation.`,
@@ -89,10 +89,6 @@ function unresolvedEnvVars(value: string): string[] {
 	return [...matches]
 		.map((match) => match[1])
 		.filter((name): name is string => Boolean(name));
-}
-
-function normalizeSpecName(spec: string): string {
-	return spec.startsWith("builtin:") ? spec.slice("builtin:".length) : spec;
 }
 
 function isValidPort(port: number): boolean {

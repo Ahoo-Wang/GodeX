@@ -7,7 +7,7 @@ const baseRawConfig = {
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			spec: "builtin:zhipu",
+			spec: "zhipu",
 			credentials: { api_key: "secret-key" },
 			endpoint: { base_url: "https://example.test/api" },
 		},
@@ -64,7 +64,7 @@ describe("collectConfigDiagnostics", () => {
 				...baseRawConfig,
 				providers: {
 					zhipu: {
-						spec: "builtin:zhipu",
+						spec: "zhipu",
 						endpoint: { base_url: "https://example.test/api" },
 					},
 				},
@@ -84,7 +84,7 @@ describe("collectConfigDiagnostics", () => {
 				...baseRawConfig,
 				providers: {
 					zhipu: {
-						spec: "builtin:zhipu",
+						spec: "zhipu",
 						credentials: { api_key: "${MISSING_ZHIPU_API_KEY}" },
 						endpoint: { base_url: "https://example.test/api" },
 					},
@@ -106,7 +106,7 @@ describe("collectConfigDiagnostics", () => {
 				...baseRawConfig,
 				providers: {
 					zhipu: {
-						spec: "builtin:zhipu",
+						spec: "zhipu",
 						credentials: { api_key: "secret-key" },
 						endpoint: { base_url: "${MISSING_ZHIPU_BASE_URL}" },
 					},

@@ -48,7 +48,7 @@ function createLiveConfig(port: number): GodeXConfig {
 		},
 		providers: {
 			zhipu: {
-				spec: "builtin:zhipu",
+				spec: "zhipu",
 				credentials: { api_key: apiKey ?? "" },
 				endpoint: { base_url: zhipuBaseUrl },
 			},
@@ -74,7 +74,7 @@ beforeAll(async () => {
 	const registrar = new Registrar();
 	registrar.registerFactory("zhipu", () =>
 		createZhipuProvider({
-			spec: "builtin:zhipu",
+			spec: "zhipu",
 			credentials: { api_key: apiKey },
 			endpoint: { base_url: zhipuBaseUrl },
 			timeout_ms: 120_000,

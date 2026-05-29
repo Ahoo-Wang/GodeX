@@ -267,7 +267,7 @@ async function startGodex(
 		models: { aliases: { "gpt-5": "zhipu/glm-5.1" } },
 		providers: {
 			zhipu: {
-				spec: "builtin:zhipu",
+				spec: "zhipu",
 				credentials: { api_key: "test-key" },
 				endpoint: { base_url: mockBase },
 			},
@@ -287,7 +287,7 @@ async function startGodex(
 	const registrar = new Registrar();
 	registrar.registerFactory("zhipu", () =>
 		createZhipuProvider({
-			spec: "builtin:zhipu",
+			spec: "zhipu",
 			credentials: { api_key: "test-key" },
 			endpoint: { base_url: mockBase },
 		}),

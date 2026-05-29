@@ -6,14 +6,14 @@ describe("parseProvidersConfig", () => {
 		expect(
 			parseProvidersConfig({
 				zhipu: {
-					spec: "builtin:zhipu",
+					spec: "zhipu",
 					credentials: { api_key: "test-key" },
 					endpoint: { base_url: "https://example.test/api" },
 				},
 			}),
 		).toEqual({
 			zhipu: {
-				spec: "builtin:zhipu",
+				spec: "zhipu",
 				credentials: { api_key: "test-key" },
 				endpoint: { base_url: "https://example.test/api" },
 			},
@@ -24,7 +24,7 @@ describe("parseProvidersConfig", () => {
 		expect(
 			parseProvidersConfig({
 				zhipu: {
-					spec: "builtin:zhipu",
+					spec: "zhipu",
 					endpoint: { base_url: "https://example.test/api" },
 				},
 			}).zhipu?.credentials.api_key,
@@ -35,7 +35,7 @@ describe("parseProvidersConfig", () => {
 		expect(
 			parseProvidersConfig({
 				zhipu: {
-					spec: "builtin:zhipu",
+					spec: "zhipu",
 					endpoint: { base_url: " https://example.test/api " },
 				},
 			}).zhipu?.endpoint?.base_url,
@@ -66,11 +66,11 @@ describe("parseProvidersConfig", () => {
 		const constructorKey = "constructor";
 		const raw = Object.create(null) as Record<string, unknown>;
 		raw[protoKey] = {
-			spec: "builtin:zhipu",
+			spec: "zhipu",
 			endpoint: { base_url: "https://proto.example.test/api" },
 		};
 		raw[constructorKey] = {
-			spec: "builtin:deepseek",
+			spec: "deepseek",
 			endpoint: { base_url: "https://constructor.example.test/api" },
 		};
 

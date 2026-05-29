@@ -74,12 +74,13 @@ describe("buildConfigYaml", () => {
 		});
 
 		expect(rawYaml).toContain("default_provider: deepseek");
+		expect(rawYaml).not.toContain(["builtin", ":"].join(""));
 		expect(rawYaml).toContain("  deepseek:");
-		expect(rawYaml).toContain("    spec: builtin:deepseek");
+		expect(rawYaml).toContain("    spec: deepseek");
 		expect(rawYaml).toContain("      api_key: ${DEEPSEEK_API_KEY}");
 		expect(rawYaml).toContain(`      base_url: ${DEFAULT_DEEPSEEK_BASE_URL}`);
 		expect(rawYaml).toContain("  zhipu:");
-		expect(rawYaml).toContain("    spec: builtin:zhipu");
+		expect(rawYaml).toContain("    spec: zhipu");
 		expect(rawYaml).toContain("      api_key: ${ZHIPU_API_KEY}");
 		expect(rawYaml).toContain(`      base_url: ${ZHIPU_CODING_PLAN_BASE_URL}`);
 	});
@@ -113,7 +114,7 @@ describe("buildConfigYaml", () => {
 			ZHIPU_PROVIDER_NAME,
 		]);
 		expect(config.providers[DEEPSEEK_PROVIDER_NAME]).toEqual({
-			spec: `builtin:${DEEPSEEK_PROVIDER_NAME}`,
+			spec: DEEPSEEK_PROVIDER_NAME,
 			credentials: { api_key: "deepseek-test-key" },
 			endpoint: { base_url: DEFAULT_DEEPSEEK_BASE_URL },
 		});

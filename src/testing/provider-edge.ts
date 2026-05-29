@@ -126,7 +126,7 @@ function testProviderSpec(
 
 function testProviderConfig(name: string): ProviderRuntimeConfig {
 	return {
-		spec: `builtin:${name}`,
+		spec: name,
 		credentials: { api_key: "test-key" },
 		endpoint: { base_url: "https://example.invalid" },
 	};

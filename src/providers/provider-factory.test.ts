@@ -4,7 +4,7 @@ import { createZhipuProvider } from "./zhipu";
 
 function providerConfigFor(name: string, timeout_ms?: number) {
 	return {
-		spec: `builtin:${name}`,
+		spec: name,
 		credentials: { api_key: `${name}-key` },
 		endpoint: { base_url: `https://${name}.example.test` },
 		...(timeout_ms === undefined ? {} : { timeout_ms }),

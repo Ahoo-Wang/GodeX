@@ -58,13 +58,13 @@ describe("Registrar", () => {
 		const provider = stubProvider("zhipu");
 		registrar.registerFactory("zhipu", () => provider);
 		registrar.registerProviders({
-			zhipu: providerConfigFor("builtin:zhipu"),
+			zhipu: providerConfigFor("zhipu"),
 		});
 
 		expect(registrar.resolve("zhipu")).toBe(provider);
 	});
 
-	test("resolves factories by normalized spec while preserving configured provider alias", () => {
+	test("resolves factories by exact spec while preserving configured provider alias", () => {
 		const registrar = new Registrar();
 		let receivedBaseUrl = "";
 		registrar.registerFactory("zhipu", (config) => {
@@ -74,7 +74,7 @@ describe("Registrar", () => {
 
 		registrar.registerProviders({
 			customAlias: {
-				spec: "builtin:zhipu",
+				spec: "zhipu",
 				credentials: { api_key: "test" },
 				endpoint: { base_url: "https://provider.example.test" },
 			},
@@ -90,7 +90,19 @@ describe("Registrar", () => {
 		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
 
 		const result = registrar.registerProviders({
-			alias: providerConfigFor("builtin:missing"),
+			alias: providerConfigFor("missing"),
+		});
+
+		expect(result).toEqual({ registered: [], unsupported: ["alias"] });
+		expect(registrar.unsupported()).toEqual(["alias"]);
+	});
+
+	test("does not normalize legacy builtin spec prefixes", () => {
+		const registrar = new Registrar();
+		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
+
+		const result = registrar.registerProviders({
+			alias: providerConfigFor(["builtin", "zhipu"].join(":")),
 		});
 
 		expect(result).toEqual({ registered: [], unsupported: ["alias"] });
@@ -113,7 +125,7 @@ describe("Registrar", () => {
 
 		registrar.registerProviders(
 			{
-				zhipu: providerConfigFor("builtin:zhipu"),
+				zhipu: providerConfigFor("zhipu"),
 			},
 			captureLogger(events),
 		);
@@ -131,7 +143,7 @@ describe("Registrar", () => {
 
 		registrar.registerDefinition(stubDefinition("zhipu"));
 		registrar.registerProviders({
-			zhipu: providerConfigFor("builtin:zhipu"),
+			zhipu: providerConfigFor("zhipu"),
 		});
 
 		expect(registrar.resolve("zhipu").name).toBe("zhipu");
@@ -145,8 +157,8 @@ describe("Registrar", () => {
 			stubDefinition("deepseek"),
 		]);
 		registrar.registerProviders({
-			deepseek: providerConfigFor("builtin:deepseek"),
-			zhipu: providerConfigFor("builtin:zhipu"),
+			deepseek: providerConfigFor("deepseek"),
+			zhipu: providerConfigFor("zhipu"),
 		});
 
 		expect(registrar.list()).toEqual(["deepseek", "zhipu"]);
@@ -156,7 +168,7 @@ describe("Registrar", () => {
 		const registrar = new Registrar();
 		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
 		registrar.registerProviders({
-			zhipu: providerConfigFor("builtin:zhipu"),
+			zhipu: providerConfigFor("zhipu"),
 		});
 
 		expect(() => registrar.resolve("missing")).toThrow(
@@ -168,7 +180,7 @@ describe("Registrar", () => {
 		const registrar = new Registrar();
 		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
 		registrar.registerProviders({
-			zhipu: providerConfigFor("builtin:zhipu"),
+			zhipu: providerConfigFor("zhipu"),
 		});
 
 		expect(registrar.list()).toEqual(["zhipu"]);
@@ -192,8 +204,8 @@ describe("Registrar", () => {
 		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
 
 		registrar.registerProviders({
-			zhipu: providerConfigFor("builtin:zhipu"),
-			unsupported: providerConfigFor("builtin:unsupported"),
+			zhipu: providerConfigFor("zhipu"),
+			unsupported: providerConfigFor("unsupported"),
 		});
 
 		expect(registrar.list()).toEqual(["zhipu"]);
@@ -206,12 +218,12 @@ describe("Registrar", () => {
 		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
 
 		registrar.registerProviders({
-			unsupported: providerConfigFor("builtin:unsupported"),
+			unsupported: providerConfigFor("unsupported"),
 		});
 		expect(registrar.unsupported()).toEqual(["unsupported"]);
 
 		registrar.registerProviders({
-			zhipu: providerConfigFor("builtin:zhipu"),
+			zhipu: providerConfigFor("zhipu"),
 		});
 		expect(registrar.unsupported()).toEqual([]);
 	});
@@ -221,8 +233,8 @@ describe("Registrar", () => {
 		registrar.registerFactory("zhipu", () => stubProvider("zhipu"));
 
 		const result = registrar.registerProviders({
-			zhipu: providerConfigFor("builtin:zhipu"),
-			unsupported: providerConfigFor("builtin:unsupported"),
+			zhipu: providerConfigFor("zhipu"),
+			unsupported: providerConfigFor("unsupported"),
 		});
 
 		expect(result).toEqual({
@@ -239,10 +251,10 @@ describe("Registrar", () => {
 		]);
 
 		registrar.registerProviders({
-			zhipu: providerConfigFor("builtin:zhipu"),
+			zhipu: providerConfigFor("zhipu"),
 		});
 		registrar.registerProviders({
-			deepseek: providerConfigFor("builtin:deepseek"),
+			deepseek: providerConfigFor("deepseek"),
 		});
 
 		expect(registrar.list()).toEqual(["deepseek"]);

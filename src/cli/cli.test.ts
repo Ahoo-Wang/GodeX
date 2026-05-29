@@ -13,7 +13,7 @@ const validConfig = {
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			spec: "builtin:zhipu",
+			spec: "zhipu",
 			credentials: { api_key: "secret-key" },
 			endpoint: { base_url: "https://example.test/api" },
 			models: { "gpt-5": "glm-5.1" },

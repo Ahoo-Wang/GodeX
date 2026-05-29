@@ -3,7 +3,7 @@ import { BUILTIN_PROVIDER_DEFINITIONS } from "./builtin";
 
 function providerConfigFor(name: string) {
 	return {
-		spec: `builtin:${name}`,
+		spec: name,
 		credentials: { api_key: `${name}-key` },
 		endpoint: { base_url: `https://${name}.example.test` },
 	};

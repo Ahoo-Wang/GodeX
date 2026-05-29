@@ -3,7 +3,7 @@ import { createDeepSeekProvider } from "./index";
 import { DEEPSEEK_PROVIDER_NAME, DEFAULT_DEEPSEEK_BASE_URL } from "./spec";
 
 const config = {
-	spec: "builtin:deepseek",
+	spec: "deepseek",
 	credentials: { api_key: "test-key" },
 	endpoint: { base_url: "https://example.test" },
 };

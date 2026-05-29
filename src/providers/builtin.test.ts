@@ -9,12 +9,12 @@ describe("createBuiltinRegistrar", () => {
 
 		registrar.registerProviders({
 			[ZHIPU_PROVIDER_NAME]: {
-				spec: `builtin:${ZHIPU_PROVIDER_NAME}`,
+				spec: ZHIPU_PROVIDER_NAME,
 				credentials: { api_key: "zhipu-key" },
 				endpoint: { base_url: "https://zhipu.example.test" },
 			},
 			[DEEPSEEK_PROVIDER_NAME]: {
-				spec: `builtin:${DEEPSEEK_PROVIDER_NAME}`,
+				spec: DEEPSEEK_PROVIDER_NAME,
 				credentials: { api_key: "deepseek-key" },
 				endpoint: { base_url: "https://deepseek.example.test" },
 			},

@@ -12,7 +12,7 @@ const config: GodeXConfig = {
 	default_provider: "zhipu",
 	providers: {
 		zhipu: {
-			spec: "builtin:zhipu",
+			spec: "zhipu",
 			credentials: { api_key: "test-key" },
 			endpoint: { base_url: "https://example.test/api" },
 		},

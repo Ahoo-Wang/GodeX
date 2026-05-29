@@ -126,7 +126,7 @@ beforeAll(async () => {
 		models: { aliases: { "gpt-5": "deepseek/deepseek-v4-flash" } },
 		providers: {
 			deepseek: {
-				spec: "builtin:deepseek",
+				spec: "deepseek",
 				credentials: { api_key: "test-key" },
 				endpoint: { base_url: mockUpstreamBase },
 			},
