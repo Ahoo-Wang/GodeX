@@ -1,10 +1,12 @@
 import yaml from "js-yaml";
 import { resolveDefaultSqlitePath } from "../../config";
 import type { InitConfigYamlOptions } from "./model";
+import { getInitProviderDefinition } from "./providers";
 
 export function buildConfigYaml(opts: InitConfigYamlOptions): string {
 	assertDefaultProviderRendered(opts);
 
+	const defaultProviderDef = getInitProviderDefinition(opts.defaultProvider);
 	const providers: Record<
 		string,
 		{
@@ -27,6 +29,15 @@ export function buildConfigYaml(opts: InitConfigYamlOptions): string {
 		},
 		default_provider: opts.defaultProvider,
 		providers,
+		...(defaultProviderDef
+			? {
+					models: {
+						aliases: {
+							"*": `${opts.defaultProvider}/${defaultProviderDef.defaultModel}`,
+						},
+					},
+				}
+			: {}),
 		session: {
 			backend: opts.sessionBackend,
 			...(opts.sessionBackend === "sqlite"

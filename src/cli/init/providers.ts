@@ -1,10 +1,12 @@
 import {
+	DEEPSEEK_DEFAULT_MODEL,
 	DEEPSEEK_PROVIDER_NAME,
 	DEFAULT_DEEPSEEK_BASE_URL,
 } from "../../providers/deepseek";
 import {
 	ZHIPU_BASE_URL,
 	ZHIPU_CODING_PLAN_BASE_URL,
+	ZHIPU_DEFAULT_MODEL,
 	ZHIPU_PROVIDER_NAME,
 } from "../../providers/zhipu";
 
@@ -24,6 +26,7 @@ export interface InitProviderDefinition {
 	apiKeyPlaceholder: string;
 	baseUrlChoices: InitProviderBaseUrlChoice[];
 	defaultBaseUrl: string;
+	defaultModel: string;
 }
 
 export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
@@ -39,6 +42,7 @@ export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
 			},
 		],
 		defaultBaseUrl: DEFAULT_DEEPSEEK_BASE_URL,
+		defaultModel: DEEPSEEK_DEFAULT_MODEL,
 	},
 	{
 		id: ZHIPU_PROVIDER_NAME,
@@ -57,6 +61,7 @@ export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
 			},
 		],
 		defaultBaseUrl: ZHIPU_CODING_PLAN_BASE_URL,
+		defaultModel: ZHIPU_DEFAULT_MODEL,
 	},
 ];
 

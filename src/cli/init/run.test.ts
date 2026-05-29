@@ -74,6 +74,7 @@ describe("runInit", () => {
 			);
 			expect(config.session.backend).toBe("memory");
 			expect(config.logging.level).toBe("debug");
+			expect(config.models?.aliases?.["*"]).toBe("zhipu/glm-5.1");
 			expect(statSync(configPath).mode & 0o777).toBe(0o600);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });

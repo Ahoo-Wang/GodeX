@@ -23,6 +23,7 @@ import type {
 
 export const DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 export const DEEPSEEK_PROVIDER_NAME = "deepseek";
+export const DEEPSEEK_DEFAULT_MODEL = "deepseek-v4-pro";
 
 export const DEEPSEEK_PROVIDER_SPEC: ProviderSpec<
 	BridgeChatCompletionCreateRequest,

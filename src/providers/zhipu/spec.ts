@@ -26,6 +26,7 @@ export const ZHIPU_CODING_PLAN_BASE_URL =
 	"https://open.bigmodel.cn/api/coding/paas/v4";
 export const DEFAULT_ZHIPU_BASE_URL = ZHIPU_CODING_PLAN_BASE_URL;
 export const ZHIPU_PROVIDER_NAME = "zhipu";
+export const ZHIPU_DEFAULT_MODEL = "glm-5.1";
 
 export const ZHIPU_PROVIDER_SPEC: ProviderSpec<
 	BridgeChatCompletionCreateRequest,
