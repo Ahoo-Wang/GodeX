@@ -26,11 +26,15 @@ describe("INIT_PROVIDER_DEFINITIONS", () => {
 		expect(getInitProviderDefinition("deepseek")).toMatchObject({
 			apiKeyPlaceholder: "${DEEPSEEK_API_KEY}",
 			defaultBaseUrl: DEFAULT_DEEPSEEK_BASE_URL,
+			defaultModel: "deepseek-v4-pro",
 		});
 		expect(
 			getInitProviderDefinition("zhipu")?.baseUrlChoices.map(
 				(choice) => choice.value,
 			),
 		).toEqual([ZHIPU_CODING_PLAN_BASE_URL, ZHIPU_BASE_URL]);
+		expect(getInitProviderDefinition("zhipu")).toMatchObject({
+			defaultModel: "glm-5.1",
+		});
 	});
 });
