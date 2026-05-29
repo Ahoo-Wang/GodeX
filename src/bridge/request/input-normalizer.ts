@@ -54,7 +54,10 @@ function normalizeInputItems(
 	let pendingReasoning: string | undefined;
 	for (const item of items) {
 		if (item.type === "reasoning") {
-			pendingReasoning = reasoningText(item);
+			pendingReasoning = appendReasoningText(
+				pendingReasoning,
+				reasoningText(item),
+			);
 			continue;
 		}
 		const itemMessages = normalizeInputItem(item, request, context);
@@ -68,6 +71,14 @@ function normalizeInputItems(
 		messages.push(...itemMessages);
 	}
 	return messages;
+}
+
+function appendReasoningText(
+	current: string | undefined,
+	next: string,
+): string | undefined {
+	if (!next) return current;
+	return current ? `${current}\n${next}` : next;
 }
 
 function normalizeInputItem(

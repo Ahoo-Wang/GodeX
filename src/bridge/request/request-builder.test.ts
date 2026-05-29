@@ -894,6 +894,45 @@ describe("normalizeCurrentInput", () => {
 		expect(normalized[1]).toEqual({ role: "user", content: "Continue." });
 	});
 
+	test("accumulates consecutive reasoning items before assistant messages", () => {
+		const normalized = normalizeCurrentInput(
+			request({
+				input: [
+					{
+						id: "rs_1",
+						type: "reasoning",
+						summary: [],
+						content: [{ type: "reasoning_text", text: "First thought." }],
+						status: "completed",
+					},
+					{
+						id: "rs_2",
+						type: "reasoning",
+						summary: [],
+						content: [{ type: "reasoning_text", text: "Second thought." }],
+						status: "completed",
+					},
+					{
+						id: "msg_1",
+						type: "message",
+						role: "assistant",
+						status: "completed",
+						content: [{ type: "output_text", text: "Earlier answer." }],
+					},
+				],
+			}),
+		);
+
+		expect(normalized).toHaveLength(1);
+		expect(normalized[0]?.role).toBe("assistant");
+		if (normalized[0]?.role !== "assistant") {
+			throw new Error("Expected assistant message.");
+		}
+		expect(normalized[0].reasoning_content).toBe(
+			"First thought.\nSecond thought.",
+		);
+	});
+
 	test("throws BridgeError for unsupported input content parts", () => {
 		const error = captureBridgeError(() =>
 			normalizeCurrentInput(
