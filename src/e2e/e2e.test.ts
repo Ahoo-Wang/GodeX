@@ -59,6 +59,42 @@ async function startMockUpstream() {
 }
 
 function handleMockChat(body: Record<string, unknown>) {
+	if (lastUserMessageContent(body) === "List workspace.") {
+		return new Response(
+			JSON.stringify({
+				id: "mock-task-id",
+				created: Math.floor(Date.now() / 1000),
+				model: "glm-5.1",
+				choices: [
+					{
+						index: 0,
+						finish_reason: "tool_calls",
+						message: {
+							role: "assistant",
+							content: null,
+							tool_calls: [
+								{
+									id: "call_workspace_list",
+									type: "function",
+									function: {
+										name: "workspace__list-files",
+										arguments: "{}",
+									},
+								},
+							],
+						},
+					},
+				],
+				usage: {
+					prompt_tokens: 10,
+					completion_tokens: 5,
+					total_tokens: 15,
+				},
+			}),
+			{ headers: { "Content-Type": "application/json" } },
+		);
+	}
+
 	if (lastUserMessageContent(body) === "Please inspect cwd.") {
 		return new Response(
 			JSON.stringify({
@@ -141,30 +177,148 @@ function lastUserMessageContent(body: Record<string, unknown>): unknown {
 	return undefined;
 }
 
-function handleMockStream(_body: Record<string, unknown>) {
+function handleMockStream(body: Record<string, unknown>) {
 	const taskId = "mock-stream-task";
 	const created = Math.floor(Date.now() / 1000);
 
-	const chunks = [
-		{
-			choices: [
-				{
-					index: 0,
-					delta: { role: "assistant", content: "Hello" },
-					finish_reason: null,
-				},
-			],
-		},
-		{
-			choices: [{ index: 0, delta: { content: " from" }, finish_reason: null }],
-		},
-		{
-			choices: [
-				{ index: 0, delta: { content: " mock!" }, finish_reason: null },
-			],
-		},
-		{ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] },
-	];
+	const chunks =
+		lastUserMessageContent(body) === "Stream inspect cwd."
+			? [
+					{
+						choices: [
+							{
+								index: 0,
+								delta: {
+									role: "assistant",
+									tool_calls: [
+										{
+											index: 0,
+											type: "function",
+											function: {
+												name: "local_shell",
+												arguments: '{"command"',
+											},
+										},
+									],
+								},
+								finish_reason: null,
+							},
+						],
+					},
+					{
+						choices: [
+							{
+								index: 0,
+								delta: {
+									tool_calls: [
+										{
+											index: 0,
+											id: "call_stream_shell",
+											function: { arguments: ':["pwd"],"env":{}' },
+										},
+									],
+								},
+								finish_reason: null,
+							},
+						],
+					},
+					{
+						choices: [
+							{
+								index: 0,
+								delta: {
+									tool_calls: [
+										{
+											index: 0,
+											function: { arguments: ',"working_directory":"/tmp"}' },
+										},
+									],
+								},
+								finish_reason: null,
+							},
+						],
+					},
+					{ choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] },
+				]
+			: lastUserMessageContent(body) === "Stream two tools."
+				? [
+						{
+							choices: [
+								{
+									index: 0,
+									delta: {
+										role: "assistant",
+										tool_calls: [
+											{
+												index: 0,
+												id: "call_weather",
+												type: "function",
+												function: {
+													name: "get_weather",
+													arguments: '{"city"',
+												},
+											},
+											{
+												index: 1,
+												id: "call_time",
+												type: "function",
+												function: {
+													name: "get_time",
+													arguments: '{"zone"',
+												},
+											},
+										],
+									},
+									finish_reason: null,
+								},
+							],
+						},
+						{
+							choices: [
+								{
+									index: 0,
+									delta: {
+										tool_calls: [
+											{
+												index: 0,
+												function: { arguments: ':"Paris"}' },
+											},
+											{
+												index: 1,
+												function: { arguments: ':"UTC"}' },
+											},
+										],
+									},
+									finish_reason: null,
+								},
+							],
+						},
+						{
+							choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
+						},
+					]
+				: [
+						{
+							choices: [
+								{
+									index: 0,
+									delta: { role: "assistant", content: "Hello" },
+									finish_reason: null,
+								},
+							],
+						},
+						{
+							choices: [
+								{ index: 0, delta: { content: " from" }, finish_reason: null },
+							],
+						},
+						{
+							choices: [
+								{ index: 0, delta: { content: " mock!" }, finish_reason: null },
+							],
+						},
+						{ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] },
+					];
 
 	const encoder = new TextEncoder();
 	const stream = new ReadableStream({
@@ -810,6 +964,100 @@ describe("E2E: stream response", () => {
 			type: "json_object",
 		});
 	});
+
+	test("streams tool call deltas into restored Responses output items", async () => {
+		resetUpstreamRequests();
+		const events = await streamResponses({
+			model: "gpt-5",
+			input: "Stream inspect cwd.",
+			stream: true,
+			tools: [{ type: "local_shell" }],
+		});
+
+		const added = events.find(
+			(event) => event.type === "response.output_item.added",
+		);
+		const argumentsDone = events.find(
+			(event) => event.type === "response.function_call_arguments.done",
+		);
+		const itemDone = events.find(
+			(event) => event.type === "response.output_item.done",
+		);
+		const completed = events.find(
+			(event) => event.type === "response.completed",
+		);
+		const addedItemId =
+			added?.item && "id" in added.item ? added.item.id : undefined;
+
+		expect(addedItemId).toEqual(expect.stringMatching(/^fc_/));
+		expect(added?.item).toMatchObject({
+			id: addedItemId,
+			type: "function_call",
+		});
+		expect(argumentsDone?.item_id).toBe(addedItemId);
+		expect(itemDone?.item).toMatchObject({
+			id: addedItemId,
+			type: "local_shell_call",
+			call_id: "call_stream_shell",
+			action: {
+				type: "exec",
+				command: ["pwd"],
+				env: {},
+				working_directory: "/tmp",
+			},
+			status: "completed",
+		});
+		expect(completed?.response?.output).toEqual([
+			expect.objectContaining({
+				id: addedItemId,
+				type: "local_shell_call",
+				call_id: "call_stream_shell",
+			}),
+		]);
+	});
+
+	test("streams multiple upstream tool calls independently", async () => {
+		resetUpstreamRequests();
+		const events = await streamResponses({
+			model: "gpt-5",
+			input: "Stream two tools.",
+			stream: true,
+			tools: [
+				{
+					type: "function",
+					name: "get_weather",
+					description: "Get weather.",
+					parameters: { type: "object" },
+				},
+				{
+					type: "function",
+					name: "get_time",
+					description: "Get time.",
+					parameters: { type: "object" },
+				},
+			],
+		});
+
+		const completed = events.find(
+			(event) => event.type === "response.completed",
+		);
+		expect(completed?.response?.output).toEqual([
+			expect.objectContaining({
+				id: expect.stringMatching(/^fc_/),
+				type: "function_call",
+				call_id: "call_weather",
+				name: "get_weather",
+				arguments: '{"city":"Paris"}',
+			}),
+			expect.objectContaining({
+				id: expect.stringMatching(/^fc_/),
+				type: "function_call",
+				call_id: "call_time",
+				name: "get_time",
+				arguments: '{"zone":"UTC"}',
+			}),
+		]);
+	});
 });
 
 describe("E2E: session chain via previous_response_id", () => {
@@ -916,6 +1164,70 @@ describe("E2E: session chain via previous_response_id", () => {
 			{ role: "user", content: "Stream question" },
 			{ role: "assistant", content: "Hello from mock!" },
 			{ role: "user", content: "Follow-up question" },
+		]);
+	});
+
+	test("replays namespace tool calls with provider names", async () => {
+		resetUpstreamRequests();
+		const tools = [
+			{
+				type: "namespace",
+				name: "workspace",
+				description: "Workspace tools",
+				tools: [
+					{
+						type: "function",
+						name: "list-files",
+						description: "List files",
+						parameters: { type: "object" },
+					},
+				],
+			},
+		];
+
+		const res1 = await postResponses({
+			model: "gpt-5",
+			input: "List workspace.",
+			tools,
+			store: true,
+		});
+		expect(res1.status).toBe(200);
+		const body1 = (await res1.json()) as { id: string };
+
+		const res2 = await postResponses({
+			model: "gpt-5",
+			previous_response_id: body1.id,
+			input: [
+				{
+					type: "function_call_output",
+					call_id: "call_workspace_list",
+					output: "src\nREADME.md",
+				},
+				{ role: "user", content: "Summarize listing." },
+			],
+			tools,
+		});
+
+		expect(res2.status).toBe(200);
+		expect(upstreamMessages()).toEqual([
+			{ role: "user", content: "List workspace." },
+			{
+				role: "assistant",
+				content: "",
+				tool_calls: [
+					{
+						id: "call_workspace_list",
+						type: "function",
+						function: { name: "workspace__list-files", arguments: "{}" },
+					},
+				],
+			},
+			{
+				role: "tool",
+				content: "src\nREADME.md",
+				tool_call_id: "call_workspace_list",
+			},
+			{ role: "user", content: "Summarize listing." },
 		]);
 	});
 });

@@ -337,6 +337,52 @@ describe("mapProviderDeltasToEvents", () => {
 		]);
 	});
 
+	test("keeps stream tool call item id stable when provider id arrives later", () => {
+		const events = mapProviderDeltasToEvents({
+			machine: machine(),
+			deltas: [
+				{
+					toolCall: {
+						index: 0,
+						name: "lookup_weather",
+						arguments: '{"city"',
+					},
+				},
+				{
+					toolCall: {
+						index: 0,
+						id: "call_real_id",
+						arguments: ':"Paris"}',
+					},
+				},
+				{ finishReason: "tool_calls" },
+			],
+		});
+
+		const added = events.find(
+			(event) => event.type === "response.output_item.added",
+		);
+		const argumentsDone = events.find(
+			(event) => event.type === "response.function_call_arguments.done",
+		);
+		const itemDone = events.find(
+			(event) => event.type === "response.output_item.done",
+		);
+
+		expect(added?.item).toMatchObject({
+			id: "fc_resp_test_0",
+			type: "function_call",
+		});
+		expect(argumentsDone).toMatchObject({
+			item_id: "fc_resp_test_0",
+		});
+		expect(itemDone?.item).toMatchObject({
+			id: "fc_resp_test_0",
+			call_id: "call_real_id",
+			arguments: '{"city":"Paris"}',
+		});
+	});
+
 	test("rejects null tool call deltas at the sandbox boundary", () => {
 		expect(() =>
 			mapProviderDeltasToEvents({
