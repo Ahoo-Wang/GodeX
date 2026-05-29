@@ -128,6 +128,35 @@ npm install -g @ahoo-wang/godex
 godex --help
 ```
 
+### Docker
+
+Pre-built images are published to Docker Hub and GitHub Container Registry:
+
+```bash
+docker pull ahoowang/godex:latest
+# or
+docker pull ghcr.io/ahoo-wang/godex:latest
+```
+
+Run with a config file:
+
+```bash
+docker run -d \
+  --name godex \
+  -p 5678:5678 \
+  -e ZHIPU_API_KEY=your-key \
+  -e DEEPSEEK_API_KEY=your-key \
+  -v ./godex.yaml:/etc/godex/godex.yaml:ro \
+  -v godex-data:/data \
+  ahoowang/godex:latest
+```
+
+The image supports `linux/amd64` and `linux/arm64`.
+
+- Config file: `/etc/godex/godex.yaml`
+- Data directory (sessions, trace): `/data`
+- Default port: `5678`
+
 ## Quick Start
 
 Create a config interactively:

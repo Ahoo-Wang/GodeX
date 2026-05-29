@@ -128,6 +128,35 @@ npm install -g @ahoo-wang/godex
 godex --help
 ```
 
+### Docker
+
+预构建镜像发布到 Docker Hub 和 GitHub Container Registry：
+
+```bash
+docker pull ahoowang/godex:latest
+# 或
+docker pull ghcr.io/ahoo-wang/godex:latest
+```
+
+使用配置文件运行：
+
+```bash
+docker run -d \
+  --name godex \
+  -p 5678:5678 \
+  -e ZHIPU_API_KEY=your-key \
+  -e DEEPSEEK_API_KEY=your-key \
+  -v ./godex.yaml:/etc/godex/godex.yaml:ro \
+  -v godex-data:/data \
+  ahoowang/godex:latest
+```
+
+镜像支持 `linux/amd64` 和 `linux/arm64`。
+
+- 配置文件路径：`/etc/godex/godex.yaml`
+- 数据目录（会话、Trace）：`/data`
+- 默认端口：`5678`
+
 ## 快速开始
 
 交互式创建配置：
