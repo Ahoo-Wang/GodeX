@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
 import * as clack from "@clack/prompts";
+import { CONFIG_SEARCH_PATHS } from "../../config";
 import {
 	DEEPSEEK_PROVIDER_NAME,
 	DEFAULT_DEEPSEEK_BASE_URL,
@@ -8,7 +9,7 @@ import {
 	ZHIPU_CODING_PLAN_BASE_URL,
 	ZHIPU_PROVIDER_NAME,
 } from "../../providers/zhipu";
-import { promptInitConfig } from "./prompts";
+import { promptConfigPath, promptInitConfig } from "./prompts";
 
 afterEach(() => {
 	mock.restore();
@@ -242,5 +243,44 @@ describe("promptInitConfig", () => {
 
 		expect(config).toBeNull();
 		expect(cancel).toHaveBeenCalledWith("Invalid port: not-a-port");
+	});
+});
+
+describe("promptConfigPath", () => {
+	afterEach(() => {
+		mock.restore();
+	});
+
+	test("returns home config path by default", async () => {
+		spyOn(clack, "isCancel").mockImplementation(
+			(_value): _value is symbol => false,
+		);
+		spyOn(clack, "select").mockResolvedValue(CONFIG_SEARCH_PATHS[1] as never);
+
+		const path = await promptConfigPath();
+		expect(path).toBe(CONFIG_SEARCH_PATHS[1]);
+	});
+
+	test("returns local config path when selected", async () => {
+		spyOn(clack, "isCancel").mockImplementation(
+			(_value): _value is symbol => false,
+		);
+		spyOn(clack, "select").mockResolvedValue(CONFIG_SEARCH_PATHS[0] as never);
+
+		const path = await promptConfigPath();
+		expect(path).toBe(CONFIG_SEARCH_PATHS[0]);
+	});
+
+	test("returns null when cancelled", async () => {
+		const cancelToken = Symbol("cancel");
+		const cancel = spyOn(clack, "cancel").mockImplementation(() => {});
+		spyOn(clack, "isCancel").mockImplementation(
+			(value): value is symbol => value === cancelToken,
+		);
+		spyOn(clack, "select").mockResolvedValue(cancelToken as never);
+
+		const path = await promptConfigPath();
+		expect(path).toBeNull();
+		expect(cancel).toHaveBeenCalledWith("Operation cancelled");
 	});
 });

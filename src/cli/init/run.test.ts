@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
 import {
 	chmodSync,
+	existsSync,
 	mkdtempSync,
 	readFileSync,
 	rmSync,
@@ -75,6 +76,45 @@ describe("runInit", () => {
 			expect(config.session.backend).toBe("memory");
 			expect(config.logging.level).toBe("debug");
 			expect(config.models?.aliases?.["*"]).toBe("zhipu/glm-5.1");
+			expect(statSync(configPath).mode & 0o777).toBe(0o600);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	test("creates parent directories for selected config path", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "godex-init-"));
+		const configPath = join(dir, "missing", ".godex", "config.yaml");
+		const textAnswers = ["deepseek-key", "5678"];
+		const selectAnswers = [
+			DEFAULT_DEEPSEEK_BASE_URL,
+			"memory",
+			"info",
+			configPath,
+		];
+
+		spyOn(clack, "intro").mockImplementation(() => {});
+		spyOn(clack, "outro").mockImplementation(() => {});
+		spyOn(clack, "isCancel").mockImplementation(
+			(_value): _value is symbol => false,
+		);
+		spyOn(clack, "multiselect").mockResolvedValue([DEEPSEEK_PROVIDER_NAME]);
+		spyOn(clack, "text").mockImplementation(
+			async () => textAnswers.shift() ?? "",
+		);
+		spyOn(clack, "select").mockImplementation(
+			async () => (selectAnswers.shift() ?? "") as never,
+		);
+
+		try {
+			await runInit({});
+
+			expect(existsSync(configPath)).toBeTrue();
+			const config = buildConfig(
+				yaml.load(readFileSync(configPath, "utf-8")) as Record<string, unknown>,
+				{},
+			);
+			expect(config.default_provider).toBe(DEEPSEEK_PROVIDER_NAME);
 			expect(statSync(configPath).mode & 0o777).toBe(0o600);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
