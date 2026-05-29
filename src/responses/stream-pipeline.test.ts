@@ -4,10 +4,13 @@ import type { CompatibilityDiagnostic } from "../bridge/compatibility";
 import { planOutputContract } from "../bridge/output";
 import type { ProviderEdge } from "../bridge/provider-spec";
 import { buildChatCompletionRequest } from "../bridge/request";
-import type { ToolPlanningProfile } from "../bridge/tools";
+import { createToolPlanningProfile } from "../bridge/tools";
 import { OutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
-import type { ResponseObject } from "../protocol/openai/responses";
+import type {
+	ResponseCreateRequest,
+	ResponseObject,
+} from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import { createTestProviderEdge } from "../testing/provider-edge";
 import type { ProviderStreamExchangeResult } from "./provider-exchange";
@@ -63,6 +66,7 @@ function createMockCtx(
 	provider: ProviderEdge<unknown, unknown, unknown>,
 	store = true,
 	loggerOverrides: Partial<ResponsesContext["logger"]> = {},
+	requestOverrides: Partial<ResponseCreateRequest> = {},
 ): ResponsesContext & { traceEvents: unknown[] } {
 	const logger: ResponsesContext["logger"] = {
 		info: () => {},
@@ -86,7 +90,7 @@ function createMockCtx(
 			},
 		},
 		logger,
-		request: { model: "mock/test", input: "hello", store },
+		request: { model: "mock/test", input: "hello", store, ...requestOverrides },
 		requestId: "req_test",
 		responseId: "resp_stream",
 		createdAt: Math.floor(Date.now() / 1000),
@@ -140,25 +144,14 @@ function createExchange(
 				provider: ctx.provider.name,
 				model: ctx.resolved.model,
 				capabilities: ctx.provider.spec.capabilities,
-				profile: toolPlanningProfile(ctx),
+				profile: createToolPlanningProfile({
+					provider: ctx.provider.name,
+					capabilities: ctx.provider.spec.capabilities,
+					toProviderName: ctx.provider.spec.toolName.toProviderName,
+				}),
 				session: ctx.session,
 			}),
 		}),
-	};
-}
-
-function toolPlanningProfile(ctx: ResponsesContext): ToolPlanningProfile {
-	const capabilities = ctx.provider.spec.capabilities;
-	const degraded = capabilities.tools.degraded ?? new Map<string, string>();
-	return {
-		provider: ctx.provider.name,
-		nativeToolTypes: new Set(
-			[...capabilities.tools.supported].filter((type) => !degraded.has(type)),
-		),
-		degradedToolTypes: degraded,
-		toolChoice: capabilities.toolChoice.supported,
-		maxTools: capabilities.tools.maxTools,
-		toProviderName: ctx.provider.spec.toolName.toProviderName,
 	};
 }
 
@@ -345,6 +338,63 @@ describe("StreamPipeline", () => {
 			id: "resp_stream",
 			status: "completed",
 			output_text: "done",
+		});
+	});
+
+	test("includes request echo fields on terminal streamed responses", async () => {
+		const provider = createMockProvider();
+		const ctx = createMockCtx(
+			provider,
+			true,
+			{},
+			{
+				stream: true,
+				instructions: "Use concise JSON.",
+				temperature: 0.2,
+				tool_choice: "auto",
+				tools: [
+					{
+						type: "function",
+						name: "lookup",
+						parameters: {},
+						strict: true,
+					},
+				],
+				parallel_tool_calls: false,
+				metadata: { trace: "yes" },
+				conversation: "conv_stream",
+				reasoning: { effort: "low" },
+				text: { format: { type: "json_object" } },
+				safety_identifier: "safe_user",
+			},
+		);
+		const events = await readStream(
+			await new StreamPipeline(
+				createExchange(
+					createStream([
+						{
+							event: "chunk",
+							data: { text: "{}", finishReason: "stop" },
+						},
+					]),
+				),
+			).stream(ctx),
+		);
+
+		expect(events.at(-1)).toMatchObject({
+			type: "response.completed",
+			response: {
+				instructions: "Use concise JSON.",
+				temperature: 0.2,
+				tool_choice: "auto",
+				parallel_tool_calls: false,
+				stream: true,
+				metadata: { trace: "yes" },
+				conversation: { id: "conv_stream" },
+				reasoning: { effort: "low" },
+				text: { format: { type: "json_object" } },
+				safety_identifier: "safe_user",
+			},
 		});
 	});
 

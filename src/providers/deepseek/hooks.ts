@@ -51,7 +51,6 @@ export const DEEPSEEK_SPEC_CAPABILITIES: ProviderCapabilities = {
 	toolChoice: { supported: new Set(["auto", "none", "required", "function"]) },
 	responseFormats: {
 		supported: new Set(["text", "json_object"]),
-		degraded: new Map([["json_schema", "json_object"]]),
 	},
 	reasoning: { effort: "native" },
 	streaming: { usage: true },

@@ -98,7 +98,6 @@ export const EXAMPLE_PROVIDER_SPEC: ProviderSpec<
 		},
 		responseFormats: {
 			supported: new Set(["text", "json_object"]),
-			degraded: new Map([["json_schema", "json_object"]]),
 		},
 		reasoning: { effort: "none" },
 		streaming: { usage: true },

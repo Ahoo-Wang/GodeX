@@ -4,7 +4,10 @@ import {
 	type BuildChatCompletionRequestResult,
 	buildChatCompletionRequest,
 } from "../bridge/request";
-import type { PlannedToolDecision, ToolPlanningProfile } from "../bridge/tools";
+import {
+	createToolPlanningProfile,
+	type PlannedToolDecision,
+} from "../bridge/tools";
 import type { ResponsesContext } from "../context/responses-context";
 import { recordTraceEvent, recordTraceRequest } from "../trace";
 
@@ -76,7 +79,11 @@ function buildProviderRequest(
 		provider: ctx.provider.name,
 		model: ctx.resolved.model,
 		capabilities: ctx.provider.spec.capabilities,
-		profile: toolPlanningProfile(ctx),
+		profile: createToolPlanningProfile({
+			provider: ctx.provider.name,
+			capabilities: ctx.provider.spec.capabilities,
+			toProviderName: ctx.provider.spec.toolName.toProviderName,
+		}),
 		session: ctx.session,
 	});
 	for (const diagnostic of built.compatibility.diagnostics) {
@@ -112,19 +119,4 @@ function toolDecisionDiagnostics(
 			},
 		];
 	});
-}
-
-function toolPlanningProfile(ctx: ResponsesContext): ToolPlanningProfile {
-	const capabilities = ctx.provider.spec.capabilities;
-	const degraded = capabilities.tools.degraded ?? new Map<string, string>();
-	return {
-		provider: ctx.provider.name,
-		nativeToolTypes: new Set(
-			[...capabilities.tools.supported].filter((type) => !degraded.has(type)),
-		),
-		degradedToolTypes: degraded,
-		toolChoice: capabilities.toolChoice.supported,
-		maxTools: capabilities.tools.maxTools,
-		toProviderName: ctx.provider.spec.toolName.toProviderName,
-	};
 }

@@ -8,7 +8,6 @@ const capabilities: ProviderCapabilities = {
 	toolChoice: { supported: new Set(["auto", "none"]) },
 	responseFormats: {
 		supported: new Set(["text", "json_object"]),
-		degraded: new Map([["json_schema", "json_object"]]),
 	},
 	reasoning: { effort: "none" },
 	streaming: { usage: true },
@@ -64,6 +63,33 @@ describe("planBridgeCompatibility", () => {
 				parameter: "text.format",
 				effectiveValue: { type: "json_object" },
 			},
+		});
+	});
+
+	test("degrades json_schema when json_object is supported without degraded map", () => {
+		const plan = planBridgeCompatibility({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities: {
+				...capabilities,
+				responseFormats: { supported: new Set(["text", "json_object"]) },
+			},
+			request: request({
+				text: {
+					format: {
+						type: "json_schema",
+						name: "payload",
+						schema: { type: "object" },
+						strict: true,
+					},
+				},
+			}),
+		});
+
+		expect(plan.responseFormat).toEqual({
+			action: "degraded",
+			reason: "json_schema is degraded to json_object for provider acme.",
+			effectiveValue: { type: "json_object" },
 		});
 	});
 

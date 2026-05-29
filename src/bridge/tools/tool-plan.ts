@@ -3,6 +3,7 @@ import type {
 	ResponseTool,
 	ResponseToolChoice,
 } from "../../protocol/openai/responses";
+import type { ProviderCapabilities } from "../compatibility";
 import { buildToolCatalog, type ToolCatalogEntry } from "./tool-catalog";
 import {
 	isToolChoiceMode,
@@ -18,6 +19,27 @@ export interface ToolPlanningProfile {
 	readonly toolChoice: ReadonlySet<string>;
 	readonly maxTools?: number;
 	readonly toProviderName?: (name: string) => string;
+}
+
+export function createToolPlanningProfile(input: {
+	readonly provider: string;
+	readonly capabilities: ProviderCapabilities;
+	readonly toProviderName?: (name: string) => string;
+}): ToolPlanningProfile {
+	const degraded =
+		input.capabilities.tools.degraded ?? new Map<string, string>();
+	return {
+		provider: input.provider,
+		nativeToolTypes: new Set(
+			[...input.capabilities.tools.supported].filter(
+				(type) => !degraded.has(type),
+			),
+		),
+		degradedToolTypes: degraded,
+		toolChoice: input.capabilities.toolChoice.supported,
+		maxTools: input.capabilities.tools.maxTools,
+		toProviderName: input.toProviderName,
+	};
 }
 
 export interface ToolDeclarationPlan {

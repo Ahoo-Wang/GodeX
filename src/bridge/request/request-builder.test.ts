@@ -21,7 +21,6 @@ const capabilities: ProviderCapabilities = {
 	toolChoice: { supported: new Set(["auto", "none", "function"]) },
 	responseFormats: {
 		supported: new Set(["text", "json_object"]),
-		degraded: new Map([["json_schema", "json_object"]]),
 	},
 	reasoning: { effort: "none" },
 	streaming: { usage: true },

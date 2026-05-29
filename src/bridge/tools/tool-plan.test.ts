@@ -6,8 +6,11 @@ import {
 } from "./declaration-renderer";
 import { buildToolCatalog, flattenToolName } from "./tool-catalog";
 import { ToolIdentityMap } from "./tool-identity";
-import type { ToolPlanningProfile } from "./tool-plan";
-import { planTools } from "./tool-plan";
+import {
+	createToolPlanningProfile,
+	planTools,
+	type ToolPlanningProfile,
+} from "./tool-plan";
 
 const kernelProfile: ToolPlanningProfile = {
 	provider: "kernel-test",
@@ -21,6 +24,32 @@ const kernelProfile: ToolPlanningProfile = {
 };
 
 describe("planTools", () => {
+	test("creates planning profile from provider capabilities", () => {
+		const profile = createToolPlanningProfile({
+			provider: "acme",
+			capabilities: {
+				parameters: { supported: new Set() },
+				tools: {
+					supported: new Set(["function", "custom", "mcp"]),
+					degraded: new Map([["custom", "function"]]),
+					maxTools: 32,
+				},
+				toolChoice: { supported: new Set(["auto", "function"]) },
+				responseFormats: { supported: new Set(["text"]) },
+				reasoning: { effort: "none" },
+				streaming: { usage: false },
+			},
+			toProviderName: (name) => `p_${name}`,
+		});
+
+		expect(profile.provider).toBe("acme");
+		expect([...profile.nativeToolTypes].sort()).toEqual(["function", "mcp"]);
+		expect(profile.degradedToolTypes.get("custom")).toBe("function");
+		expect(profile.toolChoice).toEqual(new Set(["auto", "function"]));
+		expect(profile.maxTools).toBe(32);
+		expect(profile.toProviderName?.("lookup")).toBe("p_lookup");
+	});
+
 	test("tool_choice none disables tool declarations", () => {
 		const plan = planTools({
 			tools: [

@@ -11,6 +11,7 @@ import {
 	ProviderExchange,
 	type ProviderStreamExchangeResult,
 } from "./provider-exchange";
+import { responseRequestEchoFields } from "./response-request-echo";
 import { saveResponseSession } from "./response-session-persistence";
 import { wrapWithErrorHandler } from "./stream-error-handler";
 import { CompatibilityLogTransformer } from "./stream-transforms/compatibility-log-transformer";
@@ -101,6 +102,7 @@ class ProviderStreamEventBridge
 			model: ctx.resolved.model,
 			provider: ctx.provider.name,
 			toolIdentities,
+			echo: responseRequestEchoFields(ctx),
 		});
 	}
 

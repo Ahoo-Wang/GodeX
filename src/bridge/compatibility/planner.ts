@@ -71,9 +71,10 @@ function planResponseFormat(
 		return;
 	}
 
-	const effectiveType =
-		plan.capabilities.responseFormats.degraded?.get(requestedType);
-	if (requestedType !== "json_schema" || effectiveType !== "json_object") {
+	if (
+		requestedType !== "json_schema" ||
+		!plan.capabilities.responseFormats.supported.has("json_object")
+	) {
 		recordUnsupportedResponseFormat(input, plan, requestedType);
 		return;
 	}

@@ -8,7 +8,7 @@ import {
 	type BuildChatCompletionRequestResult,
 	buildChatCompletionRequest,
 } from "../bridge/request";
-import type { ToolPlanningProfile } from "../bridge/tools";
+import { createToolPlanningProfile } from "../bridge/tools";
 import { OutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
@@ -112,27 +112,13 @@ function buildRequest(ctx: ResponsesContext): BuildChatCompletionRequestResult {
 		provider: ctx.provider.name,
 		model: ctx.resolved.model,
 		capabilities: specOf(ctx.provider).capabilities,
-		profile: toolPlanningProfile(ctx.provider),
+		profile: createToolPlanningProfile({
+			provider: ctx.provider.name,
+			capabilities: specOf(ctx.provider).capabilities,
+			toProviderName: ctx.provider.spec.toolName.toProviderName,
+		}),
 		session: ctx.session,
 	});
-}
-
-function toolPlanningProfile(
-	provider: ProviderEdge<unknown, unknown, unknown>,
-): ToolPlanningProfile {
-	const degraded = provider.spec.capabilities.tools.degraded ?? new Map();
-	return {
-		provider: provider.name,
-		nativeToolTypes: new Set(
-			[...provider.spec.capabilities.tools.supported].filter(
-				(type) => !degraded.has(type),
-			),
-		),
-		degradedToolTypes: degraded,
-		toolChoice: provider.spec.capabilities.toolChoice.supported,
-		maxTools: provider.spec.capabilities.tools.maxTools,
-		toProviderName: provider.spec.toolName.toProviderName,
-	};
 }
 
 function specOf(

@@ -49,6 +49,7 @@ export interface ResponseStreamStateMachineOptions {
 	readonly provider: string;
 	readonly nowSeconds?: () => number;
 	readonly toolIdentities?: ToolIdentityMap;
+	readonly echo?: Partial<ResponseObject>;
 }
 
 interface MessageBlock {
@@ -103,6 +104,7 @@ export class ResponseStreamStateMachine {
 			created_at: options.createdAt,
 			status: "queued",
 			model: options.model,
+			...options.echo,
 			output: [],
 			output_text: "",
 			usage: null,
