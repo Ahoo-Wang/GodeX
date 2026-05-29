@@ -33,11 +33,7 @@ function addInvalidOutputDiagnostic(
 	ctx: ResponsesContext,
 	responseId: string,
 ): void {
-	const maybeCtx = ctx as ResponsesContext & {
-		addDiagnostic?: ResponsesContext["addDiagnostic"];
-	};
-	if (typeof maybeCtx.addDiagnostic !== "function") return;
-	maybeCtx.addDiagnostic({
+	ctx.addDiagnostic({
 		code: BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT,
 		severity: "error",
 		path: "response.output_text",

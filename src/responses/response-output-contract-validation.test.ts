@@ -50,7 +50,8 @@ function strictDegradedContract(): OutputContractPlan {
 
 const ctx = {
 	resolved: { provider: "deepseek", model: "deepseek-v4-flash" },
-} as ResponsesContext;
+	addDiagnostic: () => undefined,
+} as unknown as ResponsesContext;
 
 describe("validateResponseOutputContract", () => {
 	test("rejects invalid JSON when strict json_schema was degraded to json_object", () => {

@@ -316,12 +316,14 @@ describe("mapProviderDeltasToEvents", () => {
 			"response.completed",
 		]);
 		expect(events[2]?.item).toMatchObject({
+			id: "call_1",
 			type: "function_call",
 			call_id: "call_1",
 			name: "lookup.weather",
 			arguments: "",
 		});
 		expect(events.at(-2)?.item).toMatchObject({
+			id: "call_1",
 			type: "function_call",
 			call_id: "call_1",
 			name: "lookup.weather",
@@ -329,6 +331,7 @@ describe("mapProviderDeltasToEvents", () => {
 		});
 		expect(events.at(-1)?.response?.output).toEqual([
 			expect.objectContaining({
+				id: "call_1",
 				type: "function_call",
 				call_id: "call_1",
 				name: "lookup.weather",

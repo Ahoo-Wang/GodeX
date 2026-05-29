@@ -318,6 +318,7 @@ export interface LocalShellCall {
 export interface LocalShellCallOutput {
 	id: string;
 	type: "local_shell_call_output";
+	call_id: string;
 	output: string;
 	status?: ItemStatus;
 }

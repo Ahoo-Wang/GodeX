@@ -1043,14 +1043,14 @@ describe("E2E: stream response", () => {
 		);
 		expect(completed?.response?.output).toEqual([
 			expect.objectContaining({
-				id: expect.stringMatching(/^fc_/),
+				id: "call_weather",
 				type: "function_call",
 				call_id: "call_weather",
 				name: "get_weather",
 				arguments: '{"city":"Paris"}',
 			}),
 			expect.objectContaining({
-				id: expect.stringMatching(/^fc_/),
+				id: "call_time",
 				type: "function_call",
 				call_id: "call_time",
 				name: "get_time",

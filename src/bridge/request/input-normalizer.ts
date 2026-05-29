@@ -16,7 +16,6 @@ export interface InputNormalizerContext {
 	readonly provider?: string;
 	readonly model?: string;
 	readonly toolPlan?: ToolPlan;
-	readonly toolCallIdsByItemId?: ReadonlyMap<string, string>;
 }
 
 export function normalizeCurrentInput(
@@ -147,7 +146,7 @@ function normalizeInputItem(
 		];
 	}
 	if (item.type === "local_shell_call_output") {
-		return [toolOutputMessage(outputToolCallId(item, context), item.output)];
+		return [toolOutputMessage(item.call_id, item.output)];
 	}
 	if (item.type === "apply_patch_call") {
 		return [
@@ -210,18 +209,6 @@ function toolOutputMessage(
 	content: string,
 ): NormalizedChatMessage {
 	return { role: "tool", tool_call_id: callId, content };
-}
-
-function outputToolCallId(
-	item: { readonly id?: string; readonly call_id?: string },
-	context: InputNormalizerContext,
-): string {
-	return (
-		item.call_id ??
-		(item.id ? context.toolCallIdsByItemId?.get(item.id) : undefined) ??
-		item.id ??
-		""
-	);
 }
 
 function normalizeMessageContent(

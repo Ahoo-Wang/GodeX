@@ -10,7 +10,6 @@ import type {
 } from "../../protocol/openai/completions";
 import type {
 	ResponseCreateRequest,
-	ResponseItem,
 	ResponseToolChoice,
 } from "../../protocol/openai/responses";
 import type { ReasoningEffort } from "../../protocol/openai/shared";
@@ -293,35 +292,5 @@ function normalizerContext(
 		provider: input.provider,
 		model: input.model,
 		toolPlan: tools,
-		toolCallIdsByItemId: toolCallIdsByItemId(input),
 	};
-}
-
-function toolCallIdsByItemId(
-	input: BuildChatCompletionRequestInput,
-): ReadonlyMap<string, string> {
-	const result = new Map<string, string>();
-	for (const item of replayableInputItems(input)) {
-		if (!isRecord(item)) continue;
-		if (typeof item.id !== "string" || typeof item.call_id !== "string") {
-			continue;
-		}
-		result.set(item.id, item.call_id);
-	}
-	return result;
-}
-
-function replayableInputItems(
-	input: BuildChatCompletionRequestInput,
-): ResponseItem[] {
-	return [
-		...(input.session?.input_items ?? []),
-		...(Array.isArray(input.request.input)
-			? (input.request.input as ResponseItem[])
-			: []),
-	];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
 }

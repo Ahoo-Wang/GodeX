@@ -235,7 +235,7 @@ describe("buildChatCompletionRequest", () => {
 		);
 	});
 
-	test("maps local shell output item ids back to replayed tool call ids", () => {
+	test("uses local shell output call ids directly", () => {
 		const result = buildChatCompletionRequest({
 			provider: "acme",
 			model: "acme-chat",
@@ -244,8 +244,9 @@ describe("buildChatCompletionRequest", () => {
 			request: request({
 				input: [
 					{
-						id: "fc_previous",
+						id: "out_previous",
 						type: "local_shell_call_output",
+						call_id: "call_previous",
 						output: "/repo",
 					},
 					{ role: "user", content: "Continue." },
@@ -951,6 +952,7 @@ describe("normalizeCurrentInput", () => {
 					{
 						id: "call_local",
 						type: "local_shell_call_output",
+						call_id: "call_local",
 						output: "/repo",
 					},
 					{

@@ -390,7 +390,7 @@ export class ResponseStreamStateMachine {
 		const block: ToolCallBlock = {
 			kind: "tool_call",
 			streamIndex,
-			itemId: `fc_${this.options.responseId}_${streamIndex}`,
+			itemId: delta.id ?? `fc_${this.options.responseId}_${streamIndex}`,
 			outputIndex: this.output.length,
 			callId,
 			providerName: delta.name ?? `tool_${streamIndex}`,
