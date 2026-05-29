@@ -33,9 +33,7 @@ export function normalizeCurrentInput(
 		return messages;
 	}
 
-	for (const item of request.input) {
-		messages.push(...normalizeInputItem(item, request, context));
-	}
+	messages.push(...normalizeInputItems(request.input, request, context));
 	return messages;
 }
 
@@ -43,6 +41,14 @@ export function normalizeResponseItems(
 	items: readonly ResponseItem[],
 	request: ResponseCreateRequest,
 	context: InputNormalizerContext = {},
+): NormalizedChatMessage[] {
+	return normalizeInputItems(items, request, context);
+}
+
+function normalizeInputItems(
+	items: readonly ResponseItem[],
+	request: ResponseCreateRequest,
+	context: InputNormalizerContext,
 ): NormalizedChatMessage[] {
 	const messages: NormalizedChatMessage[] = [];
 	let pendingReasoning: string | undefined;

@@ -372,6 +372,44 @@ describe("normalizeCurrentInput", () => {
 		]);
 	});
 
+	test("normalizes reasoning items in current input before assistant messages", () => {
+		const normalized = normalizeCurrentInput(
+			request({
+				input: [
+					{
+						id: "rs_1",
+						type: "reasoning",
+						summary: [],
+						content: [{ type: "reasoning_text", text: "Earlier thought." }],
+						status: "completed",
+					},
+					{
+						id: "msg_1",
+						type: "message",
+						role: "assistant",
+						status: "completed",
+						content: [{ type: "output_text", text: "Earlier answer." }],
+					},
+					{
+						role: "user",
+						content: [{ type: "input_text", text: "Continue." }],
+					},
+				],
+			}),
+		);
+
+		expect(normalized).toHaveLength(2);
+		expect(normalized[0]).toMatchObject({
+			role: "assistant",
+			content: "Earlier answer.",
+		});
+		expect(
+			(normalized[0] as { readonly reasoning_content?: string })
+				.reasoning_content,
+		).toBe("Earlier thought.");
+		expect(normalized[1]).toEqual({ role: "user", content: "Continue." });
+	});
+
 	test("throws BridgeError for unsupported input content parts", () => {
 		const error = captureBridgeError(() =>
 			normalizeCurrentInput(
