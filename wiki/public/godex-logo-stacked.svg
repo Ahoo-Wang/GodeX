@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" role="img" aria-label="GodeX stacked logo">
+
+<defs>
+  <linearGradient id="godexGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#00D4FF"/>
+    <stop offset="48%" stop-color="#2563FF"/>
+    <stop offset="100%" stop-color="#7C3AED"/>
+  </linearGradient>
+  <linearGradient id="godexGrad2" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#00D4FF"/>
+    <stop offset="55%" stop-color="#2563FF"/>
+    <stop offset="100%" stop-color="#B36BFF"/>
+  </linearGradient>
+  <filter id="softGlow" x="-25%" y="-25%" width="150%" height="150%">
+    <feGaussianBlur stdDeviation="2.2" result="coloredBlur"/>
+    <feMerge>
+      <feMergeNode in="coloredBlur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+</defs>
+
+
+<g transform="translate(125,48)">
+
+<g fill="none" stroke="url(#godexGrad)" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M178 38 L137 62 Q130 66 130 76 L130 180 Q130 190 137 194 L178 218" stroke-width="14"/>
+  <path d="M242 38 L283 62 Q290 66 290 76 L290 180 Q290 190 283 194 L242 218" stroke-width="14"/>
+  <path d="M173 88 L247 168" stroke-width="17"/>
+  <path d="M247 88 L173 168" stroke-width="17"/>
+</g>
+<g fill="none" stroke="url(#godexGrad)" stroke-width="4" stroke-linecap="round" opacity="0.96">
+  <path d="M74 88 H130"/>
+  <path d="M96 128 H130" stroke-dasharray="6 8"/>
+  <path d="M74 168 H130"/>
+  <path d="M290 88 H346"/>
+  <path d="M290 128 H324" stroke-dasharray="6 8"/>
+  <path d="M290 168 H346"/>
+  <circle cx="70" cy="88" r="7"/>
+  <circle cx="70" cy="168" r="7"/>
+  <circle cx="350" cy="88" r="7"/>
+  <circle cx="350" cy="168" r="7"/>
+</g>
+<text x="16" y="140" font-family="Noto Sans Display, Noto Sans, DejaVu Sans, Arial, sans-serif" font-size="38" font-weight="800" fill="#2563FF">&lt;/&gt;</text>
+</g>
+<text x="72" y="410" font-family="Noto Sans Display, Noto Sans, DejaVu Sans, Arial, sans-serif" font-size="104" font-weight="900" letter-spacing="2"><tspan fill="#081126">Gode</tspan><tspan fill="url(#godexGrad2)">X</tspan></text>
+<text x="126" y="468" font-family="Noto Sans Display, Noto Sans, DejaVu Sans, Arial, sans-serif" font-size="21" font-weight="600" letter-spacing="4" fill="#64748B" textLength="348" lengthAdjust="spacingAndGlyphs">OPENAI-COMPATIBLE</text>
+<text x="102" y="506" font-family="Noto Sans Display, Noto Sans, DejaVu Sans, Arial, sans-serif" font-size="21" font-weight="600" letter-spacing="4" fill="#64748B" textLength="396" lengthAdjust="spacingAndGlyphs">RESPONSES API GATEWAY</text>
+</svg>

@@ -10,7 +10,24 @@ const config = defineConfig({
 	cleanUrls: true,
 	lastUpdated: true,
 	head: [
-		["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }],
+		["link", { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
+		[
+			"link",
+			{
+				rel: "apple-touch-icon",
+				sizes: "180x180",
+				href: "/apple-touch-icon.png",
+			},
+		],
+		[
+			"link",
+			{ rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32x32.png" },
+		],
+		[
+			"link",
+			{ rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16x16.png" },
+		],
+		["link", { rel: "manifest", href: "/site.webmanifest" }],
 	],
 	themeConfig: {
 		logo: "/logo.svg",
@@ -123,12 +140,12 @@ const config = defineConfig({
 	mermaid: {
 		theme: "dark",
 		themeVariables: {
-			primaryColor: "#2d333b",
-			primaryBorderColor: "#6d5dfc",
-			primaryTextColor: "#e6edf3",
-			lineColor: "#8b949e",
-			clusterBkg: "#161b22",
-			clusterBorder: "#30363d",
+			primaryColor: "#112240",
+			primaryBorderColor: "#2563FF",
+			primaryTextColor: "#F8FAFC",
+			lineColor: "#94A3B8",
+			clusterBkg: "#0B1220",
+			clusterBorder: "#1E3A5F",
 		},
 	},
 });

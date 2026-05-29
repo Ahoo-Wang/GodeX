@@ -1,27 +1,65 @@
 :root {
-	--vp-font-family-base: "Inter", -apple-system, BlinkMacSystemFont,
-		"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-	--vp-font-family-mono: "JetBrains Mono", "Fira Code", monospace;
+	/* GodeX brand tokens from design/assets/05-ui-theme-guide */
+	--vp-font-family-base: "Inter", ui-sans-serif, system-ui, -apple-system,
+		BlinkMacSystemFont, "Segoe UI", sans-serif;
+	--vp-font-family-mono: "JetBrains Mono", "SFMono-Regular", Consolas,
+		"Liberation Mono", Menlo, monospace;
 
-	--vp-c-brand-1: #6d5dfc;
-	--vp-c-brand-2: #7c6ff7;
-	--vp-c-brand-3: #5a4bd4;
+	--vp-c-brand-1: #2563ff;
+	--vp-c-brand-2: #3b7dff;
+	--vp-c-brand-3: #7c3aed;
+	--vp-c-brand-dimm: rgba(37, 99, 255, 0.08);
 
-	--vp-c-bg: #0d1117;
-	--vp-c-bg-soft: #161b22;
-	--vp-c-bg-mute: #21262d;
-	--vp-c-bg-alt: #1c2128;
+	--vp-c-bg: #0b1220;
+	--vp-c-bg-soft: #112240;
+	--vp-c-bg-mute: #1a2d52;
+	--vp-c-bg-alt: #0f1a30;
 
-	--vp-c-text-1: #e6edf3;
-	--vp-c-text-2: #8b949e;
-	--vp-c-text-3: #6e7681;
+	--vp-c-text-1: #f8fafc;
+	--vp-c-text-2: #94a3b8;
+	--vp-c-text-3: #64748b;
 
-	--vp-c-border: #30363d;
-	--vp-c-divider: #21262d;
+	--vp-c-border: rgba(148, 163, 184, 0.18);
+	--vp-c-divider: rgba(148, 163, 184, 0.12);
 
-	--vp-c-tip-1: #6d5dfc;
-	--vp-c-tip-2: #7c6ff7;
-	--vp-c-tip-3: #5a4bd4;
+	--vp-c-tip-1: #2563ff;
+	--vp-c-tip-2: #3b7dff;
+	--vp-c-tip-3: #00d4ff;
+
+	--vp-button-brand-bg: #2563ff;
+	--vp-button-brand-text: #fff;
+	--vp-button-brand-hover-bg: linear-gradient(135deg, #00d4ff 0%, #2563ff 45%, #7c3aed 100%);
+	--vp-button-brand-hover-text: #fff;
+
+	--vp-home-hero-name-color: transparent;
+	--vp-home-hero-name-background: linear-gradient(135deg, #00d4ff 0%, #2563ff 45%, #7c3aed 100%);
+	--vp-home-hero-image-background-image: linear-gradient(
+		135deg,
+		rgba(0, 212, 255, 0.15) 10%,
+		rgba(37, 99, 255, 0.15) 50%,
+		rgba(124, 58, 237, 0.15) 100%
+	);
+	--vp-home-hero-image-filter: blur(44px);
+
+	/* Border radius from brand tokens */
+	--vp-radius-sm: 8px;
+	--vp-radius-md: 12px;
+	--vp-radius-lg: 20px;
+}
+
+/* Light mode overrides */
+html:not(.dark) {
+	--vp-c-bg: #f8fafc;
+	--vp-c-bg-soft: #ffffff;
+	--vp-c-bg-mute: #f1f5f9;
+	--vp-c-bg-alt: #ffffff;
+
+	--vp-c-text-1: #0f172a;
+	--vp-c-text-2: #64748b;
+	--vp-c-text-3: #94a3b8;
+
+	--vp-c-border: #e6ecf5;
+	--vp-c-divider: #e6ecf5;
 }
 
 .mermaid {
@@ -33,7 +71,7 @@
 .mermaid svg {
 	max-width: 100%;
 	cursor: zoom-in;
-	border-radius: 8px;
+	border-radius: 12px;
 }
 
 .medium-zoom-overlay {
@@ -64,4 +102,11 @@
 
 .vp-doc table tr:hover td {
 	background: var(--vp-c-bg-mute);
+}
+
+/* Hero image glow effect */
+.VPHero .image-bg {
+	background: var(--vp-home-hero-image-background-image) !important;
+	filter: var(--vp-home-hero-image-filter) !important;
+	opacity: 0.6;
 }
