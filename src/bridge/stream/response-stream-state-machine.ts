@@ -27,7 +27,7 @@ import {
 	type ProviderFunctionCall,
 	restoreToolCall,
 } from "../tools/call-restorer";
-import { ToolIdentityMap } from "../tools/tool-identity";
+import { type ToolIdentity, ToolIdentityMap } from "../tools/tool-identity";
 import type {
 	ProviderStreamError,
 	ProviderStreamFinishReason,
@@ -77,7 +77,9 @@ interface ToolCallBlock {
 	readonly outputIndex: number;
 	callId: string;
 	providerName: string;
+	providerType?: string;
 	arguments: string;
+	customInput: string;
 	done: boolean;
 }
 
@@ -197,6 +199,10 @@ export class ResponseStreamStateMachine {
 		this.assertNoPendingFinish("toolCall");
 
 		const block = this.ensureToolCallBlock(delta);
+		if (delta.id !== undefined) block.callId = delta.id;
+		if (delta.name !== undefined) block.providerName = delta.name;
+		if (delta.type !== undefined) block.providerType = delta.type;
+
 		const events: ResponseStreamEvent[] = [];
 		if (!this.output[block.outputIndex]) {
 			const item = toolCallItem(block, this.toolIdentities, "in_progress");
@@ -209,22 +215,38 @@ export class ResponseStreamStateMachine {
 			});
 		}
 
-		if (delta.id !== undefined) block.callId = delta.id;
-		if (delta.name !== undefined) block.providerName = delta.name;
 		if (delta.arguments !== undefined) {
 			block.arguments += delta.arguments;
+			const isCustomToolCall = isCustomToolCallBlock(
+				block,
+				this.toolIdentities,
+			);
+			const customInputDelta = isCustomToolCall
+				? refreshCustomInput(block)
+				: undefined;
 			this.output[block.outputIndex] = toolCallItem(
 				block,
 				this.toolIdentities,
 				"in_progress",
 			);
 			this.refreshSnapshot();
-			events.push({
-				type: "response.function_call_arguments.delta",
-				item_id: block.itemId,
-				output_index: block.outputIndex,
-				delta: delta.arguments,
-			});
+			if (isCustomToolCall) {
+				if (customInputDelta) {
+					events.push({
+						type: "response.custom_tool_call_input.delta",
+						item_id: block.itemId,
+						output_index: block.outputIndex,
+						delta: customInputDelta,
+					});
+				}
+			} else {
+				events.push({
+					type: "response.function_call_arguments.delta",
+					item_id: block.itemId,
+					output_index: block.outputIndex,
+					delta: delta.arguments,
+				});
+			}
 		}
 		return events;
 	}
@@ -394,7 +416,9 @@ export class ResponseStreamStateMachine {
 			outputIndex: this.output.length,
 			callId,
 			providerName: delta.name ?? `tool_${streamIndex}`,
+			providerType: delta.type,
 			arguments: "",
+			customInput: "",
 			done: false,
 		};
 		this.activeToolCalls.set(streamIndex, block);
@@ -505,18 +529,16 @@ export class ResponseStreamStateMachine {
 			);
 		}
 		block.done = true;
+		if (isCustomToolCallBlock(block, this.toolIdentities)) {
+			refreshCustomInput(block);
+		}
 		const completedItem = toolCallItem(block, this.toolIdentities, "completed");
 		this.output[block.outputIndex] = completedItem;
 		this.activeToolCalls.delete(block.streamIndex);
 		this.refreshSnapshot();
 
 		return [
-			{
-				type: "response.function_call_arguments.done",
-				item_id: block.itemId,
-				output_index: block.outputIndex,
-				arguments: block.arguments,
-			} as ResponseStreamEvent,
+			toolCallArgumentsDoneEvent(block, completedItem),
 			{
 				type: "response.output_item.done",
 				output_index: block.outputIndex,
@@ -606,6 +628,27 @@ function toolCallItem(
 	identities: ToolIdentityMap,
 	status: "in_progress" | "completed",
 ): ResponseItem {
+	if (isCustomToolCallBlock(block, identities)) {
+		const input = customInputFromProviderArguments(block.arguments);
+		if (input === undefined && status === "completed") {
+			return {
+				id: block.itemId,
+				type: "function_call",
+				call_id: block.callId,
+				name: customToolName(block, identities),
+				arguments: block.arguments,
+				status,
+			};
+		}
+		return {
+			id: block.itemId,
+			type: "custom_tool_call",
+			call_id: block.callId,
+			name: customToolName(block, identities),
+			input: input ?? block.customInput,
+			status,
+		};
+	}
 	const item = restoreToolCall(providerFunctionCall(block), identities);
 	if (item.type === "function_call") {
 		return { ...item, id: block.itemId, status };
@@ -619,7 +662,80 @@ function toolCallItem(
 	if (item.type === "apply_patch_call") {
 		return { ...item, id: block.itemId, status };
 	}
+	if (item.type === "custom_tool_call") {
+		return { ...item, id: block.itemId, status };
+	}
 	return item;
+}
+
+function toolCallArgumentsDoneEvent(
+	block: ToolCallBlock,
+	item: ResponseItem,
+): ResponseStreamEvent {
+	if (item.type === "custom_tool_call") {
+		return {
+			type: "response.custom_tool_call_input.done",
+			item_id: block.itemId,
+			output_index: block.outputIndex,
+			input: item.input,
+		};
+	}
+	return {
+		type: "response.function_call_arguments.done",
+		item_id: block.itemId,
+		output_index: block.outputIndex,
+		arguments: block.arguments,
+	};
+}
+
+function refreshCustomInput(block: ToolCallBlock): string | undefined {
+	const input = customInputFromProviderArguments(block.arguments);
+	if (input === undefined) return undefined;
+
+	const previousInput = block.customInput;
+	block.customInput = input;
+	return input.startsWith(previousInput)
+		? input.slice(previousInput.length)
+		: input;
+}
+
+function customInputFromProviderArguments(
+	argumentsValue: string,
+): string | undefined {
+	try {
+		const parsed = JSON.parse(argumentsValue);
+		return isRecord(parsed) && typeof parsed.input === "string"
+			? parsed.input
+			: undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+function isCustomToolCallBlock(
+	block: ToolCallBlock,
+	identities: ToolIdentityMap,
+): boolean {
+	return (
+		customToolIdentity(block, identities)?.requestedType === "custom" ||
+		block.providerType === "custom"
+	);
+}
+
+function customToolName(
+	block: ToolCallBlock,
+	identities: ToolIdentityMap,
+): string {
+	return (
+		customToolIdentity(block, identities)?.requestedName ?? block.providerName
+	);
+}
+
+function customToolIdentity(
+	block: ToolCallBlock,
+	identities: ToolIdentityMap,
+): ToolIdentity | undefined {
+	return identities.get(block.providerName);
 }
 
 function providerFunctionCall(block: ToolCallBlock): ProviderFunctionCall {
@@ -628,6 +744,10 @@ function providerFunctionCall(block: ToolCallBlock): ProviderFunctionCall {
 		name: block.providerName,
 		arguments: block.arguments,
 	};
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function normalizeError(error: ProviderStreamError): ResponseError {

@@ -340,6 +340,202 @@ describe("mapProviderDeltasToEvents", () => {
 		]);
 	});
 
+	test("streams downgraded custom tool calls with custom input events", () => {
+		const identities = new ToolIdentityMap();
+		identities.add({
+			requestedName: "raw.exec",
+			providerName: "raw_exec",
+			requestedType: "custom",
+			providerType: "function",
+		});
+
+		const events = mapProviderDeltasToEvents({
+			machine: machine(identities),
+			deltas: [
+				{
+					toolCall: {
+						index: 0,
+						id: "call_1",
+						name: "raw_exec",
+						arguments: '{"input":"src',
+					},
+				},
+				{ toolCall: { index: 0, arguments: '/index.ts"}' } },
+				{ finishReason: "tool_calls" },
+			],
+		});
+
+		expect(events.map((event) => event.type)).toEqual([
+			"response.created",
+			"response.in_progress",
+			"response.output_item.added",
+			"response.custom_tool_call_input.delta",
+			"response.custom_tool_call_input.done",
+			"response.output_item.done",
+			"response.completed",
+		]);
+		expect(events[2]?.item).toMatchObject({
+			id: "call_1",
+			type: "custom_tool_call",
+			call_id: "call_1",
+			name: "raw.exec",
+			input: "",
+			status: "in_progress",
+		});
+		expect(
+			events.find(
+				(event) => event.type === "response.function_call_arguments.delta",
+			),
+		).toBeUndefined();
+		expect(
+			events.find(
+				(event) => event.type === "response.function_call_arguments.done",
+			),
+		).toBeUndefined();
+		expect(events[3]).toMatchObject({
+			item_id: "call_1",
+			output_index: 0,
+			delta: "src/index.ts",
+		});
+		expect(events[4]).toMatchObject({
+			item_id: "call_1",
+			output_index: 0,
+			input: "src/index.ts",
+		});
+		expect(events.at(-2)?.item).toMatchObject({
+			id: "call_1",
+			type: "custom_tool_call",
+			call_id: "call_1",
+			name: "raw.exec",
+			input: "src/index.ts",
+			status: "completed",
+		});
+		expect(events.at(-1)?.response?.output).toEqual([
+			expect.objectContaining({
+				id: "call_1",
+				type: "custom_tool_call",
+				call_id: "call_1",
+				name: "raw.exec",
+				input: "src/index.ts",
+				status: "completed",
+			}),
+		]);
+	});
+
+	test("falls back to function call when custom stream arguments omit input", () => {
+		const identities = new ToolIdentityMap();
+		identities.add({
+			requestedName: "raw.exec",
+			providerName: "raw_exec",
+			requestedType: "custom",
+			providerType: "function",
+		});
+
+		const events = mapProviderDeltasToEvents({
+			machine: machine(identities),
+			deltas: [
+				{
+					toolCall: {
+						index: 0,
+						id: "call_1",
+						name: "raw_exec",
+						arguments: '{"foo":"bar"}',
+					},
+				},
+				{ finishReason: "tool_calls" },
+			],
+		});
+
+		expect(events).not.toContainEqual(
+			expect.objectContaining({
+				type: "response.custom_tool_call_input.done",
+				input: "",
+			}),
+		);
+		expect(events).toContainEqual(
+			expect.objectContaining({
+				type: "response.function_call_arguments.done",
+				item_id: "call_1",
+				arguments: '{"foo":"bar"}',
+			}),
+		);
+		expect(events.at(-2)?.item).toMatchObject({
+			id: "call_1",
+			type: "function_call",
+			call_id: "call_1",
+			name: "raw.exec",
+			arguments: '{"foo":"bar"}',
+			status: "completed",
+		});
+		expect(events.at(-1)?.response?.output).toEqual([
+			expect.objectContaining({
+				id: "call_1",
+				type: "function_call",
+				call_id: "call_1",
+				name: "raw.exec",
+				arguments: '{"foo":"bar"}',
+				status: "completed",
+			}),
+		]);
+	});
+
+	test("falls back to function call when custom stream arguments are malformed", () => {
+		const identities = new ToolIdentityMap();
+		identities.add({
+			requestedName: "raw.exec",
+			providerName: "raw_exec",
+			requestedType: "custom",
+			providerType: "function",
+		});
+
+		const events = mapProviderDeltasToEvents({
+			machine: machine(identities),
+			deltas: [
+				{
+					toolCall: {
+						index: 0,
+						id: "call_1",
+						name: "raw_exec",
+						arguments: '{"input":',
+					},
+				},
+				{ finishReason: "tool_calls" },
+			],
+		});
+
+		expect(events).not.toContainEqual(
+			expect.objectContaining({
+				type: "response.custom_tool_call_input.done",
+				input: "",
+			}),
+		);
+		expect(events).toContainEqual(
+			expect.objectContaining({
+				type: "response.function_call_arguments.done",
+				item_id: "call_1",
+				arguments: '{"input":',
+			}),
+		);
+		expect(events.at(-2)?.item).toMatchObject({
+			id: "call_1",
+			type: "function_call",
+			call_id: "call_1",
+			name: "raw.exec",
+			arguments: '{"input":',
+			status: "completed",
+		});
+		expect(events.at(-1)?.response?.output).toEqual([
+			expect.objectContaining({
+				id: "call_1",
+				type: "function_call",
+				call_id: "call_1",
+				name: "raw.exec",
+				arguments: '{"input":',
+				status: "completed",
+			}),
+		]);
+	});
+
 	test("keeps stream tool call item id stable when provider id arrives later", () => {
 		const events = mapProviderDeltasToEvents({
 			machine: machine(),

@@ -62,6 +62,8 @@ export interface ResponseStreamEvent {
 	content_index?: number;
 	output_index?: number;
 	delta?: string;
+	arguments?: string;
+	input?: string;
 	text?: string;
 	refusal?: string;
 	logprobs?: ResponseTokenLogprob[];

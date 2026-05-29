@@ -248,6 +248,7 @@ export interface CustomToolCall {
 	input: string;
 	name: string;
 	namespace?: string;
+	status?: ItemStatus;
 }
 
 export interface CustomToolCallOutput {
