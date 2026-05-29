@@ -4,11 +4,16 @@ FROM --platform=$BUILDPLATFORM oven/bun:1.3.14 AS build
 
 ARG TARGETARCH
 
+ARG VERSION=0.0.0
+
 WORKDIR /app
 
 # Install dependencies first (layer cache)
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --ignore-scripts
+
+# Inject release version into package.json
+RUN sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" package.json
 
 # Copy source and compile
 COPY src/ src/
