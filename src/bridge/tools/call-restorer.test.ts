@@ -55,6 +55,32 @@ describe("restoreToolCall", () => {
 		});
 	});
 
+	test("restores downgraded custom provider calls", () => {
+		const identities = new ToolIdentityMap();
+		identities.add({
+			requestedName: "read-file",
+			providerName: "read-file",
+			requestedType: "custom",
+			providerType: "function",
+		});
+
+		const item = restoreToolCall(
+			{
+				callId: "call_custom",
+				name: "read-file",
+				arguments: JSON.stringify({ input: "src/index.ts" }),
+			},
+			identities,
+		);
+
+		expect(item).toEqual({
+			type: "custom_tool_call",
+			call_id: "call_custom",
+			name: "read-file",
+			input: "src/index.ts",
+		});
+	});
+
 	test("falls back to function_call for invalid local_shell arguments", () => {
 		const identities = new ToolIdentityMap();
 		identities.add({

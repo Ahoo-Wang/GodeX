@@ -1,5 +1,6 @@
 import type {
 	ApplyPatchOperation,
+	CustomToolCall,
 	LocalShellCall,
 	ResponseItem,
 	ShellCall,
@@ -30,6 +31,12 @@ export function restoreToolCall(
 	if (identity?.requestedType === "apply_patch") {
 		return (
 			applyPatchCall(call) ?? fallbackFunctionCall(call, identity.requestedName)
+		);
+	}
+	if (identity?.requestedType === "custom") {
+		return (
+			customToolCall(call, identity.requestedName) ??
+			fallbackFunctionCall(call, identity.requestedName)
 		);
 	}
 	return fallbackFunctionCall(call, identity?.requestedName ?? call.name);
@@ -101,6 +108,21 @@ function applyPatchCall(call: ProviderFunctionCall): ResponseItem | null {
 		call_id: call.callId,
 		operation: parsed.operation,
 		status: "in_progress",
+	};
+}
+
+function customToolCall(
+	call: ProviderFunctionCall,
+	name: string,
+): CustomToolCall | null {
+	const parsed = parsedRecord(call.arguments);
+	const input = optionalString(parsed?.input);
+	if (input === undefined) return null;
+	return {
+		type: "custom_tool_call",
+		call_id: call.callId,
+		name,
+		input,
 	};
 }
 
