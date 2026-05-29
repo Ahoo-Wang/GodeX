@@ -1,194 +1,228 @@
-# AGENTS.md — GodeX
+# AGENTS.md - GodeX
 
-AI coding agent instructions for the GodeX project.
+Coding-agent instructions for the GodeX repository.
 
-## Build & Run Commands
+## Build And Run
 
 ```bash
 bun install                  # Install dependencies
-bun run dev                  # Dev server with hot reload (port 13145)
-bun run start                # Start server without hot reload
-bun run build                # Build standalone binary for current platform
-bun run compile:all          # Cross-compile all 6 platforms
+bun run dev                  # Dev server with hot reload on port 13145
+bun run start                # Start server from source
+bun run build                # Build a binary for the current platform
+bun run compile:all          # Cross-compile all supported platform packages
+godex init                   # Create a godex.yaml interactively
+godex serve --config ./godex.yaml
+godex config check --config ./godex.yaml
+godex config print --config ./godex.yaml
 ```
+
+The runtime config default port is `5678`; `bun run dev` explicitly uses port `13145`.
 
 ## Testing
 
 ```bash
-bun test <pattern>           # Run specific test(s)
-bun run test                 # Unit + integration tests (excludes src/e2e)
-bun run test:e2e             # E2E tests with mocked upstream
-bun run test:zhipu           # Live Zhipu integration (needs ZHIPU_API_KEY + ZHIPU_LIVE_TESTS=1)
-bun run test:coverage        # Tests with coverage
-```
-
-## Code Quality
-
-```bash
 bun run typecheck            # tsc --noEmit
-bun run lint                 # Biome check
-bun run lint:fix             # Biome auto-fix
-bun run format               # Biome format
+bun run lint                 # biome check src
+bun run lint:fix             # biome check --write src
+bun run format               # biome format --write src
+bun run test                 # Unit + integration tests; excludes src/e2e
+bun test src/bridge/tools/tool-plan.test.ts
+bun run test:e2e             # Mocked upstream E2E tests
+bun run test:zhipu           # Live Zhipu tests; needs ZHIPU_API_KEY
+bun run test:coverage        # Coverage for non-e2e tests
 bun run check                # typecheck + lint + test
-bun run ci                   # Full CI: typecheck + biome ci + test + e2e
+bun run ci                   # typecheck + biome ci + test + e2e
 ```
+
+Run `bun run check` before committing code. Run `bun run test:e2e` when request routing, providers, sessions, traces, or stream behavior changes.
 
 ## Project Structure
 
-```
+```text
 src/
-├── cli/              Commander CLI (serve, config, init)
-├── config/           godex.yaml schema, env interpolation, defaults
-├── context/          ApplicationContext (DI), ResponsesContext (per-request)
-├── bridge/           Provider-agnostic Responses→Chat bridge planning
-│   ├── compatibility/  CompatibilityPlan diagnostics and response-format planning
-│   ├── tools/          Tool/tool_choice support, downgrade, and rejection planning
-│   ├── output/         Output-format contract and strict JSON validation
-│   ├── request/        Responses/session input → Chat Completions request
-│   ├── response/       Chat Completions response → ResponseObject
-│   └── stream/         Provider delta → Responses SSE state machine
-├── adapter/          Adapter interface, DefaultAdapter, stream transformers
-│   ├── provider-exchange.ts  Builds provider requests and calls ProviderEdge
-│   ├── sync-request-pipeline.ts  Sync orchestration, validation, session save
-│   ├── stream-pipeline.ts  Stream orchestration and state machine wiring
-│   └── transformers/ ProviderEvent→Response→SSE encode pipeline
-├── providers/        Provider registry + factories
-│   ├── registrar.ts  Registrar (factory registration + provider resolution)
-│   ├── builtin.ts    createBuiltinRegistrar() wiring
-│   ├── shared/       Shared provider protocol utilities
-│   │   ├── chat-provider-client.ts    ChatProviderClient (HTTP boundary)
-│   │   ├── chat-api.ts               Fetcher-based ChatApi factory
-│   │   ├── response-message-payloads.ts  Input item → message conversion, shared responseItemToMessage
-│   │   └── stream-result-extractor.ts    SSE JSON parsing
-│   ├── deepseek/     ProviderSpec + client + hooks + protocol types
-│   └── zhipu/        ProviderSpec + client + hooks + protocol types
-├── resolver/         ModelResolver (model selector → provider + model)
-├── server/           Bun HTTP server, routes (/v1/responses, /health, /v1/models)
-├── session/          ResponseSessionStore (Memory + SQLite), chain resolution
-├── error/            GodeXError hierarchy with domain codes
-├── protocol/openai/  OpenAI Responses API type definitions
-├── logger/           Structured JSON logger
-└── e2e/              End-to-end tests with mocked upstream
+  cli/          Commander CLI, commands, init wizard, runtime config
+  config/       godex.yaml parsing, defaults, validation, env interpolation
+  context/      ApplicationContext and request-scoped ResponsesContext
+  bridge/       Provider-agnostic Responses-to-Chat kernel
+  providers/    Provider registry, specs, clients, hooks, protocol DTOs
+  responses/    Sync and streaming orchestration pipelines
+  server/       Bun routes: /health, /v1/models, /v1/responses
+  resolver/     Model selector and alias resolution
+  session/      Memory and SQLite previous_response_id stores
+  trace/        SQLite trace records for requests, usage, events, errors
+  logger/       LogTape-based structured logging
+  error/        GodeXError hierarchy and domain codes
+  protocol/     OpenAI protocol type definitions
+  tools/        Codex built-in tool definitions
+  testing/      Shared test provider utilities
 ```
+
+Generated or external directories such as `node_modules/`, `dist/`, and platform build output should not be edited by hand.
+
+## Runtime Flow
+
+```text
+CLI
+  -> ApplicationContext
+  -> Bun server
+  -> POST /v1/responses
+  -> parse request
+  -> create ResponsesContext
+  -> ModelResolver
+  -> ResponseSessionStore chain lookup
+  -> Registrar resolves ProviderEdge
+  -> ResponsesBridgeRuntime
+  -> ProviderExchange builds provider request
+  -> ProviderEdge calls upstream Chat Completions API
+  -> bridge/response or bridge/stream reconstructs Responses output
+  -> trace, logging, session persistence
+```
+
+`/v1/responses` is the main compatibility endpoint. `/v1/models` exposes configured model aliases. `/health` reports registered and unsupported providers.
+
+## Bridge Kernel
+
+`src/bridge/` owns shared Responses-to-Chat behavior. Keep provider-agnostic policy here.
+
+- `compatibility/` plans supported, degraded, ignored, and rejected request features.
+- `request/` normalizes Responses input and session history into Chat Completions messages.
+- `tools/` plans tool declarations, `tool_choice`, degradation, identity mapping, and call restoration.
+- `output/` plans structured-output contracts and validates strict downgraded JSON output.
+- `response/` reconstructs sync `ResponseObject` results from provider responses.
+- `stream/` maps provider deltas into Responses SSE events through a state machine.
+- `provider-spec/` defines `ProviderSpec`, `ProviderEdge`, provider constants, and package shape checks.
+- `finish-reason/` maps provider finish reasons to Responses terminal states.
+
+Do not duplicate compatibility decisions in provider hooks. Provider hooks should expose protocol differences; the bridge decides support, downgrade, rejection, and diagnostics.
+
+## Responses Pipelines
+
+`src/responses/` owns orchestration around the bridge kernel.
+
+- `ProviderExchange` builds provider requests, records trace request/event rows, and calls `ProviderEdge`.
+- `SyncRequestPipeline` reconstructs the final `ResponseObject`, validates output contracts, records usage, logs diagnostics, and persists sessions.
+- `StreamPipeline` translates provider SSE chunks to Responses SSE events, validates terminal output, logs usage, persists sessions, records trace events, and emits compatibility diagnostics.
+- `stream-transforms/` contains composable `TransformStream` stages.
+
+The stream pipeline order matters: provider events are bridged first, output contracts are validated before logging and persistence, then SSE encoding happens in the server route.
+
+## Provider Pattern
+
+Each built-in provider uses a compact ProviderSpec package:
+
+```text
+src/providers/<name>/
+  spec.ts       Capabilities, endpoint, auth, tool codec, accessors, hooks
+  client.ts     create<Name>ProviderEdge(config)
+  hooks.ts      Provider-specific request patching, usage, finish reason, stream deltas
+  protocol/     Provider-specific Chat Completions DTOs
+  index.ts      Barrel exports
+```
+
+Shared provider utilities belong in `src/providers/shared/`.
+
+When adding or changing a provider:
+
+- Declare capabilities in `spec.ts`.
+- Use `CHAT_COMPLETIONS_PROTOCOL` and `BEARER_AUTH` from `src/bridge/provider-spec`.
+- Use `ChatProviderClient` for HTTP calls unless there is a clear provider-specific transport reason.
+- Add or update provider conformance tests.
+- Keep provider-specific DTOs under `protocol/`.
+- Do not add mapper forests or wrapper contracts.
+
+Built-in runtime providers are currently registered in `deepseek`, then `zhipu` order. `src/providers/example` is a spec example, not a runtime provider.
+
+## Configuration
+
+`godex.yaml` is parsed into `GodeXConfig`.
+
+Important sections:
+
+- `server.port`, `server.host`, `server.idle_timeout`
+- `default_provider`
+- `models.aliases`, where values must be `provider/model`
+- `providers.<name>.spec`
+- `providers.<name>.credentials.api_key`
+- `providers.<name>.endpoint.base_url`
+- `providers.<name>.timeout_ms`
+- `session.backend`, either `memory` or `sqlite`
+- `logging.level`, plus optional console/file logging
+- `trace.enabled`, `trace.path`, queue/batch settings, and payload capture
+
+Environment interpolation supports values such as `${DEEPSEEK_API_KEY}` and `${ZHIPU_API_KEY}` in config files. CLI overrides include `--port`, `--host`, `--config`, and `--log-level`.
+
+Legacy provider config without `spec` is intentionally rejected.
+
+## Sessions And Trace
+
+Sessions:
+
+- `previous_response_id` is a parent pointer, not a mutable conversation cursor.
+- Session chain resolution detects missing parents, cycles, depth overflow, and incomplete responses.
+- `store: false` skips persistence for the current turn.
+- Session stores must keep API-shaped snapshots; provider-specific chat conversion belongs in the bridge.
+
+Trace:
+
+- Trace is enabled by default and stores rows in SQLite.
+- Request, usage, event, and error records share request/response/provider/model metadata.
+- Payload capture is summarized by default; `trace.capture_payload: true` stores payload JSON up to the configured byte limit.
+- Treat captured payloads as sensitive.
+
+## Error Handling
+
+Use the `GodeXError` hierarchy from `src/error/`:
+
+- `ServerError` for route/request/config validation
+- `BridgeError` for Responses-to-Chat compatibility and reconstruction errors
+- `ProviderError` for upstream HTTP/fetch failures
+- `SessionError` for session chain and persistence errors
+
+Use domain codes from `src/error/codes.ts`. Adapter, provider, bridge, and server code should not throw raw `Error` for expected runtime failures.
 
 ## Code Style
 
-- **Language**: TypeScript (strict mode), ESNext target
-- **Runtime**: Bun (uses Bun.serve, bun:sqlite, bun test runner)
-- **Formatter**: Biome with tab indentation
-- **Linter**: Biome with recommended rules
-- **Imports**: ESM (`"type": "module"`), `verbatimModuleSyntax`
-- **Naming**: camelCase for variables/functions, PascalCase for classes/interfaces/types
-- **Error handling**: Use the GodeXError hierarchy (ServerError, AdapterError, ProviderError, SessionError) with domain codes from `src/error/codes.ts`. Never throw raw `Error` in adapter/provider code.
-- **No comments** unless explaining WHY (not WHAT)
-
-## Architecture
-
-GodeX translates OpenAI Responses API requests into upstream Chat Completions API calls. If an upstream already supports the Responses API natively, it should not be configured as a GodeX provider.
-
-Request flow: CLI → ApplicationContext → Bun HTTP server → POST /v1/responses → ResponsesContext.create() → ModelResolver → Session chain → Registrar → DefaultAdapter → ProviderExchange → ProviderEdge → Upstream
-
-### Key Abstractions
-
-- **`ProviderSpec`** (`src/bridge/provider-spec/contract.ts`): Declarative provider capability, endpoint, tool-name codec, response accessor, stream delta accessor, and optional hooks.
-- **`ProviderEdge`** (`src/bridge/provider-spec/contract.ts`): Runtime edge with `request()` and `stream()` for one provider.
-- **`ChatProviderClient`** (`src/providers/shared/chat-provider-client.ts`): Fetcher-based HTTP boundary to upstream Chat Completions APIs.
-- **`Adapter`** (`src/adapter/adapter.ts`): Orchestrates sync/stream pipelines, session persistence, and stream transforms.
-- **`ModelResolver`** (`src/resolver/index.ts`): Parses `model` selectors (`"provider/model"` or bare `"model"` using default_provider) and applies per-provider model name mappings.
-- **`Registrar`** (`src/providers/registrar.ts`): Registry of `ProviderFactory` functions. Built once, resolves provider instances for each request.
-- **`ResponsesContext`** (`src/context/responses-context.ts`): Per-request context carrying the parsed body, resolved model, selected provider, session snapshot, and a scoped logger.
-- **`bridge/*`** (`src/bridge/`): Provider-agnostic planning kernel for compatibility diagnostics, tool/tool_choice downgrade decisions, and output-format validation.
-
-### Bridge Kernel Architecture
-
-The adapter no longer exposes mapper wrapper contracts. Shared behavior is centralized in focused bridge modules:
-
-- `bridge/compatibility` plans supported, degraded, ignored, or rejected request capabilities.
-- `bridge/tools` plans tool declarations, `tool_choice`, degradation, identity mapping, and call restoration.
-- `bridge/output` owns output-format contracts, including strict downgraded JSON validation.
-- `bridge/request` assembles Chat Completions requests from current input plus GodeX-owned session history.
-- `bridge/response` reconstructs sync `ResponseObject` results from provider accessors.
-- `bridge/stream` owns the Responses SSE lifecycle state machine.
-
-### Compatibility Negotiation
-
-Each provider declares a `ProviderCapabilities` (supported parameters, tools, tool choices, response formats, reasoning mode, streaming features). The bridge layer turns those capabilities into a `CompatibilityPlan`, `ToolPlan`, output-format contract, and diagnostics. Provider hooks/accessors expose raw protocol differences; they should not silently re-decide shared compatibility policy.
-
-### Provider Implementation Pattern
-
-Each provider follows this structure under `src/providers/<name>/`:
-
-```
-provider/
-├── spec.ts             # ProviderSpec: capabilities, endpoint, accessors, hooks
-├── client.ts           # createXxxProviderEdge(config) using ChatProviderClient
-├── hooks.ts            # Provider-specific accessors, usage, stream deltas, patches
-├── index.ts            # Barrel re-export
-└── protocol/           # Provider-specific Chat Completions types when needed
-```
-
-### Stream Pipeline
-
-Streams use `TransformStream` via `pipeTransform()` (`src/adapter/transformers/stream-utils.ts`):
-
-1. **Provider event translation in `StreamPipeline`** — provider SSE data → bridge stream deltas → Responses SSE state machine
-2. **`ResponseOutputContractValidationTransformer`** — validates terminal output contracts and rewrites invalid strict downgraded JSON to `response.failed`
-3. **`ResponseLogTransformer`** — records usage and completion diagnostics
-4. **`ResponseSessionPersistenceTransformer`** — intercepts terminal events and saves session
-5. **`CompatibilityLogTransformer`** — emits compatibility diagnostics once per stream
-6. **`ResponseSseEncodeTransformer`** — serializes ResponseStreamEvent to SSE byte stream
-
-### Session Storage
-
-`src/session/` implements `ResponseSessionStore` with two backends:
-- `MemoryResponseSessionStore` — in-memory Map
-- `SQLiteResponseSessionStore` — Bun's built-in SQLite
-
-Sessions track `previous_response_id` chains for multi-turn conversations. Chain resolution handles cycle detection, depth limits, and status filtering.
-
-### Error Hierarchy
-
-`src/error/` — all errors extend `GodeXError` with domain/code/status/context:
-- `ServerError` (4xx) — request validation, missing model, unknown provider
-- `AdapterError` — unsupported parameters, tools, or input items
-- `ProviderError` — upstream HTTP errors (rate limits, timeouts, 5xx)
-- `SessionError` — chain not found, cycles, depth exceeded, conflicts
-
-### Configuration
-
-`godex.yaml` → `GodeXConfig` type (`src/config/schema.ts`). Environment variable interpolation via `${ENV_VAR}` syntax. Dev mode (when `godex.yaml` exists in cwd or `NODE_ENV=development`) changes default paths to local instead of `~/.godex/`.
-
-### Testing
-
-Tests use Bun's built-in test runner. E2E tests in `src/e2e/` mock upstream via Fetcher's decorator-based HTTP client pattern. Live Zhipu tests require `ZHIPU_API_KEY` and are gated behind `ZHIPU_LIVE_TESTS=1`. CI only runs live Zhipu tests on push to main (not PRs).
-
-Provider conformance tests in `src/providers/provider-conformance.test.ts` validate that every built-in provider exposes a valid `ProviderSpec` and `ProviderEdge`.
+- TypeScript strict mode, ESNext target, ESM modules.
+- `verbatimModuleSyntax` is enabled; use `import type` for types.
+- Biome controls formatting and linting; tabs are the expected indentation style.
+- Tests use Bun's built-in test runner and are usually colocated as `*.test.ts`.
+- Use camelCase for variables/functions and PascalCase for classes/interfaces/types.
+- Prefer small focused modules and explicit data boundaries over broad utility buckets.
+- Add comments only when they explain why a non-obvious decision exists.
 
 ## Git Workflow
 
-- Main branch: `main`
-- CI runs on push to main and PRs to main
-- Live Zhipu tests only on push to main (not PRs)
+- Main branch: `main`.
+- PRs target `main`.
+- CI runs typecheck, Biome, unit/integration tests, mocked E2E, coverage, and native binary compilation.
+- Live Zhipu tests run only on push to `main` when `ZHIPU_API_KEY` is configured.
+- PR titles should use concise conventional style such as `fix: ...`, `feat: ...`, `docs: ...`, or `refactor: ...`.
 
 ## Boundaries
 
-✅ Always:
-- Run `bun run check` before committing
-- Use Bun APIs (Bun.serve, bun:sqlite) over Node equivalents
-- Follow the existing error hierarchy pattern — use domain error codes from `src/error/codes.ts`
-- Write tests for new functionality
-- Use the `@ahoo-wang/fetcher` ecosystem for HTTP clients
-- Keep shared Responses→Chat policy in `src/bridge/`
+Always:
 
-⚠️ Ask first:
-- Adding new provider implementations
-- Modifying the Adapter, `ProviderSpec`, or `ProviderEdge` contracts
-- Changing the config schema
-- Modifying stream pipeline transformers
+- Run `bun run check` before commits that change source or tests.
+- Run `bun run test:e2e` for route, provider, session, stream, trace, or CLI runtime behavior changes.
+- Keep shared Responses-to-Chat policy in `src/bridge`.
+- Keep orchestration in `src/responses`.
+- Keep provider-specific quirks in provider `hooks.ts` or protocol DTOs.
+- Add tests for behavior changes.
 
-🚫 Never:
-- Bypass the GodeXError hierarchy with raw `Error` throws in adapter/provider code
-- Use Node.js-specific APIs when Bun equivalents exist
-- Add external test frameworks (use Bun's built-in test runner)
-- Recreate `src/adapter/mapper/` or `src/adapter/provider.ts`
-- Duplicate bridge decisions between providers without extracting to `src/bridge/`
+Ask first:
+
+- Adding a new provider implementation.
+- Changing `ProviderSpec` or `ProviderEdge` contracts.
+- Changing `GodeXConfig` schema.
+- Reordering stream pipeline transformers.
+- Changing trace payload retention semantics.
+- Adding runtime dependencies.
+
+Never:
+
+- Recreate `src/adapter/mapper`, `src/adapter/provider.ts`, or provider-specific mapper forests.
+- Duplicate compatibility decisions across providers.
+- Bypass the `GodeXError` hierarchy for expected failures.
+- Commit secrets, API keys, local trace databases, or session databases.
+- Hand-edit generated build output.
+- Add another test framework.

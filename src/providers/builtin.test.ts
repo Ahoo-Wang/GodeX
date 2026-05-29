@@ -8,21 +8,21 @@ describe("createBuiltinRegistrar", () => {
 		const registrar = createBuiltinRegistrar();
 
 		registrar.registerProviders({
-			[ZHIPU_PROVIDER_NAME]: {
-				spec: ZHIPU_PROVIDER_NAME,
-				credentials: { api_key: "zhipu-key" },
-				endpoint: { base_url: "https://zhipu.example.test" },
-			},
 			[DEEPSEEK_PROVIDER_NAME]: {
 				spec: DEEPSEEK_PROVIDER_NAME,
 				credentials: { api_key: "deepseek-key" },
 				endpoint: { base_url: "https://deepseek.example.test" },
 			},
+			[ZHIPU_PROVIDER_NAME]: {
+				spec: ZHIPU_PROVIDER_NAME,
+				credentials: { api_key: "zhipu-key" },
+				endpoint: { base_url: "https://zhipu.example.test" },
+			},
 		});
 
 		expect(registrar.list()).toEqual([
-			ZHIPU_PROVIDER_NAME,
 			DEEPSEEK_PROVIDER_NAME,
+			ZHIPU_PROVIDER_NAME,
 		]);
 		expect(registrar.resolve(DEEPSEEK_PROVIDER_NAME).name).toBe(
 			DEEPSEEK_PROVIDER_NAME,
