@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { CompatibilityDiagnostic } from "../../bridge/compatibility";
 import { planOutputContract } from "../../bridge/output";
-import { ensureOutputContractSlot } from "../../context/output-contract-slot";
+import { OutputContractSlot } from "../../context/output-contract-slot";
 import type { ResponsesContext } from "../../context/responses-context";
 import { BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT } from "../../error";
 import type {
@@ -39,13 +39,14 @@ function createContext(): ResponsesContext & {
 	const ctx = {
 		resolved: { provider: "deepseek", model: "deepseek-v4-flash" },
 		diagnostics,
+		outputContract: new OutputContractSlot(),
 		addDiagnostic(diagnostic: CompatibilityDiagnostic) {
 			diagnostics.push(diagnostic);
 		},
 	} as unknown as ResponsesContext & {
 		diagnostics: CompatibilityDiagnostic[];
 	};
-	ensureOutputContractSlot(ctx).set(
+	ctx.outputContract.set(
 		planOutputContract({
 			format: {
 				type: "json_schema",

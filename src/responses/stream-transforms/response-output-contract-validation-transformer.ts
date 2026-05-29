@@ -1,5 +1,4 @@
 import { SafeTransformer } from "@ahoo-wang/fetcher-eventstream";
-import { ensureOutputContractSlot } from "../../context/output-contract-slot";
 import type { ResponsesContext } from "../../context/responses-context";
 import type {
 	ResponseObject,
@@ -36,7 +35,7 @@ export class ResponseOutputContractValidationTransformer extends SafeTransformer
 		try {
 			validateResponseOutputContract(
 				this.ctx,
-				ensureOutputContractSlot(this.ctx).current(),
+				this.ctx.outputContract.current(),
 				response,
 			);
 			this.enqueue(controller, chunk);

@@ -1,5 +1,4 @@
 import { type OutputContractPlan, planOutputContract } from "../bridge/output";
-import type { ResponsesContext } from "./responses-context";
 
 export class OutputContractSlot {
 	#plan = planOutputContract({ format: undefined });
@@ -11,16 +10,4 @@ export class OutputContractSlot {
 	current(): OutputContractPlan {
 		return this.#plan;
 	}
-}
-
-export function ensureOutputContractSlot(
-	ctx: ResponsesContext,
-): OutputContractSlot {
-	const partial = ctx as ResponsesContext & {
-		outputContract?: OutputContractSlot;
-	};
-	if (!partial.outputContract) {
-		partial.outputContract = new OutputContractSlot();
-	}
-	return partial.outputContract;
 }

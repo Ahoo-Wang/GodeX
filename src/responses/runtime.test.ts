@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { ProviderEdge } from "../bridge/provider-spec";
+import { OutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type {
 	ResponseObject,
@@ -69,6 +70,7 @@ function createMockCtx(
 		diagnostics: [],
 		addDiagnostic() {},
 		attributes: new Map(),
+		outputContract: new OutputContractSlot(),
 		session: null,
 	} as unknown as ResponsesContext;
 }

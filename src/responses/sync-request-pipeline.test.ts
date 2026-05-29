@@ -9,7 +9,7 @@ import {
 	buildChatCompletionRequest,
 } from "../bridge/request";
 import type { ToolPlanningProfile } from "../bridge/tools";
-import { ensureOutputContractSlot } from "../context/output-contract-slot";
+import { OutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
@@ -91,6 +91,7 @@ function createMockCtx(
 			).diagnostics.push(diagnostic);
 		},
 		attributes: new Map(),
+		outputContract: new OutputContractSlot(),
 		session: null,
 		traceEvents,
 	} as unknown as ResponsesContext & { traceEvents: unknown[] };
@@ -101,7 +102,7 @@ function createExchangeResult(
 	providerResponse: TestChatResponse = completedTextResponse(),
 ): ProviderRequestExchangeResult {
 	const built = buildRequest(ctx);
-	ensureOutputContractSlot(ctx).set(built.output);
+	ctx.outputContract.set(built.output);
 	return { providerResponse, built };
 }
 

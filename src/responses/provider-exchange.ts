@@ -5,7 +5,6 @@ import {
 	buildChatCompletionRequest,
 } from "../bridge/request";
 import type { PlannedToolDecision, ToolPlanningProfile } from "../bridge/tools";
-import { ensureOutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import { recordTraceEvent, recordTraceRequest } from "../trace";
 
@@ -89,7 +88,7 @@ function buildProviderRequest(
 	)) {
 		ctx.addDiagnostic(diagnostic);
 	}
-	ensureOutputContractSlot(ctx).set(built.output);
+	ctx.outputContract.set(built.output);
 	return built;
 }
 

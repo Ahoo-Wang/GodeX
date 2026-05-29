@@ -156,9 +156,19 @@ describe("src module boundaries", () => {
 				"transformers",
 				"provider-event-to-response-transformer.ts",
 			].join("/"),
+			"providers/shared/response-message-payloads.ts",
 		].filter((path) => existsSync(join(SRC_ROOT, path)));
 
 		expect(forbidden).toEqual([]);
+	});
+
+	test("output contract slot is accessed as a ResponsesContext field", () => {
+		const source = readFileSync(
+			join(SRC_ROOT, "context", "output-contract-slot.ts"),
+			"utf-8",
+		);
+
+		expect(source).not.toContain("ensureOutputContractSlot");
 	});
 
 	test("bridge production modules do not import responses runtime context", () => {

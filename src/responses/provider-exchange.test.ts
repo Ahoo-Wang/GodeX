@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
 import type { CompatibilityDiagnostic } from "../bridge/compatibility";
 import type { ProviderEdge } from "../bridge/provider-spec";
+import { OutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import { createTestProviderEdge } from "../testing/provider-edge";
@@ -80,6 +81,7 @@ function createMockCtx(
 			).diagnostics.push(diagnostic);
 		},
 		attributes: new Map(),
+		outputContract: new OutputContractSlot(),
 		session: null,
 		traceEvents,
 	} as unknown as ResponsesContext & { traceEvents: unknown[] };

@@ -1,5 +1,4 @@
 import { reconstructResponseObject } from "../bridge/response";
-import { ensureOutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore } from "../session";
@@ -45,11 +44,7 @@ export class SyncRequestPipeline {
 			outputContract: built.output,
 			echo: responseRequestEchoFields(ctx),
 		});
-		validateResponseOutputContract(
-			ctx,
-			ensureOutputContractSlot(ctx).current(),
-			response,
-		);
+		validateResponseOutputContract(ctx, ctx.outputContract.current(), response);
 		recordTraceUsage(ctx, response.usage);
 		ctx.logger.info("responses.request.completed", () => ({
 			status: response.status,

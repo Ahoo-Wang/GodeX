@@ -5,7 +5,7 @@ import { planOutputContract } from "../bridge/output";
 import type { ProviderEdge } from "../bridge/provider-spec";
 import { buildChatCompletionRequest } from "../bridge/request";
 import type { ToolPlanningProfile } from "../bridge/tools";
-import { ensureOutputContractSlot } from "../context/output-contract-slot";
+import { OutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
@@ -42,7 +42,7 @@ const degradedJsonSchemaPlan = {
 } as const;
 
 function requireStrictJsonOutput(ctx: ResponsesContext): void {
-	ensureOutputContractSlot(ctx).set(
+	ctx.outputContract.set(
 		planOutputContract({
 			format: {
 				type: "json_schema",
@@ -98,6 +98,7 @@ function createMockCtx(
 			).diagnostics.push(diagnostic);
 		},
 		attributes: new Map(),
+		outputContract: new OutputContractSlot(),
 		session: null,
 		traceEvents,
 	} as unknown as ResponsesContext & { traceEvents: unknown[] };
