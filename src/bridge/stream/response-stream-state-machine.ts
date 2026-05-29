@@ -1,5 +1,6 @@
 import {
 	BRIDGE_STREAM_DELTA_AFTER_TERMINAL,
+	BRIDGE_STREAM_INCOMPLETE_TOOL_CALL,
 	BRIDGE_STREAM_INVALID_TRANSITION,
 	BRIDGE_STREAM_OUTPUT_BEFORE_START,
 	BridgeError,
@@ -7,6 +8,7 @@ import {
 } from "../../error";
 import type {
 	ResponseIncompleteDetails,
+	ResponseItem,
 	ResponseObject,
 	ResponseOutputContent,
 	ResponseOutputMessage,
@@ -18,9 +20,15 @@ import type {
 	ResponseError,
 	ResponseErrorCode,
 } from "../../protocol/openai/shared";
+import {
+	type ProviderFunctionCall,
+	restoreToolCall,
+} from "../tools/call-restorer";
+import { ToolIdentityMap } from "../tools/tool-identity";
 import type {
 	ProviderStreamError,
 	ProviderStreamFinishReason,
+	ProviderStreamToolCallDelta,
 } from "./stream-delta";
 
 export enum ResponseStreamPhase {
@@ -37,6 +45,7 @@ export interface ResponseStreamStateMachineOptions {
 	readonly model: string;
 	readonly provider: string;
 	readonly nowSeconds?: () => number;
+	readonly toolIdentities?: ToolIdentityMap;
 }
 
 interface MessageBlock {
@@ -49,10 +58,22 @@ interface MessageBlock {
 }
 
 interface ReasoningBlock {
+	readonly kind: "reasoning";
 	readonly itemId: string;
 	readonly outputIndex: number;
 	readonly contentIndex: number;
 	text: string;
+	done: boolean;
+}
+
+interface ToolCallBlock {
+	readonly kind: "tool_call";
+	readonly streamIndex: number;
+	readonly itemId: string;
+	readonly outputIndex: number;
+	callId: string;
+	providerName: string;
+	arguments: string;
 	done: boolean;
 }
 
@@ -70,12 +91,15 @@ export class ResponseStreamStateMachine {
 	private activeText?: MessageBlock;
 	private activeRefusal?: MessageBlock;
 	private activeReasoning?: ReasoningBlock;
+	private readonly activeToolCalls = new Map<number, ToolCallBlock>();
 	private outputText = "";
 	private pendingFinishReason?: ProviderStreamFinishReason | null;
+	private readonly toolIdentities: ToolIdentityMap;
 
 	constructor(private readonly options: ResponseStreamStateMachineOptions) {
 		this.nowSeconds =
 			options.nowSeconds ?? (() => Math.floor(Date.now() / 1000));
+		this.toolIdentities = options.toolIdentities ?? new ToolIdentityMap();
 		this.currentSnapshot = {
 			id: options.responseId,
 			object: "response",
@@ -166,6 +190,43 @@ export class ResponseStreamStateMachine {
 			content_index: block.contentIndex,
 			delta,
 		});
+		return events;
+	}
+
+	toolCall(delta: ProviderStreamToolCallDelta): ResponseStreamEvent[] {
+		this.assertActive("toolCall");
+		this.assertNoPendingFinish("toolCall");
+
+		const block = this.ensureToolCallBlock(delta);
+		const events: ResponseStreamEvent[] = [];
+		if (!this.output[block.outputIndex]) {
+			const item = toolCallItem(block, this.toolIdentities, "in_progress");
+			this.output.push(item);
+			this.refreshSnapshot();
+			events.push({
+				type: "response.output_item.added",
+				output_index: block.outputIndex,
+				item,
+			});
+		}
+
+		if (delta.id !== undefined) block.callId = delta.id;
+		if (delta.name !== undefined) block.providerName = delta.name;
+		if (delta.arguments !== undefined) {
+			block.arguments += delta.arguments;
+			this.output[block.outputIndex] = toolCallItem(
+				block,
+				this.toolIdentities,
+				"in_progress",
+			);
+			this.refreshSnapshot();
+			events.push({
+				type: "response.function_call_arguments.delta",
+				item_id: block.itemId,
+				output_index: block.outputIndex,
+				delta: delta.arguments,
+			});
+		}
 		return events;
 	}
 
@@ -305,6 +366,7 @@ export class ResponseStreamStateMachine {
 	private ensureReasoningBlock(): ReasoningBlock {
 		if (this.activeReasoning) return this.activeReasoning;
 		const block: ReasoningBlock = {
+			kind: "reasoning",
 			itemId: `reasoning_${this.options.responseId}_${this.output.length}`,
 			outputIndex: this.output.length,
 			contentIndex: 0,
@@ -315,14 +377,45 @@ export class ResponseStreamStateMachine {
 		return block;
 	}
 
+	private ensureToolCallBlock(
+		delta: ProviderStreamToolCallDelta,
+	): ToolCallBlock {
+		const streamIndex = delta.index ?? 0;
+		const active = this.activeToolCalls.get(streamIndex);
+		if (active) return active;
+
+		const callId = delta.id ?? `call_${this.options.responseId}_${streamIndex}`;
+		const block: ToolCallBlock = {
+			kind: "tool_call",
+			streamIndex,
+			itemId: callId,
+			outputIndex: this.output.length,
+			callId,
+			providerName: delta.name ?? `tool_${streamIndex}`,
+			arguments: "",
+			done: false,
+		};
+		this.activeToolCalls.set(streamIndex, block);
+		return block;
+	}
+
 	private closeActiveBlocks(): ResponseStreamEvent[] {
-		const blocks = [this.activeText, this.activeRefusal, this.activeReasoning]
-			.filter((block): block is MessageBlock | ReasoningBlock => Boolean(block))
+		const blocks = [
+			this.activeText,
+			this.activeRefusal,
+			this.activeReasoning,
+			...this.activeToolCalls.values(),
+		]
+			.filter((block): block is MessageBlock | ReasoningBlock | ToolCallBlock =>
+				Boolean(block),
+			)
 			.sort((left, right) => left.outputIndex - right.outputIndex);
 		return blocks.flatMap((block) =>
-			isReasoningBlock(block)
-				? this.closeReasoningBlock(block)
-				: this.closeMessageBlock(block),
+			block.kind === "tool_call"
+				? this.closeToolCallBlock(block)
+				: block.kind === "reasoning"
+					? this.closeReasoningBlock(block)
+					: this.closeMessageBlock(block),
 		);
 	}
 
@@ -392,6 +485,36 @@ export class ResponseStreamStateMachine {
 				content_index: block.contentIndex,
 				part: { type: "reasoning_text", text: block.text },
 			},
+			{
+				type: "response.output_item.done",
+				output_index: block.outputIndex,
+				item: completedItem,
+			},
+		];
+	}
+
+	private closeToolCallBlock(block: ToolCallBlock): ResponseStreamEvent[] {
+		if (block.done) return [];
+		if (!block.callId || !block.providerName) {
+			throw this.error(
+				BRIDGE_STREAM_INCOMPLETE_TOOL_CALL,
+				"Provider stream ended before a complete tool call delta was received.",
+				{ outputIndex: block.outputIndex, streamIndex: block.streamIndex },
+			);
+		}
+		block.done = true;
+		const completedItem = toolCallItem(block, this.toolIdentities, "completed");
+		this.output[block.outputIndex] = completedItem;
+		this.activeToolCalls.delete(block.streamIndex);
+		this.refreshSnapshot();
+
+		return [
+			{
+				type: "response.function_call_arguments.done",
+				item_id: block.itemId,
+				output_index: block.outputIndex,
+				arguments: block.arguments,
+			} as ResponseStreamEvent,
 			{
 				type: "response.output_item.done",
 				output_index: block.outputIndex,
@@ -470,16 +593,39 @@ function reasoningItem(block: ReasoningBlock): Reasoning {
 	};
 }
 
-function isReasoningBlock(
-	block: MessageBlock | ReasoningBlock,
-): block is ReasoningBlock {
-	return block.itemId.startsWith("reasoning_");
-}
-
 function contentPart(block: MessageBlock): ResponseOutputContent {
 	return block.kind === "text"
 		? { type: "output_text", text: block.done ? block.text : "" }
 		: { type: "refusal", refusal: block.done ? block.text : "" };
+}
+
+function toolCallItem(
+	block: ToolCallBlock,
+	identities: ToolIdentityMap,
+	status: "in_progress" | "completed",
+): ResponseItem {
+	const item = restoreToolCall(providerFunctionCall(block), identities);
+	if (item.type === "function_call") {
+		return { ...item, id: block.itemId, status };
+	}
+	if (item.type === "local_shell_call") {
+		return { ...item, id: block.itemId, status };
+	}
+	if (item.type === "shell_call") {
+		return { ...item, id: block.itemId, status };
+	}
+	if (item.type === "apply_patch_call") {
+		return { ...item, id: block.itemId, status };
+	}
+	return item;
+}
+
+function providerFunctionCall(block: ToolCallBlock): ProviderFunctionCall {
+	return {
+		callId: block.callId,
+		name: block.providerName,
+		arguments: block.arguments,
+	};
 }
 
 function mapFinishReason(

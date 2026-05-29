@@ -104,7 +104,6 @@ function testProviderSpec(
 		},
 		endpoint: {
 			defaultBaseURL: "https://example.invalid",
-			chatCompletionsPath: "/chat/completions",
 		},
 		auth: { scheme: "bearer" },
 		toolName: {

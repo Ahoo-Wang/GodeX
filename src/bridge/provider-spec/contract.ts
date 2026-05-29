@@ -13,7 +13,6 @@ export interface ProviderRuntimeConfig {
 
 export interface ProviderEndpointSpec {
 	readonly defaultBaseURL: string;
-	readonly chatCompletionsPath: string;
 }
 
 export interface ProviderAuthSpec {

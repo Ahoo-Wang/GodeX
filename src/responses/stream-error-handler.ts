@@ -46,8 +46,16 @@ export function wrapWithErrorHandler(
 				}
 				controller.close();
 			} catch (err) {
-				if (machine.phase === ResponseStreamPhase.IN_PROGRESS) {
+				if (
+					machine.phase === ResponseStreamPhase.IDLE ||
+					machine.phase === ResponseStreamPhase.IN_PROGRESS
+				) {
 					try {
+						if (machine.phase === ResponseStreamPhase.IDLE) {
+							for (const e of machine.start()) {
+								controller.enqueue(e);
+							}
+						}
 						for (const e of machine.fail(providerStreamError(err))) {
 							controller.enqueue(e);
 						}

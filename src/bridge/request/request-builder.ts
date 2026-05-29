@@ -1,4 +1,8 @@
-import { BRIDGE_REQUEST_UNSUPPORTED_TOOL, BridgeError } from "../../error";
+import {
+	BRIDGE_REQUEST_UNSUPPORTED_PARAMETER,
+	BRIDGE_REQUEST_UNSUPPORTED_TOOL,
+	BridgeError,
+} from "../../error";
 import type {
 	ChatCompletionCreateRequest,
 	ChatCompletionMessageParam,
@@ -60,13 +64,14 @@ export function buildChatCompletionRequest(
 		toolChoice: input.request.tool_choice,
 		profile: input.profile,
 	});
+	assertNoRejectedCompatibility(input, compatibility);
 	const output = planOutputContract({
 		format: input.request.text?.format,
 		responseFormatDecision: compatibility.responseFormat,
 	});
 	const request: ChatCompletionCreateRequest = {
 		model: input.model,
-		messages: chatMessages(input, output),
+		messages: chatMessages(input, output, tools),
 	};
 
 	applyTools(request, input, tools);
@@ -82,16 +87,17 @@ export function buildChatCompletionRequest(
 function chatMessages(
 	input: BuildChatCompletionRequestInput,
 	output: OutputContractPlan,
+	tools: ToolPlan,
 ): ChatCompletionMessageParam[] {
 	const messages = buildChatMessages([
 		...(input.session?.input_items
 			? normalizeResponseItems(
 					input.session.input_items,
 					input.request,
-					normalizerContext(input),
+					normalizerContext(input, tools),
 				)
 			: []),
-		...normalizeCurrentInput(input.request, normalizerContext(input)),
+		...normalizeCurrentInput(input.request, normalizerContext(input, tools)),
 	]);
 	if (output.syntheticInstruction) {
 		messages.push({
@@ -100,6 +106,24 @@ function chatMessages(
 		});
 	}
 	return messages;
+}
+
+function assertNoRejectedCompatibility(
+	input: BuildChatCompletionRequestInput,
+	compatibility: ReturnType<typeof planBridgeCompatibility>,
+): void {
+	const responseFormat = compatibility.responseFormat;
+	if (responseFormat?.action !== "rejected") return;
+	throw new BridgeError(
+		BRIDGE_REQUEST_UNSUPPORTED_PARAMETER,
+		responseFormat.reason ??
+			`text.format is not supported by provider ${input.provider}.`,
+		{
+			provider: input.provider,
+			model: input.model,
+			parameter: "text.format",
+		},
+	);
 }
 
 function applyTools(
@@ -197,6 +221,7 @@ function unrenderedProviderToolTypes(tools: ToolPlan): string[] {
 
 function normalizerContext(
 	input: BuildChatCompletionRequestInput,
+	tools?: ToolPlan,
 ): InputNormalizerContext {
-	return { provider: input.provider, model: input.model };
+	return { provider: input.provider, model: input.model, toolPlan: tools };
 }

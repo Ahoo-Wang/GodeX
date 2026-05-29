@@ -105,7 +105,6 @@ export const EXAMPLE_PROVIDER_SPEC: ProviderSpec<
 	},
 	endpoint: {
 		defaultBaseURL: "https://example.invalid",
-		chatCompletionsPath: "/v1/chat/completions",
 	},
 	auth: { scheme: "bearer" },
 	toolName: {

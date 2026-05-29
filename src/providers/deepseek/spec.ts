@@ -1,4 +1,5 @@
 import type { ProviderSpec } from "../../bridge/provider-spec";
+import { defaultToolNameCodec } from "../../bridge/tools";
 import {
 	DEEPSEEK_SPEC_CAPABILITIES,
 	deepSeekFinishReason,
@@ -28,11 +29,10 @@ export const DEEPSEEK_PROVIDER_SPEC: ProviderSpec<
 	capabilities: DEEPSEEK_SPEC_CAPABILITIES,
 	endpoint: {
 		defaultBaseURL: DEFAULT_DEEPSEEK_BASE_URL,
-		chatCompletionsPath: "/chat/completions",
 	},
 	auth: { scheme: "bearer" },
 	toolName: {
-		toProviderName: toDeepSeekFunctionName,
+		toProviderName: defaultToolNameCodec,
 		fromProviderName: (name) => name,
 	},
 	response: {
@@ -50,8 +50,3 @@ export const DEEPSEEK_PROVIDER_SPEC: ProviderSpec<
 };
 
 export { mapDeepSeekSpecUsage };
-
-function toDeepSeekFunctionName(name: string): string {
-	const normalized = name.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
-	return normalized.length > 0 ? normalized : "tool";
-}

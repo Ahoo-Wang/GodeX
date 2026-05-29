@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT,
 	BRIDGE_REQUEST_UNSUPPORTED_INPUT_ITEM,
+	BRIDGE_REQUEST_UNSUPPORTED_PARAMETER,
 	BRIDGE_REQUEST_UNSUPPORTED_TOOL,
 	BridgeError,
 } from "../../error";
@@ -140,17 +141,104 @@ describe("buildChatCompletionRequest", () => {
 		});
 
 		expect(result.output.requiresValidJson).toBe(true);
-		expect(result.output.syntheticInstruction).toContain("Return only JSON");
+		expect(result.output.syntheticInstruction).toContain(
+			"Return only valid JSON",
+		);
 		expect(result.request.response_format).toEqual({ type: "json_object" });
 		expect(result.request.messages).toEqual([
 			{ role: "system", content: "Use the requested shape." },
 			{ role: "user", content: "Return a payload." },
 			{
 				role: "system",
-				content: expect.stringContaining("Return only JSON"),
+				content: expect.stringContaining("Return only valid JSON"),
 			},
 		]);
 		expect(result.request.messages[2]?.content).toContain('"ok"');
+		expect(result.request.messages[2]?.content).not.toContain(
+			"conforms to the JSON Schema",
+		);
+	});
+
+	test("rejects unsupported response formats instead of forwarding them", () => {
+		const error = captureBridgeError(() =>
+			buildChatCompletionRequest({
+				provider: "acme",
+				model: "acme-chat",
+				capabilities,
+				profile: toolProfile,
+				request: request({
+					text: { format: { type: "xml" } as never },
+				}),
+			}),
+		);
+
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_PARAMETER);
+		expect(error.message).toContain("text.format xml is not supported");
+	});
+
+	test("re-encodes replayed assistant tool calls with current provider names", () => {
+		const result = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities,
+			profile: toolProfile,
+			request: request({
+				tools: [
+					{
+						type: "function",
+						name: "weather.now",
+						parameters: {},
+						strict: true,
+					},
+					{
+						type: "function",
+						name: "weather_now",
+						parameters: {},
+						strict: true,
+					},
+				],
+			}),
+			session: {
+				previous_response_id: "resp_previous",
+				turns: [],
+				input_items: [
+					{
+						type: "function_call",
+						call_id: "call_1",
+						name: "weather.now",
+						arguments: "{}",
+					},
+					{
+						type: "function_call",
+						call_id: "call_2",
+						name: "weather_now",
+						arguments: "{}",
+					},
+				],
+			},
+		});
+
+		expect(
+			result.tools.declarations.map((declaration) => declaration.providerName),
+		).toEqual(["weather_now", "weather_now_2"]);
+		expect(result.request.messages.slice(0, 2)).toEqual([
+			expect.objectContaining({
+				role: "assistant",
+				tool_calls: [
+					expect.objectContaining({
+						function: expect.objectContaining({ name: "weather_now" }),
+					}),
+				],
+			}),
+			expect.objectContaining({
+				role: "assistant",
+				tool_calls: [
+					expect.objectContaining({
+						function: expect.objectContaining({ name: "weather_now_2" }),
+					}),
+				],
+			}),
+		]);
 	});
 
 	test("does not forward ignored Responses envelope fields and records compatibility diagnostics", () => {

@@ -3,6 +3,8 @@ import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
 import type { CompatibilityDiagnostic } from "../bridge/compatibility";
 import { planOutputContract } from "../bridge/output";
 import type { ProviderEdge } from "../bridge/provider-spec";
+import { buildChatCompletionRequest } from "../bridge/request";
+import type { ToolPlanningProfile } from "../bridge/tools";
 import { ensureOutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
@@ -128,11 +130,34 @@ function createExchange(
 ) {
 	return {
 		stream: async (
-			_ctx: ResponsesContext,
+			ctx: ResponsesContext,
 		): Promise<ProviderStreamExchangeResult> => ({
 			providerStream,
 			upstreamLatencyMillis,
+			built: buildChatCompletionRequest({
+				request: { ...ctx.request, stream: true },
+				provider: ctx.provider.name,
+				model: ctx.resolved.model,
+				capabilities: ctx.provider.spec.capabilities,
+				profile: toolPlanningProfile(ctx),
+				session: ctx.session,
+			}),
 		}),
+	};
+}
+
+function toolPlanningProfile(ctx: ResponsesContext): ToolPlanningProfile {
+	const capabilities = ctx.provider.spec.capabilities;
+	const degraded = capabilities.tools.degraded ?? new Map<string, string>();
+	return {
+		provider: ctx.provider.name,
+		nativeToolTypes: new Set(
+			[...capabilities.tools.supported].filter((type) => !degraded.has(type)),
+		),
+		degradedToolTypes: degraded,
+		toolChoice: capabilities.toolChoice.supported,
+		maxTools: capabilities.tools.maxTools,
+		toProviderName: ctx.provider.spec.toolName.toProviderName,
 	};
 }
 
@@ -245,7 +270,7 @@ describe("StreamPipeline", () => {
 		expect(saveCalls).toBe(0);
 	});
 
-	test("closes cleanly when provider stream errors before any chunk", async () => {
+	test("emits response.failed when provider stream errors before any chunk", async () => {
 		const provider = createMockProvider();
 		const ctx = createMockCtx(provider);
 		const events = await readStream(
@@ -254,7 +279,43 @@ describe("StreamPipeline", () => {
 			),
 		);
 
-		expect(events).toEqual([]);
+		expect(events.map((event) => event.type)).toEqual([
+			"response.created",
+			"response.in_progress",
+			"response.failed",
+		]);
+		expect(events.at(-1)?.response).toMatchObject({
+			id: "resp_stream",
+			status: "failed",
+			error: {
+				code: "server_error",
+				message: expect.stringContaining("upstream stream failed"),
+			},
+		});
+	});
+
+	test("emits response.failed when the first provider chunk is malformed", async () => {
+		const provider = createMockProvider();
+		const ctx = createMockCtx(provider);
+		const events = await readStream(
+			await new StreamPipeline(
+				createExchange(createStream([{ event: "chunk", data: { bad: true } }])),
+			).stream(ctx),
+		);
+
+		expect(events.map((event) => event.type)).toEqual([
+			"response.created",
+			"response.in_progress",
+			"response.failed",
+		]);
+		expect(events.at(-1)?.response).toMatchObject({
+			id: "resp_stream",
+			status: "failed",
+			error: {
+				code: "server_error",
+				message: expect.stringContaining("unknown field"),
+			},
+		});
 	});
 
 	test("persists terminal response from a completed provider stream", async () => {

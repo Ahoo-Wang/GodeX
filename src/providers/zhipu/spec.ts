@@ -1,4 +1,5 @@
 import type { ProviderSpec } from "../../bridge/provider-spec";
+import { defaultToolNameCodec } from "../../bridge/tools";
 import {
 	mapZhipuUsage,
 	ZHIPU_SPEC_CAPABILITIES,
@@ -30,11 +31,10 @@ export const ZHIPU_PROVIDER_SPEC: ProviderSpec<
 	capabilities: ZHIPU_SPEC_CAPABILITIES,
 	endpoint: {
 		defaultBaseURL: DEFAULT_ZHIPU_BASE_URL,
-		chatCompletionsPath: "/chat/completions",
 	},
 	auth: { scheme: "bearer" },
 	toolName: {
-		toProviderName: toZhipuFunctionName,
+		toProviderName: defaultToolNameCodec,
 		fromProviderName: (name) => name,
 	},
 	response: {
@@ -49,8 +49,3 @@ export const ZHIPU_PROVIDER_SPEC: ProviderSpec<
 };
 
 export { mapZhipuUsage };
-
-function toZhipuFunctionName(name: string): string {
-	const sanitized = name.replace(/[^a-zA-Z0-9_]/g, "_");
-	return sanitized || "codex_tool";
-}

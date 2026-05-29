@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
+import type { CompatibilityDiagnostic } from "../bridge/compatibility";
 import type { ProviderEdge } from "../bridge/provider-spec";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
@@ -73,7 +74,11 @@ function createMockCtx(
 		createdAt: Math.floor(Date.now() / 1000),
 		resolved: { provider: "mock", model: "test" },
 		diagnostics: [],
-		addDiagnostic() {},
+		addDiagnostic(diagnostic: CompatibilityDiagnostic) {
+			(
+				this as unknown as { diagnostics: CompatibilityDiagnostic[] }
+			).diagnostics.push(diagnostic);
+		},
 		attributes: new Map(),
 		session: null,
 		traceEvents,
@@ -143,6 +148,33 @@ describe("ProviderExchange", () => {
 				}) as Record<string, unknown>,
 			},
 		]);
+	});
+
+	test("records tool planning decisions as compatibility diagnostics", async () => {
+		const providerResponse = { choices: [{ finish_reason: "stop" }] };
+		const provider = createMockProvider(providerResponse);
+		const ctx = createMockCtx(provider);
+		(ctx as unknown as { request: ResponsesContext["request"] }).request = {
+			...ctx.request,
+			tools: [
+				{
+					type: "custom",
+					name: "raw.tool",
+					description: "Run raw text.",
+					format: { type: "text" },
+				},
+			],
+		};
+
+		await new ProviderExchange().request(ctx);
+
+		expect(ctx.diagnostics).toContainEqual(
+			expect.objectContaining({
+				path: "tools[type=custom]",
+				action: "ignored",
+				message: expect.stringContaining("does not support Responses tool"),
+			}),
+		);
 	});
 
 	test("opens stream exchange without mapping Responses output", async () => {

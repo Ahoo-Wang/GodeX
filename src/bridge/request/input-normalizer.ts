@@ -8,12 +8,14 @@ import type {
 	ResponseCreateRequest,
 	ResponseItem,
 } from "../../protocol/openai/responses";
+import type { ToolPlan } from "../tools";
 
 export type NormalizedChatMessage = ChatCompletionMessageParam;
 
 export interface InputNormalizerContext {
 	readonly provider?: string;
 	readonly model?: string;
+	readonly toolPlan?: ToolPlan;
 }
 
 export function normalizeCurrentInput(
@@ -78,7 +80,11 @@ function normalizeInputItem(
 	}
 	if (item.type === "function_call") {
 		return [
-			assistantToolCallMessage(item.call_id, toolName(item), item.arguments),
+			assistantToolCallMessage(
+				item.call_id,
+				providerToolName(context, "function", toolName(item)),
+				item.arguments,
+			),
 		];
 	}
 	if (item.type === "function_call_output") {
@@ -93,7 +99,7 @@ function normalizeInputItem(
 		return [
 			assistantToolCallMessage(
 				item.call_id,
-				"shell",
+				providerToolName(context, "shell", "shell"),
 				JSON.stringify(item.action),
 			),
 		];
@@ -118,7 +124,7 @@ function normalizeInputItem(
 		return [
 			assistantToolCallMessage(
 				item.call_id,
-				"local_shell",
+				providerToolName(context, "local_shell", "local_shell"),
 				JSON.stringify({
 					command: item.action.command,
 					env: item.action.env,
@@ -140,7 +146,7 @@ function normalizeInputItem(
 		return [
 			assistantToolCallMessage(
 				item.call_id,
-				"apply_patch",
+				providerToolName(context, "apply_patch", "apply_patch"),
 				JSON.stringify({ operation: item.operation }),
 			),
 		];
@@ -157,7 +163,7 @@ function normalizeInputItem(
 		return [
 			assistantToolCallMessage(
 				item.call_id,
-				toolName(item),
+				providerToolName(context, "custom", toolName(item)),
 				JSON.stringify({ input: item.input }),
 			),
 		];
@@ -264,6 +270,19 @@ function outputText(
 
 function toolName(item: { name: string; namespace?: string }): string {
 	return item.namespace ? `${item.namespace}__${item.name}` : item.name;
+}
+
+function providerToolName(
+	context: InputNormalizerContext,
+	requestedType: string,
+	requestedName: string,
+): string {
+	const declaration = context.toolPlan?.declarations.find(
+		(candidate) =>
+			candidate.requestedType === requestedType &&
+			candidate.requestedName === requestedName,
+	);
+	return declaration?.providerName ?? requestedName;
 }
 
 function reasoningText(

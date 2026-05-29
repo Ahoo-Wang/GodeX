@@ -45,7 +45,6 @@ describe("ProviderSpec runtime conformance", () => {
 				0,
 			);
 			expect(spec.endpoint.defaultBaseURL).toStartWith("https://");
-			expect(spec.endpoint.chatCompletionsPath).toEndWith("chat/completions");
 			expect(spec.auth.scheme).toBe("bearer");
 			expect(spec.toolName.toProviderName("local.shell")).toBeString();
 			expect(spec.toolName.fromProviderName("provider_name")).toBe(
@@ -58,6 +57,18 @@ describe("ProviderSpec runtime conformance", () => {
 			expect(spec.stream.deltas).toBeFunction();
 		});
 	}
+
+	test("Zhipu and DeepSeek share the same chat-completions function name codec constraints", () => {
+		for (const spec of [ZHIPU_PROVIDER_SPEC, DEEPSEEK_PROVIDER_SPEC]) {
+			expect(spec.toolName.toProviderName("abc-XYZ_09")).toBe("abc-XYZ_09");
+			expect(spec.toolName.toProviderName("")).toBe("tool");
+			expect(spec.toolName.toProviderName("x".repeat(65))).toBe("x".repeat(64));
+			expect(spec.toolName.toProviderName("weather.now")).toBe("weather_now");
+			expect(spec.toolName.toProviderName("weather.now")).toMatch(
+				/^[a-zA-Z0-9_-]{1,64}$/,
+			);
+		}
+	});
 
 	test("built-in provider specs preserve explicit zero usage details", () => {
 		expect(

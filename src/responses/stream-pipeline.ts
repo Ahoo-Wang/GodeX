@@ -4,6 +4,7 @@ import {
 	ResponseStreamPhase,
 	ResponseStreamStateMachine,
 } from "../bridge/stream";
+import { ToolIdentityMap } from "../bridge/tools";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseStreamEvent } from "../protocol/openai/responses";
 import {
@@ -35,7 +36,7 @@ export class StreamPipeline {
 	async stream(
 		ctx: ResponsesContext,
 	): Promise<ReadableStream<ResponseStreamEvent>> {
-		const { providerStream, upstreamLatencyMillis } =
+		const { providerStream, upstreamLatencyMillis, built } =
 			await this.exchange.stream(ctx);
 		ctx.attributes.set(ATTR_UPSTREAM_LATENCY_MILLIS, upstreamLatencyMillis);
 
@@ -44,7 +45,7 @@ export class StreamPipeline {
 			new TraceTransformer("upstream.stream.event.raw", ctx),
 		);
 
-		const eventBridge = new ProviderStreamEventBridge(ctx);
+		const eventBridge = new ProviderStreamEventBridge(ctx, built);
 		const eventStream = pipeTransform(traceRawStream, eventBridge);
 
 		const errorSafeStream = wrapWithErrorHandler(
@@ -88,12 +89,18 @@ class ProviderStreamEventBridge
 {
 	readonly machine: ResponseStreamStateMachine;
 
-	constructor(private readonly ctx: ResponsesContext) {
+	constructor(
+		private readonly ctx: ResponsesContext,
+		built: ProviderStreamExchangeResult["built"],
+	) {
+		const toolIdentities = new ToolIdentityMap();
+		toolIdentities.addDeclarations(built.tools.declarations);
 		this.machine = new ResponseStreamStateMachine({
 			responseId: ctx.responseId,
 			createdAt: ctx.createdAt,
 			model: ctx.resolved.model,
 			provider: ctx.provider.name,
+			toolIdentities,
 		});
 	}
 

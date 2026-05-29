@@ -81,6 +81,16 @@ describe("validateResponseOutputContract", () => {
 		).not.toThrow();
 	});
 
+	test("does not enforce JSON Schema semantics after json_schema is downgraded", () => {
+		expect(() =>
+			validateResponseOutputContract(
+				ctx,
+				strictDegradedContract(),
+				response('{"schema":"not enforced"}'),
+			),
+		).not.toThrow();
+	});
+
 	test("does not validate non-strict degraded json_schema output", () => {
 		const contract = degradedContract(false);
 

@@ -1,9 +1,10 @@
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
+import type { CompatibilityDiagnostic } from "../bridge/compatibility";
 import {
 	type BuildChatCompletionRequestResult,
 	buildChatCompletionRequest,
 } from "../bridge/request";
-import type { ToolPlanningProfile } from "../bridge/tools";
+import type { PlannedToolDecision, ToolPlanningProfile } from "../bridge/tools";
 import { ensureOutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import { recordTraceEvent, recordTraceRequest } from "../trace";
@@ -16,6 +17,7 @@ export interface ProviderRequestExchangeResult<ProviderResponse = unknown> {
 export interface ProviderStreamExchangeResult {
 	providerStream: ReadableStream<JsonServerSentEvent<unknown>>;
 	upstreamLatencyMillis: number;
+	built: BuildChatCompletionRequestResult;
 }
 
 export class ProviderExchange {
@@ -62,7 +64,7 @@ export class ProviderExchange {
 			upstreamLatencyMillis,
 		}));
 
-		return { providerStream, upstreamLatencyMillis };
+		return { providerStream, upstreamLatencyMillis, built };
 	}
 }
 
@@ -81,8 +83,36 @@ function buildProviderRequest(
 	for (const diagnostic of built.compatibility.diagnostics) {
 		ctx.addDiagnostic(diagnostic);
 	}
+	for (const diagnostic of toolDecisionDiagnostics(
+		ctx,
+		built.tools.decisions,
+	)) {
+		ctx.addDiagnostic(diagnostic);
+	}
 	ensureOutputContractSlot(ctx).set(built.output);
 	return built;
+}
+
+function toolDecisionDiagnostics(
+	ctx: ResponsesContext,
+	decisions: readonly PlannedToolDecision[],
+): CompatibilityDiagnostic[] {
+	return decisions.flatMap((decision): CompatibilityDiagnostic[] => {
+		if (decision.action === "supported") return [];
+		return [
+			{
+				code: "bridge.tool.compatibility",
+				severity: decision.action === "rejected" ? "error" : "warn",
+				path: decision.path,
+				action: decision.action,
+				message: decision.reason,
+				metadata: {
+					provider: ctx.resolved.provider,
+					model: ctx.resolved.model,
+				},
+			},
+		];
+	});
 }
 
 function toolPlanningProfile(ctx: ResponsesContext): ToolPlanningProfile {

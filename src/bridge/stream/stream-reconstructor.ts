@@ -11,6 +11,7 @@ import type {
 	ProviderStreamDelta,
 	ProviderStreamError,
 	ProviderStreamFinishReason,
+	ProviderStreamToolCallDelta,
 } from "./stream-delta";
 
 export function mapProviderDeltasToEvents(
@@ -44,6 +45,11 @@ export function mapProviderDeltasToEvents(
 		if (hasOwn(delta, "refusal")) {
 			events.push(...machine.refusal(delta.refusal as string));
 		}
+		if (hasOwn(delta, "toolCall")) {
+			events.push(
+				...machine.toolCall(delta.toolCall as ProviderStreamToolCallDelta),
+			);
+		}
 		if (hasOwn(delta, "text")) {
 			events.push(...machine.text(delta.text as string));
 		}
@@ -76,7 +82,7 @@ function validateDelta(
 	validateOptionalString(rawDelta, machine, "text");
 	validateOptionalString(rawDelta, machine, "refusal");
 	validateOptionalString(rawDelta, machine, "reasoning");
-	validateToolCall(rawDelta, machine);
+	const toolCall = validateToolCall(rawDelta, machine);
 	const usage = validateUsage(rawDelta, machine);
 	const error = validateError(rawDelta, machine);
 	const finishReason = validateFinishReason(rawDelta, machine);
@@ -89,6 +95,7 @@ function validateDelta(
 		...(hasOwn(rawDelta, "reasoning")
 			? { reasoning: rawDelta.reasoning as string }
 			: {}),
+		...(hasOwn(rawDelta, "toolCall") ? { toolCall } : {}),
 		...(hasOwn(rawDelta, "usage") ? { usage } : {}),
 		...(hasOwn(rawDelta, "error") ? { error } : {}),
 		...(hasOwn(rawDelta, "finishReason") ? { finishReason } : {}),
@@ -146,9 +153,73 @@ function validateRecognizedFields(
 function validateToolCall(
 	delta: Record<PropertyKey, unknown>,
 	machine: MapProviderDeltasToEventsInput["machine"],
-): void {
-	if (!hasOwn(delta, "toolCall")) return;
-	throw invalidDelta(machine, "toolCall", unsupportedToolCallMessage());
+): ProviderStreamToolCallDelta | undefined {
+	if (!hasOwn(delta, "toolCall")) return undefined;
+	const toolCall = delta.toolCall;
+	if (!isObjectRecord(toolCall)) {
+		throw invalidDelta(
+			machine,
+			"toolCall",
+			"Provider stream delta toolCall must be an object when present.",
+		);
+	}
+	const fields = Reflect.ownKeys(toolCall);
+	if (fields.length === 0) {
+		throw invalidDelta(
+			machine,
+			"toolCall",
+			"Provider stream delta toolCall must include at least one field.",
+		);
+	}
+	const sanitized: {
+		index?: number;
+		id?: string;
+		type?: string;
+		name?: string;
+		arguments?: string;
+	} = {};
+	if (hasOwn(toolCall, "index")) {
+		const index = toolCall.index;
+		if (!Number.isInteger(index) || (index as number) < 0) {
+			throw invalidDelta(
+				machine,
+				"toolCall.index",
+				"Provider stream delta toolCall.index must be a non-negative integer when present.",
+			);
+		}
+		sanitized.index = index as number;
+	}
+	for (const field of ["id", "type", "name", "arguments"] as const) {
+		if (!hasOwn(toolCall, field)) continue;
+		if (typeof toolCall[field] !== "string") {
+			throw invalidDelta(
+				machine,
+				`toolCall.${field}`,
+				`Provider stream delta toolCall.${field} must be a string when present.`,
+			);
+		}
+		const value = toolCall[field] as string;
+		if (field === "id") sanitized.id = value;
+		if (field === "type") sanitized.type = value;
+		if (field === "name") sanitized.name = value;
+		if (field === "arguments") sanitized.arguments = value;
+	}
+	for (const field of fields) {
+		if (
+			field !== "index" &&
+			field !== "id" &&
+			field !== "type" &&
+			field !== "name" &&
+			field !== "arguments"
+		) {
+			throw invalidDelta(
+				machine,
+				`toolCall.${String(field)}`,
+				`Provider stream delta toolCall contains unknown field: ${String(field)}.`,
+			);
+		}
+	}
+	return sanitized;
 }
 
 function validateUsage(
@@ -341,10 +412,6 @@ function hasOwn<T extends object, K extends PropertyKey>(
 
 function isObjectRecord(value: unknown): value is Record<PropertyKey, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function unsupportedToolCallMessage(): string {
-	return "Tool call stream deltas are not supported by the bridge stream state machine yet.";
 }
 
 function providerOf(

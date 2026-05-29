@@ -44,6 +44,7 @@ export interface MapProviderDeltasToEventsInput {
 		text(delta: string): ResponseStreamEvent[];
 		reasoning(delta: string): ResponseStreamEvent[];
 		refusal(delta: string): ResponseStreamEvent[];
+		toolCall(delta: ProviderStreamToolCallDelta): ResponseStreamEvent[];
 		usage(usage: ResponseUsage): ResponseStreamEvent[];
 		finish(
 			finishReason: ProviderStreamFinishReason | null | undefined,

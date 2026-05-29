@@ -20,6 +20,13 @@ export function planOutputContract(input: {
 	readonly format: ResponseFormatTextConfig | undefined;
 	readonly responseFormatDecision?: OutputContractResponseFormatDecision;
 }): OutputContractPlan {
+	if (input.responseFormatDecision?.action === "rejected") {
+		return {
+			requested: input.format,
+			requiresValidJson: false,
+		};
+	}
+
 	if (input.format?.type !== "json_schema") {
 		return {
 			requested: input.format,
@@ -53,14 +60,12 @@ function jsonSchemaInstruction(
 		lines.push(`Schema description: ${format.description}`);
 	if (lines.length > 0) lines.push("");
 	lines.push(
-		"Return only JSON that conforms to the JSON Schema below.",
+		"Return only valid JSON.",
 		"",
 		"Rules:",
 		"- Output exactly one JSON value and nothing else.",
 		"- Do not include markdown, code fences, explanations, or extra text.",
-		"- Include all required properties.",
-		"- Respect property types, enum/const values, numeric/string constraints, and additionalProperties.",
-		"- Use null only when the schema explicitly allows null.",
+		"- Use the JSON Schema below as formatting guidance. GodeX validates JSON syntax after this json_schema-to-json_object downgrade.",
 		"",
 		"JSON Schema:",
 		JSON.stringify(format.schema),

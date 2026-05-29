@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { BRIDGE_STREAM_INVALID_TRANSITION, BridgeError } from "../../error";
+import { BridgeError } from "../../error";
 import type { ResponseUsage } from "../../protocol/openai/responses";
+import { ToolIdentityMap } from "../tools";
 import { ResponseStreamStateMachine } from "./response-stream-state-machine";
 import { mapProviderDeltasToEvents } from "./stream-reconstructor";
 
@@ -10,13 +11,14 @@ const usage: ResponseUsage = {
 	total_tokens: 3,
 };
 
-function machine(): ResponseStreamStateMachine {
+function machine(toolIdentities?: ToolIdentityMap): ResponseStreamStateMachine {
 	return new ResponseStreamStateMachine({
 		responseId: "resp_test",
 		createdAt: 1_764_000_000,
 		model: "resolved-model",
 		provider: "deepseek",
 		nowSeconds: () => 1_764_000_010,
+		toolIdentities,
 	});
 }
 
@@ -278,23 +280,61 @@ describe("mapProviderDeltasToEvents", () => {
 		});
 	});
 
-	test("rejects unsupported tool call deltas at the sandbox boundary", () => {
-		expect(() =>
-			mapProviderDeltasToEvents({
-				machine: machine(),
-				deltas: [{ toolCall: { index: 0, name: "lookup" } }],
-			}),
-		).toThrow(BridgeError);
+	test("accumulates streaming tool call deltas into a restored Responses output item", () => {
+		const identities = new ToolIdentityMap();
+		identities.add({
+			requestedName: "lookup.weather",
+			providerName: "lookup_weather",
+			requestedType: "function",
+			providerType: "function",
+		});
 
-		try {
-			mapProviderDeltasToEvents({
-				machine: machine(),
-				deltas: [{ toolCall: { index: 0, name: "lookup" } }],
-			});
-		} catch (err) {
-			expect(err).toBeInstanceOf(BridgeError);
-			expect((err as BridgeError).code).toBe(BRIDGE_STREAM_INVALID_TRANSITION);
-		}
+		const events = mapProviderDeltasToEvents({
+			machine: machine(identities),
+			deltas: [
+				{
+					toolCall: {
+						index: 0,
+						id: "call_1",
+						name: "lookup_weather",
+						arguments: '{"city"',
+					},
+				},
+				{ toolCall: { index: 0, arguments: ':"Paris"}' } },
+				{ finishReason: "tool_calls" },
+			],
+		});
+
+		expect(events.map((event) => event.type)).toEqual([
+			"response.created",
+			"response.in_progress",
+			"response.output_item.added",
+			"response.function_call_arguments.delta",
+			"response.function_call_arguments.delta",
+			"response.function_call_arguments.done",
+			"response.output_item.done",
+			"response.completed",
+		]);
+		expect(events[2]?.item).toMatchObject({
+			type: "function_call",
+			call_id: "call_1",
+			name: "lookup.weather",
+			arguments: "",
+		});
+		expect(events.at(-2)?.item).toMatchObject({
+			type: "function_call",
+			call_id: "call_1",
+			name: "lookup.weather",
+			arguments: '{"city":"Paris"}',
+		});
+		expect(events.at(-1)?.response?.output).toEqual([
+			expect.objectContaining({
+				type: "function_call",
+				call_id: "call_1",
+				name: "lookup.weather",
+				arguments: '{"city":"Paris"}',
+			}),
+		]);
 	});
 
 	test("rejects null tool call deltas at the sandbox boundary", () => {

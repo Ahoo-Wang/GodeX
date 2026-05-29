@@ -143,7 +143,7 @@ describe("handleResponses", () => {
 		expect(body.error.code).toBe("request_timeout");
 	});
 
-	test("returns empty body on stream setup errors", async () => {
+	test("returns response.failed SSE on stream setup errors", async () => {
 		const app = createTestApp({
 			async stream() {
 				return new ReadableStream({
@@ -174,7 +174,11 @@ describe("handleResponses", () => {
 		);
 
 		expect(res.status).toBe(200);
-		expect(await res.text()).toBe("");
+		const body = await res.text();
+		expect(body).toContain("event: response.created");
+		expect(body).toContain("event: response.in_progress");
+		expect(body).toContain("event: response.failed");
+		expect(body).toContain("ProviderError: Too many requests");
 	});
 
 	test("does not log errors after the SSE stream has completed", async () => {

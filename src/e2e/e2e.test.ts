@@ -487,9 +487,7 @@ describe("E2E: sync response", () => {
 			{ role: "user", content: "Jane, 54 years old" },
 			{
 				role: "system",
-				content: expect.stringContaining(
-					"Return only JSON that conforms to the JSON Schema below.",
-				),
+				content: expect.stringContaining("Return only valid JSON."),
 			},
 		]);
 		expect(messages.at(-1)?.content).toEqual(

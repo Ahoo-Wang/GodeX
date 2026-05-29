@@ -34,7 +34,10 @@ describe("planOutputContract", () => {
 		expect(plan.requested).toBe(jsonSchemaFormat);
 		expect(plan.providerResponseFormat).toEqual({ type: "json_object" });
 		expect(plan.requiresValidJson).toBe(true);
-		expect(plan.syntheticInstruction).toContain("Return only JSON");
+		expect(plan.syntheticInstruction).toContain("Return only valid JSON");
+		expect(plan.syntheticInstruction).not.toContain(
+			"conforms to the JSON Schema",
+		);
 		expect(plan.syntheticInstruction).toContain('"ok"');
 	});
 
@@ -48,7 +51,7 @@ describe("planOutputContract", () => {
 		});
 
 		expect(plan.providerResponseFormat).toEqual({ type: "json_object" });
-		expect(plan.syntheticInstruction).toContain("Return only JSON");
+		expect(plan.syntheticInstruction).toContain("Return only valid JSON");
 		expect(plan.requiresValidJson).toBe(false);
 	});
 
