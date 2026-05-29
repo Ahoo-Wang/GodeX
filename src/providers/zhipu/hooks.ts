@@ -4,6 +4,7 @@ import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
 import type { ResponseUsage } from "../../protocol/openai/responses";
 import type {
 	ChatCompletionChunk,
+	ChatCompletionCreateRequest,
 	ChatCompletionResponse,
 	ChatCompletionResponseMessage,
 	ChatCompletionStreamDelta,
@@ -106,6 +107,22 @@ export function zhipuResponseUsage(
 	response: ChatCompletionResponse,
 ): ResponseUsage | null {
 	return mapZhipuUsage(response.usage);
+}
+
+export function zhipuPatchRequest(
+	request: ChatCompletionCreateRequest,
+): ChatCompletionCreateRequest {
+	const bridgeRequest = request as ChatCompletionCreateRequest & {
+		readonly reasoning_effort?: unknown;
+	};
+	if (bridgeRequest.reasoning_effort === undefined) return request;
+	const { reasoning_effort, ...providerRequest } = bridgeRequest;
+	return {
+		...providerRequest,
+		thinking: {
+			type: reasoning_effort === "none" ? "disabled" : "enabled",
+		},
+	} as ChatCompletionCreateRequest;
 }
 
 export function zhipuStreamDeltas(

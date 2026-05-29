@@ -6,6 +6,7 @@ import {
 	zhipuFinishReason,
 	zhipuFirstChoice,
 	zhipuOutputText,
+	zhipuPatchRequest,
 	zhipuResponseUsage,
 	zhipuStreamDeltas,
 } from "./hooks";
@@ -42,6 +43,9 @@ export const ZHIPU_PROVIDER_SPEC: ProviderSpec<
 	},
 	stream: {
 		deltas: zhipuStreamDeltas,
+	},
+	hooks: {
+		patchRequest: zhipuPatchRequest,
 	},
 };
 

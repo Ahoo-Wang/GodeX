@@ -355,6 +355,25 @@ describe("E2E: sync response", () => {
 		expect(upstream.messages).toEqual([{ role: "user", content: "Hello!" }]);
 	});
 
+	test("maps reasoning and safety identifiers to Zhipu upstream fields", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "gpt-5",
+			input: "Think carefully.",
+			reasoning: { effort: "medium" },
+			safety_identifier: "safe-123",
+			user: "legacy-user",
+		});
+
+		expect(res.status).toBe(200);
+		const upstream = lastUpstreamRequest();
+		expect(upstream).toMatchObject({
+			thinking: { type: "enabled" },
+			user_id: "safe-123",
+		});
+		expect(upstream).not.toHaveProperty("reasoning_effort");
+	});
+
 	test("rejects missing model", async () => {
 		const res = await postResponses({ input: "hi" });
 		expect(res.status).toBe(400);

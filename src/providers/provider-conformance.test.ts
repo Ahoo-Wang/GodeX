@@ -116,6 +116,28 @@ describe("ProviderSpec runtime conformance", () => {
 		});
 	});
 
+	test("Zhipu provider patch maps bridge reasoning to native thinking", () => {
+		const enabled = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "glm-5.1",
+			messages: [{ role: "user", content: "think" }],
+			reasoning_effort: "medium",
+		} as never) as Record<string, unknown> | undefined;
+		const disabled = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "glm-5.1",
+			messages: [{ role: "user", content: "answer directly" }],
+			reasoning_effort: "none",
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(enabled).toMatchObject({
+			thinking: { type: "enabled" },
+		});
+		expect(enabled).not.toHaveProperty("reasoning_effort");
+		expect(disabled).toMatchObject({
+			thinking: { type: "disabled" },
+		});
+		expect(disabled).not.toHaveProperty("reasoning_effort");
+	});
+
 	test("built-in provider specs reject malformed sync usage", () => {
 		expect(() =>
 			ZHIPU_PROVIDER_SPEC.response.usage({

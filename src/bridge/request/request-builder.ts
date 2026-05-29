@@ -193,6 +193,16 @@ function applyRequestOptions(
 		request.reasoning_effort = source.reasoning
 			.effort as ChatCompletionCreateRequest["reasoning_effort"];
 	}
+	if (
+		source.safety_identifier &&
+		capabilities.parameters.supported.has("safety_identifier")
+	) {
+		request.user_id = source.safety_identifier;
+		return;
+	}
+	if (source.user && capabilities.parameters.supported.has("user")) {
+		request.user_id = source.user;
+	}
 }
 
 function chatToolChoice(

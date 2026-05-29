@@ -67,6 +67,7 @@ function reconstruct(response: ExampleResponse) {
 		accessor,
 		toolIdentity: undefined,
 		outputContract: { requiresValidJson: false },
+		nowSeconds: () => 1710000000,
 	});
 }
 
@@ -95,6 +96,24 @@ describe("reconstructResponseObject", () => {
 				content: [{ type: "output_text", text: "hello world" }],
 			},
 		]);
+	});
+
+	test("uses completion time instead of request creation time", () => {
+		const response = reconstructResponseObject({
+			requestId: "req_123",
+			responseId: "resp_123",
+			createdAt: 1710000000,
+			provider: "deepseek",
+			model: "deepseek-chat",
+			providerResponse: providerResponse("stop", "hello"),
+			accessor,
+			toolIdentity: undefined,
+			outputContract: { requiresValidJson: false },
+			nowSeconds: () => 1710000012,
+		});
+
+		expect(response.created_at).toBe(1710000000);
+		expect(response.completed_at).toBe(1710000012);
 	});
 
 	test("keeps completed assistant message when first choice has empty output text", () => {

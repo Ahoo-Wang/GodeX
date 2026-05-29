@@ -314,6 +314,43 @@ describe("buildChatCompletionRequest", () => {
 		});
 	});
 
+	test("maps Responses safety identifiers to provider user_id", () => {
+		const safeIdentifier = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities: {
+				...capabilities,
+				parameters: {
+					supported: new Set(["safety_identifier", "user"]),
+				},
+			},
+			profile: toolProfile,
+			request: request({
+				safety_identifier: "safe-123",
+				user: "legacy-user",
+			}),
+		});
+		const legacyUser = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities: {
+				...capabilities,
+				parameters: {
+					supported: new Set(["user"]),
+				},
+			},
+			profile: toolProfile,
+			request: request({ user: "legacy-user" }),
+		});
+
+		expect((safeIdentifier.request as { user_id?: string }).user_id).toBe(
+			"safe-123",
+		);
+		expect((legacyUser.request as { user_id?: string }).user_id).toBe(
+			"legacy-user",
+		);
+	});
+
 	test("omits stream usage options when the provider does not support them", () => {
 		const result = buildChatCompletionRequest({
 			provider: "acme",

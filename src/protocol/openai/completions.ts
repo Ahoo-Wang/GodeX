@@ -355,6 +355,8 @@ export interface ChatCompletionCreateRequest {
 	top_p?: number;
 	/** Deprecated. Use prompt_cache_key and safety_identifier instead. */
 	user?: string;
+	/** Provider extension used by bridge providers for end-user identifiers. */
+	user_id?: string;
 	/** Constrains the verbosity of the model's response. */
 	verbosity?: Verbosity;
 	/** Web search tool configuration. */
