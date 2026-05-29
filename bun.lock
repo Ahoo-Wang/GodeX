@@ -33,11 +33,11 @@
     },
   },
   "packages": {
-    "@ahoo-wang/fetcher": ["@ahoo-wang/fetcher@3.16.8", "", {}, "sha512-Opq57j2J2Jm+OxmMBeurN/JdJKdbJduUpsHvpt8jJ0rvAuZZmH/ETeUKgkwgd5HgMa9fup8itgM/lMngoqjeNw=="],
+    "@ahoo-wang/fetcher": ["@ahoo-wang/fetcher@3.16.9", "", {}, "sha512-MjRD4t0iz855LlyfUrbbGPQwAcSl3SNCe8Atz7WWlYdc40J3G4r8CB2n8ISifRxCEznO2BSXxg0RPddRlBilqQ=="],
 
-    "@ahoo-wang/fetcher-decorator": ["@ahoo-wang/fetcher-decorator@3.16.8", "", { "dependencies": { "reflect-metadata": "0.2.2" }, "peerDependencies": { "@ahoo-wang/fetcher": "3.16.8" } }, "sha512-wSjqLkHKZaD6+vSx0jbQ1KuVaGWZfOAg5/QYYx5f8HZntzdYwts2Zb8N+Db7lkuYc6REymWMwLRC51Q/z41rNg=="],
+    "@ahoo-wang/fetcher-decorator": ["@ahoo-wang/fetcher-decorator@3.16.9", "", { "dependencies": { "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@ahoo-wang/fetcher": "^3.0.0" } }, "sha512-QEfLKnHu938iIpqIkX/pyHLxSOCbczWq4ycb0OwN16Oz1gMV8GdljSAUYaWt4VGcueMVC20r4TO7ea30NYle8Q=="],
 
-    "@ahoo-wang/fetcher-eventstream": ["@ahoo-wang/fetcher-eventstream@3.16.8", "", { "peerDependencies": { "@ahoo-wang/fetcher": "3.16.8" } }, "sha512-+8viS2W7yallSQDlsRylB7LvKocWWfbpDK9Q+7Pq3Je2ZDzYG/c9FeL++JwrbfnGuD+DsGodqkNqM+4AxLdQgQ=="],
+    "@ahoo-wang/fetcher-eventstream": ["@ahoo-wang/fetcher-eventstream@3.16.9", "", { "peerDependencies": { "@ahoo-wang/fetcher": "^3.0.0" } }, "sha512-XN2OM80nAjRFI261Vk+rB/kx7bDL6h2LUptJJfzR0VDQKuZ+S64pTubo8ekvUoeV9K7QpT+drlWXbevsDqilAA=="],
 
     "@ahoo-wang/godex-darwin-arm64": ["@ahoo-wang/godex-darwin-arm64@0.0.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-uvsk29w5VSCjyc7zCqf5IpgmFk7ga6pnvuAj2vTArnqwyNRQ63g+CtrOMNh2CNPSqMrFZaghYPmJlx4HNMZn/g=="],
 
