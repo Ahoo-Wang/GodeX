@@ -36,17 +36,30 @@ export function wrapWithErrorHandler(
 	machine: ResponseStreamStateMachine,
 	ctx: ResponsesContext,
 ): ReadableStream<ResponseStreamEvent> {
+	let reader:
+		| ReturnType<ReadableStream<ResponseStreamEvent>["getReader"]>
+		| undefined;
+	let cancelled = false;
+	let released = false;
+	const releaseReader = () => {
+		if (!reader || released) return;
+		reader.releaseLock();
+		released = true;
+	};
 	return new ReadableStream<ResponseStreamEvent>({
 		async start(controller) {
-			const reader = stream.getReader();
+			const activeReader = stream.getReader();
+			reader = activeReader;
 			try {
 				while (true) {
-					const { done, value } = await reader.read();
+					const { done, value } = await activeReader.read();
 					if (done) break;
+					if (cancelled) break;
 					controller.enqueue(value);
 				}
-				controller.close();
+				if (!cancelled) controller.close();
 			} catch (err) {
+				if (cancelled) return;
 				recordTraceError(ctx, "upstream.stream.error", err);
 				if (
 					machine.phase === ResponseStreamPhase.IDLE ||
@@ -75,6 +88,16 @@ export function wrapWithErrorHandler(
 					}
 				}
 				controller.close();
+			} finally {
+				releaseReader();
+			}
+		},
+		async cancel(reason) {
+			cancelled = true;
+			try {
+				await reader?.cancel(reason);
+			} finally {
+				releaseReader();
 			}
 		},
 	});
