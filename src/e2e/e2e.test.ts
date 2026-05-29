@@ -657,13 +657,13 @@ describe("E2E: sync response", () => {
 		const messages = upstreamMessages();
 		expect(messages).toEqual([
 			{ role: "system", content: "Return JSON only." },
-			{ role: "user", content: "Jane, 54 years old" },
 			{
 				role: "system",
 				content: expect.stringContaining("Return only valid JSON."),
 			},
+			{ role: "user", content: "Jane, 54 years old" },
 		]);
-		expect(messages.at(-1)?.content).toEqual(
+		expect(messages[1]?.content).toEqual(
 			expect.stringContaining('"required":["name","age"]'),
 		);
 		expect(upstream.response_format).toEqual({ type: "json_object" });

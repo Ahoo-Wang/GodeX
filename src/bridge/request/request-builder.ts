@@ -97,23 +97,32 @@ function chatMessages(
 	tools: ToolPlan,
 ): ChatCompletionMessageParam[] {
 	const context = normalizerContext(input, tools);
-	const messages = buildChatMessages([
-		...(input.session?.input_items
-			? normalizeResponseItems(
-					input.session.input_items,
-					input.request,
-					context,
-				)
-			: []),
-		...normalizeCurrentInput(input.request, context),
-	]);
+	const history = input.session?.input_items
+		? normalizeResponseItems(input.session.input_items, input.request, context)
+		: [];
+	const current = normalizeCurrentInput(input.request, context);
+	const currentPrefixLength = systemPrefixLength(current);
+	const preamble = current.slice(0, currentPrefixLength);
 	if (output.syntheticInstruction) {
-		messages.push({
+		preamble.push({
 			role: "system",
 			content: output.syntheticInstruction,
 		});
 	}
-	return messages;
+	return buildChatMessages([
+		...preamble,
+		...history,
+		...current.slice(currentPrefixLength),
+	]);
+}
+
+function systemPrefixLength(
+	messages: readonly NormalizedChatMessage[],
+): number {
+	const firstNonSystem = messages.findIndex(
+		(message) => message.role !== "system",
+	);
+	return firstNonSystem === -1 ? messages.length : firstNonSystem;
 }
 
 function assertNoRejectedCompatibility(

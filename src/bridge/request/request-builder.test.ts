@@ -116,7 +116,7 @@ describe("buildChatCompletionRequest", () => {
 		});
 	});
 
-	test("plans strict degraded json_schema as json_object and appends schema instruction", () => {
+	test("plans strict degraded json_schema as json_object and inserts schema instruction before user turns", () => {
 		const result = buildChatCompletionRequest({
 			provider: "acme",
 			model: "acme-chat",
@@ -146,16 +146,71 @@ describe("buildChatCompletionRequest", () => {
 		expect(result.request.response_format).toEqual({ type: "json_object" });
 		expect(result.request.messages).toEqual([
 			{ role: "system", content: "Use the requested shape." },
-			{ role: "user", content: "Return a payload." },
 			{
 				role: "system",
 				content: expect.stringContaining("Return only valid JSON"),
 			},
+			{ role: "user", content: "Return a payload." },
 		]);
-		expect(result.request.messages[2]?.content).toContain('"ok"');
-		expect(result.request.messages[2]?.content).not.toContain(
+		expect(result.request.messages[1]?.content).toContain('"ok"');
+		expect(result.request.messages[1]?.content).not.toContain(
 			"conforms to the JSON Schema",
 		);
+	});
+
+	test("keeps current instructions and schema instruction before replayed history", () => {
+		const result = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities,
+			profile: toolProfile,
+			request: request({
+				instructions: "Current system rules.",
+				input: "Continue.",
+				text: {
+					format: {
+						type: "json_schema",
+						name: "payload",
+						schema: {
+							type: "object",
+							required: ["ok"],
+							properties: { ok: { type: "boolean" } },
+						},
+						strict: true,
+					},
+				},
+			}),
+			session: {
+				previous_response_id: "resp_previous",
+				turns: [],
+				input_items: [
+					{
+						type: "message",
+						role: "user",
+						status: "completed",
+						content: [{ type: "input_text", text: "Earlier request." }],
+					},
+					{
+						id: "msg_assistant_previous",
+						type: "message",
+						role: "assistant",
+						status: "completed",
+						content: [{ type: "output_text", text: "Earlier answer." }],
+					},
+				],
+			},
+		});
+
+		expect(result.request.messages).toEqual([
+			{ role: "system", content: "Current system rules." },
+			{
+				role: "system",
+				content: expect.stringContaining("Return only valid JSON"),
+			},
+			{ role: "user", content: "Earlier request." },
+			{ role: "assistant", content: "Earlier answer." },
+			{ role: "user", content: "Continue." },
+		]);
 	});
 
 	test("rejects unsupported response formats instead of forwarding them", () => {
