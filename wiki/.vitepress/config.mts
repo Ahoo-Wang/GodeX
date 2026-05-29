@@ -56,6 +56,7 @@ const enSidebar = [
     collapsed: false,
     items: [
       { text: 'Provider Interface', link: '/03-provider-development/provider-interface' },
+      { text: 'DeepSeek Reference', link: '/03-provider-development/deepseek-reference' },
       { text: 'Zhipu Reference', link: '/03-provider-development/zhipu-reference' },
       { text: 'Message & Tool Mapping', link: '/03-provider-development/message-tool-mapping' },
     ],
@@ -143,6 +144,7 @@ const zhSidebar = [
     collapsed: false,
     items: [
       { text: 'Provider 接口', link: '/zh/03-provider-development/provider-interface' },
+      { text: 'DeepSeek 参考', link: '/zh/03-provider-development/deepseek-reference' },
       { text: '智谱参考实现', link: '/zh/03-provider-development/zhipu-reference' },
       { text: '消息与工具映射', link: '/zh/03-provider-development/message-tool-mapping' },
     ],

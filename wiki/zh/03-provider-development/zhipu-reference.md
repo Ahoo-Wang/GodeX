@@ -79,3 +79,4 @@ export const ZHIPU_PROVIDER_DEFINITION = createProviderDefinition(
 默认智谱 base URL 为 `https://open.bigmodel.cn/api/coding/paas/v4`。默认模型为 `glm-5.1`。
 
 [消息与工具映射](/zh/03-provider-development/message-tool-mapping)
+[DeepSeek 参考](/zh/03-provider-development/deepseek-reference)

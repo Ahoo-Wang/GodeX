@@ -25,6 +25,7 @@
 ## Deep Dive
 
 - [Provider Interface](03-provider-development/provider-interface.md): How to implement new LLM providers
+- [DeepSeek Reference](03-provider-development/deepseek-reference.md): DeepSeek provider implementation walkthrough
 - [Zhipu Reference](03-provider-development/zhipu-reference.md): Reference provider implementation walkthrough
 - [Message & Tool Mapping](03-provider-development/message-tool-mapping.md): Input item conversion, tool type mapping
 - [Session Store](04-session-management/session-store.md): Response history storage backends

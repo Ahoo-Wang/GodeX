@@ -79,3 +79,4 @@ export const ZHIPU_PROVIDER_DEFINITION = createProviderDefinition(
 The default Zhipu base URL is `https://open.bigmodel.cn/api/coding/paas/v4` (coding plan endpoint). The default model is `glm-5.1`.
 
 [Message & Tool Mapping](/03-provider-development/message-tool-mapping)
+[DeepSeek Reference](/03-provider-development/deepseek-reference)
