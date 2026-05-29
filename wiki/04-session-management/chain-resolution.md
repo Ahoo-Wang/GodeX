@@ -45,6 +45,15 @@ flowchart TD
 | Depth exceeded | `session.chain.depth_exceeded` | 64 hops |
 | Incomplete status | `session.chain.unavailable` | Only completed turns |
 
+## Resolution Options
+
+```ts
+interface ResolveResponseSessionOptions {
+  max_depth?: number;           // Maximum parent hops (default: 64)
+  include_incomplete?: boolean; // Include non-completed responses (default: false)
+}
+``+
+
 ## Result Structure
 
 `ResponseSessionSnapshot` contains:

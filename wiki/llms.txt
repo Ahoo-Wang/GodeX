@@ -13,6 +13,7 @@
 
 - [System Overview](02-architecture/overview.md): Component model, C4 context, architectural decisions
 - [Request Flow](02-architecture/request-flow.md): Full request lifecycle from HTTP to upstream and back
+- [Model Resolver](02-architecture/model-resolver.md): Model alias resolution, wildcard matching, default provider fallback
 - [Bridge Kernel](02-architecture/bridge-kernel.md): Provider-agnostic compatibility planning, tools, output contracts
 - [Stream Pipeline](02-architecture/stream-pipeline.md): TransformStream stages, SSE encoding, session persistence
 

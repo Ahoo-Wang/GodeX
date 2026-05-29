@@ -45,6 +45,15 @@ flowchart TD
 | 深度超限 | `session.chain.depth_exceeded` | 64 跳 |
 | 未完成状态 | `session.chain.unavailable` | 仅已完成轮次 |
 
+## 解析选项
+
+```ts
+interface ResolveResponseSessionOptions {
+  max_depth?: number;           // 最大父指针跳数（默认：64）
+  include_incomplete?: boolean; // 包含未完成的响应（默认：false）
+}
+```
+
 ## 结果结构
 
 `ResponseSessionSnapshot` 包含：

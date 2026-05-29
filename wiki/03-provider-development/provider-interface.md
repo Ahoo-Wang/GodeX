@@ -70,6 +70,7 @@ const capabilities: ProviderCapabilities = {
     supported: new Set([
       "stream", "temperature", "top_p", "max_output_tokens",
       "reasoning", "safety_identifier", "user",
+      "text.format",
     ]),
   },
   tools: {
