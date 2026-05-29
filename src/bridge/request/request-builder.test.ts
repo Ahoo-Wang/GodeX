@@ -351,6 +351,148 @@ describe("buildChatCompletionRequest", () => {
 		]);
 	});
 
+	test("keeps reasoning content on replayed tool-call assistant messages", () => {
+		const result = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities,
+			profile: toolProfile,
+			request: request({
+				input: [
+					{
+						type: "function_call_output",
+						call_id: "call_lookup",
+						output: "Lookup result.",
+					},
+				],
+				tools: [
+					{
+						type: "function",
+						name: "lookup",
+						parameters: {},
+						strict: true,
+					},
+				],
+			}),
+			session: {
+				previous_response_id: "resp_previous",
+				turns: [],
+				input_items: [
+					{
+						id: "rs_previous",
+						type: "reasoning",
+						summary: [],
+						content: [{ type: "reasoning_text", text: "Need a lookup." }],
+						status: "completed",
+					},
+					{
+						id: "msg_previous",
+						type: "message",
+						role: "assistant",
+						status: "completed",
+						content: [{ type: "output_text", text: "I'll check." }],
+					},
+					{
+						type: "function_call",
+						call_id: "call_lookup",
+						name: "lookup",
+						arguments: "{}",
+					},
+				],
+			},
+		});
+
+		expect(result.request.messages).toEqual([
+			{
+				role: "assistant",
+				content: "I'll check.",
+				reasoning_content: "Need a lookup.",
+				tool_calls: [
+					expect.objectContaining({
+						id: "call_lookup",
+						function: expect.objectContaining({ name: "lookup" }),
+					}),
+				],
+			},
+			{
+				role: "tool",
+				tool_call_id: "call_lookup",
+				content: "Lookup result.",
+			},
+		]);
+	});
+
+	test("folds replayed assistant text after tool calls into the tool-call message", () => {
+		const result = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities,
+			profile: toolProfile,
+			request: request({
+				input: [
+					{
+						type: "function_call_output",
+						call_id: "call_lookup",
+						output: "Lookup result.",
+					},
+				],
+				tools: [
+					{
+						type: "function",
+						name: "lookup",
+						parameters: {},
+						strict: true,
+					},
+				],
+			}),
+			session: {
+				previous_response_id: "resp_previous",
+				turns: [],
+				input_items: [
+					{
+						id: "rs_previous",
+						type: "reasoning",
+						summary: [],
+						content: [{ type: "reasoning_text", text: "Need a lookup." }],
+						status: "completed",
+					},
+					{
+						type: "function_call",
+						call_id: "call_lookup",
+						name: "lookup",
+						arguments: "{}",
+					},
+					{
+						id: "msg_previous",
+						type: "message",
+						role: "assistant",
+						status: "completed",
+						content: [{ type: "output_text", text: "I'll check." }],
+					},
+				],
+			},
+		});
+
+		expect(result.request.messages).toEqual([
+			{
+				role: "assistant",
+				content: "I'll check.",
+				reasoning_content: "Need a lookup.",
+				tool_calls: [
+					expect.objectContaining({
+						id: "call_lookup",
+						function: expect.objectContaining({ name: "lookup" }),
+					}),
+				],
+			},
+			{
+				role: "tool",
+				tool_call_id: "call_lookup",
+				content: "Lookup result.",
+			},
+		]);
+	});
+
 	test("does not forward ignored Responses envelope fields and records compatibility diagnostics", () => {
 		const result = buildChatCompletionRequest({
 			provider: "acme",

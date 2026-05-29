@@ -44,7 +44,7 @@ function handleMockChat(body: Record<string, unknown>) {
 					finish_reason: "tool_calls",
 					message: {
 						role: "assistant",
-						content: "",
+						content: "I'll check.",
 						reasoning_content: "Need tool.",
 						tool_calls: [
 							{
@@ -264,6 +264,7 @@ describe("DeepSeek mocked e2e", () => {
 		const assistant = upstreamMessages().find(
 			(message) => message.role === "assistant" && message.tool_calls,
 		);
+		expect(assistant?.content).toBe("I'll check.");
 		expect(assistant?.reasoning_content).toBe("Need tool.");
 	});
 });
