@@ -1,0 +1,70 @@
+{
+  "title": "GodeX Wiki",
+  "modules": [
+    {
+      "title": "Getting Started",
+      "children": [
+        {
+          "title": "Overview",
+          "file": "01-getting-started/overview.md",
+          "prompt": "What is GodeX, why it exists, how it transforms any LLM provider into an OpenAI-compatible Responses API gateway. Cover the core value proposition: request bridging, model aliasing, session chains, and streaming translation. Source: [src/index.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/index.ts), [package.json](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json), [README.md](https://github.com/Ahoo-Wang/GodeX/blob/main/README.md)"
+        },
+        {
+          "title": "Quick Start",
+          "file": "01-getting-started/quick-start.md",
+          "prompt": "Install, configure, and run GodeX in 5 minutes. Cover godex init, godex.yaml setup, API key configuration, running the server, and making first requests. Source: [src/cli/commands/init.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/cli/commands/init.ts), [src/cli/cli.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/cli/cli.ts), [godex.yaml](https://github.com/Ahoo-Wang/GodeX/blob/main/godex.yaml)"
+        },
+        {
+          "title": "CLI Reference",
+          "file": "01-getting-started/cli-reference.md",
+          "prompt": "Complete reference for godex CLI commands: init, serve, config check, config print. Cover flags, options, environment variables, and runtime config. Source: [src/cli/program.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/cli/program.ts), [src/cli/commands/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/cli/commands/), [src/cli/runtime-config/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/cli/runtime-config/)"
+        }
+      ]
+    },
+    {
+      "title": "Deep Dive",
+      "children": [
+        {
+          "title": "Architecture",
+          "file": "02-architecture/architecture.md",
+          "prompt": "System architecture overview: layered design with CLI → ApplicationContext → Bun Server → Responses Pipeline → Bridge Kernel → Provider Edge. Cover the core flow, dependency graph, and module responsibilities. Source: [src/context/application-context.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts), [src/responses/runtime.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/runtime.ts), [src/server/server.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/server.ts)"
+        },
+        {
+          "title": "Bridge Kernel",
+          "file": "03-bridge-kernel/bridge-kernel.md",
+          "prompt": "The Responses-to-Chat bridge kernel: compatibility planning, request building, tool planning, output contracts, response reconstruction, and stream state machine. This is the core translation layer. Source: [src/bridge/request/request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts), [src/bridge/compatibility/planner.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts), [src/bridge/tools/tool-plan.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts), [src/bridge/response/response-reconstructor.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/response/response-reconstructor.ts), [src/bridge/stream/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/)"
+        },
+        {
+          "title": "Provider Development",
+          "file": "04-provider-development/provider-development.md",
+          "prompt": "How to add a new provider: ProviderSpec, ProviderEdge, hooks, protocol DTOs, capabilities declaration, and conformance testing. Cover the factory pattern and registrar. Source: [src/providers/registrar.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/registrar.ts), [src/providers/definition.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/definition.ts), [src/providers/deepseek/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/), [src/providers/zhipu/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/), [src/bridge/provider-spec/contract.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts)"
+        },
+        {
+          "title": "Streaming Pipeline",
+          "file": "05-streaming-pipeline/streaming-pipeline.md",
+          "prompt": "The streaming pipeline: ProviderExchange, StreamPipeline, composable TransformStream stages, stream state machine, delta mapping, SSE encoding, and the transform chain order. Source: [src/responses/stream-pipeline.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts), [src/responses/provider-exchange.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts), [src/responses/stream-transforms/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/), [src/bridge/stream/stream-reconstructor.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts)"
+        },
+        {
+          "title": "Session Management",
+          "file": "06-session-management/session-management.md",
+          "prompt": "Session chains: previous_response_id resolution, chain validation (cycles, depth, incomplete), memory and SQLite stores, save policies, and snapshot cloning. Source: [src/session/chain.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/session/chain.ts), [src/session/memory.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/session/memory.ts), [src/session/sqlite.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/session/sqlite.ts), [src/session/save-policy.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/session/save-policy.ts)"
+        },
+        {
+          "title": "Configuration",
+          "file": "07-configuration/configuration.md",
+          "prompt": "godex.yaml configuration: schema, sections, env interpolation, defaults, validation, paths resolution, and CLI overrides. Source: [src/config/schema.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/schema.ts), [src/config/reader.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/reader.ts), [src/config/env-interpolation.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/env-interpolation.ts), [godex.yaml](https://github.com/Ahoo-Wang/GodeX/blob/main/godex.yaml)"
+        },
+        {
+          "title": "Trace & Observability",
+          "file": "08-trace-observability/trace-observability.md",
+          "prompt": "Trace system: async recorder, SQLite storage, payload capture, event types (request, usage, event, error), queue management, and the NoopTraceRecorder fallback. Source: [src/trace/recorder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/recorder.ts), [src/trace/sqlite.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/sqlite.ts), [src/trace/types.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts)"
+        },
+        {
+          "title": "Error Handling",
+          "file": "09-error-handling/error-handling.md",
+          "prompt": "GodeXError hierarchy: ServerError, BridgeError, ProviderError, SessionError. Domain codes, structured logging, and error flow through the pipeline. Source: [src/error/godex-error.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/godex-error.ts), [src/error/codes.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts), [src/error/server-error.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/server-error.ts), [src/error/bridge-error.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/bridge-error.ts)"
+        }
+      ]
+    }
+  ]
+}

@@ -1,66 +1,54 @@
 # AGENTS.md — GodeX Wiki
 
-AI agent instructions for the GodeX VitePress wiki.
+This is the VitePress documentation site for GodeX.
 
 ## Build & Run
 
 ```bash
-cd wiki
-pnpm install          # Install VitePress + dependencies
-pnpm run dev          # Dev server (hot reload)
-pnpm run build        # Build static site to .vitepress/dist/
-pnpm run preview      # Preview built site
+npm install          # Install VitePress and plugins
+npm run dev          # Dev server with hot reload (default port 5173)
+npm run build        # Build static site to .vitepress/dist/
+npm run preview      # Preview the built site
 ```
 
 ## Structure
 
-```
+```text
 wiki/
-├── .vitepress/
-│   ├── config.mts      # VitePress config with Mermaid plugin
-│   └── theme/          # Custom dark theme + zoom handlers
-├── public/             # Static assets (CNAME)
-├── 01-getting-started/ # Setup, installation, quick reference
-├── 02-architecture/    # System design, request flow, adapter, stream
-├── 03-provider-development/  # Provider interface, Zhipu reference, mapping
-├── 04-session-management/    # Session store, chain resolution
-├── 05-streaming-pipeline/    # Transformers, stream state
-├── 06-error-handling/        # Error hierarchy, error codes
-├── 07-configuration/         # Config schema, CLI commands
-├── 08-testing/               # Testing guide
-├── 09-deployment/            # CI/CD, publishing
-├── index.md                  # Landing page
-├── llms.txt                  # LLM-friendly index
-└── llms-full.txt             # Full inlined content
+  index.md                  Landing page
+  llms.txt                  LLM-friendly index
+  llms-full.txt             Full inline content for LLMs
+  .vitepress/config.ts      VitePress config, sidebar, theme
+  .vitepress/theme/         Custom theme (dark, Inter + JetBrains Mono, medium-zoom)
+  01-getting-started/       Getting Started section
+  02-architecture/          Architecture deep dive
+  03-bridge-kernel/         Bridge Kernel documentation
+  04-provider-development/  Provider development guide
+  05-streaming-pipeline/    Streaming pipeline docs
+  06-session-management/    Session management docs
+  07-configuration/         Configuration reference
+  08-trace-observability/   Trace & observability docs
+  09-error-handling/        Error handling docs
+  onboarding/               Audience-tailored onboarding guides
+  public/                   Static assets (logo.svg, etc.)
 ```
 
 ## Content Conventions
 
-- **Mermaid diagrams**: Always use dark-mode colors (`#2d333b`, `#6d5dfc`, `#e6edf3`, `#161b22`, `#8b949e`)
-- **Citations**: `[file_path:line](https://github.com/Ahoo-Wang/GodeX/blob/main/file_path#Lline)`
-- **Frontmatter**: Every page needs `title` and `description`
-- **Self-closing tags**: Use `<br>` not `<br/>` in Mermaid blocks
-- **Sequence diagrams**: Always include `autonumber`
-
-## Documentation Sources
-
-- `wiki/llms.txt` — LLM-friendly link index
-- `wiki/llms-full.txt` — Full page content inlined
+- Mermaid diagrams use dark-mode colors: fills `#2d333b`, borders `#6d5dfc`, text `#e6edf3`
+- No `<br/>` in Mermaid labels — use `<br>` or line breaks instead
+- Source citations: `[file:line](https://github.com/Ahoo-Wang/GodeX/blob/main/file#Lline)`
+- VitePress frontmatter: `title` and `description` on every page
+- Use `autonumber` in all `sequenceDiagram` blocks
+- Tables over prose for structured information
 
 ## Boundaries
 
-✅ Always:
-- Test Mermaid diagrams render correctly in dark mode
-- Maintain consistent citation format
-- Keep VitePress frontmatter on every page
+Always:
+- Run `npm run build` before pushing to verify no build errors
+- Keep sidebar in sync with `.vitepress/config.ts`
 
-⚠️ Ask first:
-- Modifying theme CSS or JavaScript
-- Changing VitePress configuration
-- Adding new sidebar sections
-
-🚫 Never:
-- Delete generated wiki pages without understanding the structure
-- Modify theme zoom handlers without testing
-- Add light-mode styles that break dark theme
-- Remove Mermaid dark-mode CSS overrides
+Never:
+- Delete generated documentation pages without updating sidebar and llms.txt
+- Modify theme without testing dark-mode rendering
+- Add runtime dependencies beyond VitePress and its plugins

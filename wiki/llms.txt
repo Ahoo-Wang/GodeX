@@ -1,39 +1,32 @@
-# GodeX
+# GodeX Wiki
 
-> OpenAI Responses API gateway — translates /v1/responses into upstream Chat Completions API calls so any LLM provider can drive Codex. Built with Bun and TypeScript using the @ahoo-wang/fetcher ecosystem.
+> Complete documentation for GodeX — an OpenAI-compatible Responses API gateway that makes every LLM model a Codex engine.
 
 ## Onboarding
 
-- [Contributor Guide](onboarding/contributor-guide.md): Setup, first PR, codebase patterns, testing
-- [Staff Engineer Guide](onboarding/staff-engineer-guide.md): Architecture, design decisions, system boundaries
-- [Executive Guide](onboarding/executive-guide.md): Capabilities, risks, investment thesis
-- [Product Manager Guide](onboarding/product-manager-guide.md): Features, user journeys, FAQ
-
-## Architecture
-
-- [System Overview](02-architecture/overview.md): Component model, C4 context, architectural decisions
-- [Request Flow](02-architecture/request-flow.md): Full request lifecycle from HTTP to upstream and back
-- [Adapter Pattern](02-architecture/adapter-pattern.md): Provider abstraction, mapper interfaces, capabilities
-- [Stream Pipeline](02-architecture/stream-pipeline.md): TransformStream stages, SSE encoding, session persistence
+- [Contributor Guide](onboarding/contributor/contributor-guide.md) — For new contributors with TypeScript proficiency
+- [Staff Engineer Guide](onboarding/staff-engineer/staff-engineer-guide.md) — Dense architectural guide for senior engineers
+- [Executive Guide](onboarding/executive/executive-guide.md) — For VP/director-level engineering leaders
+- [Product Manager Guide](onboarding/product-manager/product-manager-guide.md) — For PMs and non-engineering stakeholders
 
 ## Getting Started
 
-- [Overview](01-getting-started/overview.md): Prerequisites, installation, first request
-- [Installation & Setup](01-getting-started/installation-setup.md): Config wizard, godex.yaml, env vars, model mapping
-- [Quick Reference](01-getting-started/quick-reference.md): CLI commands, API endpoints, curl examples
+- [Overview](01-getting-started/overview.md) — What GodeX is, why it exists, core value proposition
+- [Quick Start](01-getting-started/quick-start.md) — Install, configure, and run in 5 minutes
+- [CLI Reference](01-getting-started/cli-reference.md) — All commands, flags, and environment variables
 
 ## Deep Dive
 
-- [Provider Interface](03-provider-development/provider-interface.md): How to implement new LLM providers
-- [Zhipu Reference](03-provider-development/zhipu-reference.md): Reference provider implementation walkthrough
-- [Message & Tool Mapping](03-provider-development/message-tool-mapping.md): Input item conversion, tool type mapping
-- [Session Store](04-session-management/session-store.md): Response history storage backends
-- [Chain Resolution](04-session-management/chain-resolution.md): Multi-turn conversation chain traversal
-- [Transformers](05-streaming-pipeline/transformers.md): Stream pipeline transformer stages
-- [Stream State](05-streaming-pipeline/stream-state.md): Accumulation state during streaming
-- [Error Hierarchy](06-error-handling/error-hierarchy.md): GodeXError class hierarchy and HTTP mapping
-- [Error Codes](06-error-handling/error-codes.md): Complete error code reference
-- [Config Schema](07-configuration/config-schema.md): godex.yaml configuration reference
-- [CLI Commands](07-configuration/cli-commands.md): Command-line interface reference
-- [Testing Guide](08-testing/testing-guide.md): Unit, E2E, and live provider tests
-- [CI/CD & Publishing](09-deployment/ci-cd.md): CI pipeline, cross-compilation, npm publishing
+- [Architecture](02-architecture/architecture.md) — System layers, request flow, and module responsibilities
+- [Bridge Kernel](03-bridge-kernel/bridge-kernel.md) — The Responses-to-Chat translation core
+- [Provider Development](04-provider-development/provider-development.md) — How to add a new LLM provider
+- [Streaming Pipeline](05-streaming-pipeline/streaming-pipeline.md) — Transform chain and stream state machine
+- [Session Management](06-session-management/session-management.md) — Conversation chains and session stores
+- [Configuration](07-configuration/configuration.md) — godex.yaml schema, env interpolation, defaults
+- [Trace & Observability](08-trace-observability/trace-observability.md) — Async SQLite tracing system
+- [Error Handling](09-error-handling/error-handling.md) — GodeXError hierarchy and domain codes
+
+## Optional
+
+- [AGENTS.md](AGENTS.md) — Wiki build and development instructions
+- [llms-full.txt](llms-full.txt) — Full inline documentation for LLM consumption
