@@ -52,6 +52,28 @@ export function mapTraceRecordToRow(
 				cache_hit_ratio: event.usage.cache_hit_ratio ?? null,
 			};
 		}
+		if (event.kind === "error") {
+			const payload = payloadSummary(
+				event.payload?.payload,
+				event.request_id,
+				options,
+			);
+			return {
+				table: "errors",
+				request_id: event.request_id,
+				response_id: event.response_id,
+				provider: event.provider,
+				model: event.model,
+				event_name: event.event_name,
+				error_type: event.error_type ?? null,
+				domain: event.domain ?? null,
+				code: event.code,
+				message: event.message,
+				status: event.status ?? null,
+				created_at: event.created_at,
+				...payload,
+			};
+		}
 		const payload = payloadSummary(
 			event.payload?.payload,
 			event.request_id,

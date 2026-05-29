@@ -52,6 +52,21 @@ interface TraceRequestRow {
 	payload_truncated: number;
 }
 
+interface TraceErrorRow {
+	request_id: string;
+	response_id: string;
+	provider: string;
+	model: string;
+	event_name: string;
+	error_type: string | null;
+	domain: string | null;
+	code: string;
+	message: string;
+	status: number | null;
+	payload_json: string | null;
+	payload_truncated: number;
+}
+
 afterEach(async () => {
 	godexServer?.stop();
 	mockServer?.stop();
@@ -234,6 +249,56 @@ describe("E2E: trace recording", () => {
 			db.close();
 		}
 	});
+
+	test("records provider errors in SQLite", async () => {
+		tempDir = mkdtempSync(join(tmpdir(), "godex-trace-error-e2e-"));
+		const upstreamRequests: Record<string, unknown>[] = [];
+		const mockBase = await startMockZhipu(upstreamRequests);
+		const tracePath = join(tempDir, "trace.db");
+		const godexBase = await startGodex(mockBase, tracePath);
+
+		const res = await fetch(`${godexBase}/v1/responses`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: "Bearer test-key",
+			},
+			body: JSON.stringify({
+				model: "gpt-5",
+				input: "Trigger upstream error.",
+			}),
+		});
+
+		expect(res.status).toBe(422);
+		expect(upstreamRequests).toHaveLength(1);
+
+		await app?.close();
+		app = undefined;
+
+		const db = new Database(tracePath, { readonly: true, strict: true });
+		try {
+			const errorRow = db
+				.query("SELECT * FROM trace_errors")
+				.get() as TraceErrorRow | null;
+
+			expect(errorRow).toMatchObject({
+				provider: "zhipu",
+				model: "glm-5.1",
+				event_name: "responses.request.provider.error",
+				error_type: "ProviderError",
+				domain: "provider",
+				code: "provider.upstream.error",
+				message: "mock upstream rejected request",
+				status: 502,
+				payload_truncated: 0,
+			});
+			expect(errorRow?.payload_json).toBeNull();
+			expect(errorRow?.request_id).toMatch(/^req_/);
+			expect(errorRow?.response_id).toMatch(/^resp_/);
+		} finally {
+			db.close();
+		}
+	});
 });
 
 async function startMockZhipu(
@@ -250,6 +315,18 @@ async function startMockZhipu(
 			}
 			const body = (await req.json()) as Record<string, unknown>;
 			upstreamRequests.push(body);
+			if (JSON.stringify(body).includes("Trigger upstream error.")) {
+				return Response.json(
+					{
+						error: {
+							message: "mock upstream rejected request",
+							type: "invalid_request_error",
+							code: "invalid_request_error",
+						},
+					},
+					{ status: 400, statusText: "Bad Request" },
+				);
+			}
 			if (body.stream !== true) return handleMockChat();
 			return handleMockStream();
 		},

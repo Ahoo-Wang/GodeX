@@ -13,6 +13,7 @@ import {
 } from "../error/codes";
 import { GodeXError } from "../error/godex-error";
 import type { ResponseStreamEvent } from "../protocol/openai/responses";
+import { recordTraceError } from "../trace";
 
 const KNOWN_STREAM_CODES = new Set([
 	BRIDGE_STREAM_DELTA_AFTER_TERMINAL,
@@ -46,6 +47,7 @@ export function wrapWithErrorHandler(
 				}
 				controller.close();
 			} catch (err) {
+				recordTraceError(ctx, "upstream.stream.error", err);
 				if (
 					machine.phase === ResponseStreamPhase.IDLE ||
 					machine.phase === ResponseStreamPhase.IN_PROGRESS

@@ -56,7 +56,19 @@ export interface TraceEventRecordEvent extends TraceRecordBase {
 	payload?: TracePayloadInput;
 }
 
+export interface TraceErrorRecordEvent extends TraceRecordBase {
+	kind: "error";
+	event_name: string;
+	error_type?: string | null;
+	domain?: string | null;
+	code: string;
+	message: string;
+	status?: number | null;
+	payload?: TracePayloadInput;
+}
+
 export type TraceRecordEvent =
 	| TraceRequestRecordEvent
 	| TraceUsageRecordEvent
-	| TraceEventRecordEvent;
+	| TraceEventRecordEvent
+	| TraceErrorRecordEvent;

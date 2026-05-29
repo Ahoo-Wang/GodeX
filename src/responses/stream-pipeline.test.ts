@@ -286,6 +286,14 @@ describe("StreamPipeline", () => {
 				message: expect.stringContaining("upstream stream failed"),
 			},
 		});
+		expect(ctx.traceEvents).toContainEqual(
+			expect.objectContaining({
+				kind: "error",
+				event_name: "upstream.stream.error",
+				code: "server_error",
+				message: expect.stringContaining("upstream stream failed"),
+			}),
+		);
 	});
 
 	test("emits response.failed when the first provider chunk is malformed", async () => {

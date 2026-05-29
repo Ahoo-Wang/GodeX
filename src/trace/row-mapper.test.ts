@@ -72,6 +72,49 @@ describe("mapTraceRecordToRow", () => {
 		});
 	});
 
+	test("maps error records with serializable diagnostic payload", () => {
+		const row = mapTraceRecordToRow(
+			{
+				kind: "error",
+				request_id: "req_failed",
+				response_id: "resp_failed",
+				provider: "deepseek",
+				model: "deepseek-v4-pro",
+				created_at: 1003,
+				event_name: "responses.request.provider.error",
+				error_type: "ProviderError",
+				domain: "provider",
+				code: "provider.upstream.error",
+				message: "Upstream failed",
+				status: 502,
+				payload: {
+					payload: {
+						upstreamStatus: 400,
+						upstreamBody: { error: { message: "bad request" } },
+					},
+				},
+			} as unknown as TraceRecordEvent,
+			mapperOptions(),
+		);
+
+		expect(row).toMatchObject({
+			table: "errors",
+			request_id: "req_failed",
+			response_id: "resp_failed",
+			provider: "deepseek",
+			model: "deepseek-v4-pro",
+			event_name: "responses.request.provider.error",
+			error_type: "ProviderError",
+			domain: "provider",
+			code: "provider.upstream.error",
+			message: "Upstream failed",
+			status: 502,
+			payload_json:
+				'{"upstreamStatus":400,"upstreamBody":{"error":{"message":"bad request"}}}',
+			payload_truncated: false,
+		});
+	});
+
 	test("keeps event row metadata when payload serialization fails", () => {
 		const warnings: string[] = [];
 		const payload: Record<string, unknown> = {};

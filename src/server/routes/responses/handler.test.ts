@@ -251,6 +251,46 @@ describe("handleResponses", () => {
 		expect(errorLog?.attr).not.toHaveProperty("requestId");
 	});
 
+	test("records provider errors into trace when context exists", async () => {
+		const traceEvents: unknown[] = [];
+		const app = createTestApp({
+			async request() {
+				throw new ProviderError("provider.upstream.error", "Upstream failed", {
+					provider: "zhipu",
+					model: "glm-5.1",
+					upstreamStatus: 400,
+					upstreamBody: { error: { message: "bad request" } },
+				});
+			},
+		});
+		Object.defineProperty(app, "traceEnabled", { value: true });
+		Object.defineProperty(app, "traceRecorder", {
+			value: { record: (event: unknown) => traceEvents.push(event) },
+		});
+
+		const res = await handleResponses(jsonRequest(basicBody()), app);
+
+		expect(res.status).toBe(422);
+		expect(traceEvents).toContainEqual(
+			expect.objectContaining({
+				kind: "error",
+				event_name: "responses.request.provider.error",
+				provider: "zhipu",
+				model: "glm-5.1",
+				domain: "provider",
+				code: "provider.upstream.error",
+				message: "Upstream failed",
+				status: 502,
+				payload: {
+					payload: expect.objectContaining({
+						upstreamStatus: 400,
+						upstreamBody: { error: { message: "bad request" } },
+					}),
+				},
+			}),
+		);
+	});
+
 	test("maps bridge translation failures to invalid request errors", async () => {
 		const app = createTestApp();
 
