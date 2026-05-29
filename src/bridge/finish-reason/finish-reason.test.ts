@@ -25,6 +25,17 @@ describe("mapProviderFinishReason", () => {
 		});
 	});
 
+	test("maps network_error finish reason to a known provider failure", () => {
+		expect(mapProviderFinishReason("zhipu", "network_error")).toEqual({
+			status: "failed",
+			error: {
+				code: SERVER_ERROR,
+				message: "Provider zhipu reported network_error finish reason.",
+			},
+			incomplete_details: null,
+		});
+	});
+
 	test("maps missing and unknown finish reasons to failed", () => {
 		expect(mapProviderFinishReason("acme", null)).toEqual({
 			status: "failed",
@@ -34,12 +45,12 @@ describe("mapProviderFinishReason", () => {
 			},
 			incomplete_details: null,
 		});
-		expect(mapProviderFinishReason("acme", "network_error")).toEqual({
+		expect(mapProviderFinishReason("acme", "unknown_reason")).toEqual({
 			status: "failed",
 			error: {
 				code: SERVER_ERROR,
 				message:
-					"Provider acme returned unexpected finish reason: network_error.",
+					"Provider acme returned unexpected finish reason: unknown_reason.",
 			},
 			incomplete_details: null,
 		});

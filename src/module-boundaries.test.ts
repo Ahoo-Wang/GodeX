@@ -215,6 +215,14 @@ describe("src module boundaries", () => {
 		expect(offenders).toEqual([]);
 	});
 
+	test("unused bridge dialect and observation modules stay removed", () => {
+		const forbidden = ["bridge/dialect", "bridge/observation"].filter((path) =>
+			existsSync(join(SRC_ROOT, path)),
+		);
+
+		expect(forbidden).toEqual([]);
+	});
+
 	test("the root src/index.ts stays an executable entrypoint", () => {
 		expect(basename(ROOT_INDEX)).toBe("index.ts");
 		expect(existsSync(ROOT_INDEX)).toBe(true);

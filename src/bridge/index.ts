@@ -1,6 +1,4 @@
 export * from "./compatibility";
-export * from "./dialect";
-export * from "./observation";
 export * from "./output";
 export * from "./provider-spec";
 export * from "./request";

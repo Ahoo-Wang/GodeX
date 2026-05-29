@@ -52,6 +52,15 @@ export function mapProviderFinishReason(
 				error: null,
 				incomplete_details: { reason: "content_filter" },
 			};
+		case "network_error":
+			return {
+				status: "failed",
+				error: {
+					code: SERVER_ERROR,
+					message: `Provider ${provider} reported network_error finish reason.`,
+				},
+				incomplete_details: null,
+			};
 		default:
 			return {
 				status: "failed",
