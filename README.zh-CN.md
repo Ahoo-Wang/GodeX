@@ -238,6 +238,14 @@ trace:
 godex serve --config ./godex.yaml
 ```
 
+源码开发模式：
+
+```bash
+bun run dev
+```
+
+`bun run dev` 使用端口 `13145`；运行时配置默认端口是 `5678`。
+
 ## API
 
 ### 健康检查
