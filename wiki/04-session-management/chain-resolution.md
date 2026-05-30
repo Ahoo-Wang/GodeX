@@ -50,9 +50,6 @@ sequenceDiagram
     Resolve->>Resolve: Flat-map input_items from each turn
     Resolve-->>Caller: ResponseSessionSnapshot
 
-    style Caller fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Resolve fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Store fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
 ### Step-by-step
@@ -185,3 +182,4 @@ flowchart TD
 - [src/session/types.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/session/types.ts) -- `ResponseSessionSnapshot`, `ResolveResponseSessionOptions`, `StoredResponseSession`
 - [src/error/session-error.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/session-error.ts) -- `SessionError` class
 - [src/error/codes.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts) -- `SESSION_CHAIN_NOT_FOUND`, `SESSION_CHAIN_CYCLE_DETECTED`, `SESSION_CHAIN_DEPTH_EXCEEDED`, `SESSION_CHAIN_UNAVAILABLE`
+

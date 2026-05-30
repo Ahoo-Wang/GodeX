@@ -24,7 +24,6 @@ This layer is why provider implementations never deal with raw fetch errors or S
 
 ```mermaid
 classDiagram
-    direction LR
 
     class ChatProviderClient {
         -api: ChatApi
@@ -162,11 +161,6 @@ sequenceDiagram
     API-->>Client: ReadableStream of SSE events
     Client-->>Caller: ReadableStream
 
-    style Caller fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Client fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style API fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Fetch fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Upstream fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
 ## Example Provider
@@ -191,3 +185,4 @@ Before sending, `assertProviderChatRequest` ([chat-request-guard.ts:5-27](https:
 - [src/providers/example/client.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/example/client.ts) -- example provider edge factory
 - [src/providers/example/spec.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/example/spec.ts) -- example provider spec
 - [src/error/codes.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts) -- provider error domain codes
+

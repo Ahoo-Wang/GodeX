@@ -48,10 +48,6 @@ sequenceDiagram
     end
     Edge-->>Bridge: ReadableStream of normalized chunks
 
-    style Bridge fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Edge fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Hooks fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style HTTP fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
 ## DeepSeek 钩子
@@ -186,3 +182,4 @@ flowchart LR
 - [src/providers/shared/input-compatibility.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/input-compatibility.ts) -- 不支持的内容类型警告
 - [src/providers/shared/chat-request-guard.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/chat-request-guard.ts) -- `assertProviderChatRequest`
 - [src/bridge/provider-spec/contract.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts) -- `ProviderHooks` 接口定义
+

@@ -50,7 +50,6 @@ The response data needed for history and diagnostics ([types.ts:59-66](https://g
 
 ```mermaid
 classDiagram
-    direction LR
 
     class ResponseSessionStore {
         <<interface>>
@@ -193,3 +192,4 @@ flowchart TD
 - [src/session/snapshot-clone.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/session/snapshot-clone.ts) -- `cloneStoredResponseSession`
 - [src/context/session-store-factory.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/session-store-factory.ts) -- `createResponseSessionStore`
 - [src/error/session-error.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/session-error.ts) -- `SessionError`
+

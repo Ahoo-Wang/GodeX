@@ -21,11 +21,11 @@ CI 流水线通过 GitHub Actions 在每次推送和拉取请求时运行：
 flowchart TB
   TAG["GitHub Release 标签 vX.Y.Z"]
 
-  CHECKS["检查<br/>typecheck + lint + test + e2e"]
+  CHECKS["检查<br>typecheck + lint + test + e2e"]
 
   COMPILE["编译 6 个平台二进制"]
-  PUBLISH["发布到 npm<br/>+ 上传 Release 资产"]
-  DOCKER["构建并推送 Docker 镜像<br/>linux/amd64 + linux/arm64"]
+  PUBLISH["发布到 npm<br>+ 上传 Release 资产"]
+  DOCKER["构建并推送 Docker 镜像<br>linux/amd64 + linux/arm64"]
 
   TAG --> CHECKS
   CHECKS --> COMPILE

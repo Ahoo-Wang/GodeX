@@ -48,7 +48,6 @@ flowchart TB
 
 ```mermaid
 classDiagram
-  direction TB
 
   class ApplicationContext {
     +config: GodeXConfig
@@ -183,3 +182,4 @@ flowchart TD
 ```
 
 [请求流程](/zh/02-architecture/request-flow)
+

@@ -82,7 +82,6 @@ trace:
 
 ```mermaid
 classDiagram
-  direction TB
 
   class GodeXConfig {
     +server: ServerConfig
@@ -181,3 +180,4 @@ BESIDES YAML interpolation, these environment variables directly override config
 | `GODEX_DEFAULT_PROVIDER` | `default_provider` | Falls back to `deepseek` if both are unset |
 
 [CLI Commands](/07-configuration/cli-commands)
+

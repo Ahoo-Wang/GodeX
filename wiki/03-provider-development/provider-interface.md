@@ -12,7 +12,6 @@ Adding a new LLM provider to GodeX means declaring a `ProviderSpec` with capabil
 
 ```mermaid
 classDiagram
-  direction TB
 
   class ProviderSpec~TReq TRes TChunk~ {
     +name: string
@@ -156,3 +155,4 @@ export const BUILTIN_PROVIDER_DEFINITIONS = [
 The `Registrar` iterates all configured providers in `godex.yaml`, matches by the `spec` field to the factory, and builds `ProviderEdge` instances. Providers without a matching factory are listed as unsupported.
 
 [DeepSeek Reference](/03-provider-development/deepseek-reference)
+

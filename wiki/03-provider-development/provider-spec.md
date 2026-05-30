@@ -28,7 +28,6 @@ The `ProviderSpec` interface contains four categories of fields: identity, proto
 
 ```mermaid
 classDiagram
-    direction LR
 
     class ProviderSpec {
         +name: string
@@ -132,10 +131,6 @@ sequenceDiagram
     Hooks-->>Edge: normalizedResponse
     Edge-->>Caller: normalizedResponse
 
-    style Caller fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Edge fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Hooks fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Transport fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
 ## ProviderRuntimeConfig
@@ -231,3 +226,4 @@ The example provider at [src/providers/example/spec.ts](https://github.com/Ahoo-
 - [src/providers/builtin.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts) -- built-in definitions and `createBuiltinRegistrar`
 - [src/providers/example/spec.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/example/spec.ts) -- example provider spec with inline DTOs
 - [src/providers/registrar.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/registrar.ts) -- `Registrar` that resolves providers by name
+

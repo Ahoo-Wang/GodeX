@@ -12,7 +12,6 @@ keywords: "GodeX, 流状态, ResponseStreamStateMachine, 状态机"
 
 ```mermaid
 classDiagram
-  direction TB
 
   class ResponseStreamStateMachine {
     +phase: ResponseStreamPhase
@@ -91,3 +90,4 @@ fail() -> response.failed
 | `bridge.stream.incomplete_tool_call` | 流以未完成的工具调用结束 |
 
 [错误层次](/zh/06-error-handling/error-hierarchy)
+

@@ -122,10 +122,6 @@ sequenceDiagram
         Recorder->>Recorder: flush() again
     end
 
-    style Helper fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Recorder fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Queue fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Store fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
 ### 配置选项
@@ -329,3 +325,4 @@ flowchart TD
 - [src/trace/usage.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/usage.ts) -- `traceUsageFromResponseUsage`
 - [src/trace/time.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/time.ts) -- `nowTraceMillis`
 - [src/context/trace-services.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/trace-services.ts) -- `createTraceServices`
+
