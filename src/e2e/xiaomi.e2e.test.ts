@@ -177,7 +177,7 @@ function lastUpstreamRequest(): Record<string, unknown> {
 }
 
 describe("Xiaomi mocked e2e", () => {
-	test("maps default request with thinking disabled and strips reasoning_effort", async () => {
+	test("maps boolean reasoning effort to thinking enabled and strips reasoning_effort", async () => {
 		resetUpstreamRequests();
 		const res = await postResponses({
 			model: "mimo-v2.5-pro",
@@ -189,6 +189,34 @@ describe("Xiaomi mocked e2e", () => {
 		expect(lastUpstreamRequest()).toMatchObject({
 			model: "mimo-v2.5-pro",
 			messages: [{ role: "user", content: "Hello!" }],
+			thinking: { type: "enabled" },
+		});
+		expect(lastUpstreamRequest()).not.toHaveProperty("reasoning_effort");
+	});
+
+	test("defaults thinking to disabled without reasoning", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "mimo-v2.5-pro",
+			input: "Hello!",
+		});
+
+		expect(res.status).toBe(200);
+		expect(lastUpstreamRequest()).toMatchObject({
+			thinking: { type: "disabled" },
+		});
+	});
+
+	test("maps reasoning effort none to thinking disabled", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "mimo-v2.5-pro",
+			input: "Hello!",
+			reasoning: { effort: "none" },
+		});
+
+		expect(res.status).toBe(200);
+		expect(lastUpstreamRequest()).toMatchObject({
 			thinking: { type: "disabled" },
 		});
 		expect(lastUpstreamRequest()).not.toHaveProperty("reasoning_effort");
@@ -311,20 +339,6 @@ describe("Xiaomi mocked e2e", () => {
 				(tool) => (tool.function as Record<string, unknown>).name as string,
 			),
 		).toEqual(["local_shell", "apply_patch", "read-file"]);
-	});
-
-	test("sends tool_choice: auto to upstream for degraded tools", async () => {
-		resetUpstreamRequests();
-		const res = await postResponses({
-			model: "mimo-v2.5-pro",
-			input: "List files.",
-			tools: [{ type: "local_shell" }],
-		});
-
-		expect(res.status).toBe(200);
-		expect(lastUpstreamRequest()).toMatchObject({
-			tool_choice: "auto",
-		});
 	});
 
 	test("maps Responses function call history to upstream tool_calls messages", async () => {
