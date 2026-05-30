@@ -71,9 +71,9 @@ graph LR
 graph TB
   subgraph WithoutGodeX["没有 GodeX"]
     W1["编码工具"] -->|只能使用| W2["OpenAI"]
-    W1 -.-x|"无法使用| W3["DeepSeek"]
-    W1 -.-x|"无法使用| W4["智谱"]
-    W1 -.-x|"无法使用| W5["MiniMax"]
+    W1 -.-x|无法使用| W3["DeepSeek"]
+    W1 -.-x|无法使用| W4["智谱"]
+    W1 -.-x|无法使用| W5["MiniMax"]
   end
 
   subgraph WithGodeX["有 GodeX"]
