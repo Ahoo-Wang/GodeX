@@ -237,6 +237,55 @@ The [src/testing/](https://github.com/Ahoo-Wang/GodeX/blob/main/src/testing) mod
 
 The `createTestProviderEdge` function at [src/testing/provider-edge.ts:34](https://github.com/Ahoo-Wang/GodeX/blob/main/src/testing/provider-edge.ts#L34) creates a mock provider with configurable callbacks (`onRequest`, `onStream`), pre-built stream events, and a full provider spec including capabilities and tool support.
 
+## Test Structure
+
+```
+src/
+├── bridge/
+│   ├── compatibility/*.test.ts
+│   ├── tools/*.test.ts
+│   ├── output/*.test.ts
+│   ├── request/*.test.ts
+│   ├── response/*.test.ts
+│   ├── stream/*.test.ts
+│   ├── provider-spec/*.test.ts
+│   └── finish-reason/*.test.ts
+├── config/
+│   ├── builder.test.ts
+│   ├── env.test.ts
+│   └── raw.test.ts
+├── context/
+│   ├── application-context.test.ts
+│   ├── responses-context.test.ts
+│   └── responses-context-factory.test.ts
+├── e2e/
+│   ├── e2e.test.ts
+│   ├── deepseek.e2e.test.ts
+│   ├── minimax.e2e.test.ts
+│   ├── trace.test.ts
+│   └── zhipu-api.test.ts
+├── error/*.test.ts
+├── providers/
+│   ├── registrar.test.ts
+│   ├── builtin.test.ts
+│   ├── provider-conformance.test.ts
+│   ├── deepseek/provider.test.ts
+│   └── minimax/provider.test.ts
+├── resolver/*.test.ts
+├── responses/
+│   ├── runtime.test.ts
+│   ├── provider-exchange.test.ts
+│   ├── stream-pipeline.test.ts
+│   ├── sync-request-pipeline.test.ts
+│   └── stream-transforms/*.test.ts
+├── server/
+│   ├── index.test.ts
+│   └── routes/**/*.test.ts
+├── session/*.test.ts
+├── trace/*.test.ts
+└── module-boundaries.test.ts
+```
+
 ## Test Execution Commands
 
 | Command | What It Runs |

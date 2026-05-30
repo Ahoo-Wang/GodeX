@@ -173,6 +173,17 @@ With this configuration:
 | `"my-custom-model"` | `deepseek` (wildcard) | `deepseek-v4-pro` |
 | `"unknown"` | `deepseek` (default) | `unknown` |
 
+## Module Structure
+
+```
+src/resolver/
+├── model-resolver.ts    # ModelResolver class with resolve() and listAliases()
+├── model-aliases.ts     # ModelAliasCatalog with exact, wildcard, and listing logic
+├── model-selector.ts    # parseModelSelector() for provider/model string parsing
+├── model-reference.ts   # ResolvedModel type definition
+└── index.ts             # Barrel exports
+```
+
 ## Cross-References
 
 - [Request Flow](./request-flow.md) -- where model resolution fits in the full pipeline

@@ -54,7 +54,6 @@ const enSidebar = [
       { text: 'Request Flow', link: '/02-architecture/request-flow' },
       { text: 'Model Resolution', link: '/02-architecture/model-resolution' },
       { text: 'Bridge Kernel', link: '/02-architecture/bridge-kernel' },
-      { text: 'Stream Pipeline', link: '/02-architecture/stream-pipeline' },
       { text: 'Server Routes', link: '/02-architecture/server-routes' },
     ],
   },
@@ -99,7 +98,6 @@ const enSidebar = [
     items: [
       { text: 'Session Stores', link: '/04-session-management/session-stores' },
       { text: 'Chain Resolution', link: '/04-session-management/chain-resolution' },
-      { text: 'Session Store', link: '/04-session-management/session-store' },
     ],
   },
   {
@@ -115,8 +113,6 @@ const enSidebar = [
     collapsed: true,
     items: [
       { text: 'Error Handling', link: '/06-error-handling/error-handling' },
-      { text: 'Error Hierarchy', link: '/06-error-handling/error-hierarchy' },
-      { text: 'Error Codes', link: '/06-error-handling/error-codes' },
     ],
   },
   {
@@ -133,7 +129,6 @@ const enSidebar = [
    collapsed: true,
    items: [
      { text: 'Testing', link: '/08-testing/testing' },
-     { text: 'Testing Guide', link: '/08-testing/testing-guide' },
    ],
  },
  {
@@ -141,7 +136,6 @@ const enSidebar = [
    collapsed: true,
    items: [
      { text: 'Trace System', link: '/10-trace/trace-system' },
-     { text: 'Trace Recording', link: '/10-trace/trace-recording' },
    ],
  },
  {
@@ -187,7 +181,6 @@ const zhSidebar = [
       { text: '请求流程', link: '/zh/02-architecture/request-flow' },
       { text: '模型解析', link: '/zh/02-architecture/model-resolution' },
       { text: 'Bridge 内核', link: '/zh/02-architecture/bridge-kernel' },
-      { text: '流式管道', link: '/zh/02-architecture/stream-pipeline' },
       { text: '服务端路由', link: '/zh/02-architecture/server-routes' },
     ],
   },
@@ -232,7 +225,6 @@ const zhSidebar = [
     items: [
       { text: '会话存储（多后端）', link: '/zh/04-session-management/session-stores' },
       { text: '链式解析', link: '/zh/04-session-management/chain-resolution' },
-      { text: '会话存储', link: '/zh/04-session-management/session-store' },
     ],
   },
   {
@@ -248,8 +240,6 @@ const zhSidebar = [
     collapsed: true,
     items: [
       { text: '错误处理', link: '/zh/06-error-handling/error-handling' },
-      { text: '错误层次', link: '/zh/06-error-handling/error-hierarchy' },
-      { text: '错误码', link: '/zh/06-error-handling/error-codes' },
     ],
   },
   {
@@ -266,7 +256,6 @@ const zhSidebar = [
     collapsed: true,
     items: [
       { text: '测试', link: '/zh/08-testing/testing' },
-      { text: '测试指南', link: '/zh/08-testing/testing-guide' },
     ],
   },
   {
@@ -274,7 +263,6 @@ const zhSidebar = [
     collapsed: true,
     items: [
       { text: '追踪系统', link: '/zh/10-trace/trace-system' },
-      { text: '追踪记录', link: '/zh/10-trace/trace-recording' },
     ],
   },
   {
