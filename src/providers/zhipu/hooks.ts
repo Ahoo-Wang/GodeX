@@ -25,7 +25,6 @@ export const ZHIPU_SUPPORTED_TOOL_TYPES: ReadonlySet<string> = new Set([
 	"shell",
 	"apply_patch",
 	"custom",
-	"tool_search",
 	"namespace",
 ]);
 
@@ -55,7 +54,6 @@ export const ZHIPU_SPEC_CAPABILITIES: ProviderCapabilities = {
 			["shell", "function"],
 			["apply_patch", "function"],
 			["custom", "function"],
-			["tool_search", "function"],
 			["namespace", "function"],
 		]),
 		maxTools: ZHIPU_MAX_TOOLS,

@@ -33,7 +33,6 @@ export const XIAOMI_SPEC_CAPABILITIES: ProviderCapabilities = {
 			"shell",
 			"apply_patch",
 			"custom",
-			"tool_search",
 			"namespace",
 		]),
 		degraded: new Map([
@@ -41,7 +40,6 @@ export const XIAOMI_SPEC_CAPABILITIES: ProviderCapabilities = {
 			["shell", "function"],
 			["apply_patch", "function"],
 			["custom", "function"],
-			["tool_search", "function"],
 			["namespace", "function"],
 		]),
 		maxTools: XIAOMI_MAX_TOOLS,
