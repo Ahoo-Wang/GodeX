@@ -46,13 +46,6 @@ features:
     details: 编译一次，到处运行。Docker 镜像不到 50MB，6 个平台的原生二进制，或通过 npm 安装。无需 Node.js、无需 Python、零运行时负担。
 ---
 
-<div class="gx-stats">
-  <div class="gx-stat"><span class="gx-stat-num">3</span><span class="gx-stat-label">内置提供商</span></div>
-  <div class="gx-stat"><span class="gx-stat-num">6</span><span class="gx-stat-label">平台</span></div>
-  <div class="gx-stat"><span class="gx-stat-num">&lt;50MB</span><span class="gx-stat-label">Docker 镜像</span></div>
-  <div class="gx-stat"><span class="gx-stat-num">0</span><span class="gx-stat-label">依赖</span></div>
-</div>
-
 ## 工作原理
 
 ```mermaid

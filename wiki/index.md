@@ -45,13 +45,6 @@ features:
     details: Compile once, run anywhere. Docker image under 50MB, native binaries for 6 platforms, or install via npm. No Node.js, no Python, no runtime baggage.
 ---
 
-<div class="gx-stats">
-  <div class="gx-stat"><span class="gx-stat-num">3</span><span class="gx-stat-label">Built-in Providers</span></div>
-  <div class="gx-stat"><span class="gx-stat-num">6</span><span class="gx-stat-label">Platforms</span></div>
-  <div class="gx-stat"><span class="gx-stat-num">&lt;50MB</span><span class="gx-stat-label">Docker Image</span></div>
-  <div class="gx-stat"><span class="gx-stat-num">0</span><span class="gx-stat-label">Dependencies</span></div>
-</div>
-
 ## How It Works
 
 ```mermaid

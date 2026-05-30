@@ -182,46 +182,6 @@
   opacity: 1;
 }
 
-/* Stats bar */
-.gx-stats {
-  display: flex;
-  justify-content: center;
-  gap: 48px;
-  padding: 32px 0 16px;
-  margin-bottom: 16px;
-}
-
-.gx-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.gx-stat-num {
-  font-size: 28px;
-  font-weight: 800;
-  font-family: 'JetBrains Mono', monospace;
-  background: linear-gradient(135deg, #00D4FF, #2563FF, #7C3AED);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.gx-stat-label {
-  font-size: 13px;
-  color: #8b949e;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-@media (max-width: 640px) {
-  .gx-stats {
-    gap: 24px;
-    flex-wrap: wrap;
-  }
-  .gx-stat-num { font-size: 22px; }
-}
 
 .dark .VPFeature .title {
   color: #e6edf3 !important;
