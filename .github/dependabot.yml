@@ -22,7 +22,7 @@ updates:
       prefix: chore
       include: scope
 
-  - package-ecosystem: pnpm
+  - package-ecosystem: npm
     directory: /wiki
     schedule:
       interval: weekly
