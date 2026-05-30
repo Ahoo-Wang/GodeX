@@ -12,13 +12,10 @@ export function parseProvidersConfig(
 			throw new Error(`Provider ${name} must be an object`);
 		}
 		const provider = asConfigObject(value);
-		const spec = typeof provider.spec === "string" ? provider.spec.trim() : "";
-
-		if (!spec) {
-			throw new Error(
-				`Legacy provider config is no longer supported: providers.${name} must declare "spec".`,
-			);
-		}
+		const spec =
+			typeof provider.spec === "string" && provider.spec.trim()
+				? provider.spec.trim()
+				: name;
 
 		const credentials = asConfigObject(provider.credentials);
 		const api_key =

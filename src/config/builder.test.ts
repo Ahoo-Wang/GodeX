@@ -67,21 +67,19 @@ describe("buildConfig", () => {
 		}
 	});
 
-	test("rejects legacy provider config without spec", () => {
-		expect(() =>
-			buildConfig(
-				{
-					providers: {
-						zhipu: {
-							api_key: "legacy-key",
-							base_url: "https://legacy.example.test",
-						},
+	test("uses provider name as spec when spec is not declared", () => {
+		const config = buildConfig(
+			{
+				providers: {
+					zhipu: {
+						api_key: "test-key",
+						base_url: "https://example.test",
 					},
 				},
-				{},
-			),
-		).toThrow(
-			'Legacy provider config is no longer supported: providers.zhipu must declare "spec".',
+			},
+			{},
 		);
+
+		expect(config.providers.zhipu?.spec).toBe("zhipu");
 	});
 });
