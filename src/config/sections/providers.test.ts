@@ -48,17 +48,15 @@ describe("parseProvidersConfig", () => {
 		).toThrow("Provider zhipu must be an object");
 	});
 
-	test("rejects legacy providers without spec", () => {
-		expect(() =>
-			parseProvidersConfig({
-				zhipu: {
-					api_key: "legacy-key",
-					base_url: "https://legacy.example.test",
-				},
-			}),
-		).toThrow(
-			'Legacy provider config is no longer supported: providers.zhipu must declare "spec".',
-		);
+	test("uses provider name as spec when spec is not declared", () => {
+		const providers = parseProvidersConfig({
+			zhipu: {
+				api_key: "test-key",
+				base_url: "https://legacy.example.test",
+			},
+		});
+
+		expect(providers.zhipu?.spec).toBe("zhipu");
 	});
 
 	test("uses a null-prototype provider map", () => {
