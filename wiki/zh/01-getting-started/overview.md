@@ -15,6 +15,14 @@ GodeX 是一个基于 [Bun](https://bun.sh) 和 **TypeScript** 构建的 **OpenA
 - **流式优先**：整个管道基于 `ReadableStream` 和 `TransformStream` 构建，确保低延迟 SSE 交付。
 - **会话历史**：内置 `previous_response_id` 链式解析，支持 SQLite 或内存后端。
 
+## 内置提供商
+
+| 提供商 | 推理 | 工具选择 | 响应格式 | 缓存 Token | 默认模型 |
+|--------|------|----------|----------|------------|----------|
+| DeepSeek | 原生 | auto, none, required, function | text, json_object | ✅ | `deepseek-v4-pro` |
+| MiniMax  | 无 | auto, none, required, function | text, json_object | ✅ | `MiniMax-M2.7` |
+| 智谱     | 布尔 | auto, none | text, json_object | ✅ | `glm-5.1` |
+
 ## 系统上下文
 
 ```mermaid

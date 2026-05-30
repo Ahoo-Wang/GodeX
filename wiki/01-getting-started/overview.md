@@ -15,6 +15,14 @@ GodeX is an **OpenAI Responses API gateway** built with [Bun](https://bun.sh) an
 - **Streaming-first**: The entire pipeline is built around `ReadableStream` and `TransformStream`, ensuring low-latency SSE delivery to clients.
 - **Session history**: Built-in `previous_response_id` chain resolution with SQLite or in-memory backends.
 
+## Built-in Providers
+
+| Provider | Reasoning | Tool Choice | Response Format | Cached Tokens | Default Model |
+|----------|-----------|-------------|-----------------|---------------|---------------|
+| DeepSeek | native | auto, none, required, function | text, json_object | ✅ | `deepseek-v4-pro` |
+| MiniMax  | none  | auto, none, required, function | text, json_object | ✅ | `MiniMax-M2.7` |
+| Zhipu    | boolean | auto, none | text, json_object | ✅ | `glm-5.1` |
+
 ## System Context
 
 ```mermaid
