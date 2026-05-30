@@ -3,11 +3,11 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const enNav = [
   { text: 'Guide', link: '/01-getting-started/overview' },
-  { text: 'Architecture', link: '/02-architecture/overview' },
-  { text: 'Providers', link: '/03-provider-development/provider-interface' },
-  { text: 'Configuration', link: '/07-configuration/config-schema' },
-  { text: 'Diagnostics', link: '/06-error-handling/error-codes' },
-  { text: 'Deployment', link: '/09-deployment/ci-cd' },
+  { text: 'Architecture', link: '/02-architecture/architecture-overview' },
+  { text: 'Providers', link: '/03-provider-development/provider-spec' },
+  { text: 'Configuration', link: '/01-getting-started/configuration' },
+  { text: 'Diagnostics', link: '/06-error-handling/error-handling' },
+  { text: 'Deployment', link: '/09-deployment/deployment' },
   { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/GodeX' },
 ]
 
@@ -37,6 +37,10 @@ const enSidebar = [
     collapsed: false,
     items: [
       { text: 'Overview', link: '/01-getting-started/overview' },
+      { text: 'Quick Start', link: '/01-getting-started/quick-start' },
+      { text: 'Configuration', link: '/01-getting-started/configuration' },
+      { text: 'Built-in Providers', link: '/01-getting-started/builtin-providers' },
+      { text: 'CLI', link: '/01-getting-started/cli' },
       { text: 'Installation & Setup', link: '/01-getting-started/installation-setup' },
       { text: 'Quick Reference', link: '/01-getting-started/quick-reference' },
     ],
@@ -45,17 +49,43 @@ const enSidebar = [
     text: 'Architecture',
     collapsed: false,
     items: [
+      { text: 'Architecture Overview', link: '/02-architecture/architecture-overview' },
       { text: 'System Overview', link: '/02-architecture/overview' },
       { text: 'Request Flow', link: '/02-architecture/request-flow' },
-      { text: 'Model Resolver', link: '/02-architecture/model-resolver' },
+      { text: 'Model Resolution', link: '/02-architecture/model-resolution' },
       { text: 'Bridge Kernel', link: '/02-architecture/bridge-kernel' },
       { text: 'Stream Pipeline', link: '/02-architecture/stream-pipeline' },
+      { text: 'Server Routes', link: '/02-architecture/server-routes' },
+    ],
+  },
+  {
+    text: 'Bridge Kernel',
+    collapsed: true,
+    items: [
+      { text: 'Compatibility Planning', link: '/02-architecture/compatibility' },
+      { text: 'Request Building', link: '/02-architecture/request-building' },
+      { text: 'Response Reconstruction', link: '/02-architecture/response-reconstruction' },
+      { text: 'Stream Reconstruction', link: '/02-architecture/stream-reconstruction' },
+      { text: 'Tool Planning', link: '/02-architecture/tool-planning' },
+      { text: 'Output Contracts', link: '/02-architecture/output-contracts' },
+    ],
+  },
+  {
+    text: 'Responses Pipeline',
+    collapsed: true,
+    items: [
+      { text: 'Sync Pipeline', link: '/02-architecture/sync-pipeline' },
+      { text: 'Streaming Pipeline', link: '/02-architecture/streaming-pipeline' },
+      { text: 'Stream Transforms', link: '/02-architecture/stream-transforms' },
     ],
   },
   {
     text: 'Provider Development',
-    collapsed: false,
+    collapsed: true,
     items: [
+      { text: 'Provider Spec', link: '/03-provider-development/provider-spec' },
+      { text: 'Provider Hooks', link: '/03-provider-development/provider-hooks' },
+      { text: 'Chat Provider Client', link: '/03-provider-development/chat-provider-client' },
       { text: 'Provider Interface', link: '/03-provider-development/provider-interface' },
       { text: 'DeepSeek Reference', link: '/03-provider-development/deepseek-reference' },
       { text: 'MiniMax Reference', link: '/03-provider-development/minimax-reference' },
@@ -67,8 +97,9 @@ const enSidebar = [
     text: 'Session Management',
     collapsed: true,
     items: [
-      { text: 'Session Store', link: '/04-session-management/session-store' },
+      { text: 'Session Stores', link: '/04-session-management/session-stores' },
       { text: 'Chain Resolution', link: '/04-session-management/chain-resolution' },
+      { text: 'Session Store', link: '/04-session-management/session-store' },
     ],
   },
   {
@@ -83,6 +114,7 @@ const enSidebar = [
     text: 'Error Handling',
     collapsed: true,
     items: [
+      { text: 'Error Handling', link: '/06-error-handling/error-handling' },
       { text: 'Error Hierarchy', link: '/06-error-handling/error-hierarchy' },
       { text: 'Error Codes', link: '/06-error-handling/error-codes' },
     ],
@@ -91,6 +123,7 @@ const enSidebar = [
     text: 'Configuration',
     collapsed: true,
     items: [
+      { text: 'Logging', link: '/07-configuration/logging' },
       { text: 'Config Schema', link: '/07-configuration/config-schema' },
       { text: 'CLI Commands', link: '/07-configuration/cli-commands' },
     ],
@@ -99,6 +132,7 @@ const enSidebar = [
    text: 'Testing',
    collapsed: true,
    items: [
+     { text: 'Testing', link: '/08-testing/testing' },
      { text: 'Testing Guide', link: '/08-testing/testing-guide' },
    ],
  },
@@ -106,6 +140,7 @@ const enSidebar = [
    text: 'Trace',
    collapsed: true,
    items: [
+     { text: 'Trace System', link: '/10-trace/trace-system' },
      { text: 'Trace Recording', link: '/10-trace/trace-recording' },
    ],
  },
@@ -113,6 +148,7 @@ const enSidebar = [
    text: 'Deployment',
     collapsed: true,
     items: [
+      { text: 'Deployment', link: '/09-deployment/deployment' },
       { text: 'CI/CD & Publishing', link: '/09-deployment/ci-cd' },
     ],
   },
@@ -285,6 +321,10 @@ export default withMermaid(
         themeConfig: {
           nav: enNav,
           sidebar: enSidebar,
+          footer: {
+            message: 'Released under the <a href="https://opensource.org/licenses/Apache-2.0">Apache-2.0</a> License.',
+            copyright: 'Copyright © 2025-present <a href="https://github.com/Ahoo-Wang">Ahoo Wang</a>',
+          },
         },
       },
       zh: {
@@ -294,6 +334,10 @@ export default withMermaid(
         themeConfig: {
           nav: zhNav,
           sidebar: zhSidebar,
+          footer: {
+            message: '基于 <a href="https://opensource.org/licenses/Apache-2.0">Apache-2.0</a> 许可证发布。',
+            copyright: 'Copyright © 2025-present <a href="https://github.com/Ahoo-Wang">Ahoo Wang</a>',
+          },
         },
       },
     },

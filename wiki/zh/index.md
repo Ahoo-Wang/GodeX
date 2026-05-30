@@ -26,24 +26,24 @@ hero:
       link: https://gitee.com/AhooWang/GodeX
 
 features:
+  - icon: 🔌
+    title: 即插即用，无缝替换
+    details: 将 Codex 或任何 OpenAI SDK 指向 GodeX — 无需改代码。透明地将 Responses API 翻译为 Chat Completions，工具调用、流式输出和结构化输出按提供商能力自动适配。
   - icon: 🧭
-    title: 智能兼容性规划
-    details: 每个请求参数、工具类型和输出格式都根据提供商声明的能力进行规划。不支持的特性会被优雅降级或拒绝，并附带结构化诊断信息 — 绝不静默丢弃。
-  - icon: 🔧
-    title: 丰富的工具身份映射
-    details: Codex 内置工具（shell、apply_patch、local_shell）和提供商原生工具（web_search、file_search、mcp）通过身份编解码器自动映射，支持降级回退。工具调用在响应中恢复为原始类型。
+    title: 智能特性桥接
+    details: 每个请求根据提供商的真实能力进行规划。工具自动映射，输出格式自动适配，不支持的特性优雅降级并附带诊断信息 — 绝不静默丢弃。
   - icon: ⚡
-    title: 严谨的流式状态机
-    details: 流式响应由严格的阶段状态机驱动（IDLE → IN_PROGRESS → 终态），自动关闭输出块、校验阶段转换、在每个事件上生成实时快照 — 即使在提供商故障时也能确保稳健的 SSE 交付。
-  - icon: 📐
-    title: 输出契约与 Schema 降级
-    details: 当提供商不支持 json_schema 时，结构化输出请求会被自动降级。GodeX 注入 Schema 指令并验证响应，使 json_schema 在仅支持 json_object 的提供商上也能正常工作。
+    title: 原生流式网关
+    details: SSE 流式传输由严谨的阶段状态机驱动。逐 token 交付、实时快照、稳健的错误恢复 — 即使提供商中途断流也不丢失数据。
   - icon: 🔗
-    title: 安全的会话链式解析
-    details: 多轮对话通过父指针链重建，具备循环检测、深度限制和完成状态校验。历史分叉是一等公民 — 多个响应可以共享同一父节点。
-  - icon: 🧩
-    title: 声明式提供商规格
-    details: 提供商完全由不可变规格描述 — 能力、访问器、工具编解码器和钩子。Bridge 内核处理所有兼容性、路由和重建逻辑。新提供商无需修改任何共享基础设施。
+    title: 多轮会话支持
+    details: 原生支持 previous_response_id，具备分叉安全的链式解析、循环检测和可插拔存储后端（内存或 SQLite）。跨提供商多轮对话开箱即用。
+  - icon: 🔍
+    title: 内置可观测性
+    details: 每个请求全链路追踪 — 提供商调用、Token 用量、兼容性决策和错误。异步批量写入 SQLite，可配置的 Payload 捕获。
+  - icon: 📦
+    title: 单二进制，零依赖
+    details: 编译一次，到处运行。Docker 镜像不到 50MB，6 个平台的原生二进制，或通过 npm 安装。无需 Node.js、无需 Python、零运行时负担。
 ---
 
 ## 工作原理
@@ -104,3 +104,18 @@ codex
 ::: info
 阅读完整的[快速入门指南](/zh/01-getting-started/overview)或探索[架构概览](/zh/02-architecture/overview)。
 :::
+
+## 文档导航
+
+| 章节 | 说明 | 入口 |
+|------|------|------|
+| [快速入门](/zh/01-getting-started/overview) | 概述、安装、配置、提供商 | [概述](/zh/01-getting-started/overview) |
+| [架构](/zh/02-architecture/overview) | 请求流程、核心类型 | [系统总览](/zh/02-architecture/overview) |
+| [提供商开发](/zh/03-provider-development/provider-interface) | 如何接入新 LLM 提供商 | [Provider 接口](/zh/03-provider-development/provider-interface) |
+| [会话管理](/zh/04-session-management/session-store) | 多轮对话支持 | [会话存储](/zh/04-session-management/session-store) |
+| [流式管道](/zh/05-streaming-pipeline/transformers) | 流式转换与状态管理 | [转换器](/zh/05-streaming-pipeline/transformers) |
+| [错误处理](/zh/06-error-handling/error-codes) | 错误码参考 | [错误码](/zh/06-error-handling/error-codes) |
+| [配置](/zh/07-configuration/config-schema) | godex.yaml 配置参考 | [配置 Schema](/zh/07-configuration/config-schema) |
+| [测试](/zh/08-testing/testing-guide) | 单元、E2E、Live 测试 | [测试指南](/zh/08-testing/testing-guide) |
+| [追踪](/zh/10-trace/trace-recording) | 请求追踪与可观测性 | [追踪记录](/zh/10-trace/trace-recording) |
+| [部署](/zh/09-deployment/ci-cd) | Docker、原生二进制、CI/CD | [CI/CD 与发布](/zh/09-deployment/ci-cd) |

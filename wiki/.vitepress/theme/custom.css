@@ -265,3 +265,13 @@
   width: 100% !important;
   max-width: 560px !important;
 }
+
+/* Content area width */
+:root {
+  --vp-sidebar-width: 200px;
+  --vp-layout-max-width: 100%;
+}
+
+.VPDoc.has-aside .content-container {
+  max-width: var(--vp-layout-max-width) !important;
+}

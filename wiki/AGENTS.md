@@ -40,7 +40,7 @@ wiki/
 - **Mermaid diagrams**: Always use dark-mode colors (`#2d333b`, `#6d5dfc`, `#e6edf3`, `#161b22`, `#8b949e`)
 - **Citations**: `[file_path:line](https://github.com/Ahoo-Wang/GodeX/blob/main/file_path#Lline)`
 - **Frontmatter**: Every page needs `title` and `description`
-- **Self-closing tags**: Use `<br>` not `<br/>` in Mermaid blocks
+- **Self-closing tags**: Use `<br>` not `<br>` in Mermaid blocks
 - **Sequence diagrams**: Always include `autonumber`
 
 ## Terminology

@@ -21,11 +21,11 @@ The CI pipeline runs on every push and pull request via GitHub Actions:
 flowchart TB
   TAG["GitHub Release tag vX.Y.Z"]
 
-  CHECKS["Checks<br/>typecheck + lint + test + e2e"]
+  CHECKS["Checks<br>typecheck + lint + test + e2e"]
 
   COMPILE["Compile 6 platform binaries"]
-  PUBLISH["Publish to npm<br/>+ Upload Release Assets"]
-  DOCKER["Build & push Docker image<br/>linux/amd64 + linux/arm64"]
+  PUBLISH["Publish to npm<br>+ Upload Release Assets"]
+  DOCKER["Build & push Docker image<br>linux/amd64 + linux/arm64"]
 
   TAG --> CHECKS
   CHECKS --> COMPILE
