@@ -1,7 +1,7 @@
 {
   "name": "@ahoo-wang/godex",
   "version": "1.0.0",
-  "description": "Make every model a Codex engine through an OpenAI-compatible Responses API gateway",
+  "description": "OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
