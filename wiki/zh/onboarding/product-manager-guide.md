@@ -72,16 +72,18 @@ graph TB
   subgraph WithoutGodeX["没有 GodeX"]
     W1["编码工具"] -->|只能使用| W2["OpenAI"]
     W1 -.-x|无法使用| W3["DeepSeek"]
-    W1 -.-x|无法使用| W4["智谱"]
-    W1 -.-x|无法使用| W5["MiniMax"]
+    W1 -.-x|无法使用| W4["Xiaomi"]
+    W1 -.-x|无法使用| W5["智谱"]
+    W1 -.-x|无法使用| W6["MiniMax"]
   end
 
   subgraph WithGodeX["有 GodeX"]
     G1["编码工具"] -->|可以使用| G2["GodeX"]
     G2 -->|翻译到| G3["DeepSeek"]
-    G2 -->|翻译到| G4["智谱"]
-    G2 -->|翻译到| G5["MiniMax"]
-    G2 -->|翻译到| G6["任何未来的提供商"]
+    G2 -->|翻译到| G4["Xiaomi"]
+    G2 -->|翻译到| G5["智谱"]
+    G2 -->|翻译到| G6["MiniMax"]
+    G2 -->|翻译到| G7["任何未来的提供商"]
   end
 
   style WithoutGodex fill:#161b22,stroke:#30363d,color:#e6edf3
@@ -147,8 +149,8 @@ sequenceDiagram
 
 | 功能 | 限制 | 用户影响 |
 |------|------|---------|
-| **推理支持** | 因提供商而异：DeepSeek 完全支持，智谱基础支持，MiniMax 不支持 | 如果需要推理功能，选择 DeepSeek 或智谱 |
-| **工具选择控制** | 智谱仅支持 "auto" 和 "none"（不支持 "required" 或指定函数） | 在智谱上，无法强制 AI 总是调用特定工具 |
+| **推理支持** | 因提供商而异：DeepSeek 完全支持，Xiaomi 和智谱基础支持，MiniMax 不支持 | 如果需要推理功能，选择 DeepSeek、Xiaomi 或智谱 |
+| **工具选择控制** | Xiaomi 仅支持 "auto"；智谱仅支持 "auto" 和 "none"（不支持 "required" 或指定函数） | 在 Xiaomi 或智谱上，无法强制 AI 总是调用特定工具 |
 | **JSON Schema 验证** | 当提供商不支持 schema 时降级为 JSON Object 格式 | AI 会生成 JSON，但不保证所有提供商都进行严格的 schema 验证 |
 | **网页搜索** | 尚未支持 | AI 无法在对话中搜索网页获取信息 |
 
@@ -172,6 +174,7 @@ sequenceDiagram
 | 提供商 | 最适用场景 | 默认模型 | 可用模型 |
 |--------|-----------|---------|---------|
 | **DeepSeek** | 高性价比编码和推理 | `deepseek-v4-pro` | `deepseek-v4-pro`、`deepseek-v4-flash` 及 DeepSeek 目录中的其他模型 |
+| **Xiaomi / MiMo** | 推理和中国市场部署 | `mimo-v2.5-pro` | `mimo-v2.5-pro`、`mimo-v2.5`、`mimo-v2-flash` 及 MiMo 目录中的其他模型 |
 | **MiniMax** | 快速响应和工具调用 | `MiniMax-M2.7` | `MiniMax-M2.7` 及 MiniMax 目录中的其他模型 |
 | **智谱 / ChatGLM** | 中国市场部署和中文编程 | `glm-5.1` | `glm-5.1` 及智谱目录中的其他模型 |
 
@@ -179,17 +182,17 @@ sequenceDiagram
 
 ### 提供商对比
 
-| 能力 | DeepSeek | MiniMax | 智谱 |
-|------|----------|---------|------|
-| 文本生成 | 是 | 是 | 是 |
-| 流式传输 | 是 | 是 | 是 |
-| 工具调用（函数） | 是 | 是 | 是 |
-| 工具选择：auto | 是 | 是 | 是 |
-| 工具选择：none | 是 | 是 | 是 |
-| 工具选择：required | 是 | 是 | 否 |
-| 工具选择：指定函数 | 是 | 是 | 否 |
-| JSON 输出 | 是 | 是 | 是 |
-| 推理/思考 | 是（原生） | 否 | 是（基础） |
+| 能力 | DeepSeek | Xiaomi | MiniMax | 智谱 |
+|------|----------|--------|---------|------|
+| 文本生成 | 是 | 是 | 是 | 是 |
+| 流式传输 | 是 | 是 | 是 | 是 |
+| 工具调用（函数） | 是 | 是 | 是 | 是 |
+| 工具选择：auto | 是 | 是 | 是 | 是 |
+| 工具选择：none | 是 | 否 | 是 | 是 |
+| 工具选择：required | 是 | 否 | 是 | 否 |
+| 工具选择：指定函数 | 是 | 否 | 是 | 否 |
+| JSON 输出 | 是 | 是 | 是 | 是 |
+| 推理/思考 | 是（原生） | 是（布尔） | 否 | 是（基础） |
 | 缓存 Token | 是 | 是 | 是 |
 | 网页搜索工具 | 否 | 否 | 是（通过智谱的 web_search） |
 | 最大并发工具数 | 128 | 128 | 128 |
@@ -238,7 +241,7 @@ graph LR
 
 **场景描述**：你的团队正在评估哪个 AI 模型能为你的场景生成最佳代码。你希望并排比较输出结果。
 
-**使用 GodeX**：为每个提供商设置模型别名。通过修改请求中的一行，让同一个提示分别通过 DeepSeek、MiniMax 和智谱运行。无需切换工具或编写集成代码即可比较输出。
+**使用 GodeX**：为每个提供商设置模型别名。通过修改请求中的一行，让同一个提示分别通过 DeepSeek、Xiaomi、MiniMax 和智谱运行。无需切换工具或编写集成代码即可比较输出。
 
 **谁受益**：评估 AI 模型的技术产品经理、基准测试提供商的 ML 工程师、决定使用哪个提供商的团队。
 
@@ -295,7 +298,7 @@ graph LR
 ```mermaid
 graph LR
   TOOL["你的编码工具"] -->|发送你的提示| GODEX["GodeX"]
-  GODEX -->|转发到你<br>选择的提供商| PROVIDER["AI 提供商<br>DeepSeek / 智谱 / MiniMax"]
+  GODEX -->|转发到你<br>选择的提供商| PROVIDER["AI 提供商<br>DeepSeek / Xiaomi / 智谱 / MiniMax"]
   PROVIDER -->|返回 AI 响应| GODEX
   GODEX -->|返回到你的工具| TOOL
 
@@ -344,7 +347,7 @@ graph LR
 
 **问：使用 GodeX 需要什么？**
 
-答：你需要三样东西：(1) 安装了 GodeX 的机器，(2) 至少一个 AI 提供商的 API 密钥（DeepSeek、MiniMax 或智谱），(3) 支持 OpenAI API 格式的编码工具（如 Codex CLI）。
+答：你需要三样东西：(1) 安装了 GodeX 的机器，(2) 至少一个 AI 提供商的 API 密钥（DeepSeek、Xiaomi、MiniMax 或智谱），(3) 支持 OpenAI API 格式的编码工具（如 Codex CLI）。
 
 **问：搭建需要多长时间？**
 
@@ -368,7 +371,7 @@ graph LR
 
 答：取决于你的优先级：
 - **最便宜**：DeepSeek
-- **在中国使用**：智谱
+- **在中国使用**：Xiaomi、智谱
 - **最快响应**：MiniMax
 - **最佳推理**：DeepSeek
 
@@ -438,12 +441,12 @@ GodeX 文档中使用的每个技术术语，用通俗语言定义。
 |------|---------|
 | **AI 编码代理** | 使用 AI 帮你写代码的软件工具，像一个能为你读、写和编辑代码的助手。例如：Codex CLI、Claude Code、Cursor。 |
 | **AI 模型** | AI "大脑"的一个特定版本。比如 "GPT-4" 或 "deepseek-v4-pro"。每个模型有不同的优势、速度和成本。 |
-| **AI 提供商** | 提供可用 AI 模型的公司。比如 OpenAI、DeepSeek、智谱或 MiniMax。每个提供商有自己的 AI 模型。 |
+| **AI 提供商** | 提供可用 AI 模型的公司。比如 OpenAI、DeepSeek、Xiaomi、智谱或 MiniMax。每个提供商有自己的 AI 模型。 |
 | **别名** | 模型的昵称。不用记 "deepseek/deepseek-v4-pro"，你可以叫它 "coding-assistant" 或 "gpt-5.5"。 |
 | **API** | 应用程序编程接口 — 软件之间通信的标准化方式。在此上下文中，指你的编码工具与 AI 通信的方式。 |
 | **API 密钥** | 让 GodeX 与 AI 提供商认证的密码。每个提供商给你自己的密钥。 |
 | **缓存 Token** | AI 提供商之前已处理过的请求部分，可以更快更便宜地处理。类似重复信息的捷径。 |
-| **Chat Completions API** | 大多数 AI 提供商（DeepSeek、MiniMax、智谱）用于接收请求和返回响应的格式。 |
+| **Chat Completions API** | 大多数 AI 提供商（DeepSeek、Xiaomi、MiniMax、智谱）用于接收请求和返回响应的格式。 |
 | **编码工具** | 见 "AI 编码代理"。 |
 | **配置文件** | 一个文本文件（名为 `godex.yaml`），你在这里告诉 GodeX 使用哪些提供商以及如何连接。 |
 | **对话历史** | 对话中历史消息的记录，让 AI 能记住你之前讨论的内容。 |

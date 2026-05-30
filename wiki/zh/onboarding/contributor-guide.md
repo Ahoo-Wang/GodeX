@@ -202,6 +202,7 @@ src/
     finish-reason/    提供商完成原因到 Responses 状态映射
   providers/          提供商注册表、spec、客户端、hooks、协议 DTO
     deepseek/         DeepSeek 提供商（spec、client、hooks、protocol）
+    xiaomi/           Xiaomi 提供商（spec、client、hooks、protocol）
     zhipu/            智谱提供商（spec、client、hooks、protocol）
     minimax/          MiniMax 提供商（spec、client、hooks、protocol）
     shared/           共享提供商工具（ChatProviderClient、ChatApi）

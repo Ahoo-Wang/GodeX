@@ -168,7 +168,7 @@ graph TB
   Runtime["ResponsesBridgeRuntime<br>sync + stream 管道"]
   Exchange["ProviderExchange<br>build + call + trace"]
   Server["Bun Server<br>/v1/responses"]
-  Providers["Providers<br>deepseek, zhipu, minimax"]
+  Providers["Providers<br>deepseek, xiaomi, zhipu, minimax"]
 
   CLI --> Config
   Config --> AppCtx

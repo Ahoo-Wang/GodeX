@@ -201,6 +201,7 @@ src/
     finish-reason/    Provider finish reason to Responses status mapping
   providers/          Provider registry, specs, clients, hooks, protocol DTOs
     deepseek/         DeepSeek provider (spec, client, hooks, protocol)
+    xiaomi/           Xiaomi provider (spec, client, hooks, protocol)
     zhipu/            Zhipu provider (spec, client, hooks, protocol)
     minimax/          MiniMax provider (spec, client, hooks, protocol)
     shared/           Shared provider utilities (ChatProviderClient, ChatApi)

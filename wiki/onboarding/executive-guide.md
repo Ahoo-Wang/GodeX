@@ -16,7 +16,7 @@ keywords: "GodeX, executive guide, strategy, risk assessment, cost model, archit
 
 ## What GodeX Is
 
-GodeX is an OpenAI-compatible Responses API gateway. It sits between AI coding agents (Codex CLI, Claude Code, Cursor) and non-OpenAI LLM providers (DeepSeek, Zhipu/ChatGLM, MiniMax), translating requests and responses between the two protocols transparently.
+GodeX is an OpenAI-compatible Responses API gateway. It sits between AI coding agents (Codex CLI, Claude Code, Cursor) and non-OpenAI LLM providers (DeepSeek, Xiaomi, Zhipu/ChatGLM, MiniMax), translating requests and responses between the two protocols transparently.
 
 The agents speak OpenAI's Responses API format. GodeX converts those requests into each provider's Chat Completions API format, calls the upstream provider, and converts the response back. The agent never knows it is not talking to OpenAI.
 
@@ -31,7 +31,7 @@ This matters because the Responses API is becoming the standard protocol for nex
 | Capability | Description | Business Value |
 |-----------|-------------|----------------|
 | **Protocol Translation** | Converts OpenAI Responses API requests to provider-specific Chat Completions API calls and back | Zero client-side code changes required |
-| **Multi-Provider Routing** | Supports DeepSeek, Zhipu/ChatGLM, and MiniMax with a single configuration file | Vendor diversification without fragmentation |
+| **Multi-Provider Routing** | Supports DeepSeek, Xiaomi, Zhipu/ChatGLM, and MiniMax with a single configuration file | Vendor diversification without fragmentation |
 | **Streaming Support** | Passes through server-sent events (SSE) in real-time | Agents receive streaming responses indistinguishable from OpenAI |
 | **Session Management** | Multi-turn conversations via `previous_response_id` chain resolution | Agents maintain conversation context across turns |
 | **Model Aliasing** | Maps friendly model names (e.g., `gpt-5.5`) to actual provider/model combinations | Teams switch providers without changing agent configuration |
@@ -49,7 +49,7 @@ This matters because the Responses API is becoming the standard protocol for nex
 | Protocol translation (streaming) | Stable | State-machine-based SSE reconstruction |
 | Tool calling degradation | Stable | Built-in Codex tools map to `function` on all providers |
 | JSON Schema structured output | Beta | Downgraded to `json_object` with validation |
-| Reasoning/thinking tokens | Beta | DeepSeek: native. Zhipu: boolean toggle. MiniMax: not supported |
+| Reasoning/thinking tokens | Beta | DeepSeek: native. Xiaomi: boolean toggle. Zhipu: boolean toggle. MiniMax: not supported |
 | Cached token tracking | Stable | Reported when provider returns cache metadata |
 | Session chain resolution | Stable | Cycle detection, depth limits, incomplete response handling |
 | Web search passthrough | Planned | Not yet implemented |
@@ -72,7 +72,7 @@ GodeX eliminates that trade-off. One gateway, one configuration file, any suppor
 |--------|-------------|
 | **Cost Optimization** | DeepSeek and MiniMax models are significantly cheaper than GPT-4-class models. GodeX lets teams use these cheaper providers without rewriting agent code or maintaining provider-specific SDK integrations. |
 | **Vendor Diversification** | Dependency on a single LLM provider is a strategic risk. GodeX makes it trivial to route to multiple providers, reducing lock-in and providing negotiating leverage. |
-| **China Market Access** | Zhipu (ChatGLM) and MiniMax are leading China-market LLM providers. GodeX enables teams deploying AI coding tools in China to use domestic providers without custom integration work. The Zhipu coding endpoint is pre-configured. |
+| **China Market Access** | Xiaomi, Zhipu (ChatGLM), and MiniMax are leading China-market LLM providers. GodeX enables teams deploying AI coding tools in China to use domestic providers without custom integration work. The Zhipu coding endpoint is pre-configured. |
 | **Protocol Future-Proofing** | The Responses API is the newer OpenAI standard for agentic AI interactions. As more tools adopt it, GodeX positions the organization to use any Chat Completions provider without waiting for native Responses API support. |
 | **Operational Simplicity** | Single binary or Docker container. No external databases. No message brokers. SQLite for sessions and traces. One YAML configuration file. |
 
@@ -92,6 +92,7 @@ graph LR
 
   subgraph providers["Provider Layer"]
     DEEPSEEK["DeepSeek<br>Cost-Effective Coding"]
+    XIAOMI["Xiaomi / MiMo<br>Reasoning & China Market"]
     ZHIPU["Zhipu / ChatGLM<br>China Market"]
     MINIMAX["MiniMax<br>Fast Responses"]
     FUTURE["Future Providers<br>Extensible Spec Pattern"]
@@ -101,6 +102,7 @@ graph LR
   CLAUDE -->|"Responses API"| GODEX
   CURSOR -->|"Responses API"| GODEX
   GODEX -->|"Chat Completions API"| DEEPSEEK
+  GODEX -->|"Chat Completions API"| XIAOMI
   GODEX -->|"Chat Completions API"| ZHIPU
   GODEX -->|"Chat Completions API"| MINIMAX
   GODEX -->|"Chat Completions API"| FUTURE
@@ -110,6 +112,7 @@ graph LR
   style CLAUDE fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
   style CURSOR fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
   style DEEPSEEK fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+  style XIAOMI fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
   style ZHIPU fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
   style MINIMAX fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
   style FUTURE fill:#2d333b,stroke:#30363d,color:#e6edf3
@@ -327,6 +330,7 @@ The primary cost saving comes from using cheaper providers. GodeX itself adds ne
 | Provider | Default Model | Reasoning | Tool Choice | Response Format | Cached Tokens | Special Notes |
 |----------|--------------|-----------|-------------|----------------|---------------|---------------|
 | **DeepSeek** | `deepseek-v4-pro` | Native (high, max) | auto, none, required, function | text, json_object | Yes | Best for cost-effective coding. Native reasoning support. |
+| **Xiaomi / MiMo** | `mimo-v2.5-pro` | Boolean toggle | auto | text, json_object | Yes | Reasoning via thinking toggle. Up to 128 tools. |
 | **MiniMax** | `MiniMax-M2.7` | Not supported | auto, none, required, function | text, json_object | Yes | Fast responses. Full tool choice support. |
 | **Zhipu / ChatGLM** | `glm-5.1` | Boolean toggle | auto, none | text, json_object | Yes | China-market provider. Pre-configured coding endpoint. Web search tool support. |
 
