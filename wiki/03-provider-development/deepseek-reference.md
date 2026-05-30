@@ -139,4 +139,5 @@ The default DeepSeek base URL is `https://api.deepseek.com`. The default model i
 
 DeepSeek may return `message.content` as either a string or an array of content parts. The `deepSeekOutputText` accessor handles both cases, extracting text from `type: "text"` parts in array content.
 
+[MiniMax Reference](/03-provider-development/minimax-reference)
 [Zhipu Reference](/03-provider-development/zhipu-reference)

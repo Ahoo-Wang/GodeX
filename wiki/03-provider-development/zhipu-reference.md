@@ -154,3 +154,4 @@ The default base URL is the coding plan endpoint. The default model is `glm-5.1`
 
 [Message & Tool Mapping](/03-provider-development/message-tool-mapping)
 [DeepSeek Reference](/03-provider-development/deepseek-reference)
+[MiniMax Reference](/03-provider-development/minimax-reference)

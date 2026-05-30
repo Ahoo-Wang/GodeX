@@ -154,3 +154,4 @@ export const ZHIPU_PROVIDER_DEFINITION = createProviderDefinition(
 
 [消息与工具映射](/zh/03-provider-development/message-tool-mapping)
 [DeepSeek 参考](/zh/03-provider-development/deepseek-reference)
+[MiniMax 参考](/zh/03-provider-development/minimax-reference)
