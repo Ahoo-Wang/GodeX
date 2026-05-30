@@ -1,6 +1,6 @@
 {
   "name": "@ahoo-wang/godex",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "Make every model a Codex engine through an OpenAI-compatible Responses API gateway",
   "license": "Apache-2.0",
   "repository": {
@@ -48,12 +48,12 @@
     "node": ">=18.0.0"
   },
   "optionalDependencies": {
-    "@ahoo-wang/godex-darwin-arm64": "0.0.2",
-    "@ahoo-wang/godex-darwin-x64": "0.0.2",
-    "@ahoo-wang/godex-linux-x64": "0.0.2",
-    "@ahoo-wang/godex-linux-arm64": "0.0.2",
-    "@ahoo-wang/godex-win32-x64": "0.0.2",
-    "@ahoo-wang/godex-win32-arm64": "0.0.2"
+    "@ahoo-wang/godex-darwin-arm64": "1.0.0",
+    "@ahoo-wang/godex-darwin-x64": "1.0.0",
+    "@ahoo-wang/godex-linux-x64": "1.0.0",
+    "@ahoo-wang/godex-linux-arm64": "1.0.0",
+    "@ahoo-wang/godex-win32-x64": "1.0.0",
+    "@ahoo-wang/godex-win32-arm64": "1.0.0"
   },
   "devDependencies": {
     "@ahoo-wang/fetcher": "^3.16.8",
