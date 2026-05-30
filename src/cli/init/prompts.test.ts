@@ -9,7 +9,12 @@ import {
 	ZHIPU_CODING_PLAN_BASE_URL,
 	ZHIPU_PROVIDER_NAME,
 } from "../../providers/zhipu";
-import { promptConfigPath, promptInitConfig } from "./prompts";
+import {
+	promptConfigPath,
+	promptInitConfig,
+	validateApiKey,
+	validateBaseUrl,
+} from "./prompts";
 
 afterEach(() => {
 	mock.restore();
@@ -282,6 +287,33 @@ describe("promptInitConfig", () => {
 		const config = await promptInitConfig();
 
 		expect(config?.providers[0]?.apiKey).toBe("deepseek-key");
+	});
+});
+
+describe("validateBaseUrl", () => {
+	test("returns undefined for empty input", () => {
+		expect(validateBaseUrl("")).toBeUndefined();
+		expect(validateBaseUrl(undefined)).toBeUndefined();
+		expect(validateBaseUrl("   ")).toBeUndefined();
+	});
+
+	test("returns undefined for valid URL", () => {
+		expect(validateBaseUrl("https://api.example.com")).toBeUndefined();
+	});
+
+	test("returns error for invalid URL", () => {
+		expect(validateBaseUrl("not-a-url")).toBe("Base URL must be a valid URL");
+	});
+});
+
+describe("validateApiKey", () => {
+	test("returns undefined for empty input", () => {
+		expect(validateApiKey("")).toBeUndefined();
+		expect(validateApiKey(undefined)).toBeUndefined();
+	});
+
+	test("returns undefined for non-empty input", () => {
+		expect(validateApiKey("sk-1234")).toBeUndefined();
 	});
 });
 

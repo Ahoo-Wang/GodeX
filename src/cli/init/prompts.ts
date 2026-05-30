@@ -102,6 +102,20 @@ async function promptProviderConfigs(
 	return null;
 }
 
+export function validateBaseUrl(value: string | undefined): string | undefined {
+	const trimmed = value?.trim();
+	if (!trimmed) return;
+	try {
+		new URL(trimmed);
+	} catch {
+		return "Base URL must be a valid URL";
+	}
+}
+
+export function validateApiKey(value: string | undefined): string | undefined {
+	if (!value?.trim()) return;
+}
+
 async function promptProviderConfig(
 	definition: InitProviderDefinition,
 ): Promise<InitProviderConfig | null> {
@@ -110,15 +124,7 @@ async function promptProviderConfig(
 			message: `${definition.label} base URL:`,
 			placeholder: definition.defaultBaseUrl,
 			defaultValue: definition.defaultBaseUrl,
-			validate: (value) => {
-				const trimmed = value?.trim();
-				if (!trimmed) return;
-				try {
-					new URL(trimmed);
-				} catch {
-					return "Base URL must be a valid URL";
-				}
-			},
+			validate: validateBaseUrl,
 		}),
 	);
 	if (!rawBaseUrl) return null;
@@ -128,9 +134,7 @@ async function promptProviderConfig(
 			message: `${definition.label} API key (or env var like ${definition.apiKeyPlaceholder}):`,
 			placeholder: definition.apiKeyPlaceholder,
 			defaultValue: definition.apiKeyPlaceholder,
-			validate: (value) => {
-				if (!value?.trim()) return;
-			},
+			validate: validateApiKey,
 		}),
 	);
 	if (!rawApiKey) return null;
