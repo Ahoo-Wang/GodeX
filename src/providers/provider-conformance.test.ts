@@ -133,6 +133,7 @@ describe("ProviderSpec runtime conformance", () => {
 					completion_tokens: 2,
 					total_tokens: 3,
 					prompt_tokens_details: { cached_tokens: 0 },
+					completion_tokens_details: { reasoning_tokens: 0 },
 				},
 			}),
 		).toEqual({
@@ -140,6 +141,7 @@ describe("ProviderSpec runtime conformance", () => {
 			output_tokens: 2,
 			total_tokens: 3,
 			input_tokens_details: { cached_tokens: 0 },
+			output_tokens_details: { reasoning_tokens: 0 },
 		});
 	});
 
@@ -338,6 +340,23 @@ describe("ProviderSpec runtime conformance", () => {
 					prompt_tokens: "1",
 					completion_tokens: 2,
 					total_tokens: 3,
+				},
+			} as never),
+		).toThrow(ProviderError);
+	});
+
+	test("MiniMax provider spec rejects malformed reasoning_tokens in usage", () => {
+		expect(() =>
+			MINIMAX_PROVIDER_SPEC.response.usage({
+				id: "minimax-bad-reasoning",
+				created: 1,
+				model: "MiniMax-M2.7",
+				choices: [],
+				usage: {
+					prompt_tokens: 1,
+					completion_tokens: 2,
+					total_tokens: 3,
+					completion_tokens_details: { reasoning_tokens: "bad" },
 				},
 			} as never),
 		).toThrow(ProviderError);
