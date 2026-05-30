@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createBuiltinRegistrar } from "./builtin";
 import { DEEPSEEK_PROVIDER_NAME } from "./deepseek";
 import { MINIMAX_PROVIDER_NAME } from "./minimax";
+import { XIAOMI_PROVIDER_NAME } from "./xiaomi";
 import { ZHIPU_PROVIDER_NAME } from "./zhipu";
 
 describe("createBuiltinRegistrar", () => {
@@ -24,12 +25,18 @@ describe("createBuiltinRegistrar", () => {
 				credentials: { api_key: "zhipu-key" },
 				endpoint: { base_url: "https://zhipu.example.test" },
 			},
+			[XIAOMI_PROVIDER_NAME]: {
+				spec: XIAOMI_PROVIDER_NAME,
+				credentials: { api_key: "xiaomi-key" },
+				endpoint: { base_url: "https://xiaomi.example.test" },
+			},
 		});
 
 		expect(registrar.list()).toEqual([
 			DEEPSEEK_PROVIDER_NAME,
 			MINIMAX_PROVIDER_NAME,
 			ZHIPU_PROVIDER_NAME,
+			XIAOMI_PROVIDER_NAME,
 		]);
 		expect(registrar.resolve(DEEPSEEK_PROVIDER_NAME).name).toBe(
 			DEEPSEEK_PROVIDER_NAME,

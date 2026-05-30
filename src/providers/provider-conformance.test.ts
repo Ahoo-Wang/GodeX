@@ -11,6 +11,7 @@ import { ProviderError } from "../error";
 import { BUILTIN_PROVIDER_SPECS } from "./builtin";
 import { DEEPSEEK_PROVIDER_SPEC } from "./deepseek/spec";
 import { MINIMAX_PROVIDER_SPEC } from "./minimax/spec";
+import { XIAOMI_PROVIDER_SPEC } from "./xiaomi/spec";
 import { ZHIPU_PROVIDER_SPEC } from "./zhipu/spec";
 
 function listProviderFiles(provider: string): string[] {
@@ -29,17 +30,17 @@ function listProviderFiles(provider: string): string[] {
 
 describe("ProviderSpec runtime conformance", () => {
 	test("built-in providers use ProviderSpec package shape", () => {
-		for (const provider of ["deepseek", "minimax", "zhipu"]) {
+		for (const provider of ["deepseek", "minimax", "zhipu", "xiaomi"]) {
 			expect(
 				validateProviderPackageShape(provider, listProviderFiles(provider)),
 			).toEqual([]);
 		}
 	});
 
-	test("built-in provider specs include deepseek, zhipu, and minimax with unique names", () => {
+	test("built-in provider specs include deepseek, zhipu, minimax, and xiaomi with unique names", () => {
 		const names = BUILTIN_PROVIDER_SPECS.map((spec) => spec.name);
 
-		expect(names).toEqual(["deepseek", "zhipu", "minimax"]);
+		expect(names).toEqual(["deepseek", "zhipu", "minimax", "xiaomi"]);
 		expect(new Set(names).size).toBe(names.length);
 	});
 
@@ -127,6 +128,30 @@ describe("ProviderSpec runtime conformance", () => {
 				id: "minimax-zero",
 				created: 1,
 				model: "MiniMax-M2.7",
+				choices: [],
+				usage: {
+					prompt_tokens: 1,
+					completion_tokens: 2,
+					total_tokens: 3,
+					prompt_tokens_details: { cached_tokens: 0 },
+					completion_tokens_details: { reasoning_tokens: 0 },
+				},
+			}),
+		).toEqual({
+			input_tokens: 1,
+			output_tokens: 2,
+			total_tokens: 3,
+			input_tokens_details: { cached_tokens: 0 },
+			output_tokens_details: { reasoning_tokens: 0 },
+		});
+	});
+
+	test("Xiaomi provider spec preserves zero usage details", () => {
+		expect(
+			XIAOMI_PROVIDER_SPEC.response.usage({
+				id: "xiaomi-zero",
+				created: 1,
+				model: "mimo-v2.5-pro",
 				choices: [],
 				usage: {
 					prompt_tokens: 1,
@@ -279,11 +304,68 @@ describe("ProviderSpec runtime conformance", () => {
 		expect(patched).not.toHaveProperty("reasoning_effort");
 	});
 
+	test("Xiaomi provider patch strips bridge-only reasoning_effort and maps max_tokens", () => {
+		const patched = XIAOMI_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "mimo-v2.5-pro",
+			messages: [{ role: "user", content: "hello" }],
+			reasoning_effort: "medium",
+			max_tokens: 1024,
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(patched).toMatchObject({
+			model: "mimo-v2.5-pro",
+			max_completion_tokens: 1024,
+		});
+		expect(patched).not.toHaveProperty("reasoning_effort");
+		expect(patched).not.toHaveProperty("max_tokens");
+	});
+
+	test("Xiaomi provider patch enables thinking for historical reasoning content", () => {
+		const patched = XIAOMI_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "mimo-v2.5-pro",
+			messages: [
+				{
+					role: "assistant",
+					content: "Earlier answer.",
+					reasoning_content: "Earlier thought.",
+				},
+			],
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(patched).toMatchObject({
+			thinking: { type: "enabled" },
+		});
+	});
+
+	test("Xiaomi provider patch disables thinking without historical reasoning content", () => {
+		const patched = XIAOMI_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "mimo-v2.5-pro",
+			messages: [{ role: "user", content: "hello" }],
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(patched).toMatchObject({
+			thinking: { type: "disabled" },
+		});
+	});
+
+	test("Xiaomi provider patch preserves bridge-set thinking enabled", () => {
+		const patched = XIAOMI_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "mimo-v2.5-pro",
+			messages: [{ role: "user", content: "think" }],
+			thinking: { type: "enabled" },
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(patched).toMatchObject({
+			thinking: { type: "enabled" },
+		});
+	});
+
 	test("provider patch hooks reject malformed chat completion requests", () => {
 		for (const spec of [
 			ZHIPU_PROVIDER_SPEC,
 			DEEPSEEK_PROVIDER_SPEC,
 			MINIMAX_PROVIDER_SPEC,
+			XIAOMI_PROVIDER_SPEC,
 		]) {
 			expect(() =>
 				spec.hooks?.patchRequest?.({
@@ -345,6 +427,39 @@ describe("ProviderSpec runtime conformance", () => {
 		).toThrow(ProviderError);
 	});
 
+	test("Xiaomi provider spec rejects malformed sync usage", () => {
+		expect(() =>
+			XIAOMI_PROVIDER_SPEC.response.usage({
+				id: "xiaomi-bad-usage",
+				created: 1,
+				model: "mimo-v2.5-pro",
+				choices: [],
+				usage: {
+					prompt_tokens: "1",
+					completion_tokens: 2,
+					total_tokens: 3,
+				},
+			} as never),
+		).toThrow(ProviderError);
+	});
+
+	test("Xiaomi provider spec rejects malformed reasoning_tokens in usage", () => {
+		expect(() =>
+			XIAOMI_PROVIDER_SPEC.response.usage({
+				id: "xiaomi-bad-reasoning",
+				created: 1,
+				model: "mimo-v2.5-pro",
+				choices: [],
+				usage: {
+					prompt_tokens: 1,
+					completion_tokens: 2,
+					total_tokens: 3,
+					completion_tokens_details: { reasoning_tokens: "bad" },
+				},
+			} as never),
+		).toThrow(ProviderError);
+	});
+
 	test("MiniMax provider spec rejects malformed reasoning_tokens in usage", () => {
 		expect(() =>
 			MINIMAX_PROVIDER_SPEC.response.usage({
@@ -401,6 +516,18 @@ describe("ProviderSpec runtime conformance", () => {
 				id: "minimax-null-usage",
 				created: 1,
 				model: "MiniMax-M2.7",
+				choices: [],
+				usage: null as never,
+			}),
+		).toBeNull();
+	});
+
+	test("Xiaomi provider spec returns null for null usage", () => {
+		expect(
+			XIAOMI_PROVIDER_SPEC.response.usage({
+				id: "xiaomi-null-usage",
+				created: 1,
+				model: "mimo-v2.5-pro",
 				choices: [],
 				usage: null as never,
 			}),
@@ -470,6 +597,30 @@ describe("ProviderSpec runtime conformance", () => {
 		).toBe("hello world");
 	});
 
+	test("Xiaomi provider spec extracts text from defensive array content", () => {
+		expect(
+			XIAOMI_PROVIDER_SPEC.response.outputText({
+				id: "xiaomi-array-content",
+				created: 1,
+				model: "mimo-v2.5-pro",
+				choices: [
+					{
+						index: 0,
+						finish_reason: "stop",
+						message: {
+							role: "assistant",
+							content: [
+								{ type: "text", text: "hello" },
+								{ type: "image_url", image_url: { url: "ignored" } },
+								{ type: "text", text: " world" },
+							],
+						},
+					},
+				],
+			} as never),
+		).toBe("hello world");
+	});
+
 	test("MiniMax provider spec returns empty string for null content", () => {
 		expect(
 			MINIMAX_PROVIDER_SPEC.response.outputText({
@@ -486,6 +637,24 @@ describe("ProviderSpec runtime conformance", () => {
 			}),
 		).toBe("");
 	});
+
+	test("Xiaomi provider spec returns empty string for null content", () => {
+		expect(
+			XIAOMI_PROVIDER_SPEC.response.outputText({
+				id: "xiaomi-null-content",
+				created: 1,
+				model: "mimo-v2.5-pro",
+				choices: [
+					{
+						index: 0,
+						finish_reason: "stop",
+						message: { role: "assistant", content: null },
+					},
+				],
+			}),
+		).toBe("");
+	});
+
 	test("built-in provider spec stream deltas omit undefined fields", () => {
 		const cases = [
 			ZHIPU_PROVIDER_SPEC.stream.deltas({
@@ -509,6 +678,15 @@ describe("ProviderSpec runtime conformance", () => {
 				],
 			}),
 			MINIMAX_PROVIDER_SPEC.stream.deltas({
+				choices: [
+					{
+						index: 0,
+						delta: { content: "hello" },
+						finish_reason: "stop",
+					},
+				],
+			}),
+			XIAOMI_PROVIDER_SPEC.stream.deltas({
 				choices: [
 					{
 						index: 0,
@@ -548,6 +726,11 @@ describe("ProviderSpec runtime conformance", () => {
 				choices: [{ index: 0, delta: { tool_calls: [{}] } }],
 			}),
 		).toEqual([]);
+		expect(
+			XIAOMI_PROVIDER_SPEC.stream.deltas({
+				choices: [{ index: 0, delta: { tool_calls: [{}] } }],
+			}),
+		).toEqual([]);
 	});
 
 	test("built-in provider spec stream deltas put usage before finish in the same chunk", () => {
@@ -580,6 +763,18 @@ describe("ProviderSpec runtime conformance", () => {
 		).toEqual(["usage", "finishReason"]);
 		expect(
 			MINIMAX_PROVIDER_SPEC.stream
+				.deltas({
+					choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+					usage: {
+						prompt_tokens: 1,
+						completion_tokens: 2,
+						total_tokens: 3,
+					},
+				})
+				.map((delta) => Object.keys(delta as Record<string, unknown>)[0]),
+		).toEqual(["usage", "finishReason"]);
+		expect(
+			XIAOMI_PROVIDER_SPEC.stream
 				.deltas({
 					choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
 					usage: {

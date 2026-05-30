@@ -50,3 +50,4 @@ docs/references/codex/request.json
 # Superpowers working files (kept locally)
 docs/superpowers/specs/
 docs/superpowers/plans/
+.vitepress/cache/

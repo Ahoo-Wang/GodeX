@@ -1,0 +1,30 @@
+# =============================================================================
+# GodeX Configuration — Xiaomi (小米) Provider
+# =============================================================================
+# 快速启动: godex serve --config ./godex.xiaomi.yaml
+# 环境变量: export MIMO_API_KEY=<your-key>
+
+default_provider: xiaomi
+
+models:
+  aliases:
+    "*": xiaomi/mimo-v2.5-pro
+
+providers:
+  xiaomi:
+    spec: xiaomi
+    credentials:
+      api_key: ${MIMO_API_KEY}
+    endpoint:
+      base_url: https://api.xiaomimimo.com/v1
+
+session:
+  backend: sqlite
+  sqlite:
+    path: ./data/sessions.xiaomi.db
+
+trace:
+  enabled: true
+  path: ./data/trace.xiaomi.db
+  capture_payload: true
+  payload_max_bytes: 1048576

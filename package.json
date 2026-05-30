@@ -37,6 +37,7 @@
     "test:zhipu": "ZHIPU_LIVE_TESTS=1 bun test src/e2e/zhipu-live.test.ts",
     "test:deepseek": "DEEPSEEK_LIVE_TESTS=1 bun test src/e2e/deepseek-live.test.ts",
     "test:minimax": "MINIMAX_LIVE_TESTS=1 bun test src/e2e/minimax-live.test.ts",
+    "test:xiaomi": "XIAOMI_LIVE_TESTS=1 bun test src/e2e/xiaomi-live.test.ts",
     "test:coverage": "bun test --path-ignore-patterns 'src/e2e/**' --coverage",
     "check": "bun run typecheck && bun run lint && bun run test",
     "ci": "bun run typecheck && biome ci src && bun run test && bun run test:e2e",

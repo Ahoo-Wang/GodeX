@@ -8,6 +8,10 @@ import {
 	MINIMAX_PROVIDER_NAME,
 } from "../../providers/minimax";
 import {
+	DEFAULT_XIAOMI_BASE_URL,
+	XIAOMI_PROVIDER_NAME,
+} from "../../providers/xiaomi";
+import {
 	ZHIPU_BASE_URL,
 	ZHIPU_CODING_PLAN_BASE_URL,
 	ZHIPU_PROVIDER_NAME,
@@ -23,6 +27,7 @@ describe("INIT_PROVIDER_DEFINITIONS", () => {
 			DEEPSEEK_PROVIDER_NAME,
 			ZHIPU_PROVIDER_NAME,
 			MINIMAX_PROVIDER_NAME,
+			XIAOMI_PROVIDER_NAME,
 		]);
 	});
 
@@ -45,6 +50,11 @@ describe("INIT_PROVIDER_DEFINITIONS", () => {
 		).toEqual([ZHIPU_CODING_PLAN_BASE_URL, ZHIPU_BASE_URL]);
 		expect(getInitProviderDefinition("zhipu")).toMatchObject({
 			defaultModel: "glm-5.1",
+		});
+		expect(getInitProviderDefinition("xiaomi")).toMatchObject({
+			apiKeyPlaceholder: "${MIMO_API_KEY}",
+			defaultBaseUrl: DEFAULT_XIAOMI_BASE_URL,
+			defaultModel: "mimo-v2.5-pro",
 		});
 	});
 });

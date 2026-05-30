@@ -72,16 +72,18 @@ graph TB
   subgraph WithoutGodeX["Without GodeX"]
     W1["Coding Tool"] -->|"Only works with"| W2["OpenAI"]
     W1 -.-x|"Does not work with"| W3["DeepSeek"]
-    W1 -.-x|"Does not work with"| W4["Zhipu"]
-    W1 -.-x|"Does not work with"| W5["MiniMax"]
+    W1 -.-x|"Does not work with"| W4["Xiaomi"]
+    W1 -.-x|"Does not work with"| W5["Zhipu"]
+    W1 -.-x|"Does not work with"| W6["MiniMax"]
   end
 
   subgraph WithGodeX["With GodeX"]
     G1["Coding Tool"] -->|"Works with"| G2["GodeX"]
     G2 -->|"Translates to"| G3["DeepSeek"]
-    G2 -->|"Translates to"| G4["Zhipu"]
-    G2 -->|"Translates to"| G5["MiniMax"]
-    G2 -->|"Translates to"| G6["Any future provider"]
+    G2 -->|"Translates to"| G4["Xiaomi"]
+    G2 -->|"Translates to"| G5["Zhipu"]
+    G2 -->|"Translates to"| G6["MiniMax"]
+    G2 -->|"Translates to"| G7["Any future provider"]
   end
 
   style WithoutGodex fill:#161b22,stroke:#30363d,color:#e6edf3
@@ -147,8 +149,8 @@ This is the key value proposition for PMs: **provider decisions become configura
 
 | Feature | Limitation | User Impact |
 |---------|-----------|-------------|
-| **Reasoning support** | Varies by provider: DeepSeek has full support, Zhipu has basic support, MiniMax has none | If you need reasoning, choose DeepSeek or Zhipu |
-| **Tool choice control** | Zhipu only supports "auto" and "none" (no "required" or specific function) | On Zhipu, you cannot force the AI to always call a specific tool |
+| **Reasoning support** | Varies by provider: DeepSeek has full support, Xiaomi and Zhipu have basic support, MiniMax has none | If you need reasoning, choose DeepSeek, Xiaomi, or Zhipu |
+| **Tool choice control** | Xiaomi only supports "auto"; Zhipu supports "auto" and "none" (no "required" or specific function) | On Xiaomi or Zhipu, you cannot force the AI to always call a specific tool |
 | **JSON Schema validation** | Downgraded to JSON Object format when the provider does not support schemas | The AI will produce JSON, but strict schema validation is not guaranteed on all providers |
 | **Web search** | Not yet supported | The AI cannot search the web for information during a conversation |
 
@@ -172,6 +174,7 @@ This is the key value proposition for PMs: **provider decisions become configura
 | Provider | What It Is Best For | Default Model | Models Available |
 |----------|-------------------|---------------|-----------------|
 | **DeepSeek** | Cost-effective coding and reasoning | `deepseek-v4-pro` | `deepseek-v4-pro`, `deepseek-v4-flash`, and others from DeepSeek's catalog |
+| **Xiaomi / MiMo** | Reasoning and China-market deployment | `mimo-v2.5-pro` | `mimo-v2.5-pro`, `mimo-v2.5`, `mimo-v2-flash`, and others from MiMo's catalog |
 | **MiniMax** | Fast responses and tool calling | `MiniMax-M2.7` | `MiniMax-M2.7` and others from MiniMax's catalog |
 | **Zhipu / ChatGLM** | China-market deployment and Chinese-language coding | `glm-5.1` | `glm-5.1` and others from Zhipu's catalog |
 
@@ -179,17 +182,17 @@ This is the key value proposition for PMs: **provider decisions become configura
 
 ### Provider Comparison
 
-| Capability | DeepSeek | MiniMax | Zhipu |
-|-----------|----------|---------|-------|
-| Text generation | Yes | Yes | Yes |
-| Streaming | Yes | Yes | Yes |
-| Tool calling (functions) | Yes | Yes | Yes |
-| Tool choice: auto | Yes | Yes | Yes |
-| Tool choice: none | Yes | Yes | Yes |
-| Tool choice: required | Yes | Yes | No |
-| Tool choice: specific function | Yes | Yes | No |
-| JSON output | Yes | Yes | Yes |
-| Reasoning / thinking | Yes (native) | No | Yes (basic) |
+| Capability | DeepSeek | Xiaomi | MiniMax | Zhipu |
+|-----------|----------|--------|---------|-------|
+| Text generation | Yes | Yes | Yes | Yes |
+| Streaming | Yes | Yes | Yes | Yes |
+| Tool calling (functions) | Yes | Yes | Yes | Yes |
+| Tool choice: auto | Yes | Yes | Yes | Yes |
+| Tool choice: none | Yes | No | Yes | Yes |
+| Tool choice: required | Yes | No | Yes | No |
+| Tool choice: specific function | Yes | No | Yes | No |
+| JSON output | Yes | Yes | Yes | Yes |
+| Reasoning / thinking | Yes (native) | Yes (boolean) | No | Yes (basic) |
 | Cached tokens | Yes | Yes | Yes |
 | Web search tools | No | No | Yes (via Zhipu's web_search) |
 | Max concurrent tools | 128 | 128 | 128 |
@@ -238,7 +241,7 @@ graph LR
 
 **Scenario**: Your team is evaluating which AI model produces the best code for your use case. You want to compare outputs side-by-side.
 
-**With GodeX**: Set up model aliases for each provider. Run the same prompt through DeepSeek, MiniMax, and Zhipu by changing one line in the request. Compare outputs without switching tools or writing integration code.
+**With GodeX**: Set up model aliases for each provider. Run the same prompt through DeepSeek, Xiaomi, MiniMax, and Zhipu by changing one line in the request. Compare outputs without switching tools or writing integration code.
 
 **Who benefits**: Technical product managers evaluating AI models, ML engineers benchmarking providers, teams deciding which provider to use.
 
