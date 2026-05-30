@@ -1,6 +1,6 @@
 export type MiniMaxModel = string;
 
-export type FinishReason = "stop" | "length";
+export type FinishReason = "stop" | "length" | "tool_calls";
 
 export interface MiniMaxFunctionDefinition {
 	name: string;
