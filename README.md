@@ -13,13 +13,13 @@ OpenAI-compatible Responses API gateway for coding models that expose Chat Compl
 
 </div>
 
-GodeX lets clients that speak the OpenAI Responses API use providers such as DeepSeek and Zhipu through one local server.
+GodeX lets clients that speak the OpenAI Responses API use providers such as DeepSeek, MiniMax, and Zhipu through one local server.
 
 ## Highlights
 
 - OpenAI-compatible `POST /v1/responses` endpoint with sync and streaming responses.
 - `GET /v1/models` aliases so clients can use stable model names while GodeX routes to provider/model targets.
-- Built-in bridge providers for DeepSeek and Zhipu.
+- Built-in bridge providers for DeepSeek, MiniMax, and Zhipu.
 - Provider capability planning for request parameters, tools, `tool_choice`, structured output formats, reasoning, and stream usage.
 - Responses `previous_response_id` session chains backed by memory or SQLite.
 - Trace recording for provider requests, provider responses, stream events, usage, and errors.
@@ -49,7 +49,7 @@ flowchart TB
 
   Exchange --> Edge["ProviderEdge<br>ProviderSpec + hooks"]
   Edge --> ClientHttp["ChatProviderClient<br>Fetcher HTTP boundary"]
-  ClientHttp --> Upstream["Chat Completions upstream<br>DeepSeek, Zhipu, custom"]
+  ClientHttp --> Upstream["Chat Completions upstream<br>DeepSeek, MiniMax, Zhipu, custom"]
 
   Upstream --> SyncRecon["bridge/response<br>reconstructResponseObject"]
   Upstream --> StreamRecon["bridge/stream<br>ResponseStreamStateMachine"]
@@ -193,6 +193,12 @@ providers:
       api_key: ${ZHIPU_API_KEY}
     endpoint:
       base_url: https://open.bigmodel.cn/api/coding/paas/v4
+  minimax:
+    spec: minimax
+    credentials:
+      api_key: ${MINIMAX_API_KEY}
+    endpoint:
+      base_url: https://api.minimaxi.com/v1
 
 session:
   backend: sqlite
