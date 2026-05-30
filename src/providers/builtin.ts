@@ -8,6 +8,11 @@ import {
 	type ProviderDefinition,
 } from "./definition";
 import {
+	createXiaomiProviderEdge,
+	XIAOMI_PROVIDER_NAME,
+	XIAOMI_PROVIDER_SPEC,
+} from "./mimo";
+import {
 	createMiniMaxProviderEdge,
 	MINIMAX_PROVIDER_NAME,
 	MINIMAX_PROVIDER_SPEC,
@@ -34,16 +39,23 @@ export const MINIMAX_PROVIDER_DEFINITION = createProviderDefinition(
 	createMiniMaxProviderEdge,
 );
 
+export const XIAOMI_PROVIDER_DEFINITION = createProviderDefinition(
+	XIAOMI_PROVIDER_NAME,
+	createXiaomiProviderEdge,
+);
+
 export const BUILTIN_PROVIDER_DEFINITIONS = [
 	DEEPSEEK_PROVIDER_DEFINITION,
 	ZHIPU_PROVIDER_DEFINITION,
 	MINIMAX_PROVIDER_DEFINITION,
+	XIAOMI_PROVIDER_DEFINITION,
 ] as const satisfies readonly ProviderDefinition[];
 
 export const BUILTIN_PROVIDER_SPECS = [
 	DEEPSEEK_PROVIDER_SPEC,
 	ZHIPU_PROVIDER_SPEC,
 	MINIMAX_PROVIDER_SPEC,
+	XIAOMI_PROVIDER_SPEC,
 ] as const;
 
 export function createBuiltinRegistrar(): Registrar {
