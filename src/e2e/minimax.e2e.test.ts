@@ -235,6 +235,34 @@ describe("MiniMax mocked e2e", () => {
 		});
 	});
 
+	test("restores degraded local_shell tool call back to local_shell_call", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "MiniMax-M2.7",
+			input: "List files.",
+			tools: [{ type: "local_shell" }],
+		});
+
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as {
+			output: Array<Record<string, unknown>>;
+		};
+
+		const shellCall = body.output?.find(
+			(item) => item.type === "local_shell_call",
+		);
+		expect(shellCall).toMatchObject({
+			type: "local_shell_call",
+			call_id: "call_shell_1",
+			action: {
+				type: "exec",
+				command: ["ls"],
+				env: {},
+				working_directory: "/tmp",
+			},
+		});
+	});
+
 	test("sends tool_choice: required to upstream when tools are present", async () => {
 		resetUpstreamRequests();
 		const res = await postResponses({
@@ -299,6 +327,11 @@ describe("MiniMax mocked e2e", () => {
 			expect(tool.type).toBe("function");
 			expect(tool).toHaveProperty("function");
 		}
+		expect(
+			tools.map(
+				(tool) => (tool.function as Record<string, unknown>).name as string,
+			),
+		).toEqual(["local_shell", "apply_patch", "read-file"]);
 	});
 
 	test("maps Responses function call history to upstream tool_calls messages", async () => {
