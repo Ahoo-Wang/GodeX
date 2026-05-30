@@ -91,7 +91,7 @@ liveDescribe("MiniMax live e2e", () => {
 		const res = await postResponses({
 			model: "gpt-5",
 			input: "Reply with exactly: ok",
-			
+
 			tool_choice: "none",
 		});
 

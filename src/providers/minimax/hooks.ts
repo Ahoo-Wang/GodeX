@@ -92,6 +92,14 @@ export function mapMiniMaxUsage(
 		assertFiniteNumber(cached, "usage.prompt_tokens_details.cached_tokens");
 		result.input_tokens_details = { cached_tokens: cached };
 	}
+	const reasoningTokens = usage.completion_tokens_details?.reasoning_tokens;
+	if (reasoningTokens !== undefined) {
+		assertFiniteNumber(
+			reasoningTokens,
+			"usage.completion_tokens_details.reasoning_tokens",
+		);
+		result.output_tokens_details = { reasoning_tokens: reasoningTokens };
+	}
 	return result;
 }
 
@@ -105,8 +113,11 @@ export function minimaxPatchRequest(
 	request: BridgeChatCompletionCreateRequest,
 ): ChatCompletionRequest {
 	assertProviderChatRequest("minimax", request);
-	const { reasoning_effort: _reasoningEffort, ...providerRequest } = request;
-	return providerRequest as unknown as ChatCompletionRequest;
+	const { reasoning_effort: _reasoningEffort, max_tokens, ...rest } = request;
+	return {
+		...rest,
+		...(max_tokens !== undefined ? { max_completion_tokens: max_tokens } : {}),
+	} as unknown as ChatCompletionRequest;
 }
 
 export function minimaxStreamDeltas(

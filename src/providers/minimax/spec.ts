@@ -21,7 +21,7 @@ import type {
 	ChatCompletionRequest,
 } from "./protocol";
 
-export const DEFAULT_MINIMAX_BASE_URL = "https://api.minimax.chat/v1";
+export const DEFAULT_MINIMAX_BASE_URL = "https://api.minimaxi.com/v1";
 export const MINIMAX_PROVIDER_NAME = "minimax";
 export const MINIMAX_DEFAULT_MODEL = "MiniMax-M2.7";
 

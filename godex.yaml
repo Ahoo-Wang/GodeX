@@ -75,7 +75,7 @@ providers:
     credentials:
       api_key: ${MINIMAX_API_KEY}
     endpoint:
-      base_url: https://api.minimax.chat/v1
+      base_url: https://api.minimaxi.com/v1
 
 # ---------------------------------------------------------------------------
 # 会话存储 — 多轮对话的 previous_response_id 链

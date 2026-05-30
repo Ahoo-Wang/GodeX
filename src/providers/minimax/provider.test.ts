@@ -11,7 +11,7 @@ const config = {
 describe("MiniMax provider", () => {
 	test("uses the MiniMax provider name and default base URL constant", () => {
 		expect(MINIMAX_PROVIDER_NAME).toBe("minimax");
-		expect(DEFAULT_MINIMAX_BASE_URL).toBe("https://api.minimax.chat/v1");
+		expect(DEFAULT_MINIMAX_BASE_URL).toBe("https://api.minimaxi.com/v1");
 	});
 
 	test("factory composes a plain provider contract", () => {

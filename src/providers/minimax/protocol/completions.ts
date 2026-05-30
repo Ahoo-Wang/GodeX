@@ -1,6 +1,6 @@
 export type MiniMaxModel = string;
 
-export type FinishReason = "stop" | "length" | "content_filter" | "tool_calls";
+export type FinishReason = "stop" | "length";
 
 export interface MiniMaxFunctionDefinition {
 	name: string;
@@ -64,7 +64,7 @@ export type MiniMaxMessage =
 export interface ChatCompletionRequest {
 	model: MiniMaxModel;
 	messages: MiniMaxMessage[];
-	max_tokens?: number;
+	max_completion_tokens?: number;
 	response_format?: { type: "text" | "json_object" };
 	stream?: boolean;
 	stream_options?: { include_usage: boolean };
@@ -82,6 +82,9 @@ export interface CompletionUsage {
 	total_characters?: number;
 	prompt_tokens_details?: {
 		cached_tokens?: number;
+	};
+	completion_tokens_details?: {
+		reasoning_tokens?: number;
 	};
 }
 
