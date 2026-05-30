@@ -10,6 +10,7 @@ import { DEFAULT_TOOL_NAME_CODEC } from "../bridge/tools";
 import { ProviderError } from "../error";
 import { BUILTIN_PROVIDER_SPECS } from "./builtin";
 import { DEEPSEEK_PROVIDER_SPEC } from "./deepseek/spec";
+import { MINIMAX_PROVIDER_SPEC } from "./minimax/spec";
 import { ZHIPU_PROVIDER_SPEC } from "./zhipu/spec";
 
 function listProviderFiles(provider: string): string[] {
@@ -28,17 +29,17 @@ function listProviderFiles(provider: string): string[] {
 
 describe("ProviderSpec runtime conformance", () => {
 	test("built-in providers use ProviderSpec package shape", () => {
-		for (const provider of ["example", "deepseek", "zhipu"]) {
+		for (const provider of ["deepseek", "minimax", "zhipu"]) {
 			expect(
 				validateProviderPackageShape(provider, listProviderFiles(provider)),
 			).toEqual([]);
 		}
 	});
 
-	test("built-in provider specs include example, deepseek, and zhipu with unique names", () => {
+	test("built-in provider specs include deepseek, zhipu, and minimax with unique names", () => {
 		const names = BUILTIN_PROVIDER_SPECS.map((spec) => spec.name);
 
-		expect(names).toEqual(["example", "deepseek", "zhipu"]);
+		expect(names).toEqual(["deepseek", "zhipu", "minimax"]);
 		expect(new Set(names).size).toBe(names.length);
 	});
 
@@ -118,6 +119,40 @@ describe("ProviderSpec runtime conformance", () => {
 			input_tokens_details: { cached_tokens: 0 },
 			output_tokens_details: { reasoning_tokens: 0 },
 		});
+	});
+
+	test("MiniMax provider spec preserves zero usage details", () => {
+		expect(
+			MINIMAX_PROVIDER_SPEC.response.usage({
+				id: "minimax-zero",
+				created: 1,
+				model: "MiniMax-M2.7",
+				choices: [],
+				usage: {
+					prompt_tokens: 1,
+					completion_tokens: 2,
+					total_tokens: 3,
+					prompt_tokens_details: { cached_tokens: 0 },
+				},
+			}),
+		).toEqual({
+			input_tokens: 1,
+			output_tokens: 2,
+			total_tokens: 3,
+			input_tokens_details: { cached_tokens: 0 },
+		});
+	});
+
+	test("MiniMax provider spec skips partial stream usage without prompt_tokens", () => {
+		expect(
+			MINIMAX_PROVIDER_SPEC.stream.deltas({
+				choices: [],
+				usage: {
+					total_tokens: 0,
+					total_characters: 0,
+				} as never,
+			}),
+		).toEqual([]);
 	});
 
 	test("Zhipu provider patch strips bridge-only native reasoning fields", () => {
@@ -229,8 +264,25 @@ describe("ProviderSpec runtime conformance", () => {
 		expect(patched).not.toHaveProperty("reasoning_effort");
 	});
 
+	test("MiniMax provider patch strips bridge-only reasoning_effort", () => {
+		const patched = MINIMAX_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "MiniMax-M2.7",
+			messages: [{ role: "user", content: "hello" }],
+			reasoning_effort: "medium",
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(patched).toMatchObject({
+			model: "MiniMax-M2.7",
+		});
+		expect(patched).not.toHaveProperty("reasoning_effort");
+	});
+
 	test("provider patch hooks reject malformed chat completion requests", () => {
-		for (const spec of [ZHIPU_PROVIDER_SPEC, DEEPSEEK_PROVIDER_SPEC]) {
+		for (const spec of [
+			ZHIPU_PROVIDER_SPEC,
+			DEEPSEEK_PROVIDER_SPEC,
+			MINIMAX_PROVIDER_SPEC,
+		]) {
 			expect(() =>
 				spec.hooks?.patchRequest?.({
 					messages: [{ role: "user", content: "missing model" }],
@@ -275,12 +327,52 @@ describe("ProviderSpec runtime conformance", () => {
 		).toThrow(ProviderError);
 	});
 
+	test("MiniMax provider spec rejects malformed sync usage", () => {
+		expect(() =>
+			MINIMAX_PROVIDER_SPEC.response.usage({
+				id: "minimax-bad-usage",
+				created: 1,
+				model: "MiniMax-M2.7",
+				choices: [],
+				usage: {
+					prompt_tokens: "1",
+					completion_tokens: 2,
+					total_tokens: 3,
+				},
+			} as never),
+		).toThrow(ProviderError);
+	});
+
 	test("deepseek provider spec extracts text from defensive array content", () => {
 		expect(
 			DEEPSEEK_PROVIDER_SPEC.response.outputText({
 				id: "deepseek-array-content",
 				created: 1,
 				model: "deepseek-v4-flash",
+				choices: [
+					{
+						index: 0,
+						finish_reason: "stop",
+						message: {
+							role: "assistant",
+							content: [
+								{ type: "text", text: "hello" },
+								{ type: "image_url", image_url: { url: "ignored" } },
+								{ type: "text", text: " world" },
+							],
+						},
+					},
+				],
+			} as never),
+		).toBe("hello world");
+	});
+
+	test("MiniMax provider spec extracts text from defensive array content", () => {
+		expect(
+			MINIMAX_PROVIDER_SPEC.response.outputText({
+				id: "minimax-array-content",
+				created: 1,
+				model: "MiniMax-M2.7",
 				choices: [
 					{
 						index: 0,
@@ -321,6 +413,15 @@ describe("ProviderSpec runtime conformance", () => {
 					},
 				],
 			}),
+			MINIMAX_PROVIDER_SPEC.stream.deltas({
+				choices: [
+					{
+						index: 0,
+						delta: { content: "hello" },
+						finish_reason: "stop",
+					},
+				],
+			}),
 		];
 
 		for (const deltas of cases) {
@@ -347,6 +448,11 @@ describe("ProviderSpec runtime conformance", () => {
 				choices: [{ index: 0, delta: { tool_calls: [{}] } }],
 			}),
 		).toEqual([]);
+		expect(
+			MINIMAX_PROVIDER_SPEC.stream.deltas({
+				choices: [{ index: 0, delta: { tool_calls: [{}] } }],
+			}),
+		).toEqual([]);
 	});
 
 	test("built-in provider spec stream deltas put usage before finish in the same chunk", () => {
@@ -367,6 +473,18 @@ describe("ProviderSpec runtime conformance", () => {
 		).toEqual(["usage", "finishReason"]);
 		expect(
 			DEEPSEEK_PROVIDER_SPEC.stream
+				.deltas({
+					choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+					usage: {
+						prompt_tokens: 1,
+						completion_tokens: 2,
+						total_tokens: 3,
+					},
+				})
+				.map((delta) => Object.keys(delta as Record<string, unknown>)[0]),
+		).toEqual(["usage", "finishReason"]);
+		expect(
+			MINIMAX_PROVIDER_SPEC.stream
 				.deltas({
 					choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
 					usage: {

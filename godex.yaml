@@ -37,31 +37,24 @@ default_provider: zhipu
 models:
   aliases:
     # GPT-5.5 → 智谱 GLM-5.1
-    gpt-5.5:      zhipu/glm-5.1
-    gpt-5.4:      zhipu/glm-5.1
-    gpt-5:        zhipu/glm-5.1
-    gpt-5-mini:   zhipu/glm-5-turbo
-    # GPT-4o → 智谱 GLM-4.7
-    gpt-4o:       zhipu/glm-4.7
-    gpt-4o-mini:  zhipu/glm-4.7-flash
+#    gpt-5.5:      zhipu/glm-5.1
+#    gpt-5.4:      zhipu/glm-5.1
+#    gpt-5:        zhipu/glm-5.1
+#    gpt-5-mini:   zhipu/glm-5-turbo
+#    # GPT-4o → 智谱 GLM-4.7
+#    gpt-4o:       zhipu/glm-4.7
+#    gpt-4o-mini:  zhipu/glm-4.7-flash
     # "*" 兜底 — 任何未匹配的 model 名都映射到此
     "*":          zhipu/glm-5.1
 
 # ---------------------------------------------------------------------------
 # Provider 列表 — 已启用的上游 LLM 服务商
 # ---------------------------------------------------------------------------
-# 内置 provider 名称: zhipu, deepseek。
+# 内置 provider 名称: deepseek, minimax, zhipu。
 # 只有在这里配置过的 provider 才能被模型别名或 "provider/model" 选择器使用。
 # spec 指向 provider 实现；endpoint.base_url 使用上游 Chat Completions 根地址，
 # 具体路径由 GodeX 拼接。
 providers:
-  zhipu:
-    spec: zhipu
-    # 智谱 OpenAI-compatible 根地址
-    credentials:
-      api_key: ${ZHIPU_API_KEY}
-    endpoint:
-      base_url: https://open.bigmodel.cn/api/coding/paas/v4
   deepseek:
     spec: deepseek
     # DeepSeek 根地址不要追加 /v1，GodeX 会拼接 chat/completions。
@@ -69,6 +62,20 @@ providers:
       api_key: ${DEEPSEEK_API_KEY}
     endpoint:
       base_url: https://api.deepseek.com
+  zhipu:
+    spec: zhipu
+    # 智谱 OpenAI-compatible 根地址
+    credentials:
+      api_key: ${ZHIPU_API_KEY}
+    endpoint:
+      base_url: https://open.bigmodel.cn/api/coding/paas/v4
+  minimax:
+    spec: minimax
+    # MiniMax OpenAI-compatible 根地址
+    credentials:
+      api_key: ${MINIMAX_API_KEY}
+    endpoint:
+      base_url: https://api.minimax.chat/v1
 
 # ---------------------------------------------------------------------------
 # 会话存储 — 多轮对话的 previous_response_id 链
