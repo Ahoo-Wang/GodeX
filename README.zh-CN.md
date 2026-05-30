@@ -4,7 +4,7 @@
 
 **让每个模型都成为 Codex 引擎。**
 
-面向编码模型的 OpenAI 兼容 Responses API 网关，用一个本地服务连接 Codex、SDK、CLI、IDE 与 DeepSeek、MiniMax、智谱等 Chat Completions 上游。
+OpenAI 兼容的 Responses API 网关，让 Codex、CLI 工具和开发者 Agent 接入任意模型。
 
 [![npm version](https://img.shields.io/npm/v/@ahoo-wang/godex?logo=npm)](https://www.npmjs.com/package/@ahoo-wang/godex)
 [![codecov](https://codecov.io/gh/Ahoo-Wang/GodeX/graph/badge.svg?token=dJQrmUAiXu)](https://codecov.io/gh/Ahoo-Wang/GodeX)

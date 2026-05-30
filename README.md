@@ -4,7 +4,7 @@
 
 **Make every model a Codex engine.**
 
-OpenAI-compatible Responses API gateway for coding models that expose Chat Completions APIs.
+OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents.
 
 [![npm version](https://img.shields.io/npm/v/@ahoo-wang/godex?logo=npm)](https://www.npmjs.com/package/@ahoo-wang/godex)
 [![codecov](https://codecov.io/gh/Ahoo-Wang/GodeX/graph/badge.svg?token=dJQrmUAiXu)](https://codecov.io/gh/Ahoo-Wang/GodeX)
