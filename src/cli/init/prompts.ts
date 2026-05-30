@@ -112,7 +112,7 @@ async function promptProviderConfig(
 			defaultValue: definition.defaultBaseUrl,
 			validate: (value) => {
 				const trimmed = value?.trim();
-				if (!trimmed) return "Base URL cannot be empty";
+				if (!trimmed) return;
 				try {
 					new URL(trimmed);
 				} catch {
@@ -129,7 +129,7 @@ async function promptProviderConfig(
 			placeholder: definition.apiKeyPlaceholder,
 			defaultValue: definition.apiKeyPlaceholder,
 			validate: (value) => {
-				if (!value?.trim()) return "API key cannot be empty";
+				if (!value?.trim()) return;
 			},
 		}),
 	);
