@@ -146,6 +146,7 @@ docker run -d \
   -p 5678:5678 \
   -e ZHIPU_API_KEY=your-key \
   -e DEEPSEEK_API_KEY=your-key \
+  -e MINIMAX_API_KEY=your-key \
   -v ./godex.yaml:/etc/godex/godex.yaml:ro \
   -v godex-data:/data \
   ahoowang/godex:latest
@@ -343,6 +344,8 @@ bun run format               # Biome 格式化
 bun run test                 # 单元和集成测试，不含 src/e2e
 bun run test:e2e             # mock 上游端到端测试
 bun run test:zhipu           # 智谱 live 测试，需要 ZHIPU_API_KEY
+bun run test:deepseek        # DeepSeek live 测试，需要 DEEPSEEK_API_KEY
+bun run test:minimax         # MiniMax live 测试，需要 MINIMAX_API_KEY
 bun run check                # typecheck + lint + test
 bun run ci                   # typecheck + biome ci + test + e2e
 ```
