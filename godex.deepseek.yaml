@@ -8,7 +8,18 @@ default_provider: deepseek
 
 models:
   aliases:
-    "*": deepseek/deepseek-v4-pro
+    # -------------------------------------------------------------------------
+    # Codex-compatible model aliases
+    # -------------------------------------------------------------------------
+    gpt-5.5: "deepseek/deepseek-v4-pro"
+    gpt-5.4: "deepseek/deepseek-v4-pro"
+    gpt-5.4-mini: "deepseek/deepseek-v4-flash"
+    gpt-5.3-codex: "deepseek/deepseek-v4-pro"
+    gpt-5.3-codex-spark: "deepseek/deepseek-v4-flash"
+    gpt-5.2: "deepseek/deepseek-v4-pro"
+
+    # Fallback for unknown bare model names
+    "*": "deepseek/deepseek-v4-pro"
 
 providers:
   deepseek:

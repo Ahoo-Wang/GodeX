@@ -8,7 +8,18 @@ default_provider: xiaomi
 
 models:
   aliases:
-    "*": xiaomi/mimo-v2.5-pro
+    # -------------------------------------------------------------------------
+    # Codex-compatible model aliases
+    # -------------------------------------------------------------------------
+    gpt-5.5: "xiaomi/mimo-v2.5-pro"
+    gpt-5.4: "xiaomi/mimo-v2.5-pro"
+    gpt-5.4-mini: "xiaomi/mimo-v2.5"
+    gpt-5.3-codex: "xiaomi/mimo-v2.5-pro"
+    gpt-5.3-codex-spark: "xiaomi/mimo-v2.5"
+    gpt-5.2: "xiaomi/mimo-v2.5"
+
+    # Fallback for unknown bare model names
+    "*": "xiaomi/mimo-v2.5-pro"
 
 providers:
   xiaomi:

@@ -36,14 +36,57 @@ default_provider: deepseek
 # ---------------------------------------------------------------------------
 models:
   aliases:
-    gpt-5.5:      deepseek/deepseek-v4-pro
-    gpt-5.4:      deepseek/deepseek-v4-pro
-    gpt-5:        deepseek/deepseek-v4-pro
-    gpt-5-mini:   deepseek/deepseek-v4-flash
-    gpt-4o:       deepseek/deepseek-v4-pro
-    gpt-4o-mini:  deepseek/deepseek-v4-flash
-    # "*" 兜底 — 任何未匹配的 model 名都映射到此
-    "*":          deepseek/deepseek-v4-pro
+    # -------------------------------------------------------------------------
+    # Codex-compatible model aliases
+    #
+    # 这些 alias 是 GodeX routing policy，不代表与 OpenAI 原模型能力等价。
+    # 依据优先级：公开 benchmark > 官方模型定位 > Provider 产品说明。
+    # -------------------------------------------------------------------------
+
+    # Codex 默认主力：复杂编码 / computer use / research workflows
+    # 依据：DeepSeek V4-Pro 在 SWE / Terminal / Codeforces / GDPval-AA 上公开成绩强。
+    gpt-5.5: "deepseek/deepseek-v4-pro"
+
+    # Codex 旗舰：coding + reasoning + tool use + agentic workflows
+    # 依据：DeepSeek V4-Pro 有更完整的公开 coding/agentic benchmark 覆盖。
+    gpt-5.4: "deepseek/deepseek-v4-pro"
+
+    # Codex mini：快速、低成本、轻量编码、subagents
+    # 依据：MiniMax M2.7-highspeed 与 M2.7 结果一致但速度更快。
+    gpt-5.4-mini: "minimax/MiniMax-M2.7-highspeed"
+
+    # Codex 编码专用：复杂软件工程
+    # 依据：DeepSeek V4-Pro 的 SWE Verified / SWE Pro / Terminal Bench 表现。
+    gpt-5.3-codex: "deepseek/deepseek-v4-pro"
+
+    # Codex spark：近实时编码迭代
+    # 依据：MiniMax highspeed 版本更贴合 spark 的速度定位。
+    gpt-5.3-codex-spark: "minimax/MiniMax-M2.7-highspeed"
+
+    # 上一代通用 coding / agentic fallback
+    # 严谨起见仍走 DeepSeek；不强行映射到 Zhipu。
+    gpt-5.2: "deepseek/deepseek-v4-pro"
+
+    # -------------------------------------------------------------------------
+    # Provider native models
+    # -------------------------------------------------------------------------
+
+    deepseek-v4-pro: "deepseek/deepseek-v4-pro"
+    deepseek-v4-flash: "deepseek/deepseek-v4-flash"
+
+    mimo-v2.5-pro: "xiaomi/mimo-v2.5-pro"
+    mimo-v2.5: "xiaomi/mimo-v2.5"
+
+    glm-5.1: "zhipu/glm-5.1"
+    glm-5-turbo: "zhipu/glm-5-turbo"
+    glm-4.7: "zhipu/glm-4.7"
+    glm-4.5-air: "zhipu/glm-4.5-air"
+
+    MiniMax-M2.7: "minimax/MiniMax-M2.7"
+    MiniMax-M2.7-highspeed: "minimax/MiniMax-M2.7-highspeed"
+
+    # Fallback for unknown bare model names
+    "*": "deepseek/deepseek-v4-pro"
 
 # ---------------------------------------------------------------------------
 # Provider 列表 — 已启用的上游 LLM 服务商
