@@ -7,6 +7,7 @@ const LIGHT_HERO = '/godex-logo-horizontal.svg'
 const DARK_HERO = '/godex-logo-hero.svg'
 
 let heroObserver: MutationObserver | null = null
+let mermaidObserver: MutationObserver | null = null
 
 function startHeroObserver(isDark: boolean) {
   stopHeroObserver()
@@ -31,12 +32,23 @@ function stopHeroObserver() {
   }
 }
 
-function initMermaidZoom() {
-  document.querySelectorAll('.mermaid').forEach(el => {
-    if ((el as HTMLElement).dataset.zoomBound) return
-    ;(el as HTMLElement).dataset.zoomBound = 'true'
-    ;(el as HTMLElement).style.cursor = 'zoom-in'
-    el.addEventListener('click', () => openMermaidZoom(el as HTMLElement))
+function bindMermaidZoom(el: HTMLElement) {
+  if (el.dataset.zoomBound) return
+  el.dataset.zoomBound = 'true'
+  el.style.cursor = 'zoom-in'
+  el.style.position = 'relative'
+
+  const hint = document.createElement('div')
+  hint.className = 'mermaid-zoom-hint'
+  hint.innerHTML = '🔍 Click to zoom'
+  el.appendChild(hint)
+  el.addEventListener('mouseenter', () => hint.style.opacity = '1')
+  el.addEventListener('mouseleave', () => hint.style.opacity = '0')
+
+  el.addEventListener('click', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    openMermaidZoom(el)
   })
 }
 
@@ -44,24 +56,49 @@ function openMermaidZoom(source: HTMLElement) {
   const clone = source.cloneNode(true) as HTMLElement
   delete clone.dataset.zoomBound
   clone.style.cursor = ''
+  clone.style.position = ''
   clone.classList.add('mermaid-zoom-content')
+
+  const hint = clone.querySelector('.mermaid-zoom-hint')
+  if (hint) hint.remove()
 
   const overlay = document.createElement('div')
   overlay.className = 'mermaid-zoom-overlay'
-  overlay.appendChild(clone)
 
-  let scale = 1.5
+  const closeBtn = document.createElement('button')
+  closeBtn.className = 'mermaid-zoom-close'
+  closeBtn.innerHTML = '✕'
+  closeBtn.title = 'Close (Esc)'
+
+  const toolbar = document.createElement('div')
+  toolbar.className = 'mermaid-zoom-toolbar'
+  toolbar.innerHTML = 'Scroll to zoom · Drag to pan · Esc to close'
+
+  overlay.appendChild(clone)
+  overlay.appendChild(closeBtn)
+  overlay.appendChild(toolbar)
+
+  document.body.appendChild(overlay)
+
+  // Auto-fit to viewport
+  const svg = clone.querySelector('svg') as SVGSVGElement | null
+  const naturalW = svg ? svg.getBoundingClientRect().width : clone.offsetWidth
+  const naturalH = svg ? svg.getBoundingClientRect().height : clone.offsetHeight
+  const vpW = window.innerWidth * 0.9
+  const vpH = window.innerHeight * 0.85
+  const fitScale = Math.min(vpW / (naturalW || 1), vpH / (naturalH || 1), 3)
+
+  let scale = fitScale
   let x = 0
   let y = 0
   let dragging = false
   let startX = 0
   let startY = 0
 
-  clone.style.transform = `scale(${scale}) translate(${x}px, ${y}px)`
-
   const updateTransform = () => {
     clone.style.transform = `scale(${scale}) translate(${x}px, ${y}px)`
   }
+  updateTransform()
 
   const onWheel = (e: WheelEvent) => {
     e.preventDefault()
@@ -71,7 +108,7 @@ function openMermaidZoom(source: HTMLElement) {
   }
 
   const onMouseDown = (e: MouseEvent) => {
-    if (e.button !== 0) return
+    if (e.button !== 0 || e.target === closeBtn) return
     dragging = true
     startX = e.clientX - x
     startY = e.clientY - y
@@ -104,8 +141,9 @@ function openMermaidZoom(source: HTMLElement) {
   document.addEventListener('mousemove', onMouseMove)
   document.addEventListener('mouseup', onMouseUp)
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close()
+    if (e.target === overlay || e.target === closeBtn) close()
   })
+  closeBtn.addEventListener('click', close)
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') close()
@@ -113,26 +151,40 @@ function openMermaidZoom(source: HTMLElement) {
   document.addEventListener('keydown', onKeyDown)
 
   clone.style.cursor = 'grab'
-  document.body.appendChild(overlay)
 }
 
-let mermaidFixTimer: ReturnType<typeof setInterval> | null = null
-function fixMermaidDarkMode() {
-  if (mermaidFixTimer) clearInterval(mermaidFixTimer)
-  let attempts = 0
-  mermaidFixTimer = setInterval(() => {
-    document.querySelectorAll('.mermaid svg [style]').forEach(el => {
-      const s = (el as HTMLElement).style
-      if (s.fill && !s.fill.includes('#2d333b') && !s.fill.includes('#1c2333') && !s.fill.includes('#161b22')) {
-        s.fill = '#2d333b'
-      }
-      if (s.stroke && !s.stroke.includes('#6d5dfc') && !s.stroke.includes('#8b949e')) {
-        s.stroke = '#6d5dfc'
-      }
-      if (s.color) s.color = '#e6edf3'
+function startMermaidObserver() {
+  stopMermaidObserver()
+
+  const bindNew = () => {
+    document.querySelectorAll('.mermaid').forEach((el) => {
+      bindMermaidZoom(el as HTMLElement)
     })
-    if (++attempts >= 30) { clearInterval(mermaidFixTimer!); mermaidFixTimer = null }
-  }, 500)
+  }
+  bindNew()
+
+  mermaidObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node instanceof Element) {
+          if (node.classList?.contains('mermaid')) {
+            bindMermaidZoom(node as HTMLElement)
+          }
+          node.querySelectorAll?.('.mermaid').forEach((el) => {
+            bindMermaidZoom(el as HTMLElement)
+          })
+        }
+      }
+    }
+  })
+  mermaidObserver.observe(document.body, { childList: true, subtree: true })
+}
+
+function stopMermaidObserver() {
+  if (mermaidObserver) {
+    mermaidObserver.disconnect()
+    mermaidObserver = null
+  }
 }
 
 export default {
@@ -143,17 +195,16 @@ export default {
 
     onMounted(() => {
       startHeroObserver(isDark.value)
-      fixMermaidDarkMode()
-      setTimeout(initMermaidZoom, 3000)
+      startMermaidObserver()
     })
 
     onBeforeUnmount(() => {
       stopHeroObserver()
+      stopMermaidObserver()
     })
 
     watch(() => route.path, () => {
-      fixMermaidDarkMode()
-      setTimeout(initMermaidZoom, 3000)
+      startMermaidObserver()
     })
 
     watch(isDark, (v) => {
