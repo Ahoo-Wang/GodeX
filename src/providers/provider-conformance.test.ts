@@ -402,7 +402,7 @@ describe("ProviderSpec runtime conformance", () => {
 				created: 1,
 				model: "MiniMax-M2.7",
 				choices: [],
-				usage: null,
+				usage: null as never,
 			}),
 		).toBeNull();
 	});
@@ -470,6 +470,22 @@ describe("ProviderSpec runtime conformance", () => {
 		).toBe("hello world");
 	});
 
+	test("MiniMax provider spec returns empty string for null content", () => {
+		expect(
+			MINIMAX_PROVIDER_SPEC.response.outputText({
+				id: "minimax-null-content",
+				created: 1,
+				model: "MiniMax-M2.7",
+				choices: [
+					{
+						index: 0,
+						finish_reason: "stop",
+						message: { role: "assistant", content: null },
+					},
+				],
+			}),
+		).toBe("");
+	});
 	test("built-in provider spec stream deltas omit undefined fields", () => {
 		const cases = [
 			ZHIPU_PROVIDER_SPEC.stream.deltas({
