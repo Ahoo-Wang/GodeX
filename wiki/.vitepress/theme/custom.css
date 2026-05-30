@@ -39,6 +39,30 @@
 }
 
 /* ============================================================
+   Keyframe animations
+   ============================================================ */
+@keyframes gradient-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes logo-glow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.3)); }
+  50% { filter: drop-shadow(0 0 20px rgba(124, 58, 237, 0.5)); }
+}
+
+@keyframes btn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 255, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(37, 99, 255, 0); }
+}
+
+@keyframes grid-move {
+  0% { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
+}
+
+/* ============================================================
    Dark theme overrides
    ============================================================ */
 .dark {
@@ -60,7 +84,9 @@
 
 /* Hero section — dark only */
 .dark .VPHero .name {
-  background: var(--gx-gradient-brand);
+  background: linear-gradient(135deg, #00D4FF 0%, #2563FF 25%, #7C3AED 50%, #00D4FF 75%, #2563FF 100%);
+  background-size: 200% 200%;
+  animation: gradient-flow 4s ease infinite;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -74,12 +100,32 @@
   color: var(--gx-text-subtle) !important;
 }
 
-/* Home hero dark background */
+/* Hero logo glow */
+.dark .VPHero .image-container img {
+  animation: logo-glow 3s ease-in-out infinite;
+}
+
+/* CTA button pulse */
+.dark .VPHero .action .VPButton.brand {
+  animation: btn-pulse 2.5s ease-in-out infinite;
+  border: 1px solid rgba(37, 99, 255, 0.5);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.dark .VPHero .action .VPButton.brand:hover {
+  border-color: rgba(0, 212, 255, 0.8);
+  box-shadow: 0 0 24px rgba(37, 99, 255, 0.3);
+}
+
+/* Home hero dark background with grid */
 .dark .VPHome {
   background:
-    radial-gradient(circle at 20% 20%, rgba(37, 99, 255, 0.15), transparent 40%),
-    radial-gradient(circle at 80% 30%, rgba(124, 58, 237, 0.12), transparent 35%),
+    repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(37, 99, 255, 0.08) 60px),
+    repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(37, 99, 255, 0.08) 60px),
+    radial-gradient(ellipse at 30% 15%, rgba(0, 212, 255, 0.12), transparent 50%),
+    radial-gradient(ellipse at 70% 25%, rgba(124, 58, 237, 0.1), transparent 45%),
     linear-gradient(180deg, var(--gx-bg-deep) 0%, #08101D 100%);
+  background-size: 60px 60px, 60px 60px, 100% 100%, 100% 100%, 100% 100%;
 }
 
 /* Feature cards — dark */
