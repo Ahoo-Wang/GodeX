@@ -26,6 +26,7 @@ C4Context
   SystemDb(sessions, "Session Store", "Stores response history for previous_response_id chain resolution. SQLite or In-Memory")
   SystemDb(trace, "Trace DB", "Records request, usage, event, and error rows in SQLite")
   System_Ext(deepseek, "DeepSeek", "Chat Completions API provider")
+  System_Ext(minimax, "MiniMax", "Chat Completions API provider")
   System_Ext(zhipu, "Zhipu", "Chat Completions API provider")
   System_Ext(other, "Custom Provider", "Any Chat Completions compatible backend")
 
@@ -33,6 +34,7 @@ C4Context
   Rel(godex_svr, sessions, "save / resolve chains")
   Rel(godex_svr, trace, "record request, usage, events, errors")
   Rel(godex_svr, deepseek, "POST /chat/completions", "HTTPS")
+  Rel(godex_svr, minimax, "POST /chat/completions", "HTTPS")
   Rel(godex_svr, zhipu, "POST /chat/completions", "HTTPS")
   Rel(godex_svr, other, "POST /chat/completions", "HTTPS")
 ```
@@ -65,6 +67,7 @@ src/
 │   └── finish-reason/  Provider finish reason mapping
 ├── providers/        Provider registry, specs, hooks, clients
 │   ├── deepseek/      DeepSeek provider
+│   ├── minimax/       MiniMax provider
 │   ├── zhipu/         Zhipu provider
 │   ├── example/       Spec-only example provider
 │   └── shared/        Shared provider utilities (ChatProviderClient, etc.)

@@ -37,6 +37,7 @@ docker run -d \
   -p 5678:5678 \
   -e ZHIPU_API_KEY=your-key \
   -e DEEPSEEK_API_KEY=your-key \
+  -e MINIMAX_API_KEY=your-key \
   -v ./godex.yaml:/etc/godex/godex.yaml:ro \
   -v godex-data:/data \
   ahoowang/godex:latest
@@ -78,7 +79,7 @@ bun run start -- init
 server:
   port: 5678
 
-default_provider: zhipu
+default_provider: deepseek
 
 models:
   aliases:
@@ -87,12 +88,24 @@ models:
     "*": deepseek/deepseek-v4-flash
 
 providers:
+  deepseek:
+    spec: deepseek
+    credentials:
+      api_key: ${DEEPSEEK_API_KEY}
+    endpoint:
+      base_url: https://api.deepseek.com
   zhipu:
     spec: zhipu
     credentials:
       api_key: ${ZHIPU_API_KEY}
     endpoint:
       base_url: https://open.bigmodel.cn/api/coding/paas/v4
+  minimax:
+    spec: minimax
+    credentials:
+      api_key: ${MINIMAX_API_KEY}
+    endpoint:
+      base_url: https://api.minimaxi.com/v1
 
 session:
   backend: sqlite
@@ -117,7 +130,7 @@ bun run dev
 
 ```bash
 curl http://localhost:5678/health
-# {"status":"ok","providers":["zhipu"],"unsupported_providers":[]}
+# {"status":"ok","providers":["deepseek","zhipu","minimax"],"unsupported_providers":[]}
 ```
 
 ## 配合 Codex CLI 使用

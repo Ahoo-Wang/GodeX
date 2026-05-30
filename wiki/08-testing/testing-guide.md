@@ -14,6 +14,8 @@ GodeX uses a layered testing approach: unit tests for individual modules, integr
 bun run test         # Unit + integration tests (excludes src/e2e)
 bun run test:e2e     # E2E with mocked upstream
 bun run test:zhipu   # Live Zhipu tests (requires ZHIPU_API_KEY)
+bun run test:deepseek # Live DeepSeek tests (requires DEEPSEEK_API_KEY)
+bun run test:minimax  # Live MiniMax tests (requires MINIMAX_API_KEY)
 bun run test:coverage # Coverage report
 bun run ci           # Full CI pipeline (typecheck + biome ci + test + e2e)
 ```
@@ -42,6 +44,7 @@ src/
 ├── e2e/
 │   ├── e2e.test.ts
 │   ├── deepseek.e2e.test.ts
+│   ├── minimax.e2e.test.ts
 │   ├── trace.test.ts
 │   └── zhipu-api.test.ts
 ├── error/*.test.ts
@@ -50,6 +53,7 @@ src/
 │   ├── builtin.test.ts
 │   ├── provider-conformance.test.ts
 │   └── deepseek/provider.test.ts
+│   └── minimax/provider.test.ts
 ├── resolver/*.test.ts
 ├── responses/
 │   ├── runtime.test.ts

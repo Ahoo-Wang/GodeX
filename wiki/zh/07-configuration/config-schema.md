@@ -41,6 +41,14 @@ providers:
       base_url: https://open.bigmodel.cn/api/coding/paas/v4
     timeout_ms: 30000
 
+  minimax:
+    spec: minimax                        # 提供商规格名称（必填）
+    credentials:
+      api_key: ${MINIMAX_API_KEY}
+    endpoint:
+      base_url: https://api.minimaxi.com/v1
+    timeout_ms: 30000
+
 session:
   backend: sqlite         # "sqlite" 或 "memory"
   sqlite:
@@ -169,6 +177,6 @@ providers:
 | `GODEX_PORT` | `server.port` | 覆盖监听端口 |
 | `GODEX_HOST` | `server.host` | 覆盖绑定地址 |
 | `GODEX_LOG_LEVEL` | `logging.level` | 覆盖日志级别 |
-| `GODEX_DEFAULT_PROVIDER` | `default_provider` | 未设置时回退到 `zhipu` |
+| `GODEX_DEFAULT_PROVIDER` | `default_provider` | 未设置时回退到 `deepseek` |
 
 [CLI 命令](/zh/07-configuration/cli-commands)

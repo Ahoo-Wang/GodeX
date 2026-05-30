@@ -42,6 +42,7 @@ model: "openai/gpt-4o"  → routes to configured openai provider
 |----------|-------------|
 | `DEEPSEEK_API_KEY` | API key for the DeepSeek provider |
 | `ZHIPU_API_KEY` | API key for the Zhipu provider |
+| `MINIMAX_API_KEY` | API key for the MiniMax provider |
 | `OPENAI_BASE_URL` | Point Codex CLI at GodeX |
 | `OPENAI_API_KEY` | Must be set (not validated by GodeX) |
 
