@@ -57,6 +57,11 @@
   50% { box-shadow: 0 0 0 8px rgba(37, 99, 255, 0); }
 }
 
+@keyframes bounce-arrow {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+
 @keyframes grid-move {
   0% { background-position: 0 0; }
   100% { background-position: 60px 60px; }
@@ -128,18 +133,53 @@
   background-size: 60px 60px, 60px 60px, 100% 100%, 100% 100%, 100% 100%;
 }
 
+/* Scroll-down hint arrow */
+.dark .VPHero::after {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin: 48px auto 0;
+  border-right: 2px solid rgba(0, 212, 255, 0.5);
+  border-bottom: 2px solid rgba(0, 212, 255, 0.5);
+  transform: rotate(45deg);
+  animation: bounce-arrow 2s ease-in-out infinite;
+}
+
 /* Feature cards — dark */
 .dark .VPFeature {
   border-radius: 12px !important;
   border: 1px solid rgba(148, 163, 184, 0.1) !important;
   background: rgba(17, 34, 64, 0.5) !important;
   backdrop-filter: blur(12px);
-  transition: border-color 0.25s, box-shadow 0.25s;
+  position: relative;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.dark .VPFeature::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 13px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0), rgba(124, 58, 237, 0));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
 }
 
 .dark .VPFeature:hover {
-  border-color: rgba(37, 99, 255, 0.35) !important;
+  border-color: transparent !important;
   box-shadow: 0 8px 32px rgba(37, 99, 255, 0.12);
+}
+
+.dark .VPFeature:hover::before {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.6), rgba(124, 58, 237, 0.6));
+  opacity: 1;
 }
 
 .dark .VPFeature .title {
@@ -165,6 +205,20 @@
   border-radius: 10px !important;
   background: #0d1117 !important;
   border: 1px solid rgba(148, 163, 184, 0.1) !important;
+  position: relative;
+  padding-top: 2.5em !important;
+}
+
+.dark .vp-doc div[class*='language-']::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff5f57;
+  box-shadow: 18px 0 0 #febc2e, 36px 0 0 #28c840;
 }
 
 .vp-doc div[class*='language-'] > button.copy {
