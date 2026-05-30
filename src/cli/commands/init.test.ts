@@ -22,7 +22,7 @@ describe("registerInitCommand", () => {
 		tempDirs.push(tempDir);
 		const configPath = join(tempDir, "custom-godex.yaml");
 
-		const textAnswers = ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"];
+		const textAnswers = [DEFAULT_DEEPSEEK_BASE_URL, "deepseek-key", "5678"];
 		const selectAnswers = ["memory", "info"];
 		spyOn(clack, "intro").mockImplementation(() => {});
 		spyOn(clack, "outro").mockImplementation(() => {});

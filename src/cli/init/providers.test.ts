@@ -12,7 +12,6 @@ import {
 	XIAOMI_PROVIDER_NAME,
 } from "../../providers/xiaomi";
 import {
-	ZHIPU_BASE_URL,
 	ZHIPU_CODING_PLAN_BASE_URL,
 	ZHIPU_PROVIDER_NAME,
 } from "../../providers/zhipu";
@@ -31,7 +30,7 @@ describe("INIT_PROVIDER_DEFINITIONS", () => {
 		]);
 	});
 
-	test("defines provider-specific API key placeholders and base URLs", () => {
+	test("defines provider-specific API key placeholders and default base URLs", () => {
 		expect(getInitProviderDefinition("openai")).toBeUndefined();
 		expect(getInitProviderDefinition("deepseek")).toMatchObject({
 			apiKeyPlaceholder: "${DEEPSEEK_API_KEY}",
@@ -43,12 +42,9 @@ describe("INIT_PROVIDER_DEFINITIONS", () => {
 			defaultBaseUrl: DEFAULT_MINIMAX_BASE_URL,
 			defaultModel: "MiniMax-M2.7",
 		});
-		expect(
-			getInitProviderDefinition("zhipu")?.baseUrlChoices.map(
-				(choice) => choice.value,
-			),
-		).toEqual([ZHIPU_CODING_PLAN_BASE_URL, ZHIPU_BASE_URL]);
 		expect(getInitProviderDefinition("zhipu")).toMatchObject({
+			apiKeyPlaceholder: "${ZHIPU_API_KEY}",
+			defaultBaseUrl: ZHIPU_CODING_PLAN_BASE_URL,
 			defaultModel: "glm-5.1",
 		});
 		expect(getInitProviderDefinition("xiaomi")).toMatchObject({

@@ -47,7 +47,7 @@ describe("promptInitConfig", () => {
 	test("returns config for one provider without prompting for default provider", async () => {
 		const { select } = stubPromptFlow({
 			selectedProviders: [DEEPSEEK_PROVIDER_NAME],
-			textAnswers: ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"],
+			textAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "deepseek-key", "5678"],
 			selectAnswers: ["memory", "info"],
 		});
 
@@ -76,17 +76,13 @@ describe("promptInitConfig", () => {
 		stubPromptFlow({
 			selectedProviders: [DEEPSEEK_PROVIDER_NAME, ZHIPU_PROVIDER_NAME],
 			textAnswers: [
-				"deepseek-key",
 				DEFAULT_DEEPSEEK_BASE_URL,
+				"deepseek-key",
+				ZHIPU_CODING_PLAN_BASE_URL,
 				"zhipu-key",
 				"6789",
 			],
-			selectAnswers: [
-				ZHIPU_CODING_PLAN_BASE_URL,
-				ZHIPU_PROVIDER_NAME,
-				"memory",
-				"debug",
-			],
+			selectAnswers: [ZHIPU_PROVIDER_NAME, "memory", "debug"],
 		});
 
 		const config = await promptInitConfig();
@@ -138,7 +134,7 @@ describe("promptInitConfig", () => {
 		expect(cancel).toHaveBeenCalledWith("Operation cancelled");
 	});
 
-	test("returns null when API key input is cancelled", async () => {
+	test("returns null when base URL input is cancelled", async () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
@@ -151,68 +147,17 @@ describe("promptInitConfig", () => {
 		expect(cancel).toHaveBeenCalledWith("Operation cancelled");
 	});
 
-	test("returns null when base URL input is cancelled", async () => {
+	test("returns null when API key input is cancelled", async () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			textAnswers: ["deepseek-key", cancelToken],
+			textAnswers: [DEFAULT_DEEPSEEK_BASE_URL, cancelToken],
 		});
 
 		const config = await promptInitConfig();
 
 		expect(config).toBeNull();
 		expect(cancel).toHaveBeenCalledWith("Operation cancelled");
-	});
-
-	test("returns null when multi-option base URL selection is cancelled", async () => {
-		const cancelToken = Symbol("cancel");
-		const { cancel } = stubPromptFlow({
-			cancelToken,
-			selectedProviders: [ZHIPU_PROVIDER_NAME],
-			textAnswers: ["zhipu-key"],
-			selectAnswers: [cancelToken],
-		});
-
-		const config = await promptInitConfig();
-
-		expect(config).toBeNull();
-		expect(cancel).toHaveBeenCalledWith("Operation cancelled");
-	});
-
-	test("uses custom base URL for multi-option provider", async () => {
-		const customUrl = "https://custom.api.example.com/v1";
-		stubPromptFlow({
-			selectedProviders: [ZHIPU_PROVIDER_NAME],
-			textAnswers: ["zhipu-key", customUrl, "5678"],
-			selectAnswers: ["__custom__", "memory", "info"],
-		});
-
-		const config = await promptInitConfig();
-
-		expect(config).toEqual({
-			defaultProvider: ZHIPU_PROVIDER_NAME,
-			providers: [
-				{
-					id: ZHIPU_PROVIDER_NAME,
-					apiKey: "zhipu-key",
-					baseUrl: customUrl,
-				},
-			],
-			port: 5678,
-			sessionBackend: "memory",
-			logLevel: "info",
-		});
-	});
-
-	test("trims API key before saving", async () => {
-		stubPromptFlow({
-			textAnswers: ["  deepseek-key  ", DEFAULT_DEEPSEEK_BASE_URL, "5678"],
-			selectAnswers: ["memory", "info"],
-		});
-
-		const config = await promptInitConfig();
-
-		expect(config?.providers[0]?.apiKey).toBe("deepseek-key");
 	});
 
 	test("returns null when default provider selection is cancelled", async () => {
@@ -220,8 +165,13 @@ describe("promptInitConfig", () => {
 		const { cancel } = stubPromptFlow({
 			cancelToken,
 			selectedProviders: [DEEPSEEK_PROVIDER_NAME, ZHIPU_PROVIDER_NAME],
-			textAnswers: ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "zhipu-key"],
-			selectAnswers: [ZHIPU_CODING_PLAN_BASE_URL, cancelToken],
+			textAnswers: [
+				DEFAULT_DEEPSEEK_BASE_URL,
+				"deepseek-key",
+				ZHIPU_CODING_PLAN_BASE_URL,
+				"zhipu-key",
+			],
+			selectAnswers: [cancelToken],
 		});
 
 		const config = await promptInitConfig();
@@ -234,7 +184,7 @@ describe("promptInitConfig", () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			textAnswers: ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, cancelToken],
+			textAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "deepseek-key", cancelToken],
 		});
 
 		const config = await promptInitConfig();
@@ -247,7 +197,7 @@ describe("promptInitConfig", () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			textAnswers: ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"],
+			textAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "deepseek-key", "5678"],
 			selectAnswers: [cancelToken],
 		});
 
@@ -261,7 +211,7 @@ describe("promptInitConfig", () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			textAnswers: ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"],
+			textAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "deepseek-key", "5678"],
 			selectAnswers: ["memory", cancelToken],
 		});
 
@@ -273,8 +223,8 @@ describe("promptInitConfig", () => {
 
 	test("rejects invalid port input before returning config", async () => {
 		const textAnswers = [
-			"deepseek-key",
 			DEFAULT_DEEPSEEK_BASE_URL,
+			"deepseek-key",
 			"not-a-port",
 		];
 		const selectAnswers = ["memory", "info"];
@@ -296,6 +246,42 @@ describe("promptInitConfig", () => {
 
 		expect(config).toBeNull();
 		expect(cancel).toHaveBeenCalledWith("Invalid port: not-a-port");
+	});
+
+	test("uses custom base URL for provider", async () => {
+		const customUrl = "https://custom.api.example.com/v1";
+		stubPromptFlow({
+			selectedProviders: [ZHIPU_PROVIDER_NAME],
+			textAnswers: [customUrl, "zhipu-key", "5678"],
+			selectAnswers: ["memory", "info"],
+		});
+
+		const config = await promptInitConfig();
+
+		expect(config).toEqual({
+			defaultProvider: ZHIPU_PROVIDER_NAME,
+			providers: [
+				{
+					id: ZHIPU_PROVIDER_NAME,
+					apiKey: "zhipu-key",
+					baseUrl: customUrl,
+				},
+			],
+			port: 5678,
+			sessionBackend: "memory",
+			logLevel: "info",
+		});
+	});
+
+	test("trims API key before saving", async () => {
+		stubPromptFlow({
+			textAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "  deepseek-key  ", "5678"],
+			selectAnswers: ["memory", "info"],
+		});
+
+		const config = await promptInitConfig();
+
+		expect(config?.providers[0]?.apiKey).toBe("deepseek-key");
 	});
 });
 

@@ -105,6 +105,24 @@ async function promptProviderConfigs(
 async function promptProviderConfig(
 	definition: InitProviderDefinition,
 ): Promise<InitProviderConfig | null> {
+	const rawBaseUrl = unwrapOrCancel(
+		await clack.text({
+			message: `${definition.label} base URL:`,
+			placeholder: definition.defaultBaseUrl,
+			defaultValue: definition.defaultBaseUrl,
+			validate: (value) => {
+				const trimmed = value?.trim();
+				if (!trimmed) return "Base URL cannot be empty";
+				try {
+					new URL(trimmed);
+				} catch {
+					return "Base URL must be a valid URL";
+				}
+			},
+		}),
+	);
+	if (!rawBaseUrl) return null;
+
 	const rawApiKey = unwrapOrCancel(
 		await clack.text({
 			message: `${definition.label} API key (or env var like ${definition.apiKeyPlaceholder}):`,
@@ -117,69 +135,11 @@ async function promptProviderConfig(
 	);
 	if (!rawApiKey) return null;
 
-	const baseUrl = await promptBaseUrl(definition);
-	if (baseUrl === null) return null;
-
 	return {
 		id: definition.id,
 		apiKey: rawApiKey.trim(),
-		baseUrl,
+		baseUrl: rawBaseUrl.trim(),
 	};
-}
-
-const CUSTOM_BASE_URL = "__custom__";
-
-async function promptBaseUrl(
-	definition: InitProviderDefinition,
-): Promise<string | null> {
-	if (definition.baseUrlChoices.length <= 1) {
-		return promptCustomBaseUrl(definition.defaultBaseUrl);
-	}
-
-	const selected = await clack.select({
-		message: `${definition.label} base URL:`,
-		options: [
-			...definition.baseUrlChoices,
-			{
-				value: CUSTOM_BASE_URL,
-				label: "Custom...",
-				hint: "Enter a custom base URL",
-			},
-		],
-		initialValue: definition.defaultBaseUrl,
-	});
-
-	if (clack.isCancel(selected)) {
-		clack.cancel("Operation cancelled");
-		return null;
-	}
-
-	if (selected === CUSTOM_BASE_URL) {
-		return promptCustomBaseUrl(definition.defaultBaseUrl);
-	}
-
-	return selected as string;
-}
-
-async function promptCustomBaseUrl(defaultUrl: string): Promise<string | null> {
-	const url = unwrapOrCancel(
-		await clack.text({
-			message: "Base URL:",
-			placeholder: defaultUrl,
-			defaultValue: defaultUrl,
-			validate: (value) => {
-				const trimmed = value?.trim();
-				if (!trimmed) return "Base URL cannot be empty";
-				try {
-					new URL(trimmed);
-				} catch {
-					return "Base URL must be a valid URL";
-				}
-			},
-		}),
-	);
-	if (!url) return null;
-	return url.trim();
 }
 
 async function promptDefaultProvider(

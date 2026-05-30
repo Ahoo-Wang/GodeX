@@ -14,7 +14,6 @@ import {
 	XIAOMI_PROVIDER_NAME,
 } from "../../providers/xiaomi";
 import {
-	ZHIPU_BASE_URL,
 	ZHIPU_CODING_PLAN_BASE_URL,
 	ZHIPU_DEFAULT_MODEL,
 	ZHIPU_PROVIDER_NAME,
@@ -26,17 +25,10 @@ export type InitProviderId =
 	| typeof XIAOMI_PROVIDER_NAME
 	| typeof ZHIPU_PROVIDER_NAME;
 
-export interface InitProviderBaseUrlChoice {
-	value: string;
-	label: string;
-	hint: string;
-}
-
 export interface InitProviderDefinition {
 	id: InitProviderId;
 	label: string;
 	apiKeyPlaceholder: string;
-	baseUrlChoices: InitProviderBaseUrlChoice[];
 	defaultBaseUrl: string;
 	defaultModel: string;
 }
@@ -46,13 +38,6 @@ export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
 		id: DEEPSEEK_PROVIDER_NAME,
 		label: "DeepSeek",
 		apiKeyPlaceholder: "${DEEPSEEK_API_KEY}",
-		baseUrlChoices: [
-			{
-				value: DEFAULT_DEEPSEEK_BASE_URL,
-				label: "Standard",
-				hint: DEFAULT_DEEPSEEK_BASE_URL,
-			},
-		],
 		defaultBaseUrl: DEFAULT_DEEPSEEK_BASE_URL,
 		defaultModel: DEEPSEEK_DEFAULT_MODEL,
 	},
@@ -60,18 +45,6 @@ export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
 		id: ZHIPU_PROVIDER_NAME,
 		label: "Zhipu (智谱)",
 		apiKeyPlaceholder: "${ZHIPU_API_KEY}",
-		baseUrlChoices: [
-			{
-				value: ZHIPU_CODING_PLAN_BASE_URL,
-				label: "Coding Plan (Recommended)",
-				hint: ZHIPU_CODING_PLAN_BASE_URL,
-			},
-			{
-				value: ZHIPU_BASE_URL,
-				label: "Standard",
-				hint: ZHIPU_BASE_URL,
-			},
-		],
 		defaultBaseUrl: ZHIPU_CODING_PLAN_BASE_URL,
 		defaultModel: ZHIPU_DEFAULT_MODEL,
 	},
@@ -79,13 +52,6 @@ export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
 		id: MINIMAX_PROVIDER_NAME,
 		label: "MiniMax",
 		apiKeyPlaceholder: "${MINIMAX_API_KEY}",
-		baseUrlChoices: [
-			{
-				value: DEFAULT_MINIMAX_BASE_URL,
-				label: "Standard",
-				hint: DEFAULT_MINIMAX_BASE_URL,
-			},
-		],
 		defaultBaseUrl: DEFAULT_MINIMAX_BASE_URL,
 		defaultModel: MINIMAX_DEFAULT_MODEL,
 	},
@@ -93,13 +59,6 @@ export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
 		id: XIAOMI_PROVIDER_NAME,
 		label: "Xiaomi (小米)",
 		apiKeyPlaceholder: "${MIMO_API_KEY}",
-		baseUrlChoices: [
-			{
-				value: DEFAULT_XIAOMI_BASE_URL,
-				label: "Standard",
-				hint: DEFAULT_XIAOMI_BASE_URL,
-			},
-		],
 		defaultBaseUrl: DEFAULT_XIAOMI_BASE_URL,
 		defaultModel: XIAOMI_DEFAULT_MODEL,
 	},

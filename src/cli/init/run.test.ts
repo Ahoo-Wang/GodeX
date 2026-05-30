@@ -34,17 +34,13 @@ describe("runInit", () => {
 		writeFileSync(configPath, "old config", { mode: 0o666 });
 		chmodSync(configPath, 0o666);
 		const textAnswers = [
-			"deepseek-key",
 			DEFAULT_DEEPSEEK_BASE_URL,
+			"deepseek-key",
+			ZHIPU_CODING_PLAN_BASE_URL,
 			"zhipu-key",
 			"6789",
 		];
-		const selectAnswers = [
-			ZHIPU_CODING_PLAN_BASE_URL,
-			ZHIPU_PROVIDER_NAME,
-			"memory",
-			"debug",
-		];
+		const selectAnswers = [ZHIPU_PROVIDER_NAME, "memory", "debug"];
 
 		spyOn(clack, "intro").mockImplementation(() => {});
 		spyOn(clack, "outro").mockImplementation(() => {});
@@ -91,7 +87,7 @@ describe("runInit", () => {
 	test("creates parent directories for selected config path", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "godex-init-"));
 		const configPath = join(dir, "missing", ".godex", "config.yaml");
-		const textAnswers = ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"];
+		const textAnswers = [DEFAULT_DEEPSEEK_BASE_URL, "deepseek-key", "5678"];
 		const selectAnswers = [configPath, "memory", "info"];
 
 		spyOn(clack, "intro").mockImplementation(() => {});
@@ -148,7 +144,7 @@ describe("runInit", () => {
 	test("cancels when preview confirm is declined", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "godex-init-"));
 		const configPath = join(dir, "godex.yaml");
-		const textAnswers = ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"];
+		const textAnswers = [DEFAULT_DEEPSEEK_BASE_URL, "deepseek-key", "5678"];
 		const selectAnswers = ["memory", "info"];
 
 		spyOn(clack, "intro").mockImplementation(() => {});
@@ -181,8 +177,8 @@ describe("runInit", () => {
 		const dir = mkdtempSync(join(tmpdir(), "godex-init-"));
 		const configPath = join(dir, "godex.yaml");
 		const textAnswers = [
-			"sk-real-secret-key-12345",
 			DEFAULT_DEEPSEEK_BASE_URL,
+			"sk-real-secret-key-12345",
 			"5678",
 		];
 		const selectAnswers = ["memory", "info"];
