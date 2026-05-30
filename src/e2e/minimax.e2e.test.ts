@@ -31,7 +31,42 @@ async function startMockUpstream() {
 	mockUpstreamBase = `http://127.0.0.1:${mockServer.port}`;
 }
 
-function handleMockChat(_body: Record<string, unknown>) {
+function handleMockChat(body: Record<string, unknown>) {
+	if (lastUserMessageContent(body) === "List files.") {
+		return jsonResponse({
+			id: "minimax-mock-tools",
+			created: Math.floor(Date.now() / 1000),
+			model: "MiniMax-M2.7",
+			choices: [
+				{
+					index: 0,
+					finish_reason: "tool_calls",
+					message: {
+						role: "assistant",
+						content: null,
+						tool_calls: [
+							{
+								id: "call_shell_1",
+								type: "function",
+								function: {
+									name: "local_shell",
+									arguments:
+										'{"command":["ls"],"env":{},"working_directory":"/tmp"}',
+								},
+							},
+						],
+					},
+				},
+			],
+			usage: {
+				prompt_tokens: 20,
+				completion_tokens: 10,
+				total_tokens: 30,
+				total_characters: 0,
+			},
+		});
+	}
+
 	return jsonResponse({
 		id: "minimax-mock-chat",
 		created: Math.floor(Date.now() / 1000),
@@ -54,6 +89,26 @@ function handleMockChat(_body: Record<string, unknown>) {
 			prompt_tokens_details: { cached_tokens: 3 },
 		},
 	});
+}
+
+function lastUserMessageContent(body: Record<string, unknown>): unknown {
+	const messages = body.messages;
+	if (!Array.isArray(messages)) return undefined;
+
+	for (let i = messages.length - 1; i >= 0; i--) {
+		const message = messages[i];
+		if (
+			message &&
+			typeof message === "object" &&
+			"role" in message &&
+			message.role === "user" &&
+			"content" in message
+		) {
+			return message.content;
+		}
+	}
+
+	return undefined;
 }
 
 function jsonResponse(body: unknown): Response {
@@ -156,5 +211,142 @@ describe("MiniMax mocked e2e", () => {
 			output_tokens: 5,
 			input_tokens_details: { cached_tokens: 3 },
 		});
+	});
+	test("returns function_call output from upstream tool_calls", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "MiniMax-M2.7",
+			input: "List files.",
+		});
+
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as {
+			status: string;
+			output: Array<Record<string, unknown>>;
+		};
+		expect(body.status).toBe("completed");
+
+		const toolCall = body.output?.find((item) => item.type === "function_call");
+		expect(toolCall).toMatchObject({
+			type: "function_call",
+			call_id: "call_shell_1",
+			name: "local_shell",
+			arguments: '{"command":["ls"],"env":{},"working_directory":"/tmp"}',
+		});
+	});
+
+	test("sends tool_choice: required to upstream when tools are present", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "MiniMax-M2.7",
+			input: "List files.",
+			tool_choice: "required",
+			tools: [{ type: "local_shell" }],
+		});
+
+		expect(res.status).toBe(200);
+		expect(lastUpstreamRequest()).toMatchObject({
+			tool_choice: "required",
+		});
+	});
+
+	test("sends named function tool_choice with degraded tools", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "MiniMax-M2.7",
+			input: "List files.",
+			tool_choice: { type: "function", name: "read-file" },
+			tools: [
+				{
+					type: "custom",
+					name: "read-file",
+					description: "Read a file",
+				},
+			],
+		});
+
+		expect(res.status).toBe(200);
+		expect(lastUpstreamRequest()).toMatchObject({
+			tool_choice: {
+				type: "function",
+				function: { name: "read-file" },
+			},
+		});
+	});
+
+	test("degrades Codex built-in tools to function type", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "MiniMax-M2.7",
+			input: "List files.",
+			tools: [
+				{ type: "local_shell" },
+				{ type: "apply_patch" },
+				{
+					type: "custom",
+					name: "read-file",
+					description: "Read a file",
+				},
+			],
+		});
+
+		expect(res.status).toBe(200);
+		const upstream = lastUpstreamRequest();
+		const tools = upstream.tools as Array<Record<string, unknown>>;
+
+		expect(tools).toHaveLength(3);
+		for (const tool of tools) {
+			expect(tool.type).toBe("function");
+			expect(tool).toHaveProperty("function");
+		}
+	});
+
+	test("maps Responses function call history to upstream tool_calls messages", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "MiniMax-M2.7",
+			input: [
+				{
+					type: "function_call",
+					call_id: "call_read",
+					name: "read-file",
+					arguments: '{"path":"test.ts"}',
+				},
+				{
+					type: "function_call_output",
+					call_id: "call_read",
+					output: "file contents here",
+				},
+				{ role: "user", content: "Summarize the file." },
+			],
+		});
+
+		expect(res.status).toBe(200);
+		const messages = (lastUpstreamRequest().messages ?? []) as Array<
+			Record<string, unknown>
+		>;
+
+		expect(messages).toEqual([
+			{
+				role: "assistant",
+				content: "",
+				tool_calls: [
+					{
+						id: "call_read",
+						type: "function",
+						function: {
+							name: "read-file",
+							arguments: '{"path":"test.ts"}',
+						},
+					},
+				],
+			},
+			{
+				role: "tool",
+				content: "file contents here",
+				tool_call_id: "call_read",
+			},
+			{ role: "user", content: "Summarize the file." },
+		]);
 	});
 });
