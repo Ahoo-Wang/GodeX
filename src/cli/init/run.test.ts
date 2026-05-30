@@ -92,7 +92,7 @@ describe("runInit", () => {
 		const dir = mkdtempSync(join(tmpdir(), "godex-init-"));
 		const configPath = join(dir, "missing", ".godex", "config.yaml");
 		const textAnswers = ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"];
-		const selectAnswers = ["memory", "info", configPath];
+		const selectAnswers = [configPath, "memory", "info"];
 
 		spyOn(clack, "intro").mockImplementation(() => {});
 		spyOn(clack, "outro").mockImplementation(() => {});
@@ -128,21 +128,9 @@ describe("runInit", () => {
 		const dir = mkdtempSync(join(tmpdir(), "godex-init-"));
 		const configPath = join(dir, "godex.yaml");
 		writeFileSync(configPath, "old config", { mode: 0o666 });
-		const textAnswers = ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"];
-		const selectAnswers = ["memory", "info"];
 
-		spyOn(clack, "intro").mockImplementation(() => {});
-		spyOn(clack, "outro").mockImplementation(() => {});
-		spyOn(clack, "note").mockImplementation(() => {});
 		spyOn(clack, "isCancel").mockImplementation(
 			(_value): _value is symbol => false,
-		);
-		spyOn(clack, "multiselect").mockResolvedValue([DEEPSEEK_PROVIDER_NAME]);
-		spyOn(clack, "text").mockImplementation(
-			async () => textAnswers.shift() ?? "",
-		);
-		spyOn(clack, "select").mockImplementation(
-			async () => (selectAnswers.shift() ?? "") as never,
 		);
 		spyOn(clack, "confirm").mockResolvedValue(false as never);
 		const cancel = spyOn(clack, "cancel").mockImplementation(() => {});
@@ -184,6 +172,46 @@ describe("runInit", () => {
 
 			expect(existsSync(configPath)).toBeFalse();
 			expect(cancel).toHaveBeenCalledWith("Operation cancelled");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	test("preview masks API keys but writes real values", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "godex-init-"));
+		const configPath = join(dir, "godex.yaml");
+		const textAnswers = [
+			"sk-real-secret-key-12345",
+			DEFAULT_DEEPSEEK_BASE_URL,
+			"5678",
+		];
+		const selectAnswers = ["memory", "info"];
+		let noteContent = "";
+
+		spyOn(clack, "intro").mockImplementation(() => {});
+		spyOn(clack, "outro").mockImplementation(() => {});
+		spyOn(clack, "note").mockImplementation((content) => {
+			noteContent = content as string;
+		});
+		spyOn(clack, "isCancel").mockImplementation(
+			(_value): _value is symbol => false,
+		);
+		spyOn(clack, "multiselect").mockResolvedValue([DEEPSEEK_PROVIDER_NAME]);
+		spyOn(clack, "text").mockImplementation(
+			async () => textAnswers.shift() ?? "",
+		);
+		spyOn(clack, "select").mockImplementation(
+			async () => (selectAnswers.shift() ?? "") as never,
+		);
+		spyOn(clack, "confirm").mockResolvedValue(true as never);
+
+		try {
+			await runInit({ configPath });
+
+			expect(noteContent).not.toContain("sk-real-secret-key-12345");
+			expect(noteContent).toContain("sk-r…2345");
+			const fileContent = readFileSync(configPath, "utf-8");
+			expect(fileContent).toContain("sk-real-secret-key-12345");
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

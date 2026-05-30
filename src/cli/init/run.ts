@@ -5,10 +5,14 @@ import { buildConfigYaml } from "./config-yaml";
 import type { InitOptions } from "./model";
 import { promptConfigPath, promptInitConfig } from "./prompts";
 
-export async function runInit(opts: InitOptions): Promise<void> {
-	const initConfig = await promptInitConfig();
-	if (!initConfig) return;
+function maskApiKey(value: string): string {
+	const trimmed = value.trim();
+	if (/^\$\{[A-Z0-9_]+\}$/.test(trimmed)) return trimmed;
+	if (trimmed.length <= 8) return "********";
+	return `${trimmed.slice(0, 4)}…${trimmed.slice(-4)}`;
+}
 
+export async function runInit(opts: InitOptions): Promise<void> {
 	const configPath = opts.configPath ?? (await promptConfigPath());
 	if (!configPath) return;
 
@@ -23,9 +27,19 @@ export async function runInit(opts: InitOptions): Promise<void> {
 		}
 	}
 
-	const yamlContent = buildConfigYaml(initConfig);
+	const initConfig = await promptInitConfig();
+	if (!initConfig) return;
 
-	clack.note(yamlContent, "Preview");
+	const yamlContent = buildConfigYaml(initConfig);
+	const previewContent = buildConfigYaml({
+		...initConfig,
+		providers: initConfig.providers.map((provider) => ({
+			...provider,
+			apiKey: maskApiKey(provider.apiKey),
+		})),
+	});
+
+	clack.note(previewContent, "Preview");
 
 	const confirm = await clack.confirm({
 		message: "Write this configuration?",

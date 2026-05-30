@@ -105,7 +105,7 @@ async function promptProviderConfigs(
 async function promptProviderConfig(
 	definition: InitProviderDefinition,
 ): Promise<InitProviderConfig | null> {
-	const apiKey = unwrapOrCancel(
+	const rawApiKey = unwrapOrCancel(
 		await clack.text({
 			message: `${definition.label} API key (or env var like ${definition.apiKeyPlaceholder}):`,
 			placeholder: definition.apiKeyPlaceholder,
@@ -115,14 +115,14 @@ async function promptProviderConfig(
 			},
 		}),
 	);
-	if (!apiKey) return null;
+	if (!rawApiKey) return null;
 
 	const baseUrl = await promptBaseUrl(definition);
 	if (baseUrl === null) return null;
 
 	return {
 		id: definition.id,
-		apiKey,
+		apiKey: rawApiKey.trim(),
 		baseUrl,
 	};
 }
@@ -162,13 +162,24 @@ async function promptBaseUrl(
 }
 
 async function promptCustomBaseUrl(defaultUrl: string): Promise<string | null> {
-	const url = await clack.text({
-		message: "Base URL:",
-		placeholder: defaultUrl,
-		defaultValue: defaultUrl,
-	});
-
-	return unwrapOrCancel(url);
+	const url = unwrapOrCancel(
+		await clack.text({
+			message: "Base URL:",
+			placeholder: defaultUrl,
+			defaultValue: defaultUrl,
+			validate: (value) => {
+				const trimmed = value?.trim();
+				if (!trimmed) return "Base URL cannot be empty";
+				try {
+					new URL(trimmed);
+				} catch {
+					return "Base URL must be a valid URL";
+				}
+			},
+		}),
+	);
+	if (!url) return null;
+	return url.trim();
 }
 
 async function promptDefaultProvider(

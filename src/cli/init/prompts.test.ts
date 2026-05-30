@@ -179,6 +179,42 @@ describe("promptInitConfig", () => {
 		expect(cancel).toHaveBeenCalledWith("Operation cancelled");
 	});
 
+	test("uses custom base URL for multi-option provider", async () => {
+		const customUrl = "https://custom.api.example.com/v1";
+		stubPromptFlow({
+			selectedProviders: [ZHIPU_PROVIDER_NAME],
+			textAnswers: ["zhipu-key", customUrl, "5678"],
+			selectAnswers: ["__custom__", "memory", "info"],
+		});
+
+		const config = await promptInitConfig();
+
+		expect(config).toEqual({
+			defaultProvider: ZHIPU_PROVIDER_NAME,
+			providers: [
+				{
+					id: ZHIPU_PROVIDER_NAME,
+					apiKey: "zhipu-key",
+					baseUrl: customUrl,
+				},
+			],
+			port: 5678,
+			sessionBackend: "memory",
+			logLevel: "info",
+		});
+	});
+
+	test("trims API key before saving", async () => {
+		stubPromptFlow({
+			textAnswers: ["  deepseek-key  ", DEFAULT_DEEPSEEK_BASE_URL, "5678"],
+			selectAnswers: ["memory", "info"],
+		});
+
+		const config = await promptInitConfig();
+
+		expect(config?.providers[0]?.apiKey).toBe("deepseek-key");
+	});
+
 	test("returns null when default provider selection is cancelled", async () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
