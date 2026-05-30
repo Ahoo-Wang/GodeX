@@ -33,9 +33,13 @@ describe("runInit", () => {
 		const configPath = join(dir, "godex.yaml");
 		writeFileSync(configPath, "old config", { mode: 0o666 });
 		chmodSync(configPath, 0o666);
-		const textAnswers = ["deepseek-key", "zhipu-key", "6789"];
-		const selectAnswers = [
+		const textAnswers = [
+			"deepseek-key",
 			DEFAULT_DEEPSEEK_BASE_URL,
+			"zhipu-key",
+			"6789",
+		];
+		const selectAnswers = [
 			ZHIPU_CODING_PLAN_BASE_URL,
 			ZHIPU_PROVIDER_NAME,
 			"memory",
@@ -44,6 +48,7 @@ describe("runInit", () => {
 
 		spyOn(clack, "intro").mockImplementation(() => {});
 		spyOn(clack, "outro").mockImplementation(() => {});
+		spyOn(clack, "note").mockImplementation(() => {});
 		spyOn(clack, "isCancel").mockImplementation(
 			(_value): _value is symbol => false,
 		);
@@ -57,6 +62,7 @@ describe("runInit", () => {
 		spyOn(clack, "select").mockImplementation(
 			async () => (selectAnswers.shift() ?? "") as never,
 		);
+		spyOn(clack, "confirm").mockResolvedValue(true as never);
 
 		try {
 			await runInit({ configPath });
@@ -85,16 +91,12 @@ describe("runInit", () => {
 	test("creates parent directories for selected config path", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "godex-init-"));
 		const configPath = join(dir, "missing", ".godex", "config.yaml");
-		const textAnswers = ["deepseek-key", "5678"];
-		const selectAnswers = [
-			DEFAULT_DEEPSEEK_BASE_URL,
-			"memory",
-			"info",
-			configPath,
-		];
+		const textAnswers = ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"];
+		const selectAnswers = ["memory", "info", configPath];
 
 		spyOn(clack, "intro").mockImplementation(() => {});
 		spyOn(clack, "outro").mockImplementation(() => {});
+		spyOn(clack, "note").mockImplementation(() => {});
 		spyOn(clack, "isCancel").mockImplementation(
 			(_value): _value is symbol => false,
 		);
@@ -105,6 +107,7 @@ describe("runInit", () => {
 		spyOn(clack, "select").mockImplementation(
 			async () => (selectAnswers.shift() ?? "") as never,
 		);
+		spyOn(clack, "confirm").mockResolvedValue(true as never);
 
 		try {
 			await runInit({});
@@ -116,6 +119,71 @@ describe("runInit", () => {
 			);
 			expect(config.default_provider).toBe(DEEPSEEK_PROVIDER_NAME);
 			expect(statSync(configPath).mode & 0o777).toBe(0o600);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	test("cancels when overwrite confirm is declined", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "godex-init-"));
+		const configPath = join(dir, "godex.yaml");
+		writeFileSync(configPath, "old config", { mode: 0o666 });
+		const textAnswers = ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"];
+		const selectAnswers = ["memory", "info"];
+
+		spyOn(clack, "intro").mockImplementation(() => {});
+		spyOn(clack, "outro").mockImplementation(() => {});
+		spyOn(clack, "note").mockImplementation(() => {});
+		spyOn(clack, "isCancel").mockImplementation(
+			(_value): _value is symbol => false,
+		);
+		spyOn(clack, "multiselect").mockResolvedValue([DEEPSEEK_PROVIDER_NAME]);
+		spyOn(clack, "text").mockImplementation(
+			async () => textAnswers.shift() ?? "",
+		);
+		spyOn(clack, "select").mockImplementation(
+			async () => (selectAnswers.shift() ?? "") as never,
+		);
+		spyOn(clack, "confirm").mockResolvedValue(false as never);
+		const cancel = spyOn(clack, "cancel").mockImplementation(() => {});
+
+		try {
+			await runInit({ configPath });
+
+			expect(readFileSync(configPath, "utf-8")).toBe("old config");
+			expect(cancel).toHaveBeenCalledWith("Operation cancelled");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	test("cancels when preview confirm is declined", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "godex-init-"));
+		const configPath = join(dir, "godex.yaml");
+		const textAnswers = ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"];
+		const selectAnswers = ["memory", "info"];
+
+		spyOn(clack, "intro").mockImplementation(() => {});
+		spyOn(clack, "outro").mockImplementation(() => {});
+		spyOn(clack, "note").mockImplementation(() => {});
+		spyOn(clack, "isCancel").mockImplementation(
+			(_value): _value is symbol => false,
+		);
+		spyOn(clack, "multiselect").mockResolvedValue([DEEPSEEK_PROVIDER_NAME]);
+		spyOn(clack, "text").mockImplementation(
+			async () => textAnswers.shift() ?? "",
+		);
+		spyOn(clack, "select").mockImplementation(
+			async () => (selectAnswers.shift() ?? "") as never,
+		);
+		spyOn(clack, "confirm").mockResolvedValue(false as never);
+		const cancel = spyOn(clack, "cancel").mockImplementation(() => {});
+
+		try {
+			await runInit({ configPath });
+
+			expect(existsSync(configPath)).toBeFalse();
+			expect(cancel).toHaveBeenCalledWith("Operation cancelled");
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

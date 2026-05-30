@@ -47,8 +47,8 @@ describe("promptInitConfig", () => {
 	test("returns config for one provider without prompting for default provider", async () => {
 		const { select } = stubPromptFlow({
 			selectedProviders: [DEEPSEEK_PROVIDER_NAME],
-			textAnswers: ["deepseek-key", "5678"],
-			selectAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "memory", "info"],
+			textAnswers: ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"],
+			selectAnswers: ["memory", "info"],
 		});
 
 		const config = await promptInitConfig();
@@ -75,9 +75,13 @@ describe("promptInitConfig", () => {
 	test("returns config for multiple providers with the selected default provider", async () => {
 		stubPromptFlow({
 			selectedProviders: [DEEPSEEK_PROVIDER_NAME, ZHIPU_PROVIDER_NAME],
-			textAnswers: ["deepseek-key", "zhipu-key", "6789"],
-			selectAnswers: [
+			textAnswers: [
+				"deepseek-key",
 				DEFAULT_DEEPSEEK_BASE_URL,
+				"zhipu-key",
+				"6789",
+			],
+			selectAnswers: [
 				ZHIPU_CODING_PLAN_BASE_URL,
 				ZHIPU_PROVIDER_NAME,
 				"memory",
@@ -147,11 +151,25 @@ describe("promptInitConfig", () => {
 		expect(cancel).toHaveBeenCalledWith("Operation cancelled");
 	});
 
-	test("returns null when base URL selection is cancelled", async () => {
+	test("returns null when base URL input is cancelled", async () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			textAnswers: ["deepseek-key"],
+			textAnswers: ["deepseek-key", cancelToken],
+		});
+
+		const config = await promptInitConfig();
+
+		expect(config).toBeNull();
+		expect(cancel).toHaveBeenCalledWith("Operation cancelled");
+	});
+
+	test("returns null when multi-option base URL selection is cancelled", async () => {
+		const cancelToken = Symbol("cancel");
+		const { cancel } = stubPromptFlow({
+			cancelToken,
+			selectedProviders: [ZHIPU_PROVIDER_NAME],
+			textAnswers: ["zhipu-key"],
 			selectAnswers: [cancelToken],
 		});
 
@@ -166,12 +184,8 @@ describe("promptInitConfig", () => {
 		const { cancel } = stubPromptFlow({
 			cancelToken,
 			selectedProviders: [DEEPSEEK_PROVIDER_NAME, ZHIPU_PROVIDER_NAME],
-			textAnswers: ["deepseek-key", "zhipu-key"],
-			selectAnswers: [
-				DEFAULT_DEEPSEEK_BASE_URL,
-				ZHIPU_CODING_PLAN_BASE_URL,
-				cancelToken,
-			],
+			textAnswers: ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "zhipu-key"],
+			selectAnswers: [ZHIPU_CODING_PLAN_BASE_URL, cancelToken],
 		});
 
 		const config = await promptInitConfig();
@@ -184,8 +198,7 @@ describe("promptInitConfig", () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			textAnswers: ["deepseek-key", cancelToken],
-			selectAnswers: [DEFAULT_DEEPSEEK_BASE_URL],
+			textAnswers: ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, cancelToken],
 		});
 
 		const config = await promptInitConfig();
@@ -198,8 +211,8 @@ describe("promptInitConfig", () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			textAnswers: ["deepseek-key", "5678"],
-			selectAnswers: [DEFAULT_DEEPSEEK_BASE_URL, cancelToken],
+			textAnswers: ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"],
+			selectAnswers: [cancelToken],
 		});
 
 		const config = await promptInitConfig();
@@ -212,8 +225,8 @@ describe("promptInitConfig", () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			textAnswers: ["deepseek-key", "5678"],
-			selectAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "memory", cancelToken],
+			textAnswers: ["deepseek-key", DEFAULT_DEEPSEEK_BASE_URL, "5678"],
+			selectAnswers: ["memory", cancelToken],
 		});
 
 		const config = await promptInitConfig();
@@ -223,8 +236,12 @@ describe("promptInitConfig", () => {
 	});
 
 	test("rejects invalid port input before returning config", async () => {
-		const textAnswers = ["deepseek-key", "not-a-port"];
-		const selectAnswers = [DEFAULT_DEEPSEEK_BASE_URL, "memory", "info"];
+		const textAnswers = [
+			"deepseek-key",
+			DEFAULT_DEEPSEEK_BASE_URL,
+			"not-a-port",
+		];
+		const selectAnswers = ["memory", "info"];
 		const cancel = spyOn(clack, "cancel").mockImplementation(() => {});
 
 		spyOn(clack, "intro").mockImplementation(() => {});

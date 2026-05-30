@@ -23,7 +23,7 @@ describe("buildConfigYaml", () => {
 				baseUrl: ZHIPU_CODING_PLAN_BASE_URL,
 			},
 		],
-		port: "5678",
+		port: 5678,
 		sessionBackend: "sqlite" as const,
 		logLevel: "info",
 	} satisfies InitConfigYamlOptions;

@@ -12,6 +12,14 @@ import {
 	type InitProviderId,
 } from "./providers";
 
+function unwrapOrCancel<T>(value: T | symbol): T | null {
+	if (clack.isCancel(value)) {
+		clack.cancel("Operation cancelled");
+		return null;
+	}
+	return value as T;
+}
+
 export async function promptInitConfig(): Promise<InitConfigYamlOptions | null> {
 	clack.intro(`${GODEX_BRAND_NAME} Configuration Wizard`);
 
@@ -24,13 +32,11 @@ export async function promptInitConfig(): Promise<InitConfigYamlOptions | null> 
 		required: true,
 	});
 
-	if (clack.isCancel(selectedProviders)) {
-		clack.cancel("Operation cancelled");
-		return null;
-	}
+	const providerIds = unwrapOrCancel(selectedProviders);
+	if (!providerIds) return null;
 
 	const providers = await promptProviderConfigs(
-		selectedProviders as InitProviderId[],
+		providerIds as InitProviderId[],
 	);
 	if (!providers) return null;
 
@@ -76,11 +82,7 @@ export async function promptConfigPath(): Promise<string | null> {
 		initialValue: homeConfig,
 	});
 
-	if (clack.isCancel(savePath)) {
-		clack.cancel("Operation cancelled");
-		return null;
-	}
-	return savePath as string;
+	return unwrapOrCancel(savePath);
 }
 
 async function promptProviderConfigs(
@@ -103,33 +105,70 @@ async function promptProviderConfigs(
 async function promptProviderConfig(
 	definition: InitProviderDefinition,
 ): Promise<InitProviderConfig | null> {
-	const apiKey = await clack.text({
-		message: `${definition.label} API key (or env var like ${definition.apiKeyPlaceholder}):`,
-		placeholder: definition.apiKeyPlaceholder,
-		defaultValue: definition.apiKeyPlaceholder,
-	});
+	const apiKey = unwrapOrCancel(
+		await clack.text({
+			message: `${definition.label} API key (or env var like ${definition.apiKeyPlaceholder}):`,
+			placeholder: definition.apiKeyPlaceholder,
+			defaultValue: definition.apiKeyPlaceholder,
+			validate: (value) => {
+				if (!value?.trim()) return "API key cannot be empty";
+			},
+		}),
+	);
+	if (!apiKey) return null;
 
-	if (clack.isCancel(apiKey)) {
-		clack.cancel("Operation cancelled");
-		return null;
-	}
-
-	const baseUrl = await clack.select({
-		message: `${definition.label} base URL:`,
-		options: definition.baseUrlChoices,
-		initialValue: definition.defaultBaseUrl,
-	});
-
-	if (clack.isCancel(baseUrl)) {
-		clack.cancel("Operation cancelled");
-		return null;
-	}
+	const baseUrl = await promptBaseUrl(definition);
+	if (baseUrl === null) return null;
 
 	return {
 		id: definition.id,
-		apiKey: apiKey as string,
-		baseUrl: baseUrl as string,
+		apiKey,
+		baseUrl,
 	};
+}
+
+const CUSTOM_BASE_URL = "__custom__";
+
+async function promptBaseUrl(
+	definition: InitProviderDefinition,
+): Promise<string | null> {
+	if (definition.baseUrlChoices.length <= 1) {
+		return promptCustomBaseUrl(definition.defaultBaseUrl);
+	}
+
+	const selected = await clack.select({
+		message: `${definition.label} base URL:`,
+		options: [
+			...definition.baseUrlChoices,
+			{
+				value: CUSTOM_BASE_URL,
+				label: "Custom...",
+				hint: "Enter a custom base URL",
+			},
+		],
+		initialValue: definition.defaultBaseUrl,
+	});
+
+	if (clack.isCancel(selected)) {
+		clack.cancel("Operation cancelled");
+		return null;
+	}
+
+	if (selected === CUSTOM_BASE_URL) {
+		return promptCustomBaseUrl(definition.defaultBaseUrl);
+	}
+
+	return selected as string;
+}
+
+async function promptCustomBaseUrl(defaultUrl: string): Promise<string | null> {
+	const url = await clack.text({
+		message: "Base URL:",
+		placeholder: defaultUrl,
+		defaultValue: defaultUrl,
+	});
+
+	return unwrapOrCancel(url);
 }
 
 async function promptDefaultProvider(
@@ -137,7 +176,7 @@ async function promptDefaultProvider(
 ): Promise<InitProviderId | undefined | null> {
 	if (providers.length <= 1) return undefined;
 
-	const defaultProvider = await clack.select({
+	const result = await clack.select({
 		message: "Default provider:",
 		options: providers.map((provider) => ({
 			value: provider.id,
@@ -145,11 +184,8 @@ async function promptDefaultProvider(
 		})),
 		initialValue: providers[0]?.id,
 	});
-	if (clack.isCancel(defaultProvider)) {
-		clack.cancel("Operation cancelled");
-		return null;
-	}
-	return defaultProvider as InitProviderId;
+
+	return unwrapOrCancel(result) as InitProviderId | null;
 }
 
 async function promptServerPort(): Promise<number | null> {
@@ -180,11 +216,7 @@ async function promptSessionBackend(): Promise<string | null> {
 		],
 	});
 
-	if (clack.isCancel(sessionBackend)) {
-		clack.cancel("Operation cancelled");
-		return null;
-	}
-	return sessionBackend as string;
+	return unwrapOrCancel(sessionBackend);
 }
 
 async function promptLogLevel(): Promise<string | null> {
@@ -198,9 +230,5 @@ async function promptLogLevel(): Promise<string | null> {
 		initialValue: "info",
 	});
 
-	if (clack.isCancel(logLevel)) {
-		clack.cancel("Operation cancelled");
-		return null;
-	}
-	return logLevel as string;
+	return unwrapOrCancel(logLevel);
 }
