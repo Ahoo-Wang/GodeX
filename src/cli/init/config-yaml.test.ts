@@ -174,18 +174,13 @@ describe("buildConfigYaml", () => {
 		);
 	});
 
-	test("renders sqlite path only for sqlite sessions", () => {
-		const sqliteYaml = buildConfigYaml({
+	test("does not render sqlite path in session config", () => {
+		const result = buildConfigYaml({
 			...baseOpts,
 			sessionBackend: "sqlite",
 		});
-		const memoryYaml = buildConfigYaml({
-			...baseOpts,
-			sessionBackend: "memory",
-		});
 
-		expect(sqliteYaml).toContain("sqlite:");
-		expect(sqliteYaml).toContain("path:");
-		expect(memoryYaml).not.toContain("sqlite:");
+		expect(result).toContain("backend: sqlite");
+		expect(result).not.toContain("path:");
 	});
 });

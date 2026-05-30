@@ -1,5 +1,4 @@
 import yaml from "js-yaml";
-import { resolveDefaultSqlitePath } from "../../config";
 import type { InitConfigYamlOptions } from "./model";
 import { getInitProviderDefinition } from "./providers";
 
@@ -40,9 +39,6 @@ export function buildConfigYaml(opts: InitConfigYamlOptions): string {
 			: {}),
 		session: {
 			backend: opts.sessionBackend,
-			...(opts.sessionBackend === "sqlite"
-				? { sqlite: { path: resolveDefaultSqlitePath() } }
-				: {}),
 		},
 		logging: {
 			level: opts.logLevel,
