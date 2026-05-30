@@ -8,16 +8,16 @@ import {
 	type ProviderDefinition,
 } from "./definition";
 import {
-	createXiaomiProviderEdge,
-	XIAOMI_PROVIDER_NAME,
-	XIAOMI_PROVIDER_SPEC,
-} from "./mimo";
-import {
 	createMiniMaxProviderEdge,
 	MINIMAX_PROVIDER_NAME,
 	MINIMAX_PROVIDER_SPEC,
 } from "./minimax";
 import { Registrar } from "./registrar";
+import {
+	createXiaomiProviderEdge,
+	XIAOMI_PROVIDER_NAME,
+	XIAOMI_PROVIDER_SPEC,
+} from "./xiaomi";
 import {
 	createZhipuProviderEdge,
 	ZHIPU_PROVIDER_NAME,

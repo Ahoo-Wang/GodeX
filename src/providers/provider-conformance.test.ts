@@ -10,8 +10,8 @@ import { DEFAULT_TOOL_NAME_CODEC } from "../bridge/tools";
 import { ProviderError } from "../error";
 import { BUILTIN_PROVIDER_SPECS } from "./builtin";
 import { DEEPSEEK_PROVIDER_SPEC } from "./deepseek/spec";
-import { XIAOMI_PROVIDER_SPEC } from "./mimo/spec";
 import { MINIMAX_PROVIDER_SPEC } from "./minimax/spec";
+import { XIAOMI_PROVIDER_SPEC } from "./xiaomi/spec";
 import { ZHIPU_PROVIDER_SPEC } from "./zhipu/spec";
 
 function listProviderFiles(provider: string): string[] {
@@ -30,7 +30,7 @@ function listProviderFiles(provider: string): string[] {
 
 describe("ProviderSpec runtime conformance", () => {
 	test("built-in providers use ProviderSpec package shape", () => {
-		for (const provider of ["deepseek", "minimax", "zhipu", "mimo"]) {
+		for (const provider of ["deepseek", "minimax", "zhipu", "xiaomi"]) {
 			expect(
 				validateProviderPackageShape(provider, listProviderFiles(provider)),
 			).toEqual([]);

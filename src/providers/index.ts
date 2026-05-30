@@ -9,13 +9,6 @@ export {
 export * from "./definition";
 export * from "./example";
 export * from "./factory-options";
-export { createXiaomiProvider } from "./mimo";
-export { createXiaomiProviderEdge } from "./mimo/client";
-export {
-	DEFAULT_XIAOMI_BASE_URL,
-	XIAOMI_PROVIDER_NAME,
-	XIAOMI_PROVIDER_SPEC,
-} from "./mimo/spec";
 export { createMiniMaxProvider } from "./minimax";
 export { createMiniMaxProviderEdge } from "./minimax/client";
 export {
@@ -24,4 +17,11 @@ export {
 	MINIMAX_PROVIDER_SPEC,
 } from "./minimax/spec";
 export * from "./registrar";
+export { createXiaomiProvider } from "./xiaomi";
+export { createXiaomiProviderEdge } from "./xiaomi/client";
+export {
+	DEFAULT_XIAOMI_BASE_URL,
+	XIAOMI_PROVIDER_NAME,
+	XIAOMI_PROVIDER_SPEC,
+} from "./xiaomi/spec";
 export * from "./zhipu";

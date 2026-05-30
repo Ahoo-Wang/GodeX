@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { createBuiltinRegistrar } from "./builtin";
 import { DEEPSEEK_PROVIDER_NAME } from "./deepseek";
-import { XIAOMI_PROVIDER_NAME } from "./mimo";
 import { MINIMAX_PROVIDER_NAME } from "./minimax";
+import { XIAOMI_PROVIDER_NAME } from "./xiaomi";
 import { ZHIPU_PROVIDER_NAME } from "./zhipu";
 
 describe("createBuiltinRegistrar", () => {

@@ -48,12 +48,12 @@ models:
 # ---------------------------------------------------------------------------
 # Provider 列表 — 已启用的上游 LLM 服务商
 # ---------------------------------------------------------------------------
-# 内置 provider 名称: deepseek, minimax, zhipu。
+# 内置 provider 名称: deepseek, xiaomi, minimax, zhipu。
 # 只有在这里配置过的 provider 才能被模型别名或 "provider/model" 选择器使用。
 # spec 指向 provider 实现；endpoint.base_url 使用上游 Chat Completions 根地址，
 # 具体路径由 GodeX 拼接。
 #
-# 单 provider 快速启动配置: godex.deepseek.yaml / godex.minimax.yaml / godex.zhipu.yaml
+# 单 provider 快速启动配置: godex.deepseek.yaml / godex.xiaomi.yaml / godex.minimax.yaml / godex.zhipu.yaml
 # ---------------------------------------------------------------------------
 providers:
   deepseek:
@@ -63,6 +63,12 @@ providers:
       api_key: ${DEEPSEEK_API_KEY}
     endpoint:
       base_url: https://api.deepseek.com
+  xiaomi:
+    spec: xiaomi
+    credentials:
+      api_key: ${MIMO_API_KEY}
+    endpoint:
+      base_url: https://api.xiaomimimo.com/v1
   zhipu:
     spec: zhipu
     # 智谱 OpenAI-compatible 根地址

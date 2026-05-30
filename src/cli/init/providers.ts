@@ -4,15 +4,15 @@ import {
 	DEFAULT_DEEPSEEK_BASE_URL,
 } from "../../providers/deepseek";
 import {
-	DEFAULT_XIAOMI_BASE_URL,
-	XIAOMI_DEFAULT_MODEL,
-	XIAOMI_PROVIDER_NAME,
-} from "../../providers/mimo";
-import {
 	DEFAULT_MINIMAX_BASE_URL,
 	MINIMAX_DEFAULT_MODEL,
 	MINIMAX_PROVIDER_NAME,
 } from "../../providers/minimax";
+import {
+	DEFAULT_XIAOMI_BASE_URL,
+	XIAOMI_DEFAULT_MODEL,
+	XIAOMI_PROVIDER_NAME,
+} from "../../providers/xiaomi";
 import {
 	ZHIPU_BASE_URL,
 	ZHIPU_CODING_PLAN_BASE_URL,
