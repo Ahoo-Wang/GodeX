@@ -333,7 +333,13 @@ export default withMermaid(
       ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
       ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap' }],
     ],
-    markdown: { lineNumbers: true },
+    markdown: {
+      lineNumbers: true,
+      theme: {
+        dark: 'one-dark-pro',
+        light: 'github-light',
+      },
+    },
     outline: { level: [2, 3] },
     vite: {
       optimizeDeps: { include: ['mermaid'] },
