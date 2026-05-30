@@ -2,12 +2,22 @@
   "name": "@ahoo-wang/godex",
   "version": "1.0.0",
   "description": "OpenAI-compatible Responses API gateway for Codex, CLI tools and developer agents.",
+  "keywords": [
+    "openai",
+    "responses-api",
+    "gateway",
+    "proxy",
+    "codex",
+    "llm",
+    "ai",
+    "cli"
+  ],
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Ahoo-Wang/GodeX.git"
   },
-  "homepage": "https://github.com/Ahoo-Wang/GodeX#readme",
+  "homepage": "https://godex.ahoo.me/",
   "bugs": {
     "url": "https://github.com/Ahoo-Wang/GodeX/issues"
   },
