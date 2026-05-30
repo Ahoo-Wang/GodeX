@@ -205,7 +205,7 @@ MiniMax 规格目标为 `https://api.minimaxi.com/v1`（[src/providers/minimax/s
 
 ### Xiaomi
 
-Xiaomi 规格目标为 MiMo API `https://api.xiaomimimo.com/v1`（[src/providers/mimo/spec.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/mimo/spec.ts)）。
+Xiaomi 规格目标为 MiMo API `https://api.xiaomimimo.com/v1`（[src/providers/xiaomi/spec.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/spec.ts)）。
 
 | 属性 | 值 |
 |---|---|
@@ -234,7 +234,7 @@ Xiaomi 规格目标为 MiMo API `https://api.xiaomimimo.com/v1`（[src/providers
 - [src/providers/zhipu/hooks.ts:16-69](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L16-69) - Zhipu 能力和钩子
 - [src/providers/minimax/spec.ts:1-57](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/spec.ts#L1-57) - MiniMax 规格定义
 - [src/providers/minimax/hooks.ts:17-54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/hooks.ts#L17-54) - MiniMax 能力和钩子
-- [src/providers/mimo/spec.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/mimo/spec.ts) - Xiaomi 规格定义
-- [src/providers/mimo/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/mimo/hooks.ts) - Xiaomi 能力和钩子
+- [src/providers/xiaomi/spec.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/spec.ts) - Xiaomi 规格定义
+- [src/providers/xiaomi/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts) - Xiaomi 能力和钩子
 - [src/providers/definition.ts:6-29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/definition.ts#L6-29) - ProviderDefinition 接口
 - [src/bridge/provider-spec/contract.ts:54-74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L54-74) - ProviderSpec 契约

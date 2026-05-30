@@ -11,7 +11,7 @@ The Xiaomi provider integrates the Xiaomi MiMo API (`api.xiaomimimo.com/v1`), an
 ## Module Structure
 
 ```
-src/providers/mimo/
+src/providers/xiaomi/
 ├── spec.ts         # XIAOMI_PROVIDER_SPEC declaration with capabilities and accessors
 ├── client.ts       # createXiaomiProviderEdge() factory
 ├── hooks.ts        # Provider-specific hooks (patchRequest, usage mapping, deltas)
