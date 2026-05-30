@@ -23,12 +23,12 @@
         "typescript": "^6",
       },
       "optionalDependencies": {
-        "@ahoo-wang/godex-darwin-arm64": "0.0.2",
-        "@ahoo-wang/godex-darwin-x64": "0.0.2",
-        "@ahoo-wang/godex-linux-arm64": "0.0.2",
-        "@ahoo-wang/godex-linux-x64": "0.0.2",
-        "@ahoo-wang/godex-win32-arm64": "0.0.2",
-        "@ahoo-wang/godex-win32-x64": "0.0.2",
+        "@ahoo-wang/godex-darwin-arm64": "1.0.0",
+        "@ahoo-wang/godex-darwin-x64": "1.0.0",
+        "@ahoo-wang/godex-linux-arm64": "1.0.0",
+        "@ahoo-wang/godex-linux-x64": "1.0.0",
+        "@ahoo-wang/godex-win32-arm64": "1.0.0",
+        "@ahoo-wang/godex-win32-x64": "1.0.0",
       },
     },
   },
@@ -38,18 +38,6 @@
     "@ahoo-wang/fetcher-decorator": ["@ahoo-wang/fetcher-decorator@3.16.9", "", { "dependencies": { "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@ahoo-wang/fetcher": "^3.0.0" } }, "sha512-QEfLKnHu938iIpqIkX/pyHLxSOCbczWq4ycb0OwN16Oz1gMV8GdljSAUYaWt4VGcueMVC20r4TO7ea30NYle8Q=="],
 
     "@ahoo-wang/fetcher-eventstream": ["@ahoo-wang/fetcher-eventstream@3.16.9", "", { "peerDependencies": { "@ahoo-wang/fetcher": "^3.0.0" } }, "sha512-XN2OM80nAjRFI261Vk+rB/kx7bDL6h2LUptJJfzR0VDQKuZ+S64pTubo8ekvUoeV9K7QpT+drlWXbevsDqilAA=="],
-
-    "@ahoo-wang/godex-darwin-arm64": ["@ahoo-wang/godex-darwin-arm64@0.0.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-uvsk29w5VSCjyc7zCqf5IpgmFk7ga6pnvuAj2vTArnqwyNRQ63g+CtrOMNh2CNPSqMrFZaghYPmJlx4HNMZn/g=="],
-
-    "@ahoo-wang/godex-darwin-x64": ["@ahoo-wang/godex-darwin-x64@0.0.2", "", { "os": "darwin", "cpu": "x64" }, "sha512-pq1SpJS1dEQCbq6cZJjSo7knhslxCA+9eillTIzkPwt7sOsTqxOXOSuMhkLfIzBX7oSgM2SQW1VhDt4a0IQXpg=="],
-
-    "@ahoo-wang/godex-linux-arm64": ["@ahoo-wang/godex-linux-arm64@0.0.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-BpRRiRQc3icaDYLqF5mJgOS7jhubVeqdKkAnSX3OeI+m+S5/yDRLBKQYMNLCr5L6cANS3U/meafkG/A8UrpqVQ=="],
-
-    "@ahoo-wang/godex-linux-x64": ["@ahoo-wang/godex-linux-x64@0.0.2", "", { "os": "linux", "cpu": "x64" }, "sha512-CUoCURuhBZiq9vjhzAqRYSO2YYWh3aOaK3V+PtPgDY6PcNQ8FS8Q8dWz5XQu99tzE+Q7m3Vd7K4kiJZSiG+AIQ=="],
-
-    "@ahoo-wang/godex-win32-arm64": ["@ahoo-wang/godex-win32-arm64@0.0.2", "", { "os": "win32", "cpu": "arm64" }, "sha512-gimBG8DBq4bECpj9HS+2Wnemh1otZ/xqNo2Q1yApYX/Ip/MVqfjvq/o13y5ls+ncfym0X8IK8FFSG7rssc18pw=="],
-
-    "@ahoo-wang/godex-win32-x64": ["@ahoo-wang/godex-win32-x64@0.0.2", "", { "os": "win32", "cpu": "x64" }, "sha512-wAejBIT4z1vdOoBi4i9XYFuWSGvoYflBllHL19C6/gt1GknsQc3Rq1B18nVLOZ/2tajFDdG+ieh6DmAR/3Agqg=="],
 
     "@biomejs/biome": ["@biomejs/biome@2.4.16", "", { "optionalDependencies": { "@biomejs/cli-darwin-arm64": "2.4.16", "@biomejs/cli-darwin-x64": "2.4.16", "@biomejs/cli-linux-arm64": "2.4.16", "@biomejs/cli-linux-arm64-musl": "2.4.16", "@biomejs/cli-linux-x64": "2.4.16", "@biomejs/cli-linux-x64-musl": "2.4.16", "@biomejs/cli-win32-arm64": "2.4.16", "@biomejs/cli-win32-x64": "2.4.16" }, "bin": { "biome": "bin/biome" } }, "sha512-x9ajFh1zChVybCiM3TN6OD4phAqLgtPZjFrZF+aTMYCPjwBO+k529TX7PPsAqtGNLeV4UgzwQnowEgS7bGmzcA=="],
 

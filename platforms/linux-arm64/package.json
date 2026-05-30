@@ -1,6 +1,6 @@
 {
   "name": "@ahoo-wang/godex-linux-arm64",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "GodeX native binary for Linux ARM64",
   "license": "Apache-2.0",
   "repository": {
