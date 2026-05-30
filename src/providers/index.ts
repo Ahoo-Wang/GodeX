@@ -9,5 +9,12 @@ export {
 export * from "./definition";
 export * from "./example";
 export * from "./factory-options";
+export { createMiniMaxProvider } from "./minimax";
+export { createMiniMaxProviderEdge } from "./minimax/client";
+export {
+	DEFAULT_MINIMAX_BASE_URL,
+	MINIMAX_PROVIDER_NAME,
+	MINIMAX_PROVIDER_SPEC,
+} from "./minimax/spec";
 export * from "./registrar";
 export * from "./zhipu";

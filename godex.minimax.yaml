@@ -1,0 +1,30 @@
+# =============================================================================
+# GodeX Configuration — MiniMax Provider
+# =============================================================================
+# 快速启动: godex serve --config ./godex.minimax.yaml
+# 环境变量: export MINIMAX_API_KEY=<your-key>
+
+default_provider: minimax
+
+models:
+  aliases:
+    "*": minimax/MiniMax-M2.7-highspeed
+
+providers:
+  minimax:
+    spec: minimax
+    credentials:
+      api_key: ${MINIMAX_API_KEY}
+    endpoint:
+      base_url: https://api.minimaxi.com/v1
+
+session:
+  backend: sqlite
+  sqlite:
+    path: ./data/sessions.minimax.db
+
+trace:
+  enabled: true
+  path: ./data/trace.minimax.db
+  capture_payload: true
+  payload_max_bytes: 1048576

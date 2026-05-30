@@ -40,7 +40,9 @@ model: "openai/gpt-4o"  → 路由到配置的 openai 提供商
 
 | 变量 | 说明 |
 |------|------|
+| `DEEPSEEK_API_KEY` | DeepSeek 提供商 API 密钥 |
 | `ZHIPU_API_KEY` | 智谱提供商 API 密钥 |
+| `MINIMAX_API_KEY` | MiniMax 提供商 API 密钥 |
 | `OPENAI_BASE_URL` | 将 Codex CLI 指向 GodeX |
 | `OPENAI_API_KEY` | 必须设置（GodeX 不验证） |
 

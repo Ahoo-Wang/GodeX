@@ -74,4 +74,5 @@ export const DEEPSEEK_PROVIDER_DEFINITION = createProviderDefinition(
 
 DeepSeek 可能将 `message.content` 作为字符串或内容部件数组返回。`deepSeekOutputText` 访问器处理两种情况，从数组内容中的 `type: "text"` 部件提取文本。
 
+[MiniMax 参考](/zh/03-provider-development/minimax-reference)
 [智谱参考实现](/zh/03-provider-development/zhipu-reference)

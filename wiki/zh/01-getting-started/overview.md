@@ -26,6 +26,7 @@ C4Context
   SystemDb(sessions, "会话存储", "为 previous_response_id 链式解析存储响应历史。SQLite 或内存")
   SystemDb(trace, "追踪 DB", "在 SQLite 中记录请求、使用量、事件和错误行")
   System_Ext(deepseek, "DeepSeek", "Chat Completions API 提供商")
+  System_Ext(minimax, "MiniMax", "Chat Completions API 提供商")
   System_Ext(zhipu, "智谱", "Chat Completions API 提供商")
   System_Ext(other, "自定义提供商", "任何兼容 Chat Completions 的后端")
 
@@ -33,6 +34,7 @@ C4Context
   Rel(godex_svr, sessions, "保存 / 解析链")
   Rel(godex_svr, trace, "记录请求、使用量、事件、错误")
   Rel(godex_svr, deepseek, "POST /chat/completions", "HTTPS")
+  Rel(godex_svr, minimax, "POST /chat/completions", "HTTPS")
   Rel(godex_svr, zhipu, "POST /chat/completions", "HTTPS")
   Rel(godex_svr, other, "POST /chat/completions", "HTTPS")
 ```
@@ -65,6 +67,7 @@ src/
 │   └── finish-reason/  提供商完成原因映射
 ├── providers/        提供商注册表、spec、hooks、客户端
 │   ├── deepseek/      DeepSeek 提供商
+│   ├── minimax/       MiniMax 提供商
 │   ├── zhipu/         智谱提供商
 │   ├── example/       仅 spec 的示例提供商
 │   └── shared/        共享提供商工具（ChatProviderClient 等）

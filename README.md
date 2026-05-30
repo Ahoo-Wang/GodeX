@@ -13,13 +13,13 @@ OpenAI-compatible Responses API gateway for coding models that expose Chat Compl
 
 </div>
 
-GodeX lets clients that speak the OpenAI Responses API use providers such as DeepSeek and Zhipu through one local server.
+GodeX lets clients that speak the OpenAI Responses API use providers such as DeepSeek, MiniMax, and Zhipu through one local server.
 
 ## Highlights
 
 - OpenAI-compatible `POST /v1/responses` endpoint with sync and streaming responses.
 - `GET /v1/models` aliases so clients can use stable model names while GodeX routes to provider/model targets.
-- Built-in bridge providers for DeepSeek and Zhipu.
+- Built-in bridge providers for DeepSeek, MiniMax, and Zhipu.
 - Provider capability planning for request parameters, tools, `tool_choice`, structured output formats, reasoning, and stream usage.
 - Responses `previous_response_id` session chains backed by memory or SQLite.
 - Trace recording for provider requests, provider responses, stream events, usage, and errors.
@@ -49,7 +49,7 @@ flowchart TB
 
   Exchange --> Edge["ProviderEdge<br>ProviderSpec + hooks"]
   Edge --> ClientHttp["ChatProviderClient<br>Fetcher HTTP boundary"]
-  ClientHttp --> Upstream["Chat Completions upstream<br>DeepSeek, Zhipu, custom"]
+  ClientHttp --> Upstream["Chat Completions upstream<br>DeepSeek, MiniMax, Zhipu, custom"]
 
   Upstream --> SyncRecon["bridge/response<br>reconstructResponseObject"]
   Upstream --> StreamRecon["bridge/stream<br>ResponseStreamStateMachine"]
@@ -146,6 +146,7 @@ docker run -d \
   -p 5678:5678 \
   -e ZHIPU_API_KEY=your-key \
   -e DEEPSEEK_API_KEY=your-key \
+  -e MINIMAX_API_KEY=your-key \
   -v ./godex.yaml:/etc/godex/godex.yaml:ro \
   -v godex-data:/data \
   ahoowang/godex:latest
@@ -193,6 +194,12 @@ providers:
       api_key: ${ZHIPU_API_KEY}
     endpoint:
       base_url: https://open.bigmodel.cn/api/coding/paas/v4
+  minimax:
+    spec: minimax
+    credentials:
+      api_key: ${MINIMAX_API_KEY}
+    endpoint:
+      base_url: https://api.minimaxi.com/v1
 
 session:
   backend: sqlite
@@ -337,6 +344,8 @@ bun run format               # Biome format
 bun run test                 # Unit and integration tests, excluding src/e2e
 bun run test:e2e             # Mocked end-to-end tests
 bun run test:zhipu           # Live Zhipu tests; requires ZHIPU_API_KEY
+bun run test:deepseek        # Live DeepSeek tests; requires DEEPSEEK_API_KEY
+bun run test:minimax         # Live MiniMax tests; requires MINIMAX_API_KEY
 bun run check                # typecheck + lint + test
 bun run ci                   # typecheck + biome ci + test + e2e
 ```

@@ -130,7 +130,7 @@ When adding or changing a provider:
 - Keep provider-specific DTOs under `protocol/`.
 - Do not add mapper forests or wrapper contracts.
 
-Built-in runtime providers are currently registered in `deepseek`, then `zhipu` order. `src/providers/example` is a spec example, not a runtime provider.
+Built-in runtime providers are currently registered in `deepseek`, then `zhipu`, then `minimax` order. `src/providers/example` is a spec example, not a runtime provider.
 
 ## Configuration
 

@@ -148,6 +148,7 @@ const MY_PROVIDER_DEFINITION = createProviderDefinition(
 export const BUILTIN_PROVIDER_DEFINITIONS = [
   DEEPSEEK_PROVIDER_DEFINITION,
   ZHIPU_PROVIDER_DEFINITION,
+  MINIMAX_PROVIDER_DEFINITION,
   MY_PROVIDER_DEFINITION,
 ] as const satisfies readonly ProviderDefinition[];
 ```

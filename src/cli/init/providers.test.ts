@@ -4,6 +4,10 @@ import {
 	DEFAULT_DEEPSEEK_BASE_URL,
 } from "../../providers/deepseek";
 import {
+	DEFAULT_MINIMAX_BASE_URL,
+	MINIMAX_PROVIDER_NAME,
+} from "../../providers/minimax";
+import {
 	ZHIPU_BASE_URL,
 	ZHIPU_CODING_PLAN_BASE_URL,
 	ZHIPU_PROVIDER_NAME,
@@ -18,6 +22,7 @@ describe("INIT_PROVIDER_DEFINITIONS", () => {
 		expect(INIT_PROVIDER_DEFINITIONS.map((provider) => provider.id)).toEqual([
 			DEEPSEEK_PROVIDER_NAME,
 			ZHIPU_PROVIDER_NAME,
+			MINIMAX_PROVIDER_NAME,
 		]);
 	});
 
@@ -27,6 +32,11 @@ describe("INIT_PROVIDER_DEFINITIONS", () => {
 			apiKeyPlaceholder: "${DEEPSEEK_API_KEY}",
 			defaultBaseUrl: DEFAULT_DEEPSEEK_BASE_URL,
 			defaultModel: "deepseek-v4-pro",
+		});
+		expect(getInitProviderDefinition("minimax")).toMatchObject({
+			apiKeyPlaceholder: "${MINIMAX_API_KEY}",
+			defaultBaseUrl: DEFAULT_MINIMAX_BASE_URL,
+			defaultModel: "MiniMax-M2.7",
 		});
 		expect(
 			getInitProviderDefinition("zhipu")?.baseUrlChoices.map(

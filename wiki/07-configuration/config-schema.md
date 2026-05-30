@@ -42,6 +42,14 @@ providers:
       base_url: https://open.bigmodel.cn/api/coding/paas/v4
     timeout_ms: 30000
 
+  minimax:
+    spec: minimax                        # Provider spec name (required)
+    credentials:
+      api_key: ${MINIMAX_API_KEY}
+    endpoint:
+      base_url: https://api.minimaxi.com/v1
+    timeout_ms: 30000
+
 session:
   backend: sqlite         # "sqlite" or "memory"
   sqlite:
@@ -170,6 +178,6 @@ BESIDES YAML interpolation, these environment variables directly override config
 | `GODEX_PORT` | `server.port` | Overrides the listen port |
 | `GODEX_HOST` | `server.host` | Overrides the bind address |
 | `GODEX_LOG_LEVEL` | `logging.level` | Overrides the log level |
-| `GODEX_DEFAULT_PROVIDER` | `default_provider` | Falls back to `zhipu` if both are unset |
+| `GODEX_DEFAULT_PROVIDER` | `default_provider` | Falls back to `deepseek` if both are unset |
 
 [CLI Commands](/07-configuration/cli-commands)

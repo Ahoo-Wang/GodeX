@@ -4,7 +4,7 @@
 
 **让每个模型都成为 Codex 引擎。**
 
-面向编码模型的 OpenAI 兼容 Responses API 网关，用一个本地服务连接 Codex、SDK、CLI、IDE 与 DeepSeek、智谱等 Chat Completions 上游。
+面向编码模型的 OpenAI 兼容 Responses API 网关，用一个本地服务连接 Codex、SDK、CLI、IDE 与 DeepSeek、MiniMax、智谱等 Chat Completions 上游。
 
 [![npm version](https://img.shields.io/npm/v/@ahoo-wang/godex?logo=npm)](https://www.npmjs.com/package/@ahoo-wang/godex)
 [![codecov](https://codecov.io/gh/Ahoo-Wang/GodeX/graph/badge.svg?token=dJQrmUAiXu)](https://codecov.io/gh/Ahoo-Wang/GodeX)
@@ -13,13 +13,13 @@
 
 </div>
 
-GodeX 让使用 OpenAI Responses API 的客户端，可以通过一个本地网关调用 DeepSeek、智谱等只提供 Chat Completions API 的模型提供商。
+GodeX 让使用 OpenAI Responses API 的客户端，可以通过一个本地网关调用 DeepSeek、MiniMax、智谱等只提供 Chat Completions API 的模型提供商。
 
 ## 功能特性
 
 - OpenAI 兼容的 `POST /v1/responses`，支持同步和流式响应。
 - `GET /v1/models` 暴露模型别名，让客户端使用稳定模型名，GodeX 负责路由到 provider/model。
-- 内置 DeepSeek、智谱桥接 provider。
+- 内置 DeepSeek、MiniMax、智谱桥接 provider。
 - 基于 provider capability 规划请求参数、工具、`tool_choice`、结构化输出、推理和流式 usage。
 - 支持 `previous_response_id` 会话链，可使用内存或 SQLite。
 - Trace 记录 provider request、provider response、stream event、usage 和 error。
@@ -49,7 +49,7 @@ flowchart TB
 
   Exchange --> Edge["ProviderEdge<br>ProviderSpec + hooks"]
   Edge --> ClientHttp["ChatProviderClient<br>Fetcher HTTP 边界"]
-  ClientHttp --> Upstream["Chat Completions 上游<br>DeepSeek, 智谱, 自定义"]
+  ClientHttp --> Upstream["Chat Completions 上游<br>DeepSeek, MiniMax, 智谱, 自定义"]
 
   Upstream --> SyncRecon["bridge/response<br>reconstructResponseObject"]
   Upstream --> StreamRecon["bridge/stream<br>ResponseStreamStateMachine"]
@@ -146,6 +146,7 @@ docker run -d \
   -p 5678:5678 \
   -e ZHIPU_API_KEY=your-key \
   -e DEEPSEEK_API_KEY=your-key \
+  -e MINIMAX_API_KEY=your-key \
   -v ./godex.yaml:/etc/godex/godex.yaml:ro \
   -v godex-data:/data \
   ahoowang/godex:latest
@@ -193,6 +194,12 @@ providers:
       api_key: ${ZHIPU_API_KEY}
     endpoint:
       base_url: https://open.bigmodel.cn/api/coding/paas/v4
+  minimax:
+    spec: minimax
+    credentials:
+      api_key: ${MINIMAX_API_KEY}
+    endpoint:
+      base_url: https://api.minimaxi.com/v1
 
 session:
   backend: sqlite
@@ -337,6 +344,8 @@ bun run format               # Biome 格式化
 bun run test                 # 单元和集成测试，不含 src/e2e
 bun run test:e2e             # mock 上游端到端测试
 bun run test:zhipu           # 智谱 live 测试，需要 ZHIPU_API_KEY
+bun run test:deepseek        # DeepSeek live 测试，需要 DEEPSEEK_API_KEY
+bun run test:minimax         # MiniMax live 测试，需要 MINIMAX_API_KEY
 bun run check                # typecheck + lint + test
 bun run ci                   # typecheck + biome ci + test + e2e
 ```

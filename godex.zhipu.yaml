@@ -1,0 +1,30 @@
+# =============================================================================
+# GodeX Configuration — Zhipu (智谱) Provider
+# =============================================================================
+# 快速启动: godex serve --config ./godex.zhipu.yaml
+# 环境变量: export ZHIPU_API_KEY=<your-key>
+
+default_provider: zhipu
+
+models:
+  aliases:
+    "*": zhipu/glm-5.1
+
+providers:
+  zhipu:
+    spec: zhipu
+    credentials:
+      api_key: ${ZHIPU_API_KEY}
+    endpoint:
+      base_url: https://open.bigmodel.cn/api/coding/paas/v4
+
+session:
+  backend: sqlite
+  sqlite:
+    path: ./data/sessions.zhipu.db
+
+trace:
+  enabled: true
+  path: ./data/trace.zhipu.db
+  capture_payload: true
+  payload_max_bytes: 1048576
