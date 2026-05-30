@@ -11,29 +11,48 @@
 
 ## Architecture
 
-- [System Overview](wiki/02-architecture/overview.md): Component model, C4 context, architectural decisions
-- [Request Flow](wiki/02-architecture/request-flow.md): Full request lifecycle from HTTP to upstream and back
-- [Adapter Pattern](wiki/02-architecture/adapter-pattern.md): Provider abstraction, mapper interfaces, capabilities
-- [Stream Pipeline](wiki/02-architecture/stream-pipeline.md): TransformStream stages, SSE encoding, session persistence
+- [Architecture Overview](wiki/02-architecture/architecture-overview.md): End-to-end request flow, core types, component model
+- [Compatibility Planning](wiki/02-architecture/compatibility.md): How features are planned as supported/degraded/ignored/rejected
+- [Request Building](wiki/02-architecture/request-building.md): Responses API to Chat Completions conversion
+- [Response Reconstruction](wiki/02-architecture/response-reconstruction.md): Chat Completions responses to ResponseObject
+- [Stream Reconstruction](wiki/02-architecture/stream-reconstruction.md): Stream state machine and delta-to-event mapping
+- [Tool Planning](wiki/02-architecture/tool-planning.md): Tool catalog, declarations, identity mapping
+- [Output Contracts](wiki/02-architecture/output-contracts.md): JSON schema validation and degradation
+- [Sync Pipeline](wiki/02-architecture/sync-pipeline.md): Synchronous request orchestration
+- [Streaming Pipeline](wiki/02-architecture/streaming-pipeline.md): Stream pipeline and transform chain
+- [Stream Transforms](wiki/02-architecture/stream-transforms.md): Composable TransformStream stages
+- [Model Resolution](wiki/02-architecture/model-resolution.md): Model aliasing and selector parsing
+- [Server Routes](wiki/02-architecture/server-routes.md): Bun HTTP routes and request dispatch
 
 ## Getting Started
 
-- [Overview](wiki/01-getting-started/overview.md): Prerequisites, installation, first request
-- [Installation & Setup](wiki/01-getting-started/installation-setup.md): Config wizard, godex.yaml, env vars, model mapping
-- [Quick Reference](wiki/01-getting-started/quick-reference.md): CLI commands, API endpoints, curl examples
+- [Overview](wiki/01-getting-started/overview.md): What GodeX does and why it exists
+- [Quick Start](wiki/01-getting-started/quick-start.md): Install, configure, first API call
+- [Configuration Guide](wiki/01-getting-started/configuration.md): godex.yaml reference, env interpolation, CLI overrides
+- [Built-in Providers](wiki/01-getting-started/builtin-providers.md): DeepSeek, Zhipu, MiniMax comparison
+- [CLI](wiki/01-getting-started/cli.md): Commander program, init wizard, serve command
 
-## Deep Dive
+## Provider Development
 
-- [Provider Interface](wiki/03-provider-development/provider-interface.md): How to implement new LLM providers
-- [Zhipu Reference](wiki/03-provider-development/zhipu-reference.md): Reference provider implementation walkthrough
-- [Message & Tool Mapping](wiki/03-provider-development/message-tool-mapping.md): Input item conversion, tool type mapping
-- [Session Store](wiki/04-session-management/session-store.md): Response history storage backends
-- [Chain Resolution](wiki/04-session-management/chain-resolution.md): Multi-turn conversation chain traversal
-- [Transformers](wiki/05-streaming-pipeline/transformers.md): Stream pipeline transformer stages
-- [Stream State](wiki/05-streaming-pipeline/stream-state.md): Accumulation state during streaming
-- [Error Hierarchy](wiki/06-error-handling/error-hierarchy.md): GodeXError class hierarchy and HTTP mapping
-- [Error Codes](wiki/06-error-handling/error-codes.md): Complete error code reference
-- [Config Schema](wiki/07-configuration/config-schema.md): godex.yaml configuration reference
-- [CLI Commands](wiki/07-configuration/cli-commands.md): Command-line interface reference
-- [Testing Guide](wiki/08-testing/testing-guide.md): Unit, E2E, and live provider tests
-- [CI/CD & Publishing](wiki/09-deployment/ci-cd.md): CI pipeline, cross-compilation, npm publishing
+- [Provider Spec](wiki/03-provider-development/provider-spec.md): ProviderSpec and ProviderEdge contracts
+- [Provider Hooks](wiki/03-provider-development/provider-hooks.md): patchRequest, normalizeResponse, stream deltas
+- [Chat Provider Client](wiki/03-provider-development/chat-provider-client.md): Shared HTTP client for providers
+
+## Session Management
+
+- [Session Stores](wiki/04-session-management/session-stores.md): Memory and SQLite backends
+- [Chain Resolution](wiki/04-session-management/chain-resolution.md): previous_response_id traversal
+
+## Infrastructure
+
+- [Trace System](wiki/10-trace/trace-system.md): Async trace recording, SQLite storage, payload capture
+- [Error Handling](wiki/06-error-handling/error-handling.md): GodeXError hierarchy, domain codes
+- [Logging](wiki/07-configuration/logging.md): LogTape-based structured logging
+- [Testing](wiki/08-testing/testing.md): Unit, E2E, live provider tests
+- [Deployment](wiki/09-deployment/deployment.md): Docker, native binary, CI/CD
+
+## Optional
+
+- [AGENTS.md](AGENTS.md): Coding-agent instructions for the repository
+- [wiki/llms.txt](wiki/llms.txt): Wiki-relative LLM-friendly index
+- [wiki/llms-full.txt](wiki/llms-full.txt): Full inlined wiki content

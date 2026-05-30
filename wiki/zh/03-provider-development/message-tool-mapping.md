@@ -19,6 +19,26 @@ Responses API 输入项有几种类型，每种都需要映射为 Chat Completio
 | `message` (role=assistant) | 助手消息 | 链中之前的助手输出 |
 | `function_call_output` | 工具结果 | 映射为 Chat Completions 工具结果格式 |
 
+```mermaid
+flowchart LR
+  subgraph responses["Responses API"]
+    IT["input_text"]
+    II["input_image"]
+    AM["assistant message"]
+    FCO["function_call_output"]
+  end
+  subgraph chat["Chat Completions"]
+    UM["user message"]
+    AIM["assistant message"]
+    TR["tool result"]
+  end
+
+  IT --> UM
+  II --> UM
+  AM --> AIM
+  FCO --> TR
+```
+
 `bridge/request/input-normalizer.ts` 中的 `InputNormalizer` 处理转换，包括在将函数调用输出映射回提供商命名空间时恢复工具身份名称。
 
 ## 工具映射
@@ -29,7 +49,21 @@ Bridge 内核分三步规划工具：
 2. **工具选择映射** — Responses `tool_choice` 根据提供商能力映射为 Chat Completions `tool_choice`。
 3. **身份映射** — `ToolNameCodec` 处理 Responses API 工具名称和提供商工具名称之间的转换。
 
-不支持的工类型产生 `BridgeError`，代码为 `bridge.request.unsupported_tool`。
+```mermaid
+flowchart TD
+  INPUT["Responses API tools"]
+  PLAN["planTools()"]
+  DEGRADE["Degradation decisions"]
+  DECL["Provider tool declarations"]
+  TC["tool_choice mapping"]
+
+  INPUT --> PLAN
+  PLAN --> DEGRADE
+  PLAN --> DECL
+  PLAN --> TC
+```
+
+不支持的工具类型产生 `BridgeError`，代码为 `bridge.request.unsupported_tool`。
 
 ## 工具调用恢复
 
@@ -40,6 +74,6 @@ Bridge 内核分三步规划工具：
 
 ## 兼容性诊断
 
-每个兼容性决策 — 降级的工具、忽略的参数、拒绝的格式 — 都产生一个 `CompatibilityDiagnostic`，累积在 `ResponsesContext.diagnostics` 中，并在响应完成后记录。
+每个兼容性决策——降级的工具、忽略的参数、拒绝的格式——都产生一个 `CompatibilityDiagnostic`，累积在 `ResponsesContext.diagnostics` 中，并在响应完成后记录。
 
 [会话存储](/zh/04-session-management/session-store)

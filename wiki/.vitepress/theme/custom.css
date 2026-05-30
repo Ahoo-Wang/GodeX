@@ -39,6 +39,35 @@
 }
 
 /* ============================================================
+   Keyframe animations
+   ============================================================ */
+@keyframes gradient-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes logo-glow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.3)); }
+  50% { filter: drop-shadow(0 0 20px rgba(124, 58, 237, 0.5)); }
+}
+
+@keyframes btn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 255, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(37, 99, 255, 0); }
+}
+
+@keyframes bounce-arrow {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+
+@keyframes grid-move {
+  0% { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
+}
+
+/* ============================================================
    Dark theme overrides
    ============================================================ */
 .dark {
@@ -60,7 +89,9 @@
 
 /* Hero section — dark only */
 .dark .VPHero .name {
-  background: var(--gx-gradient-brand);
+  background: linear-gradient(135deg, #00D4FF 0%, #2563FF 25%, #7C3AED 50%, #00D4FF 75%, #2563FF 100%);
+  background-size: 200% 200%;
+  animation: gradient-flow 4s ease infinite;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -74,12 +105,45 @@
   color: var(--gx-text-subtle) !important;
 }
 
-/* Home hero dark background */
+/* Hero logo glow */
+.dark .VPHero .image-container img {
+  animation: logo-glow 3s ease-in-out infinite;
+}
+
+/* CTA button pulse */
+.dark .VPHero .action .VPButton.brand {
+  animation: btn-pulse 2.5s ease-in-out infinite;
+  border: 1px solid rgba(37, 99, 255, 0.5);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.dark .VPHero .action .VPButton.brand:hover {
+  border-color: rgba(0, 212, 255, 0.8);
+  box-shadow: 0 0 24px rgba(37, 99, 255, 0.3);
+}
+
+/* Home hero dark background with grid */
 .dark .VPHome {
   background:
-    radial-gradient(circle at 20% 20%, rgba(37, 99, 255, 0.15), transparent 40%),
-    radial-gradient(circle at 80% 30%, rgba(124, 58, 237, 0.12), transparent 35%),
+    repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(37, 99, 255, 0.08) 60px),
+    repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(37, 99, 255, 0.08) 60px),
+    radial-gradient(ellipse at 30% 15%, rgba(0, 212, 255, 0.12), transparent 50%),
+    radial-gradient(ellipse at 70% 25%, rgba(124, 58, 237, 0.1), transparent 45%),
     linear-gradient(180deg, var(--gx-bg-deep) 0%, #08101D 100%);
+  background-size: 60px 60px, 60px 60px, 100% 100%, 100% 100%, 100% 100%;
+}
+
+/* Scroll-down hint arrow */
+.dark .VPHero::after {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin: 48px auto 0;
+  border-right: 2px solid rgba(0, 212, 255, 0.5);
+  border-bottom: 2px solid rgba(0, 212, 255, 0.5);
+  transform: rotate(45deg);
+  animation: bounce-arrow 2s ease-in-out infinite;
 }
 
 /* Feature cards — dark */
@@ -88,13 +152,36 @@
   border: 1px solid rgba(148, 163, 184, 0.1) !important;
   background: rgba(17, 34, 64, 0.5) !important;
   backdrop-filter: blur(12px);
-  transition: border-color 0.25s, box-shadow 0.25s;
+  position: relative;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.dark .VPFeature::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 13px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0), rgba(124, 58, 237, 0));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
 }
 
 .dark .VPFeature:hover {
-  border-color: rgba(37, 99, 255, 0.35) !important;
+  border-color: transparent !important;
   box-shadow: 0 8px 32px rgba(37, 99, 255, 0.12);
 }
+
+.dark .VPFeature:hover::before {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.6), rgba(124, 58, 237, 0.6));
+  opacity: 1;
+}
+
 
 .dark .VPFeature .title {
   color: #e6edf3 !important;
@@ -119,6 +206,20 @@
   border-radius: 10px !important;
   background: #0d1117 !important;
   border: 1px solid rgba(148, 163, 184, 0.1) !important;
+  position: relative;
+  padding-top: 2.5em !important;
+}
+
+.dark .vp-doc div[class*='language-']::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff5f57;
+  box-shadow: 18px 0 0 #febc2e, 36px 0 0 #28c840;
 }
 
 .vp-doc div[class*='language-'] > button.copy {
@@ -198,6 +299,22 @@
   stroke: #6d5dfc !important;
 }
 
+/* Mermaid zoom hint on hover */
+.mermaid-zoom-hint {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #e6edf3;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  font-family: var(--vp-font-family);
+}
+
 /* Mermaid zoom overlay */
 .mermaid-zoom-overlay {
   position: fixed;
@@ -213,8 +330,45 @@
   transform-origin: center center;
   transition: transform 0.1s ease-out;
   max-width: 95vw;
-  max-height: 95vh;
+  max-height: 90vh;
   overflow: visible;
+}
+
+.mermaid-zoom-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #e6edf3;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  z-index: 10000;
+}
+
+.mermaid-zoom-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.mermaid-zoom-toolbar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: #94a3b8;
+  font-size: 13px;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-family: var(--vp-font-family);
+  pointer-events: none;
 }
 
 /* Doc content typography — dark */
@@ -264,4 +418,14 @@
 .VPHero .VPImage img {
   width: 100% !important;
   max-width: 560px !important;
+}
+
+/* Content area width */
+:root {
+  --vp-sidebar-width: 200px;
+  --vp-layout-max-width: 100%;
+}
+
+.VPDoc.has-aside .content-container {
+  max-width: var(--vp-layout-max-width) !important;
 }

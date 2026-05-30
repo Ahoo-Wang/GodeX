@@ -12,7 +12,6 @@ The `ResponseStreamStateMachine` is the core state machine that drives the strea
 
 ```mermaid
 classDiagram
-  direction TB
 
   class ResponseStreamStateMachine {
     +phase: ResponseStreamPhase
@@ -108,3 +107,4 @@ The state machine validates phase transitions and throws `BridgeError` for:
 | `bridge.stream.incomplete_tool_call` | Stream ended with an unfinished tool call |
 
 [Error Hierarchy](/06-error-handling/error-hierarchy)
+

@@ -81,7 +81,6 @@ trace:
 
 ```mermaid
 classDiagram
-  direction TB
 
   class GodeXConfig {
     +server: ServerConfig
@@ -180,3 +179,4 @@ providers:
 | `GODEX_DEFAULT_PROVIDER` | `default_provider` | 未设置时回退到 `deepseek` |
 
 [CLI 命令](/zh/07-configuration/cli-commands)
+

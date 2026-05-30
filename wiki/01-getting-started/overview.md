@@ -1,94 +1,274 @@
 ---
-title: "Overview"
-description: "Introduction to GodeX — what it is, why it exists, and how to get started."
-keywords: "GodeX, getting started, overview, OpenAI, Responses API, gateway"
+title: Overview
+description: GodeX is an OpenAI-compatible Responses API gateway that bridges non-OpenAI LLM providers through their Chat Completions endpoints, enabling any model to act as a Codex engine.
 ---
 
 # Overview
 
-GodeX is an **OpenAI Responses API gateway** built with [Bun](https://bun.sh) and **TypeScript**. It translates standard `/v1/responses` requests into upstream Chat Completions API calls, allowing any LLM provider to serve as a backend for tools that speak the OpenAI protocol — including the Codex CLI.
+GodeX bridges the gap between the OpenAI Responses API and the diverse ecosystem of non-OpenAI large language model providers. Instead of rewriting every client SDK to speak each provider's proprietary protocol, you point your OpenAI-compatible tooling at GodeX and it transparently translates requests and responses behind the scenes. This eliminates vendor lock-in and lets teams switch or combine LLM providers with a single configuration change.
 
-## Why GodeX?
+## At a Glance
 
-- **Protocol translation**: Tools like Codex expect the OpenAI Responses API, but many providers only offer Chat Completions. GodeX bridges this gap.
-- **Provider-agnostic**: A spec-based provider system means adding a new provider requires declaring capabilities and writing small hooks, not rewriting the server.
-- **Streaming-first**: The entire pipeline is built around `ReadableStream` and `TransformStream`, ensuring low-latency SSE delivery to clients.
-- **Session history**: Built-in `previous_response_id` chain resolution with SQLite or in-memory backends.
+| Aspect | Detail |
+|---|---|
+| **What** | OpenAI-compatible Responses API gateway |
+| **Protocol** | Accepts OpenAI Responses API; translates to Chat Completions |
+| **Runtime** | Built on Bun for high-performance HTTP serving |
+| **Built-in Providers** | DeepSeek, Zhipu, MiniMax |
+| **Session Backends** | In-memory, SQLite |
+| **Configuration** | YAML file with `${VAR}` environment interpolation |
+| **CLI** | `godex init` wizard, `godex serve` runtime |
+| **Observability** | Built-in trace recorder with payload capture |
 
-## Built-in Providers
+## Architecture
 
-| Provider | Reasoning | Tool Choice | Response Format | Cached Tokens | Default Model |
-|----------|-----------|-------------|-----------------|---------------|---------------|
-| DeepSeek | native | auto, none, required, function | text, json_object | ✅ | `deepseek-v4-pro` |
-| MiniMax  | none  | auto, none, required, function | text, json_object | ✅ | `MiniMax-M2.7` |
-| Zhipu    | boolean | auto, none | text, json_object | ✅ | `glm-5.1` |
-
-## System Context
+GodeX is organized as a layered gateway where each layer has a single responsibility: CLI parsing, configuration building, provider registration, request bridging, and response reconstruction.
 
 ```mermaid
-C4Context
-  title GodeX — System Context
+flowchart TB
+    subgraph Client["Client Layer"]
+        CLI["CLI<br>(Commander)"]
+        HTTP["HTTP Client<br>(curl / SDK)"]
+    end
 
-  Person(user, "Developer / Codex CLI", "Sends Responses API requests via the OpenAI-compatible endpoint")
-  System(godex_svr, "GodeX Server", "Translates Responses API to Chat Completions API. Bun HTTP server on configurable port")
-  SystemDb(sessions, "Session Store", "Stores response history for previous_response_id chain resolution. SQLite or In-Memory")
-  SystemDb(trace, "Trace DB", "Records request, usage, event, and error rows in SQLite")
-  System_Ext(deepseek, "DeepSeek", "Chat Completions API provider")
-  System_Ext(minimax, "MiniMax", "Chat Completions API provider")
-  System_Ext(zhipu, "Zhipu", "Chat Completions API provider")
-  System_Ext(other, "Custom Provider", "Any Chat Completions compatible backend")
+    subgraph Server["Server Layer"]
+        Router["Bun.serve<br>Route Map"]
+        Health["/health"]
+        Models["/v1/models"]
+        Responses["/v1/responses"]
+    end
 
-  Rel(user, godex_svr, "POST /v1/responses, GET /v1/models, GET /health", "HTTP/SSE")
-  Rel(godex_svr, sessions, "save / resolve chains")
-  Rel(godex_svr, trace, "record request, usage, events, errors")
-  Rel(godex_svr, deepseek, "POST /chat/completions", "HTTPS")
-  Rel(godex_svr, minimax, "POST /chat/completions", "HTTPS")
-  Rel(godex_svr, zhipu, "POST /chat/completions", "HTTPS")
-  Rel(godex_svr, other, "POST /chat/completions", "HTTPS")
+    subgraph Bridge["Bridge Kernel"]
+        ReqBuilder["Request Builder"]
+        Compat["Compatibility Plan"]
+        ToolPlan["Tool Planning"]
+        OutContract["Output Contract"]
+    end
+
+    subgraph Providers["Provider Layer"]
+        DeepSeek["DeepSeek<br>Edge"]
+        Zhipu["Zhipu<br>Edge"]
+        MiniMax["MiniMax<br>Edge"]
+    end
+
+    HTTP --> Router
+    CLI --> Router
+    Router --> Health
+    Router --> Models
+    Router --> Responses
+    Responses --> ReqBuilder
+    ReqBuilder --> Compat
+    ReqBuilder --> ToolPlan
+    ToolPlan --> OutContract
+    OutContract --> DeepSeek
+    OutContract --> Zhipu
+    OutContract --> MiniMax
+
+    style Client fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Server fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Bridge fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Providers fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Router fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style ReqBuilder fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Compat fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style ToolPlan fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style OutContract fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style DeepSeek fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Zhipu fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style MiniMax fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style CLI fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style HTTP fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Health fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Models fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Responses fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
-## Key Design Decisions
+## Request Lifecycle
 
-| Decision | Rationale |
-|----------|-----------|
-| Bun runtime | Native `ReadableStream`, fast startup, built-in SQLite |
-| Bridge kernel | Clean separation between protocol translation and provider logic |
-| Immutable capability sets | Prevent runtime mutation of provider feature flags |
-| Session store abstraction | Swap between memory and SQLite without touching business logic |
-| Composable stream transformers | Each concern (trace, log, persist, validate) is a separate stage |
+Every incoming request follows a deterministic path through the system. The bridge kernel validates compatibility, plans tool transformations, dispatches to the correct provider edge, and then reconstructs the response into the OpenAI Responses API format.
 
-## Project Structure
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Server as Bun.serve
+    participant Pipeline as SyncRequestPipeline
+    participant Exchange as ProviderExchange
+    participant Bridge as Request Builder
+    participant Provider as Provider Edge
 
-```
-src/
-├── cli/              Commander CLI (serve, config, init)
-├── config/           godex.yaml schema, env interpolation, defaults
-├── context/          ApplicationContext (DI), ResponsesContext (per-request)
-├── bridge/           Provider-agnostic Responses-to-Chat bridge kernel
-│   ├── compatibility/  Parameter and response-format compatibility planning
-│   ├── request/        Input normalization and message building
-│   ├── tools/          Tool declarations, tool_choice, identity mapping
-│   ├── output/         Structured-output contract planning and validation
-│   ├── response/       Sync ResponseObject reconstruction
-│   ├── stream/         Stream state machine and delta mapping
-│   ├── provider-spec/  ProviderSpec, ProviderEdge, factory helpers
-│   └── finish-reason/  Provider finish reason mapping
-├── providers/        Provider registry, specs, hooks, clients
-│   ├── deepseek/      DeepSeek provider
-│   ├── minimax/       MiniMax provider
-│   ├── zhipu/         Zhipu provider
-│   ├── example/       Spec-only example provider
-│   └── shared/        Shared provider utilities (ChatProviderClient, etc.)
-├── responses/        Sync and stream orchestration pipelines
-│   └── stream-transforms/  Composable TransformStream stages
-├── server/           Bun routes for /health, /v1/models, /v1/responses
-├── resolver/         ModelResolver (model selector to provider + model)
-├── session/          Memory and SQLite response session stores
-├── trace/            SQLite trace recorder and usage/error/event mappers
-├── error/            GodeXError hierarchy with domain codes
-├── protocol/         OpenAI protocol type definitions
-├── tools/            Built-in tool definitions (shell, apply_patch, etc.)
-└── e2e/              End-to-end tests with mocked upstream
+    Client->>Server: POST /v1/responses
+    Server->>Pipeline: request(ctx)
+    Pipeline->>Exchange: request(ctx)
+    Exchange->>Bridge: buildChatCompletionRequest()
+    Bridge-->>Exchange: BuildResult (compat + tools + output)
+    Exchange->>Provider: provider.request(body)
+    Provider-->>Exchange: ProviderResponse
+    Exchange-->>Pipeline: ExchangeResult
+    Pipeline->>Pipeline: reconstructResponseObject()
+    Pipeline->>Pipeline: validateOutputContract()
+    Pipeline->>Pipeline: saveSession()
+    Pipeline-->>Server: ResponseObject
+    Server-->>Client: JSON 200
 ```
 
-[Installation & Setup](/01-getting-started/installation-setup)
+The `SyncRequestPipeline` orchestrates this flow: it delegates to `ProviderExchange`, which calls `buildChatCompletionRequest` to translate the incoming Responses API payload into a Chat Completions request tailored to the target provider's capabilities ([src/responses/sync-request-pipeline.ts:31-46](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L31-L46)).
+
+## Provider Spec Contract
+
+Every provider implements the `ProviderSpec` interface, which defines a uniform contract for capabilities, endpoint configuration, authentication, tool name translation, and response/stream accessors ([src/bridge/provider-spec/contract.ts:54-74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L54-L74)).
+
+| Contract Field | Purpose |
+|---|---|
+| `name` | Unique provider identifier (e.g. `deepseek`) |
+| `protocol` | Always `chat_completions` |
+| `capabilities` | Declares supported parameters, tools, formats |
+| `endpoint` | Default base URL |
+| `auth` | Authentication scheme (always Bearer) |
+| `toolName` | Codec for translating tool names between API and provider |
+| `response` | Accessors for extracting text, usage, finish reason |
+| `stream` | Accessor for extracting deltas from SSE chunks |
+| `hooks` | Optional `patchRequest`, `normalizeResponse`, `normalizeChunk` |
+
+```mermaid
+classDiagram
+    class ProviderSpec {
+        +name: string
+        +protocol: ProviderProtocol
+        +capabilities: ProviderCapabilities
+        +endpoint: ProviderEndpointSpec
+        +auth: ProviderAuthSpec
+        +toolName: ToolNameCodec
+        +response: ChatCompletionResponseAccessor
+        +stream: ChatCompletionStreamAccessor
+        +hooks?: ProviderHooks
+    }
+
+    class ProviderEdge {
+        +name: string
+        +spec: ProviderSpec
+        +request(body): Promise~Response~
+        +stream(body): Promise~ReadableStream~
+    }
+
+    class ProviderDefinition {
+        +name: string
+        +create(config): ProviderEdge
+    }
+
+    ProviderEdge --> ProviderSpec : uses
+    ProviderDefinition --> ProviderEdge : creates
+```
+
+## Session Management
+
+GodeX supports multi-turn conversations by persisting responses and replaying previous messages when a client sends `previous_response_id`. Two backends are available:
+
+| Backend | Description | Default |
+|---|---|---|
+| `memory` | In-process map; lost on restart | Yes |
+| `sqlite` | File-based persistence via SQLite | Opt-in |
+
+Session configuration is parsed in [src/config/sections/session.ts:5-27](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/session.ts#L5-L27) and the store is created during `ApplicationContext` initialization ([src/context/application-context.ts:20-30](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts#L20-L30)).
+
+## Compatibility Planning
+
+Before any request reaches a provider, the bridge kernel builds a **compatibility plan** that checks every requested parameter, tool type, and response format against the provider's declared capabilities. Unsupported features are either degraded to a compatible alternative or rejected with a diagnostic ([src/bridge/compatibility/compatibility-plan.ts:38-50](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/compatibility-plan.ts#L38-L50)).
+
+```mermaid
+flowchart LR
+    subgraph Input["Incoming Request"]
+        Params["Parameters"]
+        Tools["Tools"]
+        Format["Response Format"]
+        Reasoning["Reasoning"]
+    end
+
+    subgraph Plan["Compatibility Plan"]
+        ParamCheck["Parameter Check"]
+        ToolCheck["Tool Degradation"]
+        FormatCheck["Format Validation"]
+        ReasonCheck["Reasoning Mapping"]
+    end
+
+    subgraph Output["Decisions"]
+        Supported["Supported"]
+        Degraded["Degraded"]
+        Ignored["Ignored"]
+        Rejected["Rejected"]
+    end
+
+    Params --> ParamCheck
+    Tools --> ToolCheck
+    Format --> FormatCheck
+    Reasoning --> ReasonCheck
+    ParamCheck --> Supported
+    ParamCheck --> Ignored
+    ToolCheck --> Degraded
+    ToolCheck --> Rejected
+    FormatCheck --> Supported
+    FormatCheck --> Rejected
+    ReasonCheck --> Supported
+
+    style Input fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Plan fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Output fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Params fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Tools fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Format fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Reasoning fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style ParamCheck fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style ToolCheck fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style FormatCheck fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style ReasonCheck fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Supported fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Degraded fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Ignored fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Rejected fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+```
+
+## Streaming Pipeline
+
+For streaming requests, the `StreamPipeline` wires together multiple `TransformStream` stages: raw SSE ingestion, event bridging, output contract validation, trace recording, logging, session persistence, and compatibility diagnostics ([src/responses/stream-pipeline.ts:37-85](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L37-L85)).
+
+```mermaid
+flowchart LR
+    SSE["Upstream SSE"] --> Trace1["Trace Raw"]
+    Trace1 --> Bridge["Stream Event Bridge"]
+    Bridge --> Error["Error Handler"]
+    Error --> Validate["Output Contract"]
+    Validate --> Trace2["Trace Transformed"]
+    Trace2 --> Log["Response Logger"]
+    Log --> Session["Session Persistence"]
+    Session --> CompatLog["Compat Diagnostics"]
+
+    style SSE fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Trace1 fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Bridge fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Error fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Validate fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Trace2 fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Log fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Session fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style CompatLog fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+```
+
+## Next Steps
+
+| Topic | Description |
+|---|---|
+| [Quick Start](./quick-start.md) | Install GodeX and make your first API call |
+| [Configuration](./configuration.md) | Full `godex.yaml` reference |
+| [Built-in Providers](./builtin-providers.md) | DeepSeek, Zhipu, and MiniMax comparison |
+
+## References
+
+- [src/index.ts:1-5](https://github.com/Ahoo-Wang/GodeX/blob/main/src/index.ts#L1-L5) - CLI entry point
+- [package.json:1-75](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L1-L75) - Project metadata and scripts
+- [src/bridge/provider-spec/contract.ts:54-74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L54-L74) - ProviderSpec interface
+- [src/server/server.ts:21-27](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/server.ts#L21-L27) - Built-in route map
+- [src/responses/runtime.ts:19-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/runtime.ts#L19-L41) - ResponsesBridgeRuntime
+- [src/bridge/compatibility/compatibility-plan.ts:38-50](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/compatibility-plan.ts#L38-L50) - CompatibilityPlan interface
+- [src/responses/sync-request-pipeline.ts:31-46](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L31-L46) - Sync request pipeline
+- [src/responses/stream-pipeline.ts:37-85](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L37-L85) - Stream pipeline
+- [src/context/application-context.ts:10-40](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts#L10-L40) - Application context

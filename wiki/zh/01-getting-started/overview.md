@@ -1,94 +1,274 @@
 ---
 title: "概述"
-description: "GodeX 简介 — 它是什么、为什么存在、以及如何快速开始。"
-keywords: "GodeX, 快速开始, 概述, OpenAI, Responses API, 网关"
+description: "GodeX 是一个兼容 OpenAI 的 Responses API 网关，通过 Chat Completions 接口桥接非 OpenAI 大语言模型提供商，使任何模型都能充当 Codex 引擎。"
 ---
 
 # 概述
 
-GodeX 是一个基于 [Bun](https://bun.sh) 和 **TypeScript** 构建的 **OpenAI Responses API 网关**。它将标准的 `/v1/responses` 请求翻译为上游 Chat Completions API 调用，使任何 LLM 提供商都可以作为使用 OpenAI 协议工具的后端 — 包括 Codex CLI。
+GodeX 在 OpenAI Responses API 与众多非 OpenAI 大语言模型提供商之间架起了桥梁。你无需重写每个客户端 SDK 来适配各提供商的专有协议，只需将 OpenAI 兼容的工具指向 GodeX，它会在后台透明地完成请求和响应的转换。这消除了供应商锁定问题，让团队能够通过一次配置变更即可切换或组合 LLM 提供商。
 
-## 为什么选择 GodeX？
+## 概览
 
-- **协议翻译**：Codex 等工具期望 OpenAI Responses API，但许多提供商仅提供 Chat Completions。GodeX 桥接了这个差距。
-- **与提供商无关**：基于 spec 的提供商系统意味着添加新提供商只需声明能力和编写小 hooks，无需重写服务器。
-- **流式优先**：整个管道基于 `ReadableStream` 和 `TransformStream` 构建，确保低延迟 SSE 交付。
-- **会话历史**：内置 `previous_response_id` 链式解析，支持 SQLite 或内存后端。
+| 方面 | 详情 |
+|---|---|
+| **定义** | 兼容 OpenAI 的 Responses API 网关 |
+| **协议** | 接收 OpenAI Responses API 请求；转换为 Chat Completions |
+| **运行时** | 基于 Bun 构建，提供高性能 HTTP 服务 |
+| **内置提供商** | DeepSeek、Zhipu、MiniMax |
+| **会话后端** | 内存、SQLite |
+| **配置** | YAML 文件，支持 `${VAR}` 环境变量插值 |
+| **CLI** | `godex init` 向导、`godex serve` 运行时 |
+| **可观测性** | 内置追踪记录器，支持载荷捕获 |
 
-## 内置提供商
+## 架构
 
-| 提供商 | 推理 | 工具选择 | 响应格式 | 缓存 Token | 默认模型 |
-|--------|------|----------|----------|------------|----------|
-| DeepSeek | 原生 | auto, none, required, function | text, json_object | ✅ | `deepseek-v4-pro` |
-| MiniMax  | 无 | auto, none, required, function | text, json_object | ✅ | `MiniMax-M2.7` |
-| 智谱     | 布尔 | auto, none | text, json_object | ✅ | `glm-5.1` |
-
-## 系统上下文
+GodeX 采用分层网关架构，每一层拥有单一职责：CLI 解析、配置构建、提供商注册、请求桥接和响应重建。
 
 ```mermaid
-C4Context
-  title GodeX — 系统上下文
+flowchart TB
+    subgraph Client["客户端层"]
+        CLI["CLI<br>(Commander)"]
+        HTTP["HTTP 客户端<br>(curl / SDK)"]
+    end
 
-  Person(user, "开发者 / Codex CLI", "通过 OpenAI 兼容端点发送 Responses API 请求")
-  System(godex_svr, "GodeX 服务器", "将 Responses API 翻译为 Chat Completions API。可配置端口的 Bun HTTP 服务器")
-  SystemDb(sessions, "会话存储", "为 previous_response_id 链式解析存储响应历史。SQLite 或内存")
-  SystemDb(trace, "追踪 DB", "在 SQLite 中记录请求、使用量、事件和错误行")
-  System_Ext(deepseek, "DeepSeek", "Chat Completions API 提供商")
-  System_Ext(minimax, "MiniMax", "Chat Completions API 提供商")
-  System_Ext(zhipu, "智谱", "Chat Completions API 提供商")
-  System_Ext(other, "自定义提供商", "任何兼容 Chat Completions 的后端")
+    subgraph Server["服务层"]
+        Router["Bun.serve<br>路由映射"]
+        Health["/health"]
+        Models["/v1/models"]
+        Responses["/v1/responses"]
+    end
 
-  Rel(user, godex_svr, "POST /v1/responses, GET /v1/models, GET /health", "HTTP/SSE")
-  Rel(godex_svr, sessions, "保存 / 解析链")
-  Rel(godex_svr, trace, "记录请求、使用量、事件、错误")
-  Rel(godex_svr, deepseek, "POST /chat/completions", "HTTPS")
-  Rel(godex_svr, minimax, "POST /chat/completions", "HTTPS")
-  Rel(godex_svr, zhipu, "POST /chat/completions", "HTTPS")
-  Rel(godex_svr, other, "POST /chat/completions", "HTTPS")
+    subgraph Bridge["桥接内核"]
+        ReqBuilder["请求构建器"]
+        Compat["兼容性计划"]
+        ToolPlan["工具规划"]
+        OutContract["输出契约"]
+    end
+
+    subgraph Providers["提供商层"]
+        DeepSeek["DeepSeek<br>Edge"]
+        Zhipu["Zhipu<br>Edge"]
+        MiniMax["MiniMax<br>Edge"]
+    end
+
+    HTTP --> Router
+    CLI --> Router
+    Router --> Health
+    Router --> Models
+    Router --> Responses
+    Responses --> ReqBuilder
+    ReqBuilder --> Compat
+    ReqBuilder --> ToolPlan
+    ToolPlan --> OutContract
+    OutContract --> DeepSeek
+    OutContract --> Zhipu
+    OutContract --> MiniMax
+
+    style Client fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Server fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Bridge fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Providers fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Router fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style ReqBuilder fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Compat fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style ToolPlan fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style OutContract fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style DeepSeek fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Zhipu fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style MiniMax fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style CLI fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style HTTP fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Health fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Models fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Responses fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
-## 关键设计决策
+## 请求生命周期
 
-| 决策 | 理由 |
-|------|------|
-| Bun 运行时 | 原生 `ReadableStream`、快速启动、内置 SQLite |
-| Bridge 内核 | 协议翻译与提供商逻辑清晰分离 |
-| 不可变能力集 | 防止运行时变异提供商特性标志 |
-| 会话存储抽象 | 在内存和 SQLite 之间切换无需修改业务逻辑 |
-| 可组合流转换器 | 每个关注点（追踪、日志、持久化、验证）是独立阶段 |
+每个传入请求都遵循一条确定性的系统路径。桥接内核验证兼容性、规划工具转换、将请求分发到正确的提供商边缘，然后将响应重建为 OpenAI Responses API 格式。
 
-## 项目结构
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Server as Bun.serve
+    participant Pipeline as SyncRequestPipeline
+    participant Exchange as ProviderExchange
+    participant Bridge as 请求构建器
+    participant Provider as 提供商 Edge
 
-```
-src/
-├── cli/              Commander CLI（serve、config、init）
-├── config/           godex.yaml 模式、环境变量插值、默认值
-├── context/          ApplicationContext（DI）、ResponsesContext（每请求）
-├── bridge/           与提供商无关的 Responses-to-Chat bridge 内核
-│   ├── compatibility/  参数和响应格式兼容性规划
-│   ├── request/        输入规范化和消息构建
-│   ├── tools/          工具声明、tool_choice、身份映射
-│   ├── output/         结构化输出合约规划和验证
-│   ├── response/       同步 ResponseObject 重建
-│   ├── stream/         流状态机和增量映射
-│   ├── provider-spec/  ProviderSpec、ProviderEdge、工厂辅助
-│   └── finish-reason/  提供商完成原因映射
-├── providers/        提供商注册表、spec、hooks、客户端
-│   ├── deepseek/      DeepSeek 提供商
-│   ├── minimax/       MiniMax 提供商
-│   ├── zhipu/         智谱提供商
-│   ├── example/       仅 spec 的示例提供商
-│   └── shared/        共享提供商工具（ChatProviderClient 等）
-├── responses/        同步和流式编排管道
-│   └── stream-transforms/  可组合 TransformStream 阶段
-├── server/           Bun 路由（/health、/v1/models、/v1/responses）
-├── resolver/         ModelResolver（模型选择器到 provider + model）
-├── session/          内存和 SQLite 响应会话存储
-├── trace/            SQLite 追踪记录器
-├── error/            GodeXError 层次与域代码
-├── protocol/         OpenAI 协议类型定义
-├── tools/            内置工具定义（shell、apply_patch 等）
-└── e2e/              使用模拟上游的端到端测试
+    Client->>Server: POST /v1/responses
+    Server->>Pipeline: request(ctx)
+    Pipeline->>Exchange: request(ctx)
+    Exchange->>Bridge: buildChatCompletionRequest()
+    Bridge-->>Exchange: BuildResult (compat + tools + output)
+    Exchange->>Provider: provider.request(body)
+    Provider-->>Exchange: ProviderResponse
+    Exchange-->>Pipeline: ExchangeResult
+    Pipeline->>Pipeline: reconstructResponseObject()
+    Pipeline->>Pipeline: validateOutputContract()
+    Pipeline->>Pipeline: saveSession()
+    Pipeline-->>Server: ResponseObject
+    Server-->>Client: JSON 200
 ```
 
-[安装与配置](/zh/01-getting-started/installation-setup)
+`SyncRequestPipeline` 负责编排整个流程：它将处理委托给 `ProviderExchange`，后者调用 `buildChatCompletionRequest` 将传入的 Responses API 载荷转换为针对目标提供商能力定制的 Chat Completions 请求 ([src/responses/sync-request-pipeline.ts:31-46](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L31-L46))。
+
+## 提供商规约契约
+
+每个提供商都实现了 `ProviderSpec` 接口，该接口定义了能力、端点配置、认证、工具名称转换以及响应/流访问器的统一契约 ([src/bridge/provider-spec/contract.ts:54-74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L54-L74))。
+
+| 契约字段 | 用途 |
+|---|---|
+| `name` | 唯一的提供商标识符（如 `deepseek`） |
+| `protocol` | 始终为 `chat_completions` |
+| `capabilities` | 声明支持的参数、工具、格式 |
+| `endpoint` | 默认基础 URL |
+| `auth` | 认证方案（始终为 Bearer） |
+| `toolName` | 在 API 和提供商之间转换工具名称的编解码器 |
+| `response` | 用于提取文本、用量、结束原因的访问器 |
+| `stream` | 用于从 SSE 数据块中提取增量的访问器 |
+| `hooks` | 可选的 `patchRequest`、`normalizeResponse`、`normalizeChunk` |
+
+```mermaid
+classDiagram
+    class ProviderSpec {
+        +name: string
+        +protocol: ProviderProtocol
+        +capabilities: ProviderCapabilities
+        +endpoint: ProviderEndpointSpec
+        +auth: ProviderAuthSpec
+        +toolName: ToolNameCodec
+        +response: ChatCompletionResponseAccessor
+        +stream: ChatCompletionStreamAccessor
+        +hooks?: ProviderHooks
+    }
+
+    class ProviderEdge {
+        +name: string
+        +spec: ProviderSpec
+        +request(body): Promise~Response~
+        +stream(body): Promise~ReadableStream~
+    }
+
+    class ProviderDefinition {
+        +name: string
+        +create(config): ProviderEdge
+    }
+
+    ProviderEdge --> ProviderSpec : uses
+    ProviderDefinition --> ProviderEdge : creates
+```
+
+## 会话管理
+
+GodeX 通过持久化响应并在客户端发送 `previous_response_id` 时回放历史消息来支持多轮对话。提供两种后端：
+
+| 后端 | 描述 | 默认 |
+|---|---|---|
+| `memory` | 进程内映射；重启后丢失 | 是 |
+| `sqlite` | 通过 SQLite 实现的文件持久化 | 按需启用 |
+
+会话配置在 [src/config/sections/session.ts:5-27](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/session.ts#L5-L27) 中解析，存储在 `ApplicationContext` 初始化期间创建 ([src/context/application-context.ts:20-30](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts#L20-L30))。
+
+## 兼容性规划
+
+在任何请求到达提供商之前，桥接内核会构建一份**兼容性计划**，将每个请求的参数、工具类型和响应格式与提供商声明的能力进行校验。不支持的功能要么降级为兼容的替代方案，要么以诊断信息拒绝 ([src/bridge/compatibility/compatibility-plan.ts:38-50](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/compatibility-plan.ts#L38-L50))。
+
+```mermaid
+flowchart LR
+    subgraph Input["传入请求"]
+        Params["参数"]
+        Tools["工具"]
+        Format["响应格式"]
+        Reasoning["推理"]
+    end
+
+    subgraph Plan["兼容性计划"]
+        ParamCheck["参数检查"]
+        ToolCheck["工具降级"]
+        FormatCheck["格式校验"]
+        ReasonCheck["推理映射"]
+    end
+
+    subgraph Output["决策"]
+        Supported["支持"]
+        Degraded["降级"]
+        Ignored["忽略"]
+        Rejected["拒绝"]
+    end
+
+    Params --> ParamCheck
+    Tools --> ToolCheck
+    Format --> FormatCheck
+    Reasoning --> ReasonCheck
+    ParamCheck --> Supported
+    ParamCheck --> Ignored
+    ToolCheck --> Degraded
+    ToolCheck --> Rejected
+    FormatCheck --> Supported
+    FormatCheck --> Rejected
+    ReasonCheck --> Supported
+
+    style Input fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Plan fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Output fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Params fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Tools fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Format fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Reasoning fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style ParamCheck fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style ToolCheck fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style FormatCheck fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style ReasonCheck fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Supported fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Degraded fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Ignored fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Rejected fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+```
+
+## 流式管道
+
+对于流式请求，`StreamPipeline` 将多个 `TransformStream` 阶段串联起来：原始 SSE 摄取、事件桥接、输出契约校验、追踪记录、日志记录、会话持久化和兼容性诊断 ([src/responses/stream-pipeline.ts:37-85](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L37-L85))。
+
+```mermaid
+flowchart LR
+    SSE["上游 SSE"] --> Trace1["追踪原始数据"]
+    Trace1 --> Bridge["流事件桥接"]
+    Bridge --> Error["错误处理"]
+    Error --> Validate["输出契约"]
+    Validate --> Trace2["追踪转换数据"]
+    Trace2 --> Log["响应日志"]
+    Log --> Session["会话持久化"]
+    Session --> CompatLog["兼容性诊断"]
+
+    style SSE fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Trace1 fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Bridge fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Error fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Validate fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Trace2 fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Log fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Session fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style CompatLog fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+```
+
+## 下一步
+
+| 主题 | 描述 |
+|---|---|
+| [快速开始](./quick-start.md) | 安装 GodeX 并发起你的第一个 API 调用 |
+| [配置](./configuration.md) | 完整的 `godex.yaml` 参考文档 |
+| [内置提供商](./builtin-providers.md) | DeepSeek、Zhipu 和 MiniMax 对比 |
+
+## 参考
+
+- [src/index.ts:1-5](https://github.com/Ahoo-Wang/GodeX/blob/main/src/index.ts#L1-L5) - CLI 入口点
+- [package.json:1-75](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L1-L75) - 项目元数据和脚本
+- [src/bridge/provider-spec/contract.ts:54-74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L54-L74) - ProviderSpec 接口
+- [src/server/server.ts:21-27](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/server.ts#L21-L27) - 内置路由映射
+- [src/responses/runtime.ts:19-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/runtime.ts#L19-L41) - ResponsesBridgeRuntime
+- [src/bridge/compatibility/compatibility-plan.ts:38-50](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/compatibility-plan.ts#L38-L50) - CompatibilityPlan 接口
+- [src/responses/sync-request-pipeline.ts:31-46](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L31-L46) - 同步请求管道
+- [src/responses/stream-pipeline.ts:37-85](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L37-L85) - 流式管道
+- [src/context/application-context.ts:10-40](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/application-context.ts#L10-L40) - 应用上下文

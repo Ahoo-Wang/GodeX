@@ -3,21 +3,21 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const enNav = [
   { text: 'Guide', link: '/01-getting-started/overview' },
-  { text: 'Architecture', link: '/02-architecture/overview' },
-  { text: 'Providers', link: '/03-provider-development/provider-interface' },
-  { text: 'Configuration', link: '/07-configuration/config-schema' },
-  { text: 'Diagnostics', link: '/06-error-handling/error-codes' },
-  { text: 'Deployment', link: '/09-deployment/ci-cd' },
+  { text: 'Architecture', link: '/02-architecture/architecture-overview' },
+  { text: 'Providers', link: '/03-provider-development/provider-spec' },
+  { text: 'Configuration', link: '/01-getting-started/configuration' },
+  { text: 'Diagnostics', link: '/06-error-handling/error-handling' },
+  { text: 'Deployment', link: '/09-deployment/deployment' },
   { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/GodeX' },
 ]
 
 const zhNav = [
   { text: '指南', link: '/zh/01-getting-started/overview' },
-  { text: '架构', link: '/zh/02-architecture/overview' },
-  { text: '提供商', link: '/zh/03-provider-development/provider-interface' },
-  { text: '配置', link: '/zh/07-configuration/config-schema' },
-  { text: '诊断', link: '/zh/06-error-handling/error-codes' },
-  { text: '部署', link: '/zh/09-deployment/ci-cd' },
+  { text: '架构', link: '/zh/02-architecture/architecture-overview' },
+  { text: '提供商', link: '/zh/03-provider-development/provider-spec' },
+  { text: '配置', link: '/zh/01-getting-started/configuration' },
+  { text: '诊断', link: '/zh/06-error-handling/error-handling' },
+  { text: '部署', link: '/zh/09-deployment/deployment' },
   { text: 'GitHub', link: 'https://github.com/Ahoo-Wang/GodeX' },
 ]
 
@@ -37,6 +37,10 @@ const enSidebar = [
     collapsed: false,
     items: [
       { text: 'Overview', link: '/01-getting-started/overview' },
+      { text: 'Quick Start', link: '/01-getting-started/quick-start' },
+      { text: 'Configuration', link: '/01-getting-started/configuration' },
+      { text: 'Built-in Providers', link: '/01-getting-started/builtin-providers' },
+      { text: 'CLI', link: '/01-getting-started/cli' },
       { text: 'Installation & Setup', link: '/01-getting-started/installation-setup' },
       { text: 'Quick Reference', link: '/01-getting-started/quick-reference' },
     ],
@@ -45,17 +49,42 @@ const enSidebar = [
     text: 'Architecture',
     collapsed: false,
     items: [
+      { text: 'Architecture Overview', link: '/02-architecture/architecture-overview' },
       { text: 'System Overview', link: '/02-architecture/overview' },
       { text: 'Request Flow', link: '/02-architecture/request-flow' },
-      { text: 'Model Resolver', link: '/02-architecture/model-resolver' },
+      { text: 'Model Resolution', link: '/02-architecture/model-resolution' },
       { text: 'Bridge Kernel', link: '/02-architecture/bridge-kernel' },
-      { text: 'Stream Pipeline', link: '/02-architecture/stream-pipeline' },
+      { text: 'Server Routes', link: '/02-architecture/server-routes' },
+    ],
+  },
+  {
+    text: 'Bridge Kernel',
+    collapsed: true,
+    items: [
+      { text: 'Compatibility Planning', link: '/02-architecture/compatibility' },
+      { text: 'Request Building', link: '/02-architecture/request-building' },
+      { text: 'Response Reconstruction', link: '/02-architecture/response-reconstruction' },
+      { text: 'Stream Reconstruction', link: '/02-architecture/stream-reconstruction' },
+      { text: 'Tool Planning', link: '/02-architecture/tool-planning' },
+      { text: 'Output Contracts', link: '/02-architecture/output-contracts' },
+    ],
+  },
+  {
+    text: 'Responses Pipeline',
+    collapsed: true,
+    items: [
+      { text: 'Sync Pipeline', link: '/02-architecture/sync-pipeline' },
+      { text: 'Streaming Pipeline', link: '/02-architecture/streaming-pipeline' },
+      { text: 'Stream Transforms', link: '/02-architecture/stream-transforms' },
     ],
   },
   {
     text: 'Provider Development',
-    collapsed: false,
+    collapsed: true,
     items: [
+      { text: 'Provider Spec', link: '/03-provider-development/provider-spec' },
+      { text: 'Provider Hooks', link: '/03-provider-development/provider-hooks' },
+      { text: 'Chat Provider Client', link: '/03-provider-development/chat-provider-client' },
       { text: 'Provider Interface', link: '/03-provider-development/provider-interface' },
       { text: 'DeepSeek Reference', link: '/03-provider-development/deepseek-reference' },
       { text: 'MiniMax Reference', link: '/03-provider-development/minimax-reference' },
@@ -67,7 +96,7 @@ const enSidebar = [
     text: 'Session Management',
     collapsed: true,
     items: [
-      { text: 'Session Store', link: '/04-session-management/session-store' },
+      { text: 'Session Stores', link: '/04-session-management/session-stores' },
       { text: 'Chain Resolution', link: '/04-session-management/chain-resolution' },
     ],
   },
@@ -83,14 +112,14 @@ const enSidebar = [
     text: 'Error Handling',
     collapsed: true,
     items: [
-      { text: 'Error Hierarchy', link: '/06-error-handling/error-hierarchy' },
-      { text: 'Error Codes', link: '/06-error-handling/error-codes' },
+      { text: 'Error Handling', link: '/06-error-handling/error-handling' },
     ],
   },
   {
     text: 'Configuration',
     collapsed: true,
     items: [
+      { text: 'Logging', link: '/07-configuration/logging' },
       { text: 'Config Schema', link: '/07-configuration/config-schema' },
       { text: 'CLI Commands', link: '/07-configuration/cli-commands' },
     ],
@@ -99,20 +128,21 @@ const enSidebar = [
    text: 'Testing',
    collapsed: true,
    items: [
-     { text: 'Testing Guide', link: '/08-testing/testing-guide' },
+     { text: 'Testing', link: '/08-testing/testing' },
    ],
  },
  {
    text: 'Trace',
    collapsed: true,
    items: [
-     { text: 'Trace Recording', link: '/10-trace/trace-recording' },
+     { text: 'Trace System', link: '/10-trace/trace-system' },
    ],
  },
  {
    text: 'Deployment',
     collapsed: true,
     items: [
+      { text: 'Deployment', link: '/09-deployment/deployment' },
       { text: 'CI/CD & Publishing', link: '/09-deployment/ci-cd' },
     ],
   },
@@ -120,7 +150,7 @@ const enSidebar = [
 
 const zhSidebar = [
   {
-    text: '入门指南',
+    text: '入职指南',
     collapsed: true,
     items: [
       { text: '贡献者指南', link: '/zh/onboarding/contributor-guide' },
@@ -134,6 +164,10 @@ const zhSidebar = [
     collapsed: false,
     items: [
       { text: '概述', link: '/zh/01-getting-started/overview' },
+      { text: '快速开始', link: '/zh/01-getting-started/quick-start' },
+      { text: '配置', link: '/zh/01-getting-started/configuration' },
+      { text: '内置提供商', link: '/zh/01-getting-started/builtin-providers' },
+      { text: 'CLI', link: '/zh/01-getting-started/cli' },
       { text: '安装与配置', link: '/zh/01-getting-started/installation-setup' },
       { text: '快速参考', link: '/zh/01-getting-started/quick-reference' },
     ],
@@ -142,17 +176,42 @@ const zhSidebar = [
     text: '架构',
     collapsed: false,
     items: [
+      { text: '架构概览', link: '/zh/02-architecture/architecture-overview' },
       { text: '系统总览', link: '/zh/02-architecture/overview' },
       { text: '请求流程', link: '/zh/02-architecture/request-flow' },
-      { text: '模型解析', link: '/zh/02-architecture/model-resolver' },
+      { text: '模型解析', link: '/zh/02-architecture/model-resolution' },
       { text: 'Bridge 内核', link: '/zh/02-architecture/bridge-kernel' },
-      { text: '流式管道', link: '/zh/02-architecture/stream-pipeline' },
+      { text: '服务端路由', link: '/zh/02-architecture/server-routes' },
+    ],
+  },
+  {
+    text: 'Bridge 内核',
+    collapsed: true,
+    items: [
+      { text: '兼容性规划', link: '/zh/02-architecture/compatibility' },
+      { text: '请求构建', link: '/zh/02-architecture/request-building' },
+      { text: '响应重建', link: '/zh/02-architecture/response-reconstruction' },
+      { text: '流重建', link: '/zh/02-architecture/stream-reconstruction' },
+      { text: '工具规划', link: '/zh/02-architecture/tool-planning' },
+      { text: '输出契约', link: '/zh/02-architecture/output-contracts' },
+    ],
+  },
+  {
+    text: '响应管道',
+    collapsed: true,
+    items: [
+      { text: '同步管道', link: '/zh/02-architecture/sync-pipeline' },
+      { text: '流式管道（详细）', link: '/zh/02-architecture/streaming-pipeline' },
+      { text: '流转换', link: '/zh/02-architecture/stream-transforms' },
     ],
   },
   {
     text: '提供商开发',
-    collapsed: false,
+    collapsed: true,
     items: [
+      { text: 'Provider 规范', link: '/zh/03-provider-development/provider-spec' },
+      { text: 'Provider 钩子', link: '/zh/03-provider-development/provider-hooks' },
+      { text: 'Chat Provider 客户端', link: '/zh/03-provider-development/chat-provider-client' },
       { text: 'Provider 接口', link: '/zh/03-provider-development/provider-interface' },
       { text: 'DeepSeek 参考', link: '/zh/03-provider-development/deepseek-reference' },
       { text: 'MiniMax 参考', link: '/zh/03-provider-development/minimax-reference' },
@@ -164,7 +223,7 @@ const zhSidebar = [
     text: '会话管理',
     collapsed: true,
     items: [
-      { text: '会话存储', link: '/zh/04-session-management/session-store' },
+      { text: '会话存储（多后端）', link: '/zh/04-session-management/session-stores' },
       { text: '链式解析', link: '/zh/04-session-management/chain-resolution' },
     ],
   },
@@ -180,14 +239,14 @@ const zhSidebar = [
     text: '错误处理',
     collapsed: true,
     items: [
-      { text: '错误层次', link: '/zh/06-error-handling/error-hierarchy' },
-      { text: '错误码', link: '/zh/06-error-handling/error-codes' },
+      { text: '错误处理', link: '/zh/06-error-handling/error-handling' },
     ],
   },
   {
     text: '配置',
     collapsed: true,
     items: [
+      { text: '日志', link: '/zh/07-configuration/logging' },
       { text: '配置 Schema', link: '/zh/07-configuration/config-schema' },
       { text: 'CLI 命令', link: '/zh/07-configuration/cli-commands' },
     ],
@@ -196,20 +255,21 @@ const zhSidebar = [
     text: '测试',
     collapsed: true,
     items: [
-     { text: '测试指南', link: '/zh/08-testing/testing-guide' },
-   ],
- },
- {
-   text: '追踪',
-   collapsed: true,
-   items: [
-     { text: '追踪记录', link: '/zh/10-trace/trace-recording' },
-   ],
- },
- {
-   text: '部署',
+      { text: '测试', link: '/zh/08-testing/testing' },
+    ],
+  },
+  {
+    text: '追踪',
     collapsed: true,
     items: [
+      { text: '追踪系统', link: '/zh/10-trace/trace-system' },
+    ],
+  },
+  {
+    text: '部署',
+    collapsed: true,
+    items: [
+      { text: '部署', link: '/zh/09-deployment/deployment' },
       { text: 'CI/CD 与发布', link: '/zh/09-deployment/ci-cd' },
     ],
   },
@@ -273,7 +333,13 @@ export default withMermaid(
       ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
       ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap' }],
     ],
-    markdown: { lineNumbers: true },
+    markdown: {
+      lineNumbers: true,
+      theme: {
+        dark: 'one-dark-pro',
+        light: 'github-light',
+      },
+    },
     outline: { level: [2, 3] },
     vite: {
       optimizeDeps: { include: ['mermaid'] },
@@ -285,6 +351,10 @@ export default withMermaid(
         themeConfig: {
           nav: enNav,
           sidebar: enSidebar,
+          footer: {
+            message: 'Released under the <a href="https://opensource.org/licenses/Apache-2.0">Apache-2.0</a> License.',
+            copyright: 'Copyright © 2025-present <a href="https://github.com/Ahoo-Wang">Ahoo Wang</a>',
+          },
         },
       },
       zh: {
@@ -294,6 +364,10 @@ export default withMermaid(
         themeConfig: {
           nav: zhNav,
           sidebar: zhSidebar,
+          footer: {
+            message: '基于 <a href="https://opensource.org/licenses/Apache-2.0">Apache-2.0</a> 许可证发布。',
+            copyright: 'Copyright © 2025-present <a href="https://github.com/Ahoo-Wang">Ahoo Wang</a>',
+          },
         },
       },
     },
