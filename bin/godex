@@ -22,7 +22,8 @@ function detectPlatform() {
 
 function findBinary() {
   // Binary is copied here by postinstall
-  const nextToWrapper = join(__dirname, "godex-binary");
+  const binaryExt = process.platform === "win32" ? ".exe" : "";
+  const nextToWrapper = join(__dirname, "godex-binary" + binaryExt);
   try {
     accessSync(nextToWrapper, constants.X_OK);
     return nextToWrapper;

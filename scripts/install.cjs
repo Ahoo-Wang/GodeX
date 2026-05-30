@@ -77,7 +77,8 @@ if (!binary) {
 
 const destDir = path.join(__dirname, "..", "bin");
 if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-const dest = path.join(destDir, "godex-binary");
+const binaryExt = process.platform === "win32" ? ".exe" : "";
+const dest = path.join(destDir, "godex-binary" + binaryExt);
 
 link(binary, dest);
 console.log("GodeX: installed native binary for", platform);
