@@ -337,15 +337,13 @@ describe("ProviderSpec runtime conformance", () => {
 		});
 	});
 
-	test("Xiaomi provider patch disables thinking without historical reasoning content", () => {
+	test("Xiaomi provider patch does not set thinking without historical reasoning content", () => {
 		const patched = XIAOMI_PROVIDER_SPEC.hooks?.patchRequest?.({
 			model: "mimo-v2.5-pro",
 			messages: [{ role: "user", content: "hello" }],
 		} as never) as Record<string, unknown> | undefined;
 
-		expect(patched).toMatchObject({
-			thinking: { type: "disabled" },
-		});
+		expect(patched).not.toHaveProperty("thinking");
 	});
 
 	test("provider patch hooks reject malformed chat completion requests", () => {

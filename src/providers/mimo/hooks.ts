@@ -50,7 +50,7 @@ export const XIAOMI_SPEC_CAPABILITIES: ProviderCapabilities = {
 	responseFormats: {
 		supported: new Set(["text", "json_object"]),
 	},
-	reasoning: { effort: "boolean" },
+	reasoning: { effort: "native" },
 	streaming: { usage: true },
 };
 
@@ -119,10 +119,7 @@ export function xiaomiPatchRequest(
 			thinking: { type: "enabled" },
 		};
 	}
-	return {
-		...providerRequest,
-		thinking: { type: "disabled" },
-	};
+	return providerRequest;
 }
 
 function hasHistoricalReasoningContent(

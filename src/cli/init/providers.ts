@@ -4,6 +4,11 @@ import {
 	DEFAULT_DEEPSEEK_BASE_URL,
 } from "../../providers/deepseek";
 import {
+	DEFAULT_XIAOMI_BASE_URL,
+	XIAOMI_DEFAULT_MODEL,
+	XIAOMI_PROVIDER_NAME,
+} from "../../providers/mimo";
+import {
 	DEFAULT_MINIMAX_BASE_URL,
 	MINIMAX_DEFAULT_MODEL,
 	MINIMAX_PROVIDER_NAME,
@@ -18,6 +23,7 @@ import {
 export type InitProviderId =
 	| typeof DEEPSEEK_PROVIDER_NAME
 	| typeof MINIMAX_PROVIDER_NAME
+	| typeof XIAOMI_PROVIDER_NAME
 	| typeof ZHIPU_PROVIDER_NAME;
 
 export interface InitProviderBaseUrlChoice {
@@ -82,6 +88,20 @@ export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
 		],
 		defaultBaseUrl: DEFAULT_MINIMAX_BASE_URL,
 		defaultModel: MINIMAX_DEFAULT_MODEL,
+	},
+	{
+		id: XIAOMI_PROVIDER_NAME,
+		label: "Xiaomi (小米)",
+		apiKeyPlaceholder: "${MIMO_API_KEY}",
+		baseUrlChoices: [
+			{
+				value: DEFAULT_XIAOMI_BASE_URL,
+				label: "Standard",
+				hint: DEFAULT_XIAOMI_BASE_URL,
+			},
+		],
+		defaultBaseUrl: DEFAULT_XIAOMI_BASE_URL,
+		defaultModel: XIAOMI_DEFAULT_MODEL,
 	},
 ];
 
