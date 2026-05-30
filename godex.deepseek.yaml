@@ -1,0 +1,30 @@
+# =============================================================================
+# GodeX Configuration — DeepSeek Provider
+# =============================================================================
+# 快速启动: godex serve --config ./godex.deepseek.yaml
+# 环境变量: export DEEPSEEK_API_KEY=<your-key>
+
+default_provider: deepseek
+
+models:
+  aliases:
+    "*": deepseek/deepseek-v4-pro
+
+providers:
+  deepseek:
+    spec: deepseek
+    credentials:
+      api_key: ${DEEPSEEK_API_KEY}
+    endpoint:
+      base_url: https://api.deepseek.com
+
+session:
+  backend: sqlite
+  sqlite:
+    path: ./data/sessions.deepseek.db
+
+trace:
+  enabled: true
+  path: ./data/trace.deepseek.db
+  capture_payload: true
+  payload_max_bytes: 1048576
