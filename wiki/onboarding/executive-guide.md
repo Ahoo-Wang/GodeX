@@ -80,7 +80,7 @@ GodeX eliminates that trade-off. One gateway, one configuration file, any suppor
 
 ```mermaid
 graph LR
-  subgraph Agent Layer
+  subgraph agents["Agent Layer"]
     CODEX["Codex CLI"]
     CLAUDE["Claude Code"]
     CURSOR["Cursor"]
@@ -90,14 +90,16 @@ graph LR
     GODEX["GodeX<br>Protocol Translation<br>Session Management<br>Request Tracing"]
   end
 
-  subgraph Provider Layer
+  subgraph providers["Provider Layer"]
     DEEPSEEK["DeepSeek<br>Cost-Effective Coding"]
     ZHIPU["Zhipu / ChatGLM<br>China Market"]
     MINIMAX["MiniMax<br>Fast Responses"]
     FUTURE["Future Providers<br>Extensible Spec Pattern"]
   end
 
-  Agent Layer -->|"Responses API"| GODEX
+  CODEX -->|"Responses API"| GODEX
+  CLAUDE -->|"Responses API"| GODEX
+  CURSOR -->|"Responses API"| GODEX
   GODEX -->|"Chat Completions API"| DEEPSEEK
   GODEX -->|"Chat Completions API"| ZHIPU
   GODEX -->|"Chat Completions API"| MINIMAX
