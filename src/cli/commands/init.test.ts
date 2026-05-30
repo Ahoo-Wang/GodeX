@@ -22,10 +22,11 @@ describe("registerInitCommand", () => {
 		tempDirs.push(tempDir);
 		const configPath = join(tempDir, "custom-godex.yaml");
 
-		const textAnswers = ["deepseek-key", "5678"];
-		const selectAnswers = [DEFAULT_DEEPSEEK_BASE_URL, "memory", "info"];
+		const textAnswers = [DEFAULT_DEEPSEEK_BASE_URL, "deepseek-key", "5678"];
+		const selectAnswers = ["memory", "info"];
 		spyOn(clack, "intro").mockImplementation(() => {});
 		spyOn(clack, "outro").mockImplementation(() => {});
+		spyOn(clack, "note").mockImplementation(() => {});
 		spyOn(clack, "cancel").mockImplementation(() => {});
 		spyOn(clack, "isCancel").mockImplementation(
 			(_value): _value is symbol => false,
@@ -37,6 +38,7 @@ describe("registerInitCommand", () => {
 		spyOn(clack, "select").mockImplementation(
 			async () => (selectAnswers.shift() ?? "") as never,
 		);
+		spyOn(clack, "confirm").mockResolvedValue(true as never);
 
 		const program = new Command();
 		program.exitOverride();

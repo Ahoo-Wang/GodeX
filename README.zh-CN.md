@@ -170,11 +170,14 @@ docker run -d \
 
 ## 快速开始
 
-交互式创建配置：
+交互式创建配置并启动服务：
 
 ```bash
 godex init
+godex serve --config ./godex.yaml
 ```
+
+向导会引导你选择 Provider、填写 Base URL 和 API Key，自动生成配置文件。
 
 也可以手写 `godex.yaml`：
 
@@ -219,8 +222,6 @@ providers:
 
 session:
   backend: sqlite
-  sqlite:
-    path: ./data/sessions.db
 
 logging:
   level: info

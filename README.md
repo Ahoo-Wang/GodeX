@@ -170,13 +170,16 @@ The image supports `linux/amd64` and `linux/arm64`.
 
 ## Quick Start
 
-Create a config interactively:
+Create a config and start the server:
 
 ```bash
 godex init
+godex serve --config ./godex.yaml
 ```
 
-Or create `godex.yaml` manually:
+The interactive wizard walks you through selecting providers, entering base URLs and API keys, and writes the config file automatically.
+
+Alternatively, create `godex.yaml` manually:
 
 ```yaml
 server:
@@ -219,8 +222,6 @@ providers:
 
 session:
   backend: sqlite
-  sqlite:
-    path: ./data/sessions.db
 
 logging:
   level: info
@@ -235,12 +236,6 @@ Start the server:
 
 ```bash
 godex serve --config ./godex.yaml
-```
-
-During development you can run from source:
-
-```bash
-bun run dev
 ```
 
 The dev command starts GodeX on port `13145`; the default runtime config port is `5678`.

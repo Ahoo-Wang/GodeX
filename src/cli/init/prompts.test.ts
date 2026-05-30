@@ -9,7 +9,12 @@ import {
 	ZHIPU_CODING_PLAN_BASE_URL,
 	ZHIPU_PROVIDER_NAME,
 } from "../../providers/zhipu";
-import { promptConfigPath, promptInitConfig } from "./prompts";
+import {
+	promptConfigPath,
+	promptInitConfig,
+	validateApiKey,
+	validateBaseUrl,
+} from "./prompts";
 
 afterEach(() => {
 	mock.restore();
@@ -47,8 +52,8 @@ describe("promptInitConfig", () => {
 	test("returns config for one provider without prompting for default provider", async () => {
 		const { select } = stubPromptFlow({
 			selectedProviders: [DEEPSEEK_PROVIDER_NAME],
-			textAnswers: ["deepseek-key", "5678"],
-			selectAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "memory", "info"],
+			textAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "deepseek-key", "5678"],
+			selectAnswers: ["memory", "info"],
 		});
 
 		const config = await promptInitConfig();
@@ -75,14 +80,14 @@ describe("promptInitConfig", () => {
 	test("returns config for multiple providers with the selected default provider", async () => {
 		stubPromptFlow({
 			selectedProviders: [DEEPSEEK_PROVIDER_NAME, ZHIPU_PROVIDER_NAME],
-			textAnswers: ["deepseek-key", "zhipu-key", "6789"],
-			selectAnswers: [
+			textAnswers: [
 				DEFAULT_DEEPSEEK_BASE_URL,
+				"deepseek-key",
 				ZHIPU_CODING_PLAN_BASE_URL,
-				ZHIPU_PROVIDER_NAME,
-				"memory",
-				"debug",
+				"zhipu-key",
+				"6789",
 			],
+			selectAnswers: [ZHIPU_PROVIDER_NAME, "memory", "debug"],
 		});
 
 		const config = await promptInitConfig();
@@ -134,7 +139,7 @@ describe("promptInitConfig", () => {
 		expect(cancel).toHaveBeenCalledWith("Operation cancelled");
 	});
 
-	test("returns null when API key input is cancelled", async () => {
+	test("returns null when base URL input is cancelled", async () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
@@ -147,12 +152,11 @@ describe("promptInitConfig", () => {
 		expect(cancel).toHaveBeenCalledWith("Operation cancelled");
 	});
 
-	test("returns null when base URL selection is cancelled", async () => {
+	test("returns null when API key input is cancelled", async () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			textAnswers: ["deepseek-key"],
-			selectAnswers: [cancelToken],
+			textAnswers: [DEFAULT_DEEPSEEK_BASE_URL, cancelToken],
 		});
 
 		const config = await promptInitConfig();
@@ -166,12 +170,13 @@ describe("promptInitConfig", () => {
 		const { cancel } = stubPromptFlow({
 			cancelToken,
 			selectedProviders: [DEEPSEEK_PROVIDER_NAME, ZHIPU_PROVIDER_NAME],
-			textAnswers: ["deepseek-key", "zhipu-key"],
-			selectAnswers: [
+			textAnswers: [
 				DEFAULT_DEEPSEEK_BASE_URL,
+				"deepseek-key",
 				ZHIPU_CODING_PLAN_BASE_URL,
-				cancelToken,
+				"zhipu-key",
 			],
+			selectAnswers: [cancelToken],
 		});
 
 		const config = await promptInitConfig();
@@ -184,8 +189,7 @@ describe("promptInitConfig", () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			textAnswers: ["deepseek-key", cancelToken],
-			selectAnswers: [DEFAULT_DEEPSEEK_BASE_URL],
+			textAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "deepseek-key", cancelToken],
 		});
 
 		const config = await promptInitConfig();
@@ -198,8 +202,8 @@ describe("promptInitConfig", () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			textAnswers: ["deepseek-key", "5678"],
-			selectAnswers: [DEFAULT_DEEPSEEK_BASE_URL, cancelToken],
+			textAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "deepseek-key", "5678"],
+			selectAnswers: [cancelToken],
 		});
 
 		const config = await promptInitConfig();
@@ -212,8 +216,8 @@ describe("promptInitConfig", () => {
 		const cancelToken = Symbol("cancel");
 		const { cancel } = stubPromptFlow({
 			cancelToken,
-			textAnswers: ["deepseek-key", "5678"],
-			selectAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "memory", cancelToken],
+			textAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "deepseek-key", "5678"],
+			selectAnswers: ["memory", cancelToken],
 		});
 
 		const config = await promptInitConfig();
@@ -223,8 +227,12 @@ describe("promptInitConfig", () => {
 	});
 
 	test("rejects invalid port input before returning config", async () => {
-		const textAnswers = ["deepseek-key", "not-a-port"];
-		const selectAnswers = [DEFAULT_DEEPSEEK_BASE_URL, "memory", "info"];
+		const textAnswers = [
+			DEFAULT_DEEPSEEK_BASE_URL,
+			"deepseek-key",
+			"not-a-port",
+		];
+		const selectAnswers = ["memory", "info"];
 		const cancel = spyOn(clack, "cancel").mockImplementation(() => {});
 
 		spyOn(clack, "intro").mockImplementation(() => {});
@@ -243,6 +251,69 @@ describe("promptInitConfig", () => {
 
 		expect(config).toBeNull();
 		expect(cancel).toHaveBeenCalledWith("Invalid port: not-a-port");
+	});
+
+	test("uses custom base URL for provider", async () => {
+		const customUrl = "https://custom.api.example.com/v1";
+		stubPromptFlow({
+			selectedProviders: [ZHIPU_PROVIDER_NAME],
+			textAnswers: [customUrl, "zhipu-key", "5678"],
+			selectAnswers: ["memory", "info"],
+		});
+
+		const config = await promptInitConfig();
+
+		expect(config).toEqual({
+			defaultProvider: ZHIPU_PROVIDER_NAME,
+			providers: [
+				{
+					id: ZHIPU_PROVIDER_NAME,
+					apiKey: "zhipu-key",
+					baseUrl: customUrl,
+				},
+			],
+			port: 5678,
+			sessionBackend: "memory",
+			logLevel: "info",
+		});
+	});
+
+	test("trims API key before saving", async () => {
+		stubPromptFlow({
+			textAnswers: [DEFAULT_DEEPSEEK_BASE_URL, "  deepseek-key  ", "5678"],
+			selectAnswers: ["memory", "info"],
+		});
+
+		const config = await promptInitConfig();
+
+		expect(config?.providers[0]?.apiKey).toBe("deepseek-key");
+	});
+});
+
+describe("validateBaseUrl", () => {
+	test("returns undefined for empty input", () => {
+		expect(validateBaseUrl("")).toBeUndefined();
+		expect(validateBaseUrl(undefined)).toBeUndefined();
+		expect(validateBaseUrl("   ")).toBeUndefined();
+	});
+
+	test("returns undefined for valid URL", () => {
+		expect(validateBaseUrl("https://api.example.com")).toBeUndefined();
+	});
+
+	test("returns error for invalid URL", () => {
+		expect(validateBaseUrl("not-a-url")).toBe("Base URL must be a valid URL");
+	});
+});
+
+describe("validateApiKey", () => {
+	test("returns undefined for empty input", () => {
+		expect(validateApiKey("")).toBeUndefined();
+		expect(validateApiKey(undefined)).toBeUndefined();
+	});
+
+	test("returns undefined for non-empty input", () => {
+		expect(validateApiKey("sk-1234")).toBeUndefined();
 	});
 });
 

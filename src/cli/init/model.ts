@@ -13,7 +13,7 @@ export interface InitProviderConfig {
 export interface InitConfigYamlOptions {
 	defaultProvider: string;
 	providers: InitProviderConfig[];
-	port: number | string;
+	port: number;
 	sessionBackend: string;
 	logLevel: string;
 }
