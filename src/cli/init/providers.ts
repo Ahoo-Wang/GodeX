@@ -51,20 +51,6 @@ export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
 		defaultModel: DEEPSEEK_DEFAULT_MODEL,
 	},
 	{
-		id: MINIMAX_PROVIDER_NAME,
-		label: "MiniMax",
-		apiKeyPlaceholder: "${MINIMAX_API_KEY}",
-		baseUrlChoices: [
-			{
-				value: DEFAULT_MINIMAX_BASE_URL,
-				label: "Standard",
-				hint: DEFAULT_MINIMAX_BASE_URL,
-			},
-		],
-		defaultBaseUrl: DEFAULT_MINIMAX_BASE_URL,
-		defaultModel: MINIMAX_DEFAULT_MODEL,
-	},
-	{
 		id: ZHIPU_PROVIDER_NAME,
 		label: "Zhipu (智谱)",
 		apiKeyPlaceholder: "${ZHIPU_API_KEY}",
@@ -82,6 +68,20 @@ export const INIT_PROVIDER_DEFINITIONS: InitProviderDefinition[] = [
 		],
 		defaultBaseUrl: ZHIPU_CODING_PLAN_BASE_URL,
 		defaultModel: ZHIPU_DEFAULT_MODEL,
+	},
+	{
+		id: MINIMAX_PROVIDER_NAME,
+		label: "MiniMax",
+		apiKeyPlaceholder: "${MINIMAX_API_KEY}",
+		baseUrlChoices: [
+			{
+				value: DEFAULT_MINIMAX_BASE_URL,
+				label: "Standard",
+				hint: DEFAULT_MINIMAX_BASE_URL,
+			},
+		],
+		defaultBaseUrl: DEFAULT_MINIMAX_BASE_URL,
+		defaultModel: MINIMAX_DEFAULT_MODEL,
 	},
 ];
 
