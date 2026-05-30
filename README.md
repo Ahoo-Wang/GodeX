@@ -25,6 +25,14 @@ GodeX lets clients that speak the OpenAI Responses API use providers such as Dee
 - Trace recording for provider requests, provider responses, stream events, usage, and errors.
 - Native Bun runtime, TypeScript source, and compiled platform binaries for releases.
 
+## Built-in Providers
+
+| Provider | Reasoning | Tool Choice | Response Format | Cached Tokens | Default Model |
+|----------|-----------|-------------|-----------------|---------------|---------------|
+| DeepSeek | native | auto, none, required, function | text, json_object | ✅ | `deepseek-v4-pro` |
+| MiniMax  | none  | auto, none, required, function | text, json_object | ✅ | `MiniMax-M2.7` |
+| Zhipu    | boolean | auto, none | text, json_object | ✅ | `glm-5.1` |
+
 ## Architecture
 
 ```mermaid
