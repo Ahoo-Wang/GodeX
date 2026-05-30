@@ -7,8 +7,9 @@ import {
 	BridgeError,
 } from "../../error";
 import type { ResponseCreateRequest } from "../../protocol/openai/responses";
+import { DEEPSEEK_SPEC_CAPABILITIES } from "../../providers/deepseek";
 import type { ProviderCapabilities } from "../compatibility";
-import type { ToolPlanningProfile } from "../tools";
+import { createToolPlanningProfile, type ToolPlanningProfile } from "../tools";
 import {
 	buildChatCompletionRequest,
 	buildChatMessages,
@@ -113,6 +114,62 @@ describe("buildChatCompletionRequest", () => {
 		expect(result.request.tool_choice).toEqual({
 			type: "function",
 			function: { name: "raw_tool" },
+		});
+	});
+
+	test("drops non-native tool_search while keeping eager function declarations for DeepSeek", () => {
+		const result = buildChatCompletionRequest({
+			provider: "deepseek",
+			model: "deepseek-v4-pro",
+			capabilities: DEEPSEEK_SPEC_CAPABILITIES,
+			profile: createToolPlanningProfile({
+				provider: "deepseek",
+				capabilities: DEEPSEEK_SPEC_CAPABILITIES,
+			}),
+			request: request({
+				tools: [
+					{
+						type: "function",
+						name: "lookup",
+						description: "Look up local context.",
+						parameters: {
+							type: "object",
+							properties: {
+								query: { type: "string" },
+							},
+							required: ["query"],
+							additionalProperties: false,
+						},
+						strict: true,
+					},
+					{ type: "tool_search" },
+				],
+			}),
+		});
+
+		expect(result.request.tools).toEqual([
+			{
+				type: "function",
+				function: {
+					name: "lookup",
+					description: "Look up local context.",
+					parameters: {
+						type: "object",
+						properties: {
+							query: { type: "string" },
+						},
+						required: ["query"],
+						additionalProperties: false,
+					},
+					strict: true,
+				},
+			},
+		]);
+		expect(result.tools.decisions).toContainEqual({
+			path: "tools[type=tool_search]",
+			action: "ignored",
+			reason:
+				"deepseek does not support Responses tool 'tool_search'; skipping declaration.",
 		});
 	});
 

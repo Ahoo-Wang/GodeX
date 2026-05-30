@@ -65,6 +65,13 @@ describe("ProviderSpec runtime conformance", () => {
 		});
 	}
 
+	test("chat-completions provider specs do not expose OpenAI-native tool_search as a callable function", () => {
+		for (const spec of BUILTIN_PROVIDER_SPECS) {
+			expect(spec.capabilities.tools.supported.has("tool_search")).toBe(false);
+			expect(spec.capabilities.tools.degraded?.has("tool_search")).toBe(false);
+		}
+	});
+
 	test("Zhipu and DeepSeek share the same chat-completions function name codec constraints", () => {
 		expect(ZHIPU_PROVIDER_SPEC.toolName).toBe(DEFAULT_TOOL_NAME_CODEC);
 		expect(ZHIPU_PROVIDER_SPEC.toolName).toBe(DEEPSEEK_PROVIDER_SPEC.toolName);

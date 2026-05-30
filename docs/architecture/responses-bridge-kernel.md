@@ -66,7 +66,8 @@ Rules:
 
 - `tool_choice: "none"` disables declarations.
 - Explicit `tool_choice` for a tool that cannot be declared is rejected.
-- Built-in Codex tools, custom tools, `tool_search`, and namespace tools may downgrade to function tools when the provider supports that loss.
+- Built-in Codex tools, custom tools, and namespace tools may downgrade to function tools when the provider supports that loss.
+- OpenAI-native discovery controls such as `tool_search` are not executable functions; providers without native support ignore them and keep any eagerly declared tools.
 - Provider hooks expose protocol differences; shared support/degrade/reject policy stays in `bridge/tools`.
 
 ## Output Format Contract
