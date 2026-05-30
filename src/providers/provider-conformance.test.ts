@@ -362,6 +362,66 @@ describe("ProviderSpec runtime conformance", () => {
 		).toThrow(ProviderError);
 	});
 
+	test("MiniMax provider spec rejects malformed cached_tokens in usage", () => {
+		expect(() =>
+			MINIMAX_PROVIDER_SPEC.response.usage({
+				id: "minimax-bad-cached",
+				created: 1,
+				model: "MiniMax-M2.7",
+				choices: [],
+				usage: {
+					prompt_tokens: 1,
+					completion_tokens: 2,
+					total_tokens: 3,
+					prompt_tokens_details: { cached_tokens: "bad" },
+				},
+			} as never),
+		).toThrow(ProviderError);
+	});
+
+	test("MiniMax provider spec rejects malformed total_tokens in usage", () => {
+		expect(() =>
+			MINIMAX_PROVIDER_SPEC.response.usage({
+				id: "minimax-bad-total",
+				created: 1,
+				model: "MiniMax-M2.7",
+				choices: [],
+				usage: {
+					prompt_tokens: 1,
+					completion_tokens: 2,
+					total_tokens: NaN,
+				},
+			} as never),
+		).toThrow(ProviderError);
+	});
+
+	test("MiniMax provider spec returns null for null usage", () => {
+		expect(
+			MINIMAX_PROVIDER_SPEC.response.usage({
+				id: "minimax-null-usage",
+				created: 1,
+				model: "MiniMax-M2.7",
+				choices: [],
+				usage: null,
+			}),
+		).toBeNull();
+	});
+
+	test("MiniMax provider spec returns null for partial usage without completion_tokens", () => {
+		expect(
+			MINIMAX_PROVIDER_SPEC.response.usage({
+				id: "minimax-partial-usage",
+				created: 1,
+				model: "MiniMax-M2.7",
+				choices: [],
+				usage: {
+					prompt_tokens: 1,
+					total_tokens: 1,
+				} as never,
+			}),
+		).toBeNull();
+	});
+
 	test("deepseek provider spec extracts text from defensive array content", () => {
 		expect(
 			DEEPSEEK_PROVIDER_SPEC.response.outputText({

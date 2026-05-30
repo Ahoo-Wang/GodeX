@@ -8,7 +8,7 @@ default_provider: minimax
 
 models:
   aliases:
-    "*": minimax/MiniMax-M2.7
+    "*": minimax/MiniMax-M2.7-highspeed
 
 providers:
   minimax:
