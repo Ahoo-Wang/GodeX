@@ -65,7 +65,7 @@ sequenceDiagram
 ```mermaid
 flowchart TD
     req["Incoming Bridge Request"] --> effort{"Has reasoning_effort?"}
-    effort -->|"high" / "xhigh"| native["Add thinking.enabled<br>Map effort to native value"]
+    effort -->|high / xhigh| native["Add thinking.enabled<br>Map effort to native value"]
     effort -->|No| history{"Messages have<br>reasoning_content?"}
     history -->|Yes| think_on["Add thinking.enabled"]
     history -->|No| think_off["Add thinking.disabled"]

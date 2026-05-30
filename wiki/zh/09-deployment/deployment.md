@@ -22,16 +22,16 @@ GodeX 设计为零依赖部署：一个暴露 OpenAI 兼容 Responses API 网关
 
 ```mermaid
 graph TB
-    subgraph "Build Stage (oven/bun:1.3.14)"
-        style "Build Stage (oven/bun:1.3.14)" fill:#161b22,stroke:#30363d,color:#e6edf3
+    subgraph build["Build Stage (oven/bun:1.3.14)"]
+        style build fill:#161b22,stroke:#30363d,color:#e6edf3
         B1["bun install --frozen-lockfile"]
         B2["Inject VERSION into package.json"]
         B3["bun build --compile<br>--define GODEX_BUILD_ENV=prod"]
         B4["Output: /app/godex binary"]
         B1 --> B2 --> B3 --> B4
     end
-    subgraph "Runtime Stage (debian:bookworm-slim)"
-        style "Runtime Stage (debian:bookworm-slim)" fill:#161b22,stroke:#30363d,color:#e6edf3
+    subgraph runtime["Runtime Stage (debian:bookworm-slim)"]
+        style runtime fill:#161b22,stroke:#30363d,color:#e6edf3
         R1["COPY /app/godex -> /usr/local/bin/godex"]
         R2["mkdir /data (VOLUME)"]
         R3["mkdir /etc/godex (VOLUME)"]
@@ -89,14 +89,14 @@ docker run -d \
 
 ```mermaid
 flowchart LR
-    subgraph "scripts/compile.ts"
-        style "scripts/compile.ts" fill:#161b22,stroke:#30363d,color:#e6edf3
+    subgraph compile["scripts/compile.ts"]
+        style compile fill:#161b22,stroke:#30363d,color:#e6edf3
         A["bun run compile<br>(current platform)"]
         B["bun run compile --all<br>(all 6 platforms)"]
         C["bun run compile<br>--target=darwin-arm64"]
     end
-    subgraph "Output"
-        style "Output" fill:#161b22,stroke:#30363d,color:#e6edf3
+    subgraph output["Output"]
+        style output fill:#161b22,stroke:#30363d,color:#e6edf3
         D["platforms/darwin-arm64/bin/godex"]
         E["platforms/linux-x64/bin/godex"]
         F["platforms/win32-x64/bin/godex.exe"]
