@@ -4977,6 +4977,9 @@ sequenceDiagram
     S->>E: request(ctx)
     E->>E: buildProviderRequest(ctx, stream=false)
     E->>P: provider.request(built.request)
+    P->>P: patchRequest(...)
+    P-->>E: onPatchedRequest(patched)
+    E->>E: trace_requests + provider.request.prepared
     P-->>E: providerResponse
     E-->>S: {providerResponse, built}
     S->>S: reconstructResponseObject(...)
@@ -4993,9 +4996,9 @@ sequenceDiagram
 `ProviderExchange` ([provider-exchange.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L25)) encapsulates the interaction with the upstream provider. For sync requests:
 
 1. **Build request**: `buildProviderRequest(ctx, false)` constructs the provider-specific chat completion request, including tool planning and output contract setup ([provider-exchange.ts:73](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L73))
-2. **Trace request**: Records the raw provider request for observability
-3. **Call upstream**: Awaits `ctx.provider.request(providerRequest)` -- the actual HTTP call
-4. **Trace response**: Records the raw provider response
+2. **Patch and trace request**: The provider edge applies `patchRequest`, then `onPatchedRequest` records the final patched provider request into `trace_requests` plus a body-less `provider.request.prepared` lifecycle event
+3. **Call upstream**: Awaits `ctx.provider.request(providerRequest)` -- the actual HTTP call after patching
+4. **Trace response**: Records the sync provider response body
 5. **Return**: Provides both the raw response and the built request metadata
 
 The exchange also records tool decision diagnostics ([provider-exchange.ts:102](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L102)) and sets the output contract slot on the context ([provider-exchange.ts:98](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L98)).
@@ -5080,7 +5083,7 @@ The sync pipeline emits structured log events at key points:
 | `responses.request.completed` | info | status, model, outputCount, durationMillis, usage, cacheHitRatio |
 | `session.save.error` | warn | request_id, response_id, error |
 
-Trace events are recorded for the raw request body, raw response body, and usage metrics via `recordTraceRequest`, `recordTraceEvent`, and `recordTraceUsage`.
+Trace records capture the final patched request body in `trace_requests`, the body-less `provider.request.prepared` lifecycle event in `trace_events`, the sync response body via `provider.response.body`, and usage metrics via `recordTraceUsage`.
 
 ## Cross-References
 
@@ -8209,10 +8212,12 @@ The `TraceEventRecordEvent` restricts `event_name` ([types.ts:50-54](https://git
 
 | Event Name | When Recorded |
 |---|---|
-| `provider.request.body` | Raw request body sent to upstream |
-| `provider.response.body` | Raw response body received from upstream |
+| `provider.request.prepared` | Final provider request has been patched and is about to enter the provider client; no request body is stored on this event |
+| `provider.response.body` | Sync response body received from upstream |
 | `upstream.stream.event.raw` | Raw SSE chunk from upstream |
 | `upstream.stream.event.transformed` | After bridge transforms are applied |
+
+Provider request payloads are stored on `trace_requests`, not duplicated in `trace_events`. Join the request row with `provider.request.prepared` to see both the final patched request summary and the lifecycle point that preceded the provider client call. The `prepared` event is recorded after provider `patchRequest` hooks run and before `request()` or `stream()` invokes the provider client's HTTP operation; it does not prove that the network send succeeded.
 
 ## Payload Capture
 
@@ -8245,7 +8250,7 @@ Four helper functions attach to the `TraceRecordingContext` and provide ergonomi
 
 ### recordTraceRequest
 
-[request-recorder.ts:4-22](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/request-recorder.ts#L4) records the start of a provider request, including whether it is streaming, the optional `prompt_cache_key`, and optionally the full provider request body.
+[request-recorder.ts:4-22](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/request-recorder.ts#L4) records the final patched provider request after provider hooks have run, including whether it is streaming, the optional `prompt_cache_key`, and an optional captured payload summary for the provider request body. The paired `provider.request.prepared` trace event marks the lifecycle point without carrying the request body again.
 
 ### recordTraceUsage
 

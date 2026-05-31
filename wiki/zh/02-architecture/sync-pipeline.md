@@ -43,6 +43,9 @@ sequenceDiagram
     S->>E: request(ctx)
     E->>E: buildProviderRequest(ctx, stream=false)
     E->>P: provider.request(built.request)
+    P->>P: patchRequest(...)
+    P-->>E: onPatchedRequest(patched)
+    E->>E: trace_requests + provider.request.prepared
     P-->>E: providerResponse
     E-->>S: {providerResponse, built}
     S->>S: reconstructResponseObject(...)
@@ -59,9 +62,9 @@ sequenceDiagram
 `ProviderExchange` ([provider-exchange.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L25)) 封装了与上游提供者的交互。对于同步请求：
 
 1. **构建请求**：`buildProviderRequest(ctx, false)` 构建提供者特定的聊天补全请求，包括工具规划和输出契约设置 ([provider-exchange.ts:73](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L73))
-2. **追踪请求**：记录原始提供者请求以用于可观测性
-3. **调用上游**：等待 `ctx.provider.request(providerRequest)` -- 实际的 HTTP 调用
-4. **追踪响应**：记录原始提供者响应
+2. **Patch 并追踪请求**：provider edge 应用 `patchRequest`，随后 `onPatchedRequest` 将最终 patched provider 请求写入 `trace_requests`，并记录一个不携带 body 的 `provider.request.prepared` 生命周期事件
+3. **调用上游**：等待 `ctx.provider.request(providerRequest)` -- patch 之后的实际 HTTP 调用
+4. **追踪响应**：记录同步 provider 响应体
 5. **返回**：同时提供原始响应和构建的请求元数据
 
 交换还记录工具决策诊断 ([provider-exchange.ts:102](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L102)) 并在上下文中设置输出契约槽 ([provider-exchange.ts:98](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L98))。
@@ -146,7 +149,7 @@ classDiagram
 | `responses.request.completed` | info | status, model, outputCount, durationMillis, usage, cacheHitRatio |
 | `session.save.error` | warn | request_id, response_id, error |
 
-追踪事件通过 `recordTraceRequest`、`recordTraceEvent` 和 `recordTraceUsage` 记录原始请求体、原始响应体和使用量指标。
+追踪记录会把最终 patched 请求体写入 `trace_requests`，把不携带 body 的 `provider.request.prepared` 生命周期事件写入 `trace_events`，通过 `provider.response.body` 记录同步响应体，并通过 `recordTraceUsage` 记录使用量指标。
 
 ## 交叉引用
 

@@ -14,7 +14,7 @@ describe("recordTraceEvent", () => {
 			},
 		};
 
-		recordTraceEvent(ctx, "provider.request.body", { model: "glm-test" });
+		recordTraceEvent(ctx, "provider.response.body", { model: "glm-test" });
 
 		expect(events).toEqual([]);
 	});

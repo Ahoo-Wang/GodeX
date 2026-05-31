@@ -48,7 +48,7 @@ export interface TraceUsageRecordEvent extends TraceRecordBase {
 export interface TraceEventRecordEvent extends TraceRecordBase {
 	kind: "event";
 	event_name:
-		| "provider.request.body"
+		| "provider.request.prepared"
 		| "provider.response.body"
 		| "upstream.stream.event.raw"
 		| "upstream.stream.event.transformed";
