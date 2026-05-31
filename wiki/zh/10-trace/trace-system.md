@@ -233,10 +233,12 @@ erDiagram
 
 | 事件名称 | 记录时机 |
 |---|---|
-| `provider.request.body` | 发送到上游的原始请求体 |
-| `provider.response.body` | 从上游接收的原始响应体 |
+| `provider.request.prepared` | 最终 provider 请求已经完成 patch，即将进入 provider client；该事件不存储请求体 |
+| `provider.response.body` | 从上游接收的同步响应体 |
 | `upstream.stream.event.raw` | 来自上游的原始 SSE 数据块 |
 | `upstream.stream.event.transformed` | 桥接层转换后的事件 |
+
+Provider 请求 payload 存储在 `trace_requests`，不会在 `trace_events` 中重复保存。把 request 行和 `provider.request.prepared` 事件关联起来，就能同时看到最终 patched 请求摘要以及进入 provider client 前的生命周期点。`prepared` 事件在 provider `patchRequest` hook 执行之后、`request()` 或 `stream()` 调用 provider client 的 HTTP 操作之前记录；它不表示网络发送一定已经成功。
 
 ## 负载捕获
 
@@ -269,7 +271,7 @@ erDiagram
 
 ### recordTraceRequest
 
-[request-recorder.ts:4-22](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/request-recorder.ts#L4) 记录提供商请求的开始，包括是否为流式请求、可选的 `prompt_cache_key`，以及可选的完整提供商请求体。
+[request-recorder.ts:4-22](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/request-recorder.ts#L4) 在 provider hooks 执行之后记录最终 patched provider 请求，包括是否为流式请求、可选的 `prompt_cache_key`，以及 provider 请求体的可选 payload 摘要。配套的 `provider.request.prepared` trace event 只标记生命周期点，不再次携带请求体。
 
 ### recordTraceUsage
 
@@ -325,4 +327,3 @@ flowchart TD
 - [src/trace/usage.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/usage.ts) -- `traceUsageFromResponseUsage`
 - [src/trace/time.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/time.ts) -- `nowTraceMillis`
 - [src/context/trace-services.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/trace-services.ts) -- `createTraceServices`
-

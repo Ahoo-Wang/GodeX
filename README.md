@@ -375,13 +375,14 @@ Tracing is enabled by default and writes SQLite rows to `./data/trace.db` unless
 
 Trace records include:
 
-- Provider request metadata
-- Provider request and response bodies as summarized payloads
+- Provider request metadata and final patched request payload summaries
+- Provider request lifecycle events without duplicating full request bodies
+- Sync provider response bodies as summarized payloads
 - Raw and transformed stream events
 - Usage details, including cached tokens when provided by the upstream
 - Route and provider errors
 
-Set `trace.capture_payload: true` to persist payload JSON up to `trace.payload_max_bytes`. Keep it disabled for sensitive environments.
+Set `trace.capture_payload: true` to persist payload JSON up to `trace.payload_max_bytes` for trace rows that carry payloads. Keep it disabled for sensitive environments.
 
 ## Development
 

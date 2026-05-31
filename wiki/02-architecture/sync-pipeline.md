@@ -43,6 +43,9 @@ sequenceDiagram
     S->>E: request(ctx)
     E->>E: buildProviderRequest(ctx, stream=false)
     E->>P: provider.request(built.request)
+    P->>P: patchRequest(...)
+    P-->>E: onPatchedRequest(patched)
+    E->>E: trace_requests + provider.request.prepared
     P-->>E: providerResponse
     E-->>S: {providerResponse, built}
     S->>S: reconstructResponseObject(...)
@@ -59,9 +62,9 @@ sequenceDiagram
 `ProviderExchange` ([provider-exchange.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L25)) encapsulates the interaction with the upstream provider. For sync requests:
 
 1. **Build request**: `buildProviderRequest(ctx, false)` constructs the provider-specific chat completion request, including tool planning and output contract setup ([provider-exchange.ts:73](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L73))
-2. **Trace request**: Records the raw provider request for observability
-3. **Call upstream**: Awaits `ctx.provider.request(providerRequest)` -- the actual HTTP call
-4. **Trace response**: Records the raw provider response
+2. **Patch and trace request**: The provider edge applies `patchRequest`, then `onPatchedRequest` records the final patched provider request into `trace_requests` plus a body-less `provider.request.prepared` lifecycle event
+3. **Call upstream**: Awaits `ctx.provider.request(providerRequest)` -- the actual HTTP call after patching
+4. **Trace response**: Records the sync provider response body
 5. **Return**: Provides both the raw response and the built request metadata
 
 The exchange also records tool decision diagnostics ([provider-exchange.ts:102](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L102)) and sets the output contract slot on the context ([provider-exchange.ts:98](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L98)).
@@ -146,7 +149,7 @@ The sync pipeline emits structured log events at key points:
 | `responses.request.completed` | info | status, model, outputCount, durationMillis, usage, cacheHitRatio |
 | `session.save.error` | warn | request_id, response_id, error |
 
-Trace events are recorded for the raw request body, raw response body, and usage metrics via `recordTraceRequest`, `recordTraceEvent`, and `recordTraceUsage`.
+Trace records capture the final patched request body in `trace_requests`, the body-less `provider.request.prepared` lifecycle event in `trace_events`, the sync response body via `provider.response.body`, and usage metrics via `recordTraceUsage`.
 
 ## Cross-References
 
