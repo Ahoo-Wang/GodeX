@@ -3,7 +3,11 @@ import type { ProviderStreamDelta } from "../../bridge/stream/stream-delta";
 import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
 import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
 import type { ResponseUsage } from "../../protocol/openai/responses";
-import { assertProviderChatRequest, mapCommonChatStreamDelta } from "../shared";
+import {
+	assertProviderChatRequest,
+	extractChoiceReasoningContent,
+	mapCommonChatStreamDelta,
+} from "../shared";
 import type {
 	ChatCompletion,
 	ChatCompletionChunk,
@@ -68,6 +72,12 @@ export function deepSeekFinishReason(
 
 export function deepSeekOutputText(response: ChatCompletion): string {
 	return extractDeepSeekText(deepSeekFirstChoice(response)?.message.content);
+}
+
+export function deepSeekReasoningText(
+	response: ChatCompletion,
+): string | undefined {
+	return extractChoiceReasoningContent(deepSeekFirstChoice(response));
 }
 
 export function mapDeepSeekSpecUsage(

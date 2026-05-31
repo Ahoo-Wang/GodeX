@@ -3,7 +3,11 @@ import type { ProviderStreamDelta } from "../../bridge/stream/stream-delta";
 import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
 import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
 import type { ResponseUsage } from "../../protocol/openai/responses";
-import { assertProviderChatRequest, mapCommonChatStreamDelta } from "../shared";
+import {
+	assertProviderChatRequest,
+	extractChoiceReasoningContent,
+	mapCommonChatStreamDelta,
+} from "../shared";
 import type {
 	ChatCompletion,
 	ChatCompletionChunk,
@@ -66,6 +70,12 @@ export function xiaomiFinishReason(
 
 export function xiaomiOutputText(response: ChatCompletion): string {
 	return extractXiaomiText(xiaomiFirstChoice(response)?.message.content);
+}
+
+export function xiaomiReasoningText(
+	response: ChatCompletion,
+): string | undefined {
+	return extractChoiceReasoningContent(xiaomiFirstChoice(response));
 }
 
 export function mapXiaomiUsage(

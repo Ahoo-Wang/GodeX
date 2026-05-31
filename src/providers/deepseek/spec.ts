@@ -11,6 +11,7 @@ import {
 	deepSeekFirstChoice,
 	deepSeekOutputText,
 	deepSeekPatchRequest,
+	deepSeekReasoningText,
 	deepSeekResponseUsage,
 	deepSeekStreamDeltas,
 	mapDeepSeekSpecUsage,
@@ -43,6 +44,7 @@ export const DEEPSEEK_PROVIDER_SPEC: ProviderSpec<
 		firstChoice: deepSeekFirstChoice,
 		finishReason: deepSeekFinishReason,
 		outputText: deepSeekOutputText,
+		reasoningText: deepSeekReasoningText,
 		usage: deepSeekResponseUsage,
 	},
 	stream: {

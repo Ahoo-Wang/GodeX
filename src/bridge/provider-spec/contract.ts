@@ -33,6 +33,7 @@ export interface ChatCompletionResponseAccessor<TResponse> {
 	firstChoice(response: TResponse): unknown | undefined;
 	finishReason(response: TResponse): string | undefined;
 	outputText(response: TResponse): string;
+	reasoningText?(response: TResponse): string | undefined;
 	usage(response: TResponse): ResponseUsage | null;
 }
 

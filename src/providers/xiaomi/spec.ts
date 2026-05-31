@@ -12,6 +12,7 @@ import {
 	xiaomiFirstChoice,
 	xiaomiOutputText,
 	xiaomiPatchRequest,
+	xiaomiReasoningText,
 	xiaomiResponseUsage,
 	xiaomiStreamDeltas,
 } from "./hooks";
@@ -43,6 +44,7 @@ export const XIAOMI_PROVIDER_SPEC: ProviderSpec<
 		firstChoice: xiaomiFirstChoice,
 		finishReason: xiaomiFinishReason,
 		outputText: xiaomiOutputText,
+		reasoningText: xiaomiReasoningText,
 		usage: xiaomiResponseUsage,
 	},
 	stream: {

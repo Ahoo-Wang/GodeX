@@ -12,6 +12,7 @@ import {
 	minimaxFirstChoice,
 	minimaxOutputText,
 	minimaxPatchRequest,
+	minimaxReasoningText,
 	minimaxResponseUsage,
 	minimaxStreamDeltas,
 } from "./hooks";
@@ -43,6 +44,7 @@ export const MINIMAX_PROVIDER_SPEC: ProviderSpec<
 		firstChoice: minimaxFirstChoice,
 		finishReason: minimaxFinishReason,
 		outputText: minimaxOutputText,
+		reasoningText: minimaxReasoningText,
 		usage: minimaxResponseUsage,
 	},
 	stream: {
