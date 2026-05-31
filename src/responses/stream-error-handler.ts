@@ -127,7 +127,8 @@ function recordMissingTerminalOnCancel(
 				provider: ctx.resolved.provider,
 				model: ctx.resolved.model,
 				phase: machine.phase,
-				cancel_reason: String(reason),
+				cancel_reason:
+					reason === undefined ? "client_disconnect" : String(reason),
 			},
 		),
 	);

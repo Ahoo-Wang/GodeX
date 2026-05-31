@@ -115,9 +115,73 @@ describe("wrapWithErrorHandler", () => {
 				message: expect.stringContaining(
 					"Response stream ended before a terminal event was emitted.",
 				),
+				payload: expect.objectContaining({
+					payload: expect.objectContaining({
+						cancel_reason: "downstream cancelled",
+					}),
+				}),
 			}),
 		);
 	});
+});
+
+test("maps undefined cancel reason to client_disconnect", async () => {
+	const pendingRead = deferred<StreamReadResult<ResponseStreamEvent>>();
+	const fakeReader = {
+		read: (() => {
+			let reads = 0;
+			return () => {
+				reads += 1;
+				if (reads === 1) {
+					return Promise.resolve({
+						done: false as const,
+						value: responseCreatedEvent(),
+					});
+				}
+				return pendingRead.promise;
+			};
+		})(),
+		cancel: async () => {
+			pendingRead.resolve({ done: true, value: undefined });
+		},
+		releaseLock: () => {},
+	};
+	const source = {
+		getReader: () => fakeReader,
+	} as unknown as ReadableStream<ResponseStreamEvent>;
+	const machine = new ResponseStreamStateMachine({
+		responseId: "resp_test",
+		createdAt: 1,
+		model: "test",
+		provider: "mock",
+	});
+	machine.start();
+	const traceRecords: unknown[] = [];
+	const wrapped = wrapWithErrorHandler(
+		source,
+		machine,
+		testContext({ traceEnabled: true, traceRecords }),
+	);
+
+	const reader = wrapped.getReader();
+	await reader.read();
+	await Promise.race([
+		reader.cancel(),
+		new Promise((resolve) => setTimeout(resolve, 20)),
+	]);
+
+	expect(traceRecords).toContainEqual(
+		expect.objectContaining({
+			kind: "error",
+			event_name: "responses.stream.missing_terminal",
+			code: "bridge.stream.missing_terminal",
+			payload: expect.objectContaining({
+				payload: expect.objectContaining({
+					cancel_reason: "client_disconnect",
+				}),
+			}),
+		}),
+	);
 });
 
 function responseCreatedEvent(): ResponseStreamEvent {
