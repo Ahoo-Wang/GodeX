@@ -233,10 +233,12 @@ The `TraceEventRecordEvent` restricts `event_name` ([types.ts:50-54](https://git
 
 | Event Name | When Recorded |
 |---|---|
-| `provider.request.body` | Raw request body sent to upstream |
-| `provider.response.body` | Raw response body received from upstream |
+| `provider.request.prepared` | Final provider request has been patched and is about to enter the provider client; no request body is stored on this event |
+| `provider.response.body` | Sync response body received from upstream |
 | `upstream.stream.event.raw` | Raw SSE chunk from upstream |
 | `upstream.stream.event.transformed` | After bridge transforms are applied |
+
+Provider request payloads are stored on `trace_requests`, not duplicated in `trace_events`. Join the request row with `provider.request.prepared` to see both the final patched request summary and the lifecycle point that preceded the provider client call. The `prepared` event is recorded after provider `patchRequest` hooks run and before `request()` or `stream()` invokes the provider client's HTTP operation; it does not prove that the network send succeeded.
 
 ## Payload Capture
 
@@ -269,7 +271,7 @@ Four helper functions attach to the `TraceRecordingContext` and provide ergonomi
 
 ### recordTraceRequest
 
-[request-recorder.ts:4-22](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/request-recorder.ts#L4) records the start of a provider request, including whether it is streaming, the optional `prompt_cache_key`, and optionally the full provider request body.
+[request-recorder.ts:4-22](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/request-recorder.ts#L4) records the final patched provider request after provider hooks have run, including whether it is streaming, the optional `prompt_cache_key`, and an optional captured payload summary for the provider request body. The paired `provider.request.prepared` trace event marks the lifecycle point without carrying the request body again.
 
 ### recordTraceUsage
 
@@ -325,4 +327,3 @@ flowchart TD
 - [src/trace/usage.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/usage.ts) -- `traceUsageFromResponseUsage`
 - [src/trace/time.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/time.ts) -- `nowTraceMillis`
 - [src/context/trace-services.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/trace-services.ts) -- `createTraceServices`
-

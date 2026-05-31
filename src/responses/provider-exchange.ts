@@ -26,8 +26,6 @@ export class ProviderExchange {
 	async request(ctx: ResponsesContext): Promise<ProviderRequestExchangeResult> {
 		const built = buildProviderRequest(ctx, false);
 		const providerRequest = built.request;
-		recordTraceRequest(ctx, false, providerRequest);
-		recordTraceEvent(ctx, "provider.request.body", providerRequest);
 		ctx.logger.debug("provider.request.sending", () => ({
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
@@ -35,7 +33,14 @@ export class ProviderExchange {
 		}));
 
 		const upstreamStart = Date.now();
-		const providerResponse = await ctx.provider.request(providerRequest);
+		const providerResponse = await ctx.provider.request(providerRequest, {
+			onPatchedRequest: (patchedRequest) => {
+				recordTraceRequest(ctx, false, patchedRequest);
+			},
+			onRequestPrepared: () => {
+				recordTraceEvent(ctx, "provider.request.prepared", undefined);
+			},
+		});
 		recordTraceEvent(ctx, "provider.response.body", providerResponse);
 		ctx.logger.debug("provider.response.received", () => ({
 			provider: ctx.resolved.provider,
@@ -49,8 +54,6 @@ export class ProviderExchange {
 	async stream(ctx: ResponsesContext): Promise<ProviderStreamExchangeResult> {
 		const built = buildProviderRequest(ctx, true);
 		const providerRequest = built.request;
-		recordTraceRequest(ctx, true, providerRequest);
-		recordTraceEvent(ctx, "provider.request.body", providerRequest);
 		ctx.logger.debug("provider.request.sending", () => ({
 			provider: ctx.resolved.provider,
 			model: ctx.resolved.model,
@@ -58,7 +61,14 @@ export class ProviderExchange {
 		}));
 
 		const upstreamStart = Date.now();
-		const providerStream = await ctx.provider.stream(providerRequest);
+		const providerStream = await ctx.provider.stream(providerRequest, {
+			onPatchedRequest: (patchedRequest) => {
+				recordTraceRequest(ctx, true, patchedRequest);
+			},
+			onRequestPrepared: () => {
+				recordTraceEvent(ctx, "provider.request.prepared", undefined);
+			},
+		});
 		const upstreamLatencyMillis = Date.now() - upstreamStart;
 		ctx.logger.debug("provider.stream.connected", () => ({
 			provider: ctx.resolved.provider,

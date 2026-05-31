@@ -1,9 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
 import type { CompatibilityDiagnostic } from "../bridge/compatibility";
-import type { ProviderEdge } from "../bridge/provider-spec";
+import { createProviderEdge, type ProviderEdge } from "../bridge/provider-spec";
 import { OutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
+import { ProviderError } from "../error";
+import {
+	EXAMPLE_PROVIDER_SPEC,
+	type ExampleChatRequest,
+} from "../providers/example";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import { createTestProviderEdge } from "../testing/provider-edge";
 import { ProviderExchange } from "./provider-exchange";
@@ -93,6 +98,12 @@ function traceEventNames(ctx: { traceEvents: unknown[] }): string[] {
 		.map((event) => (event as { event_name: string }).event_name);
 }
 
+function tracePayloads(ctx: { traceEvents: unknown[] }): unknown[] {
+	return ctx.traceEvents.map(
+		(event) => (event as { payload?: { payload?: unknown } }).payload?.payload,
+	);
+}
+
 describe("ProviderExchange", () => {
 	test("builds the provider request before calling the sync edge", async () => {
 		const providerResponse = { choices: [{ finish_reason: "stop" }] };
@@ -113,7 +124,7 @@ describe("ProviderExchange", () => {
 		expect(result.providerResponse).toBe(providerResponse);
 	});
 
-	test("records provider request and response payload events", async () => {
+	test("records provider request row and response payload event", async () => {
 		const providerResponse = { choices: [{ finish_reason: "stop" }] };
 		const provider = createMockProvider(providerResponse);
 		const debugLogs: Array<{ event: string; attr: Record<string, unknown> }> =
@@ -133,7 +144,7 @@ describe("ProviderExchange", () => {
 			ctx.traceEvents.map((event) => (event as { kind: string }).kind),
 		).toEqual(["request", "event", "event"]);
 		expect(traceEventNames(ctx)).toEqual([
-			"provider.request.body",
+			"provider.request.prepared",
 			"provider.response.body",
 		]);
 		expect(debugLogs).toEqual([
@@ -149,6 +160,32 @@ describe("ProviderExchange", () => {
 					upstreamDurationMillis: expect.any(Number),
 				}) as Record<string, unknown>,
 			},
+		]);
+	});
+
+	test("records patched sync provider request payload", async () => {
+		const providerResponse = { choices: [{ finish_reason: "stop" }] };
+		const provider: ProviderEdge<unknown, unknown, unknown> = {
+			...createMockProvider(providerResponse),
+			async request(body, options) {
+				const patched = { ...(body as object), patched: true };
+				options?.onPatchedRequest?.(patched);
+				options?.onRequestPrepared?.(patched);
+				return providerResponse;
+			},
+		};
+		const ctx = createMockCtx(provider);
+
+		await new ProviderExchange().request(ctx);
+
+		expect(tracePayloads(ctx)).toEqual([
+			{
+				model: "test",
+				messages: [{ role: "user", content: "hello" }],
+				patched: true,
+			},
+			undefined,
+			providerResponse,
 		]);
 	});
 
@@ -220,7 +257,7 @@ describe("ProviderExchange", () => {
 		]);
 		expect(providerStream).toBe(result.providerStream);
 		expect(result.upstreamLatencyMillis).toEqual(expect.any(Number));
-		expect(traceEventNames(ctx)).toEqual(["provider.request.body"]);
+		expect(traceEventNames(ctx)).toEqual(["provider.request.prepared"]);
 		expect(debugLogs).toEqual([
 			{
 				event: "provider.request.sending",
@@ -236,4 +273,102 @@ describe("ProviderExchange", () => {
 			},
 		]);
 	});
+
+	test("records patched stream provider request payload", async () => {
+		let providerStream:
+			| ReadableStream<JsonServerSentEvent<unknown>>
+			| undefined;
+		const provider: ProviderEdge<unknown, unknown, unknown> = {
+			...createMockProvider({ choices: [{ finish_reason: "stop" }] }),
+			async stream(body, options) {
+				const patched = { ...(body as object), patched: true };
+				options?.onPatchedRequest?.(patched);
+				options?.onRequestPrepared?.(patched);
+				providerStream = new ReadableStream({
+					start(controller) {
+						controller.enqueue({ event: "chunk", data: { text: "hi" } });
+						controller.close();
+					},
+				});
+				return providerStream;
+			},
+		};
+		const ctx = createMockCtx(provider);
+
+		await new ProviderExchange().stream(ctx);
+
+		expect(tracePayloads(ctx)).toEqual([
+			{
+				model: "test",
+				messages: [{ role: "user", content: "hello" }],
+				stream: true,
+				stream_options: { include_usage: true },
+				patched: true,
+			},
+			undefined,
+		]);
+		expect(providerStream).toBeDefined();
+	});
+
+	test("records patched request row without prepared event when sync client is missing", async () => {
+		const provider = createProviderEdge({
+			spec: patchedExampleSpec(),
+			config: {
+				spec: "example",
+				credentials: { api_key: "test-key" },
+				endpoint: { base_url: "https://example.test" },
+			},
+		});
+		const ctx = createMockCtx(provider);
+
+		await expect(new ProviderExchange().request(ctx)).rejects.toBeInstanceOf(
+			ProviderError,
+		);
+
+		expect(tracePayloads(ctx)).toEqual([
+			{
+				model: "test-patched",
+				messages: [{ role: "user", content: "hello" }],
+			},
+		]);
+		expect(traceEventNames(ctx)).toEqual([]);
+	});
+
+	test("records patched request row without prepared event when stream client is missing", async () => {
+		const provider = createProviderEdge({
+			spec: patchedExampleSpec(),
+			config: {
+				spec: "example",
+				credentials: { api_key: "test-key" },
+				endpoint: { base_url: "https://example.test" },
+			},
+		});
+		const ctx = createMockCtx(provider);
+
+		await expect(new ProviderExchange().stream(ctx)).rejects.toBeInstanceOf(
+			ProviderError,
+		);
+
+		expect(tracePayloads(ctx)).toEqual([
+			{
+				model: "test-patched",
+				messages: [{ role: "user", content: "hello" }],
+				stream: true,
+				stream_options: { include_usage: true },
+			},
+		]);
+		expect(traceEventNames(ctx)).toEqual([]);
+	});
 });
+
+function patchedExampleSpec() {
+	return {
+		...EXAMPLE_PROVIDER_SPEC,
+		hooks: {
+			patchRequest: (body: ExampleChatRequest): ExampleChatRequest => ({
+				...body,
+				model: `${body.model}-patched`,
+			}),
+		},
+	};
+}

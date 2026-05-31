@@ -236,8 +236,11 @@ describe("E2E: trace recording", () => {
 				cached_tokens: 40,
 				cache_hit_ratio: 0.4,
 			});
-			expect(eventRows.map((row) => row.event_name)).toContain(
+			expect(eventRows.map((row) => row.event_name)).not.toContain(
 				"provider.request.body",
+			);
+			expect(eventRows.map((row) => row.event_name)).toContain(
+				"provider.request.prepared",
 			);
 			expect(eventRows.map((row) => row.event_name)).toContain(
 				"upstream.stream.event.raw",
@@ -280,6 +283,12 @@ describe("E2E: trace recording", () => {
 			const errorRow = db
 				.query("SELECT * FROM trace_errors")
 				.get() as TraceErrorRow | null;
+			const requestRow = db
+				.query("SELECT * FROM trace_requests")
+				.get() as TraceRequestRow | null;
+			const eventRows = db
+				.query("SELECT event_name FROM trace_events ORDER BY id")
+				.all() as { event_name: string }[];
 
 			expect(errorRow).toMatchObject({
 				provider: "zhipu",
@@ -295,6 +304,20 @@ describe("E2E: trace recording", () => {
 			expect(errorRow?.payload_json).toBeNull();
 			expect(errorRow?.request_id).toMatch(/^req_/);
 			expect(errorRow?.response_id).toMatch(/^resp_/);
+			expect(requestRow).toMatchObject({
+				request_id: errorRow?.request_id,
+				response_id: errorRow?.response_id,
+				provider: "zhipu",
+				model: "glm-5.1",
+				stream: 0,
+				payload_json: null,
+				payload_truncated: 0,
+			});
+			expect(requestRow?.payload_hash).toEqual(expect.any(String));
+			expect(requestRow?.payload_bytes).toBeGreaterThan(0);
+			expect(eventRows.map((row) => row.event_name)).toEqual([
+				"provider.request.prepared",
+			]);
 		} finally {
 			db.close();
 		}

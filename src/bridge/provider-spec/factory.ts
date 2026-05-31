@@ -50,10 +50,11 @@ export function createProviderEdge<
 	return {
 		name: spec.name,
 		spec,
-		request: async (body) => {
+		request: async (body, options) => {
 			const patched =
 				spec.hooks?.patchRequest?.(body) ??
 				(body as unknown as TProviderRequest);
+			options?.onPatchedRequest?.(patched);
 			if (!input.request) {
 				throw notConfiguredError({
 					provider: spec.name,
@@ -63,13 +64,15 @@ export function createProviderEdge<
 					endpointBaseURL,
 				});
 			}
+			options?.onRequestPrepared?.(patched);
 			const response = await input.request(patched);
 			return spec.hooks?.normalizeResponse?.(response) ?? response;
 		},
-		stream: async (body) => {
+		stream: async (body, options) => {
 			const patched =
 				spec.hooks?.patchRequest?.(body) ??
 				(body as unknown as TProviderRequest);
+			options?.onPatchedRequest?.(patched);
 			if (!input.stream) {
 				throw notConfiguredError({
 					provider: spec.name,
@@ -79,6 +82,7 @@ export function createProviderEdge<
 					endpointBaseURL,
 				});
 			}
+			options?.onRequestPrepared?.(patched);
 			return normalizeChunkStream(
 				await input.stream(patched),
 				spec.hooks?.normalizeChunk,
