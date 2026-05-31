@@ -185,7 +185,7 @@ flowchart TD
 
 - [请求流](./request-flow.md) -- 完整的端到端管道
 - [模型解析](./model-resolution.md) -- 模型字段如何被解析
-- [流式管道](../05-streaming-pipeline/overview.md) -- SSE 编码详情
+- [流式管道](./streaming-pipeline.md) -- SSE 编码详情
 - [错误处理](../06-error-handling/error-handling.md) -- 错误层次结构和错误码
 - [配置 Schema](../07-configuration/config-schema.md) -- server.host、server.port、idle_timeout
 - [CLI](../01-getting-started/cli.md) -- `godex serve` 命令

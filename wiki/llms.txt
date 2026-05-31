@@ -29,7 +29,7 @@
 - [Overview](01-getting-started/overview.md): What GodeX does and why it exists
 - [Quick Start](01-getting-started/quick-start.md): Install, configure, first API call
 - [Configuration Guide](01-getting-started/configuration.md): godex.yaml reference, env interpolation, CLI overrides
-- [Built-in Providers](01-getting-started/builtin-providers.md): DeepSeek, Zhipu, MiniMax comparison
+- [Built-in Providers](01-getting-started/builtin-providers.md): DeepSeek, Zhipu, MiniMax, and Xiaomi comparison
 - [CLI](01-getting-started/cli.md): Commander program, init wizard, serve command
 
 ## Provider Development

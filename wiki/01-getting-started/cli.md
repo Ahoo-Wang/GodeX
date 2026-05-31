@@ -106,14 +106,15 @@ which drives the interactive wizard.
 
 ### Supported Providers
 
-The wizard offers three built-in providers defined in
-[src/cli/init/providers.ts:38-86](https://github.com/Ahoo-Wang/GodeX/blob/main/src/cli/init/providers.ts#L38):
+The wizard offers four built-in providers defined in
+[src/cli/init/providers.ts:36-65](https://github.com/Ahoo-Wang/GodeX/blob/main/src/cli/init/providers.ts#L36-L65):
 
 | Provider | Label | Default Model | API Key Placeholder |
 |---|---|---|---|
-| `deepseek` | DeepSeek | `deepseek-chat` | `${DEEPSEEK_API_KEY}` |
-| `zhipu` | Zhipu (智谱) | `glm-4-plus` | `${ZHIPU_API_KEY}` |
-| `minimax` | MiniMax | default model | `${MINIMAX_API_KEY}` |
+| `deepseek` | DeepSeek | `deepseek-v4-pro` | `${DEEPSEEK_API_KEY}` |
+| `zhipu` | Zhipu (智谱) | `glm-5.1` | `${ZHIPU_API_KEY}` |
+| `minimax` | MiniMax | `MiniMax-M2.7` | `${MINIMAX_API_KEY}` |
+| `xiaomi` | Xiaomi (小米) | `mimo-v2.5-pro` | `${MIMO_API_KEY}` |
 
 ### Prompt Sequence
 

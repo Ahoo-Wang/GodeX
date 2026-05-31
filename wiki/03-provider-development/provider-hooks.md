@@ -5,7 +5,7 @@ description: ProviderHooks let each upstream provider patch requests, normalize 
 
 # Provider Hooks
 
-GodeX's bridge runtime speaks one internal protocol, but every upstream provider has quirks -- DeepSeek uses a native `reasoning_effort` parameter and `thinking` object, Zhipu supports `web_search` and `file_search` tool types, and MiniMax remaps `max_tokens` to `max_completion_tokens`. `ProviderHooks` is the extension point where each provider injects its own normalisation logic. By keeping hooks optional and co-located with the provider spec, GodeX avoids a monolithic adapter layer and lets each provider own its transformations.
+GodeX's bridge runtime speaks one internal protocol, but every upstream provider has quirks -- DeepSeek uses a native `reasoning_effort` parameter and `thinking` object, Zhipu supports `web_search` and `file_search` tool types, MiniMax remaps `max_tokens` to `max_completion_tokens`, and Xiaomi uses a boolean thinking switch. `ProviderHooks` is the extension point where each provider injects its own normalisation logic. By keeping hooks optional and co-located with the provider spec, GodeX avoids a monolithic adapter layer and lets each provider own its transformations.
 
 The hooks interface defines three optional methods ([contract.ts:43-52](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L43)): `patchRequest`, `normalizeResponse`, and `normalizeChunk`. These are invoked inside `createProviderEdge` at the boundary between the bridge runtime and the upstream HTTP call.
 
@@ -126,9 +126,20 @@ flowchart LR
     style out fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
+## Xiaomi Hooks
+
+Xiaomi's `xiaomiPatchRequest` ([hooks.ts:115-143](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts#L115-L143)) follows the MiMo thinking model:
+
+| Scenario | Patch Behaviour |
+|---|---|
+| `reasoning_effort` is present | Sets `thinking: { type: "enabled" }` |
+| Messages contain historical `reasoning_content` | Sets `thinking: { type: "enabled" }` to preserve reasoning continuity |
+| Default | Sets `thinking: { type: "disabled" }` |
+| `max_tokens` is present | Remaps it to `max_completion_tokens` |
+
 ## Shared Stream Delta Mapper
 
-All three built-in providers delegate tool-call and reasoning-content extraction to `mapCommonChatStreamDelta` in [stream-delta-mapper.ts:18-42](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/stream-delta-mapper.ts#L18). This shared utility handles:
+All four built-in providers delegate tool-call and reasoning-content extraction to `mapCommonChatStreamDelta` in [stream-delta-mapper.ts:18-42](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/stream-delta-mapper.ts#L18). This shared utility handles:
 
 | Delta Field | Mapping |
 |---|---|
@@ -158,14 +169,14 @@ Each provider's stream delta function calls `mapCommonChatStreamDelta` after ext
 
 ## Capability Comparison
 
-| Capability | DeepSeek | Zhipu | MiniMax |
-|---|---|---|---|
-| Reasoning effort | `native` (high/max) | `boolean` (enabled/disabled) | `none` |
-| Max tools | 128 | 128 | 128 |
-| Tool choice modes | auto, none, required, function | auto, none | auto, none, required, function |
-| Response formats | text, json_object | text, json_object | text, json_object |
-| Streaming usage | Yes | Yes | Yes |
-| Web search tools | No | Yes | No |
+| Capability | DeepSeek | Zhipu | MiniMax | Xiaomi |
+|---|---|---|---|---|
+| Reasoning effort | `native` (high/max) | `boolean` (enabled/disabled) | `none` | `boolean` (enabled/disabled) |
+| Max tools | 128 | 128 | 128 | 128 |
+| Tool choice modes | auto, none, required, function | auto, none | auto, none, required, function | auto |
+| Response formats | text, json_object | text, json_object | text, json_object | text, json_object |
+| Streaming usage | Yes | Yes | Yes | Yes |
+| Web search tools | No | Yes | No | No |
 
 ## Cross-references
 
@@ -177,9 +188,9 @@ Each provider's stream delta function calls `mapCommonChatStreamDelta` after ext
 - [src/providers/deepseek/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts) -- DeepSeek patchRequest, streamDeltas, usage mapping
 - [src/providers/zhipu/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts) -- Zhipu patchRequest, web_search degradation, streamDeltas
 - [src/providers/minimax/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/hooks.ts) -- MiniMax patchRequest, max_tokens remapping
+- [src/providers/xiaomi/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts) -- Xiaomi patchRequest, thinking switch, streamDeltas
 - [src/providers/shared/stream-delta-mapper.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/stream-delta-mapper.ts) -- `mapCommonChatStreamDelta`
 - [src/providers/shared/custom-tool-degradation.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/custom-tool-degradation.ts) -- custom tool to function tool degradation
 - [src/providers/shared/input-compatibility.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/input-compatibility.ts) -- unsupported content type warnings
 - [src/providers/shared/chat-request-guard.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/chat-request-guard.ts) -- `assertProviderChatRequest`
 - [src/bridge/provider-spec/contract.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts) -- `ProviderHooks` interface definition
-

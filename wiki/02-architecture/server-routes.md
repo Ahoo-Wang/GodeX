@@ -216,7 +216,7 @@ which captures:
 
 - [Request Flow](./request-flow.md) -- full end-to-end pipeline
 - [Model Resolution](./model-resolution.md) -- how the model field is resolved
-- [Streaming Pipeline](../05-streaming-pipeline/overview.md) -- SSE encoding details
+- [Streaming Pipeline](./streaming-pipeline.md) -- SSE encoding details
 - [Error Handling](../06-error-handling/error-handling.md) -- error hierarchy and codes
 - [Configuration Schema](../07-configuration/config-schema.md) -- server.host, server.port, idle_timeout
 - [CLI](../01-getting-started/cli.md) -- `godex serve` command
