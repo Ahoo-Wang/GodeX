@@ -39,6 +39,14 @@ describe("buildConfig", () => {
 					sqlite: { path: "./data/sessions.db" },
 				},
 				logging: { level: "debug" },
+				web_search: {
+					enabled: true,
+					mode: "auto",
+					provider: "none",
+					on_unavailable: "client_tool_call",
+					max_iterations: 2,
+					timeout_ms: 10000,
+				},
 			});
 		} finally {
 			delete process.env.API_KEY;
@@ -81,5 +89,18 @@ describe("buildConfig", () => {
 		);
 
 		expect(config.providers.zhipu?.spec).toBe("zhipu");
+	});
+
+	test("parses web search settings", () => {
+		const config = buildConfig(
+			{
+				providers: {},
+				web_search: { provider: "mock", on_unavailable: "fail" },
+			},
+			{},
+		);
+
+		expect(config.web_search?.provider).toBe("mock");
+		expect(config.web_search?.on_unavailable).toBe("fail");
 	});
 });
