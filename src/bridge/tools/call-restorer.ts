@@ -21,7 +21,8 @@ export function restoreToolCall(
 	const identity = identities.get(call.name);
 	if (
 		identity?.providerType === "function" &&
-		identity.execution === "client" &&
+		(identity.execution === "client" ||
+			identity.execution === "godex_managed") &&
 		isWebSearchToolType(identity.requestedType)
 	) {
 		return fallbackFunctionCall(call, WEB_SEARCH_FUNCTION_NAME);

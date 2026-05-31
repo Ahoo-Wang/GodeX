@@ -9,6 +9,7 @@ import {
 	buildChatCompletionRequest,
 } from "../bridge/request";
 import { createToolPlanningProfile } from "../bridge/tools";
+import { DEFAULT_WEB_SEARCH_CONFIG } from "../config/sections/web-search";
 import { OutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
@@ -70,6 +71,14 @@ function createMockCtx(
 	return {
 		provider,
 		app: {
+			config: { web_search: DEFAULT_WEB_SEARCH_CONFIG },
+			search: {
+				name: "none",
+				available: false,
+				search: async () => {
+					throw new Error("not configured");
+				},
+			},
 			sessionStore,
 			traceEnabled: true,
 			traceRecorder: {

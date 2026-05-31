@@ -1,4 +1,3 @@
-import { reconstructResponseObject } from "../bridge/response";
 import type { ResponsesContext } from "../context/responses-context";
 import type { ResponseObject } from "../protocol/openai/responses";
 import type { ResponseSessionStore } from "../session";
@@ -6,14 +5,18 @@ import { cacheHitRatioFromResponseUsage, recordTraceUsage } from "../trace";
 import { logDiagnostics } from "./compatibility-diagnostics";
 import {
 	ProviderExchange,
+	type ProviderExchangeRequestOptions,
 	type ProviderRequestExchangeResult,
 } from "./provider-exchange";
 import { validateResponseOutputContract } from "./response-output-contract-validation";
-import { responseRequestEchoFields } from "./response-request-echo";
 import { saveResponseSession } from "./response-session-persistence";
+import { HostedWebSearchSyncRunner } from "./web-search";
 
 export interface SyncProviderExchange {
-	request(ctx: ResponsesContext): Promise<ProviderRequestExchangeResult>;
+	request(
+		ctx: ResponsesContext,
+		options?: ProviderExchangeRequestOptions,
+	): Promise<ProviderRequestExchangeResult>;
 }
 
 export type SaveResponseSession = (
@@ -29,21 +32,9 @@ export class SyncRequestPipeline {
 	) {}
 
 	async request(ctx: ResponsesContext): Promise<ResponseObject> {
-		const { providerResponse, built } = await this.exchange.request(ctx);
-		const completedAt = Math.floor(Date.now() / 1000);
-		const response = reconstructResponseObject({
-			requestId: ctx.requestId,
-			responseId: ctx.responseId,
-			createdAt: ctx.createdAt,
-			completedAt,
-			provider: ctx.provider.name,
-			model: ctx.resolved.model,
-			providerResponse,
-			accessor: ctx.provider.spec.response,
-			toolIdentity: built.tools,
-			outputContract: built.output,
-			echo: responseRequestEchoFields(ctx),
-		});
+		const { response } = await new HostedWebSearchSyncRunner(
+			this.exchange,
+		).request(ctx);
 		validateResponseOutputContract(ctx, ctx.outputContract.current(), response);
 		recordTraceUsage(ctx, response.usage);
 		ctx.logger.info("responses.request.completed", () => ({

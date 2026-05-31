@@ -11,6 +11,8 @@ import {
 } from "../bridge/tools";
 import { DEFAULT_WEB_SEARCH_CONFIG } from "../config/sections/web-search";
 import type { ResponsesContext } from "../context/responses-context";
+import type { ResponseCreateRequest } from "../protocol/openai/responses";
+import type { ResponseSessionSnapshot } from "../session";
 import { recordTraceEvent, recordTraceRequest } from "../trace";
 
 export interface ProviderRequestExchangeResult<ProviderResponse = unknown> {
@@ -24,9 +26,17 @@ export interface ProviderStreamExchangeResult {
 	built: BuildChatCompletionRequestResult;
 }
 
+export interface ProviderExchangeRequestOptions {
+	readonly request?: ResponseCreateRequest;
+	readonly session?: ResponseSessionSnapshot | null;
+}
+
 export class ProviderExchange {
-	async request(ctx: ResponsesContext): Promise<ProviderRequestExchangeResult> {
-		const built = buildProviderRequest(ctx, false);
+	async request(
+		ctx: ResponsesContext,
+		options: ProviderExchangeRequestOptions = {},
+	): Promise<ProviderRequestExchangeResult> {
+		const built = buildProviderRequest(ctx, false, options);
 		const providerRequest = built.request;
 		ctx.logger.debug("provider.request.sending", () => ({
 			provider: ctx.resolved.provider,
@@ -85,9 +95,11 @@ export class ProviderExchange {
 function buildProviderRequest(
 	ctx: ResponsesContext,
 	stream: boolean,
+	options: ProviderExchangeRequestOptions = {},
 ): BuildChatCompletionRequestResult {
+	const request = options.request ?? ctx.request;
 	const built = buildChatCompletionRequest({
-		request: stream ? { ...ctx.request, stream: true } : ctx.request,
+		request: stream ? { ...request, stream: true } : request,
 		provider: ctx.provider.name,
 		model: ctx.resolved.model,
 		capabilities: ctx.provider.spec.capabilities,
@@ -96,7 +108,7 @@ function buildProviderRequest(
 			capabilities: ctx.provider.spec.capabilities,
 			toProviderName: ctx.provider.spec.toolName.toProviderName,
 		}),
-		session: ctx.session,
+		session: "session" in options ? options.session : ctx.session,
 		webSearch: webSearchPlanningOptions(ctx),
 	});
 	for (const diagnostic of built.compatibility.diagnostics) {
