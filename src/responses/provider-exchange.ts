@@ -7,7 +7,9 @@ import {
 import {
 	createToolPlanningProfile,
 	type PlannedToolDecision,
+	type WebSearchPlanningOptions,
 } from "../bridge/tools";
+import { DEFAULT_WEB_SEARCH_CONFIG } from "../config/sections/web-search";
 import type { ResponsesContext } from "../context/responses-context";
 import { recordTraceEvent, recordTraceRequest } from "../trace";
 
@@ -95,6 +97,7 @@ function buildProviderRequest(
 			toProviderName: ctx.provider.spec.toolName.toProviderName,
 		}),
 		session: ctx.session,
+		webSearch: webSearchPlanningOptions(ctx),
 	});
 	for (const diagnostic of built.compatibility.diagnostics) {
 		ctx.addDiagnostic(diagnostic);
@@ -107,6 +110,17 @@ function buildProviderRequest(
 	}
 	ctx.outputContract.set(built.output);
 	return built;
+}
+
+function webSearchPlanningOptions(
+	ctx: ResponsesContext,
+): WebSearchPlanningOptions {
+	const config = ctx.app.config.web_search ?? DEFAULT_WEB_SEARCH_CONFIG;
+	return {
+		mode: config.enabled ? config.mode : "disabled",
+		available: config.enabled && ctx.app.search.available,
+		onUnavailable: config.on_unavailable,
+	};
 }
 
 function toolDecisionDiagnostics(
