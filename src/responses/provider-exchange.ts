@@ -31,6 +31,11 @@ export interface ProviderExchangeRequestOptions {
 	readonly session?: ResponseSessionSnapshot | null;
 }
 
+export interface ProviderExchangeStreamOptions {
+	readonly request?: ResponseCreateRequest;
+	readonly session?: ResponseSessionSnapshot | null;
+}
+
 export class ProviderExchange {
 	async request(
 		ctx: ResponsesContext,
@@ -63,8 +68,11 @@ export class ProviderExchange {
 		return { providerResponse, built };
 	}
 
-	async stream(ctx: ResponsesContext): Promise<ProviderStreamExchangeResult> {
-		const built = buildProviderRequest(ctx, true);
+	async stream(
+		ctx: ResponsesContext,
+		options: ProviderExchangeStreamOptions = {},
+	): Promise<ProviderStreamExchangeResult> {
+		const built = buildProviderRequest(ctx, true, options);
 		const providerRequest = built.request;
 		ctx.logger.debug("provider.request.sending", () => ({
 			provider: ctx.resolved.provider,
