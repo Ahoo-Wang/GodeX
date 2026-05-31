@@ -205,17 +205,15 @@ models:
     # 依据：DeepSeek V4-Pro 有更完整的公开 coding/agentic benchmark 覆盖。
     gpt-5.4: "deepseek/deepseek-v4-pro"
 
-    # Codex mini：快速、低成本、轻量编码、subagents
-    # 依据：MiniMax M2.7-highspeed 与 M2.7 结果一致但速度更快。
-    gpt-5.4-mini: "minimax/MiniMax-M2.7-highspeed"
+    # Codex mini：subagents
+    gpt-5.4-mini: "zhipu/glm-5.1"
 
     # Codex 编码专用：复杂软件工程
     # 依据：DeepSeek V4-Pro 的 SWE Verified / SWE Pro / Terminal Bench 表现。
     gpt-5.3-codex: "deepseek/deepseek-v4-pro"
 
     # Codex spark：近实时编码迭代
-    # 依据：MiniMax highspeed 版本更贴合 spark 的速度定位。
-    gpt-5.3-codex-spark: "minimax/MiniMax-M2.7-highspeed"
+    gpt-5.3-codex-spark: "zhipu/glm-5.1"
 
     # 上一代通用 coding / agentic fallback
     # 严谨起见仍走 DeepSeek；不强行映射到 Zhipu。
