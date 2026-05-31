@@ -114,8 +114,31 @@ export function minimaxPatchRequest(
 	const { reasoning_effort: _reasoningEffort, max_tokens, ...rest } = request;
 	return {
 		...rest,
+		reasoning_split: true,
+		messages: rest.messages.map(convertReasoningContent),
 		...(max_tokens !== undefined ? { max_completion_tokens: max_tokens } : {}),
 	} as unknown as ChatCompletionRequest;
+}
+
+function convertReasoningContent(message: unknown): unknown {
+	if (
+		typeof message !== "object" ||
+		message === null ||
+		!("role" in message) ||
+		message.role !== "assistant"
+	) {
+		return message;
+	}
+	const assistant = message as Record<string, unknown>;
+	const reasoningContent = assistant.reasoning_content;
+	if (typeof reasoningContent !== "string" || reasoningContent.length === 0) {
+		return message;
+	}
+	const { reasoning_content: _rc, ...rest } = assistant;
+	return {
+		...rest,
+		reasoning_details: [{ text: reasoningContent }],
+	};
 }
 
 export function minimaxStreamDeltas(
@@ -141,6 +164,13 @@ function mapMiniMaxChoiceDelta(
 	const deltas: ProviderStreamDelta[] = [];
 	if (delta.content) {
 		deltas.push({ text: delta.content });
+	}
+	if (delta.reasoning_details) {
+		for (const detail of delta.reasoning_details) {
+			if (detail.text) {
+				deltas.push({ reasoning: detail.text });
+			}
+		}
 	}
 	deltas.push(...mapCommonChatStreamDelta(delta));
 	return deltas;

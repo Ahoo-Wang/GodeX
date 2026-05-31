@@ -184,10 +184,22 @@ function providerToolCalls(choice: unknown): ProviderFunctionCall[] {
 
 function providerReasoningText(choice: unknown): string | undefined {
 	if (!isRecord(choice) || !isRecord(choice.message)) return undefined;
-	return typeof choice.message.reasoning_content === "string" &&
+	if (
+		typeof choice.message.reasoning_content === "string" &&
 		choice.message.reasoning_content.length > 0
-		? choice.message.reasoning_content
-		: undefined;
+	) {
+		return choice.message.reasoning_content;
+	}
+	if (Array.isArray(choice.message.reasoning_details)) {
+		return choice.message.reasoning_details
+			.filter(
+				(d: unknown) =>
+					isRecord(d) && typeof d.text === "string" && d.text.length > 0,
+			)
+			.map((d: { text: string }) => d.text)
+			.join("");
+	}
+	return undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

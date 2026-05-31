@@ -41,11 +41,16 @@ export interface MiniMaxUserMessage {
 	name?: string;
 }
 
+export interface MiniMaxReasoningDetail {
+	text: string;
+}
+
 export interface MiniMaxAssistantMessage {
 	role: "assistant";
 	content?: string | null;
 	name?: string;
 	reasoning_content?: string | null;
+	reasoning_details?: MiniMaxReasoningDetail[];
 	tool_calls?: MiniMaxMessageToolCall[];
 }
 
@@ -66,6 +71,7 @@ export interface ChatCompletionRequest {
 	messages: MiniMaxMessage[];
 	max_completion_tokens?: number;
 	response_format?: { type: "text" | "json_object" };
+	reasoning_split?: boolean;
 	stream?: boolean;
 	stream_options?: { include_usage: boolean };
 	temperature?: number;
@@ -109,6 +115,7 @@ export interface ChatCompletionStreamDelta {
 	role?: "assistant";
 	content?: string | null;
 	reasoning_content?: string | null;
+	reasoning_details?: MiniMaxReasoningDetail[];
 	tool_calls?: Array<{
 		index?: number;
 		id?: string;
