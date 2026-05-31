@@ -270,12 +270,12 @@ classDiagram
 
 ## 交叉引用
 
-- [流管道](../05-streaming-pipeline/stream-pipeline.md) -- 转换如何组装成完整的流式管道
+- [流管道](./streaming-pipeline.md) -- 转换如何组装成完整的流式管道
 - [架构概览](./overview.md) -- 流转换在系统中的上下文
 - [错误处理](../06-error-handling/error-handling.md) -- `wrapWithErrorHandler` 阶段和错误传播
-- [会话管理](../04-session-management/session-management.md) -- 持久化转换器如何保存会话
+- [会话管理](../04-session-management/session-stores.md) -- 持久化转换器如何保存会话
 - [测试](../08-testing/testing.md) -- 每个转换器的同目录单元测试
-- [追踪系统](../10-trace/trace.md) -- `TraceTransformer` 如何为追踪子系统提供数据
+- [追踪系统](../10-trace/trace-system.md) -- `TraceTransformer` 如何为追踪子系统提供数据
 
 ## 参考资料
 

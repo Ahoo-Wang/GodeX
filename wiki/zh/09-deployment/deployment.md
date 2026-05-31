@@ -192,7 +192,7 @@ sequenceDiagram
 ## CI 管道
 
 `ci` 脚本位于
-[package.json:42](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L42)，
+[package.json:53](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L53)，
 运行完整的验证链：
 
 ```bash
@@ -207,7 +207,7 @@ bun run typecheck && biome ci src && bun run test && bun run test:e2e
 | E2E 测试 | `bun test src/e2e` | 端到端集成测试 |
 
 `check` 脚本位于
-[第 41 行](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L41)，
+[第 52 行](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L52)，
 是推送前门控：`typecheck + lint + test`。
 
 ### E2E 测试目标
@@ -217,6 +217,7 @@ bun run typecheck && biome ci src && bun run test && bun run test:e2e
 | `test:zhipu` | Zhipu（智谱） | `ZHIPU_LIVE_TESTS=1` |
 | `test:deepseek` | DeepSeek | `DEEPSEEK_LIVE_TESTS=1` |
 | `test:minimax` | MiniMax | `MINIMAX_LIVE_TESTS=1` |
+| `test:xiaomi` | Xiaomi MiMo | `XIAOMI_LIVE_TESTS=1` |
 
 ## 交叉引用
 

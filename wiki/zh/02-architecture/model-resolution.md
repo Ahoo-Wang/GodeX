@@ -78,7 +78,7 @@ graph LR
     subgraph Alias Map
         style Alias Map fill:#161b22,stroke:#30363d,color:#e6edf3
         A1["gpt-4 -> deepseek/deepseek-v4-pro"]
-        A2["claude -> zhipu/glm-4-plus"]
+        A2["claude -> zhipu/glm-5.1"]
         A3["* -> deepseek/deepseek-v4-pro"]
     end
     subgraph Resolution
@@ -157,7 +157,7 @@ default_provider: deepseek
 models:
   aliases:
     gpt-4: "deepseek/deepseek-v4-pro"
-    claude: "zhipu/glm-4-plus"
+    claude: "zhipu/glm-5.1"
     "*": "deepseek/deepseek-v4-pro"
 ```
 
@@ -166,7 +166,7 @@ models:
 | 客户端发送 | 解析的 Provider | 解析的模型 |
 |-----------|----------------|-----------|
 | `"gpt-4"` | `deepseek` | `deepseek-v4-pro` |
-| `"deepseek/deepseek-chat"` | `deepseek` | `deepseek-chat` |
+| `"deepseek/deepseek-v4-pro"` | `deepseek` | `deepseek-v4-pro` |
 | `"my-custom-model"` | `deepseek`（通配符） | `deepseek-v4-pro` |
 | `"unknown"` | `deepseek`（默认） | `unknown` |
 

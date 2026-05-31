@@ -17,6 +17,7 @@ GodeX ships a multi-layered testing strategy that catches bugs at every level --
 | Live tests (Zhipu) | Real Zhipu API calls | `ZHIPU_LIVE_TESTS=1` | Manual / CI opt-in |
 | Live tests (DeepSeek) | Real DeepSeek API calls | `DEEPSEEK_LIVE_TESTS=1` | Manual / CI opt-in |
 | Live tests (MiniMax) | Real MiniMax API calls | `MINIMAX_LIVE_TESTS=1` | Manual / CI opt-in |
+| Live tests (Xiaomi) | Real Xiaomi MiMo API calls | `XIAOMI_LIVE_TESTS=1` | Manual / CI opt-in |
 | Compatibility suite | Per-provider input/tool degradation behavior | `bun test` | Every commit |
 
 ## Test Architecture Overview
@@ -35,6 +36,7 @@ graph TB
         Zhipu["Zhipu Live<br>ZHIPU_LIVE_TESTS=1"]
         DeepSeek["DeepSeek Live<br>DEEPSEEK_LIVE_TESTS=1"]
         MiniMax["MiniMax Live<br>MINIMAX_LIVE_TESTS=1"]
+        Xiaomi["Xiaomi Live<br>XIAOMI_LIVE_TESTS=1"]
     end
 
     Unit --> Boundary
@@ -42,6 +44,7 @@ graph TB
     E2E -.-> Zhipu
     E2E -.-> DeepSeek
     E2E -.-> MiniMax
+    E2E -.-> Xiaomi
 ```
 
 ## Unit Tests
@@ -165,17 +168,20 @@ flowchart LR
         Z["Zhipu<br>ZHIPU_LIVE_TESTS=1"]
         D["DeepSeek<br>DEEPSEEK_LIVE_TESTS=1"]
         M["MiniMax<br>MINIMAX_LIVE_TESTS=1"]
+        X["Xiaomi<br>XIAOMI_LIVE_TESTS=1"]
     end
 
     subgraph Scripts ["npm Scripts"]
         S1["test:zhipu"]
         S2["test:deepseek"]
         S3["test:minimax"]
+        S4["test:xiaomi"]
     end
 
     S1 --> Z
     S2 --> D
     S3 --> M
+    S4 --> X
 ```
 
 Each live test file (e.g., [src/e2e/zhipu-live.test.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/e2e/zhipu-live.test.ts)) starts a real GodeX server configured with the provider's actual base URL, then sends requests using the typed `GodeXClient`. Tests verify streaming and non-streaming response shapes, tool calling behavior, and multi-turn conversations.
@@ -296,19 +302,20 @@ src/
 | `ZHIPU_LIVE_TESTS=1 bun test src/e2e/zhipu-live.test.ts` | Zhipu live tests |
 | `DEEPSEEK_LIVE_TESTS=1 bun test src/e2e/deepseek-live.test.ts` | DeepSeek live tests |
 | `MINIMAX_LIVE_TESTS=1 bun test src/e2e/minimax-live.test.ts` | MiniMax live tests |
+| `XIAOMI_LIVE_TESTS=1 bun test src/e2e/xiaomi-live.test.ts` | Xiaomi live tests |
 | `bun run test:coverage` | Unit tests with coverage report |
 | `bun run check` | TypeCheck + Lint + Unit tests |
 | `bun run ci` | Full CI: TypeCheck + Lint + Unit + E2E |
 
-All scripts are defined in [package.json:25-44](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L25).
+All scripts are defined in [package.json:36-53](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L36-L53).
 
 ## Cross-References
 
-- [Stream Pipeline](../05-streaming-pipeline/stream-pipeline.md) -- where unit-tested transformers assemble into the response pipeline
+- [Stream Pipeline](../02-architecture/streaming-pipeline.md) -- where unit-tested transformers assemble into the response pipeline
 - [Architecture Overview](../02-architecture/overview.md) -- how the tested modules relate to the system architecture
-- [Provider Development](../03-provider-development/provider-development.md) -- how the compatibility test suite applies to new providers
-- [Session Management](../04-session-management/session-management.md) -- session fixtures and multi-turn test scenarios
-- [Trace System](../10-trace/trace.md) -- trace-related unit tests and live tracing validation
+- [Provider Development](../03-provider-development/provider-spec.md) -- how the compatibility test suite applies to new providers
+- [Session Management](../04-session-management/session-stores.md) -- session fixtures and multi-turn test scenarios
+- [Trace System](../10-trace/trace-system.md) -- trace-related unit tests and live tracing validation
 
 ## References
 

@@ -270,12 +270,12 @@ To add a new concern to the pipeline:
 
 ## Cross-References
 
-- [Stream Pipeline](../05-streaming-pipeline/stream-pipeline.md) -- how transforms assemble into the full streaming pipeline
+- [Stream Pipeline](./streaming-pipeline.md) -- how transforms assemble into the full streaming pipeline
 - [Architecture Overview](./overview.md) -- system-level context for where stream transforms fit
 - [Error Handling](../06-error-handling/error-handling.md) -- the `wrapWithErrorHandler` stage and error propagation
-- [Session Management](../04-session-management/session-management.md) -- how the persistence transformer saves sessions
+- [Session Management](../04-session-management/session-stores.md) -- how the persistence transformer saves sessions
 - [Testing](../08-testing/testing.md) -- co-located unit tests for each transformer
-- [Trace System](../10-trace/trace.md) -- how `TraceTransformer` feeds the trace subsystem
+- [Trace System](../10-trace/trace-system.md) -- how `TraceTransformer` feeds the trace subsystem
 
 ## References
 

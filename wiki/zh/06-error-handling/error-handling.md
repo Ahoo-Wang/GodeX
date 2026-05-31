@@ -238,10 +238,10 @@ flowchart LR
 
 ## 交叉引用
 
-- [错误码参考](./error-codes.md) -- 完整的错误码列表
-- [错误层次结构](./error-hierarchy.md) -- 更深入的类图探索
+- [错误码参考](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts) -- 完整的错误码列表
+- [错误层次结构](https://github.com/Ahoo-Wang/GodeX/tree/main/src/error) -- 错误类实现
 - [请求流程](../02-architecture/request-flow.md) -- 错误在管道中的产生位置
-- [流式管道](../05-streaming-pipeline/overview.md) -- 桥接层流状态错误
+- [流式管道](../02-architecture/streaming-pipeline.md) -- 桥接层流状态错误
 - [配置 Schema](../07-configuration/config-schema.md) -- 会话深度限制
 
 ## 参考文献

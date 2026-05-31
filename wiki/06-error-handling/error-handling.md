@@ -250,10 +250,10 @@ gracefully handles non-GodeXError values by wrapping them in a plain object.
 
 ## Cross-References
 
-- [Error Codes Reference](./error-codes.md) -- full list of error codes
-- [Error Hierarchy](./error-hierarchy.md) -- deeper class diagram exploration
+- [Error Codes Reference](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts) -- full list of error codes
+- [Error Hierarchy](https://github.com/Ahoo-Wang/GodeX/tree/main/src/error) -- error class implementation
 - [Request Flow](../02-architecture/request-flow.md) -- where errors originate in the pipeline
-- [Streaming Pipeline](../05-streaming-pipeline/overview.md) -- bridge stream state errors
+- [Streaming Pipeline](../02-architecture/streaming-pipeline.md) -- bridge stream state errors
 - [Configuration Schema](../07-configuration/config-schema.md) -- session depth limits
 
 ## References

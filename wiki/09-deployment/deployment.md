@@ -198,7 +198,7 @@ throughout the codebase.
 ## CI Pipeline
 
 The `ci` script at
-[package.json:42](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L42)
+[package.json:53](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L53)
 runs the full validation chain:
 
 ```bash
@@ -213,7 +213,7 @@ bun run typecheck && biome ci src && bun run test && bun run test:e2e
 | E2E tests | `bun test src/e2e` | End-to-end integration |
 
 The `check` script at
-[line 41](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L41)
+[line 52](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L52)
 is a pre-push gate: `typecheck + lint + test`.
 
 ### E2E Test Targets
@@ -223,6 +223,7 @@ is a pre-push gate: `typecheck + lint + test`.
 | `test:zhipu` | Zhipu (智谱) | `ZHIPU_LIVE_TESTS=1` |
 | `test:deepseek` | DeepSeek | `DEEPSEEK_LIVE_TESTS=1` |
 | `test:minimax` | MiniMax | `MINIMAX_LIVE_TESTS=1` |
+| `test:xiaomi` | Xiaomi MiMo | `XIAOMI_LIVE_TESTS=1` |
 
 ## Cross-References
 
