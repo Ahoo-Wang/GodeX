@@ -54,6 +54,7 @@ export function createProviderEdge<
 			const patched =
 				spec.hooks?.patchRequest?.(body) ??
 				(body as unknown as TProviderRequest);
+			options?.onPatchedRequest?.(patched);
 			if (!input.request) {
 				throw notConfiguredError({
 					provider: spec.name,
@@ -63,7 +64,7 @@ export function createProviderEdge<
 					endpointBaseURL,
 				});
 			}
-			options?.onPatchedRequest?.(patched);
+			options?.onRequestPrepared?.(patched);
 			const response = await input.request(patched);
 			return spec.hooks?.normalizeResponse?.(response) ?? response;
 		},
@@ -71,6 +72,7 @@ export function createProviderEdge<
 			const patched =
 				spec.hooks?.patchRequest?.(body) ??
 				(body as unknown as TProviderRequest);
+			options?.onPatchedRequest?.(patched);
 			if (!input.stream) {
 				throw notConfiguredError({
 					provider: spec.name,
@@ -80,7 +82,7 @@ export function createProviderEdge<
 					endpointBaseURL,
 				});
 			}
-			options?.onPatchedRequest?.(patched);
+			options?.onRequestPrepared?.(patched);
 			return normalizeChunkStream(
 				await input.stream(patched),
 				spec.hooks?.normalizeChunk,

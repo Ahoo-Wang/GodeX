@@ -1,9 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
 import type { CompatibilityDiagnostic } from "../bridge/compatibility";
-import type { ProviderEdge } from "../bridge/provider-spec";
+import { createProviderEdge, type ProviderEdge } from "../bridge/provider-spec";
 import { OutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
+import { ProviderError } from "../error";
+import {
+	EXAMPLE_PROVIDER_SPEC,
+	type ExampleChatRequest,
+} from "../providers/example";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import { createTestProviderEdge } from "../testing/provider-edge";
 import { ProviderExchange } from "./provider-exchange";
@@ -165,6 +170,7 @@ describe("ProviderExchange", () => {
 			async request(body, options) {
 				const patched = { ...(body as object), patched: true };
 				options?.onPatchedRequest?.(patched);
+				options?.onRequestPrepared?.(patched);
 				return providerResponse;
 			},
 		};
@@ -277,6 +283,7 @@ describe("ProviderExchange", () => {
 			async stream(body, options) {
 				const patched = { ...(body as object), patched: true };
 				options?.onPatchedRequest?.(patched);
+				options?.onRequestPrepared?.(patched);
 				providerStream = new ReadableStream({
 					start(controller) {
 						controller.enqueue({ event: "chunk", data: { text: "hi" } });
@@ -302,4 +309,66 @@ describe("ProviderExchange", () => {
 		]);
 		expect(providerStream).toBeDefined();
 	});
+
+	test("records patched request row without prepared event when sync client is missing", async () => {
+		const provider = createProviderEdge({
+			spec: patchedExampleSpec(),
+			config: {
+				spec: "example",
+				credentials: { api_key: "test-key" },
+				endpoint: { base_url: "https://example.test" },
+			},
+		});
+		const ctx = createMockCtx(provider);
+
+		await expect(new ProviderExchange().request(ctx)).rejects.toBeInstanceOf(
+			ProviderError,
+		);
+
+		expect(tracePayloads(ctx)).toEqual([
+			{
+				model: "test-patched",
+				messages: [{ role: "user", content: "hello" }],
+			},
+		]);
+		expect(traceEventNames(ctx)).toEqual([]);
+	});
+
+	test("records patched request row without prepared event when stream client is missing", async () => {
+		const provider = createProviderEdge({
+			spec: patchedExampleSpec(),
+			config: {
+				spec: "example",
+				credentials: { api_key: "test-key" },
+				endpoint: { base_url: "https://example.test" },
+			},
+		});
+		const ctx = createMockCtx(provider);
+
+		await expect(new ProviderExchange().stream(ctx)).rejects.toBeInstanceOf(
+			ProviderError,
+		);
+
+		expect(tracePayloads(ctx)).toEqual([
+			{
+				model: "test-patched",
+				messages: [{ role: "user", content: "hello" }],
+				stream: true,
+				stream_options: { include_usage: true },
+			},
+		]);
+		expect(traceEventNames(ctx)).toEqual([]);
+	});
 });
+
+function patchedExampleSpec() {
+	return {
+		...EXAMPLE_PROVIDER_SPEC,
+		hooks: {
+			patchRequest: (body: ExampleChatRequest): ExampleChatRequest => ({
+				...body,
+				model: `${body.model}-patched`,
+			}),
+		},
+	};
+}

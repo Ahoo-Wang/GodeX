@@ -36,6 +36,8 @@ export class ProviderExchange {
 		const providerResponse = await ctx.provider.request(providerRequest, {
 			onPatchedRequest: (patchedRequest) => {
 				recordTraceRequest(ctx, false, patchedRequest);
+			},
+			onRequestPrepared: () => {
 				recordTraceEvent(ctx, "provider.request.prepared", undefined);
 			},
 		});
@@ -62,6 +64,8 @@ export class ProviderExchange {
 		const providerStream = await ctx.provider.stream(providerRequest, {
 			onPatchedRequest: (patchedRequest) => {
 				recordTraceRequest(ctx, true, patchedRequest);
+			},
+			onRequestPrepared: () => {
 				recordTraceEvent(ctx, "provider.request.prepared", undefined);
 			},
 		});

@@ -53,6 +53,7 @@ export interface ProviderHooks<
 
 export interface ProviderRequestOptions<TProviderRequest = unknown> {
 	onPatchedRequest?(body: TProviderRequest): void;
+	onRequestPrepared?(body: TProviderRequest): void;
 }
 
 export interface ProviderSpec<
