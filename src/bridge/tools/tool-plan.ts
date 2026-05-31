@@ -1,4 +1,8 @@
-import { BRIDGE_REQUEST_UNSUPPORTED_PARAMETER, BridgeError } from "../../error";
+import {
+	BRIDGE_REQUEST_UNSUPPORTED_PARAMETER,
+	BRIDGE_REQUEST_UNSUPPORTED_TOOL,
+	BridgeError,
+} from "../../error";
 import type {
 	ResponseTool,
 	ResponseToolChoice,
@@ -11,6 +15,7 @@ import {
 	requestedToolChoiceType,
 } from "./tool-choice";
 import { defaultToolNameCodec } from "./tool-identity";
+import { isWebSearchTool, WEB_SEARCH_FUNCTION_NAME } from "./web-search";
 
 export interface ToolPlanningProfile {
 	readonly provider: string;
@@ -19,6 +24,15 @@ export interface ToolPlanningProfile {
 	readonly toolChoice: ReadonlySet<string>;
 	readonly maxTools?: number;
 	readonly toProviderName?: (name: string) => string;
+	readonly webSearch?: WebSearchPlanningOptions;
+}
+
+export type ToolExecutionMode = "provider" | "godex_managed" | "client";
+
+export interface WebSearchPlanningOptions {
+	readonly mode: "auto" | "provider_native" | "godex_managed" | "disabled";
+	readonly available: boolean;
+	readonly onUnavailable: "client_tool_call" | "fail" | "ignore";
 }
 
 export function createToolPlanningProfile(input: {
@@ -48,6 +62,7 @@ export interface ToolDeclarationPlan {
 	readonly requestedName: string;
 	readonly providerName: string;
 	readonly tool: ResponseTool;
+	readonly execution?: ToolExecutionMode;
 }
 
 export interface PlannedToolDecision {
@@ -146,12 +161,121 @@ function planToolDeclaration(
 		];
 	}
 
+	const webSearchDeclaration = planWebSearchDeclaration(
+		entry,
+		profile,
+		decisions,
+		allocateProviderName,
+	);
+	if (webSearchDeclaration !== null) return webSearchDeclaration;
+
 	decisions.push({
 		path: `tools[type=${entry.type}]`,
 		action: "ignored",
 		reason: `${profile.provider} does not support Responses tool '${entry.type}'; skipping declaration.`,
 	});
 	return [];
+}
+
+function planWebSearchDeclaration(
+	entry: ToolCatalogEntry,
+	profile: ToolPlanningProfile,
+	decisions: PlannedToolDecision[],
+	allocateProviderName: (requestedName: string) => string,
+): ToolDeclarationPlan[] | null {
+	if (!isWebSearchTool(entry.tool) || !profile.webSearch) return null;
+	if (
+		profile.webSearch.mode === "auto" ||
+		profile.webSearch.mode === "godex_managed"
+	) {
+		if (profile.webSearch.available) {
+			decisions.push({
+				path: `tools[type=${entry.type}]`,
+				action: "degraded",
+				reason: `${profile.provider} maps Responses tool '${entry.type}' to GodeX-managed web search.`,
+			});
+			return [
+				webSearchFunctionDeclaration({
+					entry,
+					execution: "godex_managed",
+					allocateProviderName,
+				}),
+			];
+		}
+		return unavailableWebSearchDeclaration(
+			entry,
+			profile,
+			decisions,
+			allocateProviderName,
+		);
+	}
+	return unavailableWebSearchDeclaration(
+		entry,
+		profile,
+		decisions,
+		allocateProviderName,
+	);
+}
+
+function unavailableWebSearchDeclaration(
+	entry: ToolCatalogEntry,
+	profile: ToolPlanningProfile,
+	decisions: PlannedToolDecision[],
+	allocateProviderName: (requestedName: string) => string,
+): ToolDeclarationPlan[] {
+	const policy = profile.webSearch?.onUnavailable ?? "ignore";
+	if (policy === "client_tool_call") {
+		decisions.push({
+			path: `tools[type=${entry.type}]`,
+			action: "degraded",
+			reason: `${profile.provider} cannot execute Responses tool '${entry.type}'; returning a client-visible web_search function call.`,
+		});
+		return [
+			webSearchFunctionDeclaration({
+				entry,
+				execution: "client",
+				allocateProviderName,
+			}),
+		];
+	}
+	if (policy === "fail") {
+		decisions.push({
+			path: `tools[type=${entry.type}]`,
+			action: "rejected",
+			reason: `${profile.provider} cannot execute Responses tool '${entry.type}' and web_search.on_unavailable is fail.`,
+		});
+		throw new BridgeError(
+			BRIDGE_REQUEST_UNSUPPORTED_TOOL,
+			`${profile.provider} cannot execute Responses tool '${entry.type}' without a configured web search provider.`,
+			{
+				provider: profile.provider,
+				model: "unknown",
+				parameter: "tools",
+				toolType: entry.type,
+			},
+		);
+	}
+	decisions.push({
+		path: `tools[type=${entry.type}]`,
+		action: "ignored",
+		reason: `${profile.provider} cannot execute Responses tool '${entry.type}'; skipping declaration.`,
+	});
+	return [];
+}
+
+function webSearchFunctionDeclaration(input: {
+	readonly entry: ToolCatalogEntry;
+	readonly execution: ToolExecutionMode;
+	readonly allocateProviderName: (requestedName: string) => string;
+}): ToolDeclarationPlan {
+	return {
+		requestedType: input.entry.type,
+		providerType: "function",
+		requestedName: input.entry.name,
+		providerName: input.allocateProviderName(WEB_SEARCH_FUNCTION_NAME),
+		tool: input.entry.tool,
+		execution: input.execution,
+	};
 }
 
 function createProviderNameAllocator(

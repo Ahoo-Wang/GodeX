@@ -55,6 +55,36 @@ describe("restoreToolCall", () => {
 		});
 	});
 
+	test("restores client fallback web search as function_call", () => {
+		const identities = new ToolIdentityMap();
+		identities.addDeclarations([
+			{
+				requestedType: "web_search",
+				providerType: "function",
+				requestedName: "web_search_0",
+				providerName: "web_search",
+				execution: "client",
+			},
+		]);
+
+		const args = JSON.stringify({ query: "latest bun release" });
+		const item = restoreToolCall(
+			{
+				callId: "call_search",
+				name: "web_search",
+				arguments: args,
+			},
+			identities,
+		);
+
+		expect(item).toEqual({
+			type: "function_call",
+			call_id: "call_search",
+			name: "web_search",
+			arguments: args,
+		});
+	});
+
 	test("restores downgraded custom provider calls", () => {
 		const identities = new ToolIdentityMap();
 		identities.add({
