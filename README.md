@@ -24,6 +24,7 @@ GodeX lets clients that speak the OpenAI Responses API use providers such as Dee
 - `GET /v1/models` aliases so clients can use stable model names while GodeX routes to provider/model targets.
 - Built-in bridge providers for DeepSeek, Xiaomi, MiniMax, and Zhipu.
 - Provider capability planning for request parameters, tools, `tool_choice`, structured output formats, reasoning, and stream usage.
+- Hybrid web search support with provider-native declarations when available and GodeX-managed hosted search fallback for non-native providers.
 - Responses `previous_response_id` session chains backed by memory or SQLite.
 - Trace recording for provider requests, provider responses, stream events, usage, and errors.
 - Native Bun runtime, TypeScript source, and compiled platform binaries for releases.
