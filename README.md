@@ -335,6 +335,25 @@ Clients may pass either:
 
 Aliases must map to `provider/model` values, and the provider must exist in `providers`.
 
+
+## Codex Integration
+
+Connect the Codex desktop app to GodeX by adding a custom provider in `~/.codex/config.toml`:
+
+```toml
+model = "gpt-5.5"
+model_provider = "godex"
+
+[model_providers.godex]
+name = "GodeX"
+base_url = "http://127.0.0.1:5678/v1"
+wire_api = "responses"
+supports_websockets = false
+```
+
+Model aliases (`gpt-5.5`, `gpt-5.4`, `gpt-5.4-mini`, etc.) are resolved by GodeX using the `models.aliases` map in `godex.yaml` — Codex itself only needs the alias name. See [Codex 集成配置](docs/references/codex/configuration.md) for the full setup guide.
+
+
 ## Provider Bridge Behavior
 
 GodeX builds a provider request in three steps:

@@ -341,6 +341,25 @@ curl -N http://localhost:5678/v1/responses \
 
 `models.aliases` 的值必须是 `provider/model`，且 provider 必须存在于 `providers`。
 
+
+## Codex 集成
+
+将 Codex 桌面应用接入 GodeX，在 `~/.codex/config.toml` 中添加自定义 provider：
+
+```toml
+model = "gpt-5.5"
+model_provider = "godex"
+
+[model_providers.godex]
+name = "GodeX"
+base_url = "http://127.0.0.1:5678/v1"
+wire_api = "responses"
+supports_websockets = false
+```
+
+模型别名（`gpt-5.5`、`gpt-5.4`、`gpt-5.4-mini` 等）由 GodeX 根据 `godex.yaml` 中的 `models.aliases` 解析——Codex 只需知道别名。完整配置指南见 [Codex 集成配置](docs/references/codex/configuration.md)。
+
+
 ## Provider 桥接行为
 
 GodeX 构建 provider request 分三步：
