@@ -236,7 +236,7 @@ describe("E2E: trace recording", () => {
 				cached_tokens: 40,
 				cache_hit_ratio: 0.4,
 			});
-			expect(eventRows.map((row) => row.event_name)).toContain(
+			expect(eventRows.map((row) => row.event_name)).not.toContain(
 				"provider.request.body",
 			);
 			expect(eventRows.map((row) => row.event_name)).toContain(

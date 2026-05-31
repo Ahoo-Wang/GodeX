@@ -13,7 +13,7 @@ function requestEvent(
 		provider: "zhipu",
 		model: "glm-test",
 		created_at: Date.now(),
-		event_name: "provider.request.body",
+		event_name: "provider.response.body",
 		payload: { payload: { ok: true } },
 	};
 }

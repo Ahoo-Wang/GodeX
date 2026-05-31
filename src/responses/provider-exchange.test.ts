@@ -119,7 +119,7 @@ describe("ProviderExchange", () => {
 		expect(result.providerResponse).toBe(providerResponse);
 	});
 
-	test("records provider request and response payload events", async () => {
+	test("records provider request row and response payload event", async () => {
 		const providerResponse = { choices: [{ finish_reason: "stop" }] };
 		const provider = createMockProvider(providerResponse);
 		const debugLogs: Array<{ event: string; attr: Record<string, unknown> }> =
@@ -137,11 +137,8 @@ describe("ProviderExchange", () => {
 
 		expect(
 			ctx.traceEvents.map((event) => (event as { kind: string }).kind),
-		).toEqual(["request", "event", "event"]);
-		expect(traceEventNames(ctx)).toEqual([
-			"provider.request.body",
-			"provider.response.body",
-		]);
+		).toEqual(["request", "event"]);
+		expect(traceEventNames(ctx)).toEqual(["provider.response.body"]);
 		expect(debugLogs).toEqual([
 			{
 				event: "provider.request.sending",
@@ -172,17 +169,13 @@ describe("ProviderExchange", () => {
 
 		await new ProviderExchange().request(ctx);
 
-		expect(tracePayloads(ctx).slice(0, 2)).toEqual([
+		expect(tracePayloads(ctx)).toEqual([
 			{
 				model: "test",
 				messages: [{ role: "user", content: "hello" }],
 				patched: true,
 			},
-			{
-				model: "test",
-				messages: [{ role: "user", content: "hello" }],
-				patched: true,
-			},
+			providerResponse,
 		]);
 	});
 
@@ -254,7 +247,7 @@ describe("ProviderExchange", () => {
 		]);
 		expect(providerStream).toBe(result.providerStream);
 		expect(result.upstreamLatencyMillis).toEqual(expect.any(Number));
-		expect(traceEventNames(ctx)).toEqual(["provider.request.body"]);
+		expect(traceEventNames(ctx)).toEqual([]);
 		expect(debugLogs).toEqual([
 			{
 				event: "provider.request.sending",
@@ -294,13 +287,6 @@ describe("ProviderExchange", () => {
 		await new ProviderExchange().stream(ctx);
 
 		expect(tracePayloads(ctx)).toEqual([
-			{
-				model: "test",
-				messages: [{ role: "user", content: "hello" }],
-				stream: true,
-				stream_options: { include_usage: true },
-				patched: true,
-			},
 			{
 				model: "test",
 				messages: [{ role: "user", content: "hello" }],
