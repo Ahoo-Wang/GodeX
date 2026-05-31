@@ -15,6 +15,7 @@ import {
 	zhipuReasoningText,
 	zhipuResponseUsage,
 	zhipuStreamDeltas,
+	zhipuWebSearchCalls,
 } from "./hooks";
 import type {
 	ChatCompletionChunk,
@@ -48,6 +49,7 @@ export const ZHIPU_PROVIDER_SPEC: ProviderSpec<
 		finishReason: zhipuFinishReason,
 		outputText: zhipuOutputText,
 		reasoningText: zhipuReasoningText,
+		webSearchCalls: zhipuWebSearchCalls,
 		usage: zhipuResponseUsage,
 	},
 	stream: {

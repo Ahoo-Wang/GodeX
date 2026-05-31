@@ -117,7 +117,9 @@ function responseOutput<TResponse>(
 		readonly status: TerminalResponseStatus;
 	},
 ): ResponseObject["output"] {
-	const output: ResponseObject["output"] = [];
+	const output: ResponseObject["output"] = [
+		...(input.accessor.webSearchCalls?.(input.providerResponse) ?? []),
+	];
 	if (parts.reasoningText) {
 		output.push({
 			id: `rs_${input.responseId}`,

@@ -2,7 +2,10 @@ import type { ProviderCapabilities } from "../../bridge/compatibility";
 import type { ProviderStreamDelta } from "../../bridge/stream/stream-delta";
 import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
 import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
-import type { ResponseUsage } from "../../protocol/openai/responses";
+import type {
+	ResponseItem,
+	ResponseUsage,
+} from "../../protocol/openai/responses";
 import {
 	assertProviderChatRequest,
 	extractChoiceReasoningContent,
@@ -14,6 +17,7 @@ import type {
 	ChatCompletionResponseMessage,
 	ChatCompletionStreamDelta,
 	CompletionUsage,
+	WebSearchResult,
 	ChatCompletionCreateRequest as ZhipuChatCompletionCreateRequest,
 } from "./protocol";
 
@@ -89,6 +93,32 @@ export function zhipuReasoningText(
 	response: ChatCompletionResponse,
 ): string | undefined {
 	return extractChoiceReasoningContent(zhipuFirstChoice(response));
+}
+
+export function zhipuWebSearchCalls(
+	response: ChatCompletionResponse,
+): ResponseItem[] {
+	const results = response.web_search ?? [];
+	if (results.length === 0) return [];
+	const query = firstSearchQuery(results);
+	return [
+		{
+			id: `ws_${response.id}_0`,
+			type: "web_search_call",
+			status: "completed",
+			action: {
+				type: "search",
+				query,
+				queries: [query],
+				sources: results
+					.map((result) => result.link)
+					.filter(
+						(url): url is string => typeof url === "string" && url.length > 0,
+					)
+					.map((url) => ({ type: "url", url })),
+			},
+		},
+	];
 }
 
 export function mapZhipuUsage(
@@ -197,6 +227,14 @@ function extractZhipuText(
 			.join("");
 	}
 	return "";
+}
+
+function firstSearchQuery(results: readonly WebSearchResult[]): string {
+	return (
+		results.find(
+			(result) => typeof result.title === "string" && result.title.length > 0,
+		)?.title ?? "web search"
+	);
 }
 
 function assertFiniteNumber(
