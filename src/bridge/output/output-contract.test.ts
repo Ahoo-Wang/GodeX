@@ -34,11 +34,18 @@ describe("planOutputContract", () => {
 		expect(plan.requested).toBe(jsonSchemaFormat);
 		expect(plan.providerResponseFormat).toEqual({ type: "json_object" });
 		expect(plan.requiresValidJson).toBe(true);
-		expect(plan.syntheticInstruction).toContain("Return only valid JSON");
-		expect(plan.syntheticInstruction).not.toContain(
+		expect(plan.jsonSchemaInstruction).toContain("Return only valid JSON");
+		expect(plan.jsonSchemaInstruction).toContain(
+			"Final output format override:",
+		);
+		expect(plan.jsonSchemaInstruction).not.toContain(
 			"conforms to the JSON Schema",
 		);
-		expect(plan.syntheticInstruction).toContain('"ok"');
+		expect(plan.jsonSchemaInstruction).not.toContain("GodeX validates");
+		expect(plan.jsonSchemaInstruction).not.toContain(
+			"json_schema-to-json_object downgrade",
+		);
+		expect(plan.jsonSchemaInstruction).toContain('"ok"');
 	});
 
 	test("degrades non-strict json_schema without requiring valid JSON", () => {
@@ -51,7 +58,10 @@ describe("planOutputContract", () => {
 		});
 
 		expect(plan.providerResponseFormat).toEqual({ type: "json_object" });
-		expect(plan.syntheticInstruction).toContain("Return only valid JSON");
+		expect(plan.jsonSchemaInstruction).toContain("Return only valid JSON");
+		expect(plan.jsonSchemaInstruction).not.toContain(
+			"Final output format override:",
+		);
 		expect(plan.requiresValidJson).toBe(false);
 	});
 
@@ -62,7 +72,7 @@ describe("planOutputContract", () => {
 		});
 
 		expect(plan.providerResponseFormat).toBe(jsonSchemaFormat);
-		expect(plan.syntheticInstruction).toBeUndefined();
+		expect(plan.jsonSchemaInstruction).toBeUndefined();
 		expect(plan.requiresValidJson).toBe(false);
 	});
 
@@ -73,7 +83,7 @@ describe("planOutputContract", () => {
 
 		expect(plan.requested).toBe(textFormat);
 		expect(plan.providerResponseFormat).toBe(textFormat);
-		expect(plan.syntheticInstruction).toBeUndefined();
+		expect(plan.jsonSchemaInstruction).toBeUndefined();
 		expect(plan.requiresValidJson).toBe(false);
 	});
 
@@ -82,7 +92,7 @@ describe("planOutputContract", () => {
 
 		expect(plan.requested).toBeUndefined();
 		expect(plan.providerResponseFormat).toBeUndefined();
-		expect(plan.syntheticInstruction).toBeUndefined();
+		expect(plan.jsonSchemaInstruction).toBeUndefined();
 		expect(plan.requiresValidJson).toBe(false);
 	});
 });

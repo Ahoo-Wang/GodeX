@@ -61,6 +61,63 @@ describe("wrapWithErrorHandler", () => {
 		expect(cancelReason).toBe("downstream cancelled");
 		expect(releaseCount).toBe(1);
 	});
+
+	test("records missing terminal trace error when downstream cancels an active stream", async () => {
+		const pendingRead = deferred<StreamReadResult<ResponseStreamEvent>>();
+		const fakeReader = {
+			read: (() => {
+				let reads = 0;
+				return () => {
+					reads += 1;
+					if (reads === 1) {
+						return Promise.resolve({
+							done: false as const,
+							value: responseCreatedEvent(),
+						});
+					}
+					return pendingRead.promise;
+				};
+			})(),
+			cancel: async () => {
+				pendingRead.resolve({ done: true, value: undefined });
+			},
+			releaseLock: () => {},
+		};
+		const source = {
+			getReader: () => fakeReader,
+		} as unknown as ReadableStream<ResponseStreamEvent>;
+		const machine = new ResponseStreamStateMachine({
+			responseId: "resp_test",
+			createdAt: 1,
+			model: "test",
+			provider: "mock",
+		});
+		machine.start();
+		const traceRecords: unknown[] = [];
+		const wrapped = wrapWithErrorHandler(
+			source,
+			machine,
+			testContext({ traceEnabled: true, traceRecords }),
+		);
+
+		const reader = wrapped.getReader();
+		await reader.read();
+		await Promise.race([
+			reader.cancel("downstream cancelled"),
+			new Promise((resolve) => setTimeout(resolve, 20)),
+		]);
+
+		expect(traceRecords).toContainEqual(
+			expect.objectContaining({
+				kind: "error",
+				event_name: "responses.stream.missing_terminal",
+				code: "bridge.stream.missing_terminal",
+				message: expect.stringContaining(
+					"Response stream ended before a terminal event was emitted.",
+				),
+			}),
+		);
+	});
 });
 
 function responseCreatedEvent(): ResponseStreamEvent {
@@ -81,11 +138,15 @@ function responseCreatedEvent(): ResponseStreamEvent {
 	};
 }
 
-function testContext(): ResponsesContext {
+function testContext(
+	options: { traceEnabled?: boolean; traceRecords?: unknown[] } = {},
+): ResponsesContext {
 	return {
 		app: {
-			traceEnabled: false,
-			traceRecorder: { record: () => {} },
+			traceEnabled: options.traceEnabled ?? false,
+			traceRecorder: {
+				record: (event: unknown) => options.traceRecords?.push(event),
+			},
 		},
 		requestId: "req_test",
 		responseId: "resp_test",

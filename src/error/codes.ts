@@ -28,6 +28,7 @@ export const BRIDGE_STREAM_MISSING_OUTPUT_BLOCK =
 	"bridge.stream.missing_output_block";
 export const BRIDGE_STREAM_INCOMPLETE_TOOL_CALL =
 	"bridge.stream.incomplete_tool_call";
+export const BRIDGE_STREAM_MISSING_TERMINAL = "bridge.stream.missing_terminal";
 
 // --- provider domain ---
 export const PROVIDER_UPSTREAM_RATE_LIMIT = "provider.upstream.rate_limit";

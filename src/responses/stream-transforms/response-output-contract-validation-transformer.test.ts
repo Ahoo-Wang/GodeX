@@ -142,4 +142,26 @@ describe("ResponseOutputContractValidationTransformer", () => {
 		expect(events).toEqual([completed]);
 		expect(ctx.diagnostics).toEqual([]);
 	});
+
+	test("passes incomplete terminal responses through unchanged", async () => {
+		const ctx = createContext();
+		const incomplete: ResponseStreamEvent = {
+			type: "response.incomplete",
+			response: {
+				...response(""),
+				status: "incomplete",
+				incomplete_details: { reason: "max_output_tokens" },
+			},
+		};
+
+		const events = await drain(
+			pipeTransform(
+				streamFrom([incomplete]),
+				new ResponseOutputContractValidationTransformer(ctx),
+			),
+		);
+
+		expect(events).toEqual([incomplete]);
+		expect(ctx.diagnostics).toEqual([]);
+	});
 });

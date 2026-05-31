@@ -658,10 +658,11 @@ describe("E2E: sync response", () => {
 		expect(messages).toEqual([
 			{ role: "system", content: "Return JSON only." },
 			{
-				role: "system",
-				content: expect.stringContaining("Return only valid JSON."),
+				role: "user",
+				content: expect.stringContaining(
+					"Jane, 54 years old\n\nSchema name: person",
+				),
 			},
-			{ role: "user", content: "Jane, 54 years old" },
 		]);
 		expect(messages[1]?.content).toEqual(
 			expect.stringContaining('"required":["name","age"]'),

@@ -103,17 +103,46 @@ function chatMessages(
 	const current = normalizeCurrentInput(input.request, context);
 	const currentPrefixLength = systemPrefixLength(current);
 	const preamble = current.slice(0, currentPrefixLength);
-	if (output.syntheticInstruction) {
-		preamble.push({
-			role: "system",
-			content: output.syntheticInstruction,
-		});
-	}
-	return buildChatMessages([
+	const messages = [
 		...preamble,
 		...history,
 		...current.slice(currentPrefixLength),
-	]);
+	];
+	if (output.jsonSchemaInstruction) {
+		appendFinalInstruction(messages, output.jsonSchemaInstruction);
+	}
+	return buildChatMessages(messages);
+}
+
+function appendFinalInstruction(
+	messages: NormalizedChatMessage[],
+	instruction: string,
+): void {
+	for (let index = messages.length - 1; index >= 0; index--) {
+		const message = messages[index];
+		if (message && isFinalInstructionTarget(message)) {
+			messages[index] = {
+				...message,
+				content: `${message.content}\n\n${instruction}`,
+			};
+			return;
+		}
+	}
+	messages.push({ role: "system", content: instruction });
+}
+
+function isFinalInstructionTarget(
+	message: NormalizedChatMessage,
+): message is NormalizedChatMessage & {
+	readonly role: "developer" | "system" | "user";
+	readonly content: string;
+} {
+	return (
+		(message.role === "developer" ||
+			message.role === "system" ||
+			message.role === "user") &&
+		typeof message.content === "string"
+	);
 }
 
 function systemPrefixLength(

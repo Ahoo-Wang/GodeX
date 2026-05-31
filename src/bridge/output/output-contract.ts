@@ -12,7 +12,7 @@ export interface OutputContractResponseFormatDecision {
 export interface OutputContractPlan {
 	readonly requested: ResponseFormatTextConfig | undefined;
 	readonly providerResponseFormat?: unknown;
-	readonly syntheticInstruction?: string;
+	readonly jsonSchemaInstruction?: string;
 	readonly requiresValidJson: boolean;
 }
 
@@ -46,12 +46,12 @@ export function planOutputContract(input: {
 	return {
 		requested: input.format,
 		providerResponseFormat: { type: "json_object" },
-		syntheticInstruction: jsonSchemaInstruction(input.format),
+		jsonSchemaInstruction: buildJsonSchemaInstruction(input.format),
 		requiresValidJson: input.format.strict === true,
 	};
 }
 
-function jsonSchemaInstruction(
+function buildJsonSchemaInstruction(
 	format: ResponseFormatTextJSONSchemaConfig,
 ): string {
 	const lines: string[] = [];
@@ -65,10 +65,16 @@ function jsonSchemaInstruction(
 		"Rules:",
 		"- Output exactly one JSON value and nothing else.",
 		"- Do not include markdown, code fences, explanations, or extra text.",
-		"- Use the JSON Schema below as formatting guidance. GodeX validates JSON syntax after this json_schema-to-json_object downgrade.",
+		"- Use the JSON Schema below as formatting guidance.",
 		"",
 		"JSON Schema:",
 		JSON.stringify(format.schema),
 	);
+	if (format.strict === true) {
+		lines.push(
+			"",
+			"Final output format override: return exactly one valid JSON object matching the requested schema. This overrides any prior request for plain text, markdown, or extra text.",
+		);
+	}
 	return lines.join("\n");
 }

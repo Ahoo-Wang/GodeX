@@ -16,6 +16,8 @@ export function validateResponseOutputContract(
 	contract: OutputContractPlan,
 	response: ResponseObject,
 ): void {
+	if (response.status !== "completed") return;
+
 	try {
 		validateBridgeResponseOutputContract({
 			requiresValidJson: contract.requiresValidJson,
