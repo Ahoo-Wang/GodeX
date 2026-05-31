@@ -12,8 +12,7 @@ export interface OutputContractResponseFormatDecision {
 export interface OutputContractPlan {
 	readonly requested: ResponseFormatTextConfig | undefined;
 	readonly providerResponseFormat?: unknown;
-	readonly syntheticInstruction?: string;
-	readonly finalInstruction?: string;
+	readonly jsonSchemaInstruction?: string;
 	readonly requiresValidJson: boolean;
 }
 
@@ -47,14 +46,12 @@ export function planOutputContract(input: {
 	return {
 		requested: input.format,
 		providerResponseFormat: { type: "json_object" },
-		syntheticInstruction: jsonSchemaInstruction(input.format),
-		finalInstruction:
-			input.format.strict === true ? jsonSchemaFinalInstruction() : undefined,
+		jsonSchemaInstruction: buildJsonSchemaInstruction(input.format),
 		requiresValidJson: input.format.strict === true,
 	};
 }
 
-function jsonSchemaInstruction(
+function buildJsonSchemaInstruction(
 	format: ResponseFormatTextJSONSchemaConfig,
 ): string {
 	const lines: string[] = [];
@@ -73,10 +70,13 @@ function jsonSchemaInstruction(
 		"JSON Schema:",
 		JSON.stringify(format.schema),
 	);
+	if (format.strict === true) {
+		lines.push("", jsonSchemaStrictOverrideInstruction());
+	}
 	return lines.join("\n");
 }
 
-function jsonSchemaFinalInstruction(): string {
+function jsonSchemaStrictOverrideInstruction(): string {
 	return [
 		"Final output format override:",
 		"return exactly one valid JSON object matching the requested schema.",

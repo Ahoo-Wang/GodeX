@@ -173,7 +173,7 @@ describe("buildChatCompletionRequest", () => {
 		});
 	});
 
-	test("plans strict degraded json_schema as json_object and inserts schema instruction before user turns", () => {
+	test("plans strict degraded json_schema as json_object and appends schema instruction to the last user turn", () => {
 		const result = buildChatCompletionRequest({
 			provider: "acme",
 			model: "acme-chat",
@@ -197,30 +197,29 @@ describe("buildChatCompletionRequest", () => {
 		});
 
 		expect(result.output.requiresValidJson).toBe(true);
-		expect(result.output.syntheticInstruction).toContain(
+		expect(result.output.jsonSchemaInstruction).toContain(
 			"Return only valid JSON",
 		);
 		expect(result.request.response_format).toEqual({ type: "json_object" });
 		expect(result.request.messages).toEqual([
 			{ role: "system", content: "Use the requested shape." },
 			{
-				role: "system",
-				content: expect.stringContaining("Return only valid JSON"),
-			},
-			{
 				role: "user",
 				content: expect.stringContaining(
-					"Return a payload.\n\nFinal output format override:",
+					"Return a payload.\n\nSchema name: payload",
 				),
 			},
 		]);
 		expect(result.request.messages[1]?.content).toContain('"ok"');
+		expect(result.request.messages[1]?.content).toContain(
+			"Final output format override:",
+		);
 		expect(result.request.messages[1]?.content).not.toContain(
 			"conforms to the JSON Schema",
 		);
 	});
 
-	test("appends strict degraded json_schema guardrail to the last user text", () => {
+	test("appends strict degraded json_schema instruction to the last user text", () => {
 		const result = buildChatCompletionRequest({
 			provider: "acme",
 			model: "acme-chat",
@@ -243,19 +242,22 @@ describe("buildChatCompletionRequest", () => {
 			}),
 		});
 
-		expect(result.request.messages).toHaveLength(2);
+		expect(result.request.messages).toHaveLength(1);
 		expect(result.request.messages.at(-1)).toEqual({
 			role: "user",
 			content: expect.stringContaining(
-				"Output a short title as plain text.\n\nFinal output format override:",
+				"Output a short title as plain text.\n\nSchema name: title",
 			),
 		});
 		expect(result.request.messages.at(-1)?.content).toContain(
 			"return exactly one valid JSON object",
 		);
+		expect(result.request.messages.at(-1)?.content).toContain(
+			"Return only valid JSON.",
+		);
 	});
 
-	test("keeps current instructions and schema instruction before replayed history", () => {
+	test("keeps current instructions and appends schema instruction after replayed history", () => {
 		const result = buildChatCompletionRequest({
 			provider: "acme",
 			model: "acme-chat",
@@ -300,19 +302,19 @@ describe("buildChatCompletionRequest", () => {
 
 		expect(result.request.messages).toEqual([
 			{ role: "system", content: "Current system rules." },
-			{
-				role: "system",
-				content: expect.stringContaining("Return only valid JSON"),
-			},
 			{ role: "user", content: "Earlier request." },
 			{ role: "assistant", content: "Earlier answer." },
 			{
 				role: "user",
-				content: expect.stringContaining(
-					"Continue.\n\nFinal output format override:",
-				),
+				content: expect.stringContaining("Continue.\n\nSchema name: payload"),
 			},
 		]);
+		expect(result.request.messages.at(-1)?.content).toContain(
+			"Return only valid JSON.",
+		);
+		expect(result.request.messages.at(-1)?.content).toContain(
+			"Final output format override:",
+		);
 	});
 
 	test("rejects unsupported response formats instead of forwarding them", () => {

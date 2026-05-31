@@ -103,19 +103,13 @@ function chatMessages(
 	const current = normalizeCurrentInput(input.request, context);
 	const currentPrefixLength = systemPrefixLength(current);
 	const preamble = current.slice(0, currentPrefixLength);
-	if (output.syntheticInstruction) {
-		preamble.push({
-			role: "system",
-			content: output.syntheticInstruction,
-		});
-	}
 	const messages = [
 		...preamble,
 		...history,
 		...current.slice(currentPrefixLength),
 	];
-	if (output.finalInstruction) {
-		appendFinalInstruction(messages, output.finalInstruction);
+	if (output.jsonSchemaInstruction) {
+		appendFinalInstruction(messages, output.jsonSchemaInstruction);
 	}
 	return buildChatMessages(messages);
 }

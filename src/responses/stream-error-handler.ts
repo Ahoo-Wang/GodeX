@@ -4,11 +4,13 @@ import {
 	type ResponseStreamStateMachine,
 } from "../bridge/stream";
 import type { ResponsesContext } from "../context/responses-context";
+import { BridgeError } from "../error/bridge-error";
 import {
 	BRIDGE_STREAM_DELTA_AFTER_TERMINAL,
 	BRIDGE_STREAM_INCOMPLETE_TOOL_CALL,
 	BRIDGE_STREAM_INVALID_TRANSITION,
 	BRIDGE_STREAM_MISSING_OUTPUT_BLOCK,
+	BRIDGE_STREAM_MISSING_TERMINAL,
 	BRIDGE_STREAM_OUTPUT_BEFORE_START,
 } from "../error/codes";
 import { GodeXError } from "../error/godex-error";
@@ -95,12 +97,40 @@ export function wrapWithErrorHandler(
 		async cancel(reason) {
 			cancelled = true;
 			try {
+				recordMissingTerminalOnCancel(ctx, machine, reason);
 				await reader?.cancel(reason);
 			} finally {
 				releaseReader();
 			}
 		},
 	});
+}
+
+function recordMissingTerminalOnCancel(
+	ctx: ResponsesContext,
+	machine: ResponseStreamStateMachine,
+	reason: unknown,
+): void {
+	if (
+		machine.phase !== ResponseStreamPhase.IDLE &&
+		machine.phase !== ResponseStreamPhase.IN_PROGRESS
+	) {
+		return;
+	}
+	recordTraceError(
+		ctx,
+		"responses.stream.missing_terminal",
+		new BridgeError(
+			BRIDGE_STREAM_MISSING_TERMINAL,
+			"Response stream ended before a terminal event was emitted.",
+			{
+				provider: ctx.resolved.provider,
+				model: ctx.resolved.model,
+				phase: machine.phase,
+				cancel_reason: String(reason),
+			},
+		),
+	);
 }
 
 function providerStreamError(err: unknown): ProviderStreamError {

@@ -84,6 +84,6 @@ describe("ResponsesContext", () => {
 	test("starts with an empty request-scoped output contract", () => {
 		const ctx = createContext();
 
-		expect(ctx.outputContract.current().syntheticInstruction).toBeUndefined();
+		expect(ctx.outputContract.current().jsonSchemaInstruction).toBeUndefined();
 	});
 });
