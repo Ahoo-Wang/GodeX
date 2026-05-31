@@ -13,6 +13,7 @@ export interface OutputContractPlan {
 	readonly requested: ResponseFormatTextConfig | undefined;
 	readonly providerResponseFormat?: unknown;
 	readonly syntheticInstruction?: string;
+	readonly finalInstruction?: string;
 	readonly requiresValidJson: boolean;
 }
 
@@ -47,6 +48,8 @@ export function planOutputContract(input: {
 		requested: input.format,
 		providerResponseFormat: { type: "json_object" },
 		syntheticInstruction: jsonSchemaInstruction(input.format),
+		finalInstruction:
+			input.format.strict === true ? jsonSchemaFinalInstruction() : undefined,
 		requiresValidJson: input.format.strict === true,
 	};
 }
@@ -71,4 +74,12 @@ function jsonSchemaInstruction(
 		JSON.stringify(format.schema),
 	);
 	return lines.join("\n");
+}
+
+function jsonSchemaFinalInstruction(): string {
+	return [
+		"Final output format override:",
+		"return exactly one valid JSON object matching the requested schema.",
+		"This overrides any prior request for plain text, markdown, or extra text.",
+	].join(" ");
 }

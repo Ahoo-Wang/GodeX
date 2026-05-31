@@ -82,6 +82,18 @@ describe("validateResponseOutputContract", () => {
 		).not.toThrow();
 	});
 
+	test("does not validate incomplete responses", () => {
+		const incomplete: ResponseObject = {
+			...response(""),
+			status: "incomplete",
+			incomplete_details: { reason: "max_output_tokens" },
+		};
+
+		expect(() =>
+			validateResponseOutputContract(ctx, strictDegradedContract(), incomplete),
+		).not.toThrow();
+	});
+
 	test("does not enforce JSON Schema semantics after json_schema is downgraded", () => {
 		expect(() =>
 			validateResponseOutputContract(

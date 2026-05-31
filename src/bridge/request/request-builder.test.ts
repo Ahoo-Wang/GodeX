@@ -207,11 +207,51 @@ describe("buildChatCompletionRequest", () => {
 				role: "system",
 				content: expect.stringContaining("Return only valid JSON"),
 			},
-			{ role: "user", content: "Return a payload." },
+			{
+				role: "user",
+				content: expect.stringContaining(
+					"Return a payload.\n\nFinal output format override:",
+				),
+			},
 		]);
 		expect(result.request.messages[1]?.content).toContain('"ok"');
 		expect(result.request.messages[1]?.content).not.toContain(
 			"conforms to the JSON Schema",
+		);
+	});
+
+	test("appends strict degraded json_schema guardrail to the last user text", () => {
+		const result = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities,
+			profile: toolProfile,
+			request: request({
+				input: "Output a short title as plain text.",
+				text: {
+					format: {
+						type: "json_schema",
+						name: "title",
+						schema: {
+							type: "object",
+							required: ["title"],
+							properties: { title: { type: "string" } },
+						},
+						strict: true,
+					},
+				},
+			}),
+		});
+
+		expect(result.request.messages).toHaveLength(2);
+		expect(result.request.messages.at(-1)).toEqual({
+			role: "user",
+			content: expect.stringContaining(
+				"Output a short title as plain text.\n\nFinal output format override:",
+			),
+		});
+		expect(result.request.messages.at(-1)?.content).toContain(
+			"return exactly one valid JSON object",
 		);
 	});
 
@@ -266,7 +306,12 @@ describe("buildChatCompletionRequest", () => {
 			},
 			{ role: "user", content: "Earlier request." },
 			{ role: "assistant", content: "Earlier answer." },
-			{ role: "user", content: "Continue." },
+			{
+				role: "user",
+				content: expect.stringContaining(
+					"Continue.\n\nFinal output format override:",
+				),
+			},
 		]);
 	});
 
