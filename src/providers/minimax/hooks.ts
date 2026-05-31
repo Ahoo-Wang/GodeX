@@ -3,7 +3,11 @@ import type { ProviderStreamDelta } from "../../bridge/stream/stream-delta";
 import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
 import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
 import type { ResponseUsage } from "../../protocol/openai/responses";
-import { assertProviderChatRequest, mapCommonChatStreamDelta } from "../shared";
+import {
+	assertProviderChatRequest,
+	extractChoiceReasoningContent,
+	mapCommonChatStreamDelta,
+} from "../shared";
 import type {
 	ChatCompletion,
 	ChatCompletionChunk,
@@ -65,6 +69,21 @@ export function minimaxFinishReason(
 
 export function minimaxOutputText(response: ChatCompletion): string {
 	return extractMiniMaxText(minimaxFirstChoice(response)?.message.content);
+}
+
+export function minimaxReasoningText(
+	response: ChatCompletion,
+): string | undefined {
+	const message = minimaxFirstChoice(response)?.message;
+	if (!message) return undefined;
+	if (Array.isArray(message.reasoning_details)) {
+		const text = message.reasoning_details
+			.filter((detail) => detail.text.length > 0)
+			.map((detail) => detail.text)
+			.join("");
+		return text.length > 0 ? text : undefined;
+	}
+	return extractChoiceReasoningContent(minimaxFirstChoice(response));
 }
 
 export function mapMiniMaxUsage(
@@ -162,15 +181,15 @@ function mapMiniMaxChoiceDelta(
 	delta: ChatCompletionStreamDelta,
 ): ProviderStreamDelta[] {
 	const deltas: ProviderStreamDelta[] = [];
-	if (delta.content) {
-		deltas.push({ text: delta.content });
-	}
 	if (delta.reasoning_details) {
 		for (const detail of delta.reasoning_details) {
 			if (detail.text) {
 				deltas.push({ reasoning: detail.text });
 			}
 		}
+	}
+	if (delta.content) {
+		deltas.push({ text: delta.content });
 	}
 	deltas.push(...mapCommonChatStreamDelta(delta));
 	return deltas;

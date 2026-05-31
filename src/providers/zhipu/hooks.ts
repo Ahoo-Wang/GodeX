@@ -3,7 +3,11 @@ import type { ProviderStreamDelta } from "../../bridge/stream/stream-delta";
 import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
 import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
 import type { ResponseUsage } from "../../protocol/openai/responses";
-import { assertProviderChatRequest, mapCommonChatStreamDelta } from "../shared";
+import {
+	assertProviderChatRequest,
+	extractChoiceReasoningContent,
+	mapCommonChatStreamDelta,
+} from "../shared";
 import type {
 	ChatCompletionChunk,
 	ChatCompletionResponse,
@@ -80,6 +84,12 @@ export function zhipuFinishReason(
 
 export function zhipuOutputText(response: ChatCompletionResponse): string {
 	return extractZhipuMessageText(zhipuFirstChoice(response)?.message);
+}
+
+export function zhipuReasoningText(
+	response: ChatCompletionResponse,
+): string | undefined {
+	return extractChoiceReasoningContent(zhipuFirstChoice(response));
 }
 
 export function mapZhipuUsage(

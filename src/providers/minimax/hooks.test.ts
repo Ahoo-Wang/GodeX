@@ -117,7 +117,7 @@ describe("minimaxStreamDeltas", () => {
 		expect(deltas).toEqual([{ reasoning: "Let me think..." }]);
 	});
 
-	test("maps content to text and reasoning_details to reasoning simultaneously", () => {
+	test("maps reasoning_details before content when both arrive together", () => {
 		const chunk: ChatCompletionChunk = {
 			choices: [
 				{
@@ -132,8 +132,8 @@ describe("minimaxStreamDeltas", () => {
 
 		const deltas = minimaxStreamDeltas(chunk);
 		expect(deltas).toEqual([
-			{ text: '{"ok":true}' },
 			{ reasoning: "thinking" },
+			{ text: '{"ok":true}' },
 		]);
 	});
 

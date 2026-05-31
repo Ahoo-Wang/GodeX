@@ -9,6 +9,7 @@ interface ExampleChoice {
 
 interface ExampleResponse {
 	readonly choices?: ExampleChoice[];
+	readonly reasoningText?: string;
 	readonly text: string;
 	readonly usage: ResponseUsage | null;
 }
@@ -28,6 +29,9 @@ const accessor = {
 	},
 	outputText(response: ExampleResponse): string {
 		return response.text;
+	},
+	reasoningText(response: ExampleResponse): string | undefined {
+		return response.reasoningText;
 	},
 	usage(response: ExampleResponse): ResponseUsage | null {
 		return response.usage;
@@ -94,6 +98,33 @@ describe("reconstructResponseObject", () => {
 				role: "assistant",
 				status: "completed",
 				content: [{ type: "output_text", text: "hello world" }],
+			},
+		]);
+	});
+
+	test("reconstructs provider reasoning details separately from output text", () => {
+		const response = reconstruct({
+			choices: [{ finish_reason: "stop" }],
+			reasoningText: "thinking",
+			text: "answer",
+			usage,
+		});
+
+		expect(response.output_text).toBe("answer");
+		expect(response.output).toEqual([
+			{
+				id: "rs_resp_123",
+				type: "reasoning",
+				status: "completed",
+				summary: [],
+				content: [{ type: "reasoning_text", text: "thinking" }],
+			},
+			{
+				id: "msg_resp_123",
+				type: "message",
+				role: "assistant",
+				status: "completed",
+				content: [{ type: "output_text", text: "answer" }],
 			},
 		]);
 	});

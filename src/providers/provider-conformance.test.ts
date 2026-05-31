@@ -628,6 +628,90 @@ describe("ProviderSpec runtime conformance", () => {
 		).toBe("hello world");
 	});
 
+	test("DeepSeek provider spec extracts sync reasoning content", () => {
+		expect(
+			DEEPSEEK_PROVIDER_SPEC.response.reasoningText?.({
+				id: "deepseek-reasoning",
+				created: 1,
+				model: "deepseek-v4-flash",
+				choices: [
+					{
+						index: 0,
+						finish_reason: "stop",
+						message: {
+							role: "assistant",
+							content: "answer",
+							reasoning_content: "thinking",
+						},
+					},
+				],
+			} as never),
+		).toBe("thinking");
+	});
+
+	test("Zhipu provider spec extracts sync reasoning content", () => {
+		expect(
+			ZHIPU_PROVIDER_SPEC.response.reasoningText?.({
+				id: "zhipu-reasoning",
+				created: 1,
+				model: "glm-5.1",
+				choices: [
+					{
+						index: 0,
+						finish_reason: "stop",
+						message: {
+							role: "assistant",
+							content: "answer",
+							reasoning_content: "thinking",
+						},
+					},
+				],
+			} as never),
+		).toBe("thinking");
+	});
+
+	test("MiniMax provider spec extracts sync reasoning details", () => {
+		expect(
+			MINIMAX_PROVIDER_SPEC.response.reasoningText?.({
+				id: "minimax-reasoning",
+				created: 1,
+				model: "MiniMax-M2.7",
+				choices: [
+					{
+						index: 0,
+						finish_reason: "stop",
+						message: {
+							role: "assistant",
+							content: "answer",
+							reasoning_details: [{ text: "think " }, { text: "more" }],
+						},
+					},
+				],
+			}),
+		).toBe("think more");
+	});
+
+	test("Xiaomi provider spec extracts sync reasoning content", () => {
+		expect(
+			XIAOMI_PROVIDER_SPEC.response.reasoningText?.({
+				id: "xiaomi-reasoning",
+				created: 1,
+				model: "mimo-v2.5-pro",
+				choices: [
+					{
+						index: 0,
+						finish_reason: "stop",
+						message: {
+							role: "assistant",
+							content: "answer",
+							reasoning_content: "thinking",
+						},
+					},
+				],
+			}),
+		).toBe("thinking");
+	});
+
 	test("MiniMax provider spec returns empty string for null content", () => {
 		expect(
 			MINIMAX_PROVIDER_SPEC.response.outputText({

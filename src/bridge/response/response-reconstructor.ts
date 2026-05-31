@@ -73,7 +73,7 @@ export function reconstructResponseObject<TResponse>(
 		includeAssistantMessage:
 			outputText.length > 0 || providerToolCalls(firstChoice).length === 0,
 		toolCalls: providerToolCalls(firstChoice),
-		reasoningText: providerReasoningText(firstChoice),
+		reasoningText: input.accessor.reasoningText?.(input.providerResponse),
 		statusFields,
 	});
 }
@@ -180,26 +180,6 @@ function providerToolCalls(choice: unknown): ProviderFunctionCall[] {
 			},
 		];
 	});
-}
-
-function providerReasoningText(choice: unknown): string | undefined {
-	if (!isRecord(choice) || !isRecord(choice.message)) return undefined;
-	if (
-		typeof choice.message.reasoning_content === "string" &&
-		choice.message.reasoning_content.length > 0
-	) {
-		return choice.message.reasoning_content;
-	}
-	if (Array.isArray(choice.message.reasoning_details)) {
-		return choice.message.reasoning_details
-			.filter(
-				(d: unknown) =>
-					isRecord(d) && typeof d.text === "string" && d.text.length > 0,
-			)
-			.map((d: { text: string }) => d.text)
-			.join("");
-	}
-	return undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
