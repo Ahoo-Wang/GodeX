@@ -5,3 +5,4 @@ export * from "./tool-catalog";
 export * from "./tool-choice";
 export * from "./tool-identity";
 export * from "./tool-plan";
+export * from "./web-search";
