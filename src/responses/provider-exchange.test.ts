@@ -139,7 +139,7 @@ describe("ProviderExchange", () => {
 			ctx.traceEvents.map((event) => (event as { kind: string }).kind),
 		).toEqual(["request", "event", "event"]);
 		expect(traceEventNames(ctx)).toEqual([
-			"provider.request.started",
+			"provider.request.prepared",
 			"provider.response.body",
 		]);
 		expect(debugLogs).toEqual([
@@ -251,7 +251,7 @@ describe("ProviderExchange", () => {
 		]);
 		expect(providerStream).toBe(result.providerStream);
 		expect(result.upstreamLatencyMillis).toEqual(expect.any(Number));
-		expect(traceEventNames(ctx)).toEqual(["provider.request.started"]);
+		expect(traceEventNames(ctx)).toEqual(["provider.request.prepared"]);
 		expect(debugLogs).toEqual([
 			{
 				event: "provider.request.sending",
