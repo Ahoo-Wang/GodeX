@@ -24,7 +24,6 @@ export const ZHIPU_SUPPORTED_TOOL_TYPES: ReadonlySet<string> = new Set([
 	"web_search_preview",
 	"web_search_preview_2025_03_11",
 	"file_search",
-	"mcp",
 	"local_shell",
 	"shell",
 	"apply_patch",
