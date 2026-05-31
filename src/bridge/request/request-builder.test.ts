@@ -1060,6 +1060,42 @@ describe("normalizeCurrentInput", () => {
 		);
 	});
 
+	test("ignores web_search_call items when replaying response history", () => {
+		const normalized = normalizeCurrentInput(
+			request({
+				input: [
+					{
+						id: "ws_resp_123_0",
+						type: "web_search_call",
+						status: "completed",
+						action: {
+							type: "search",
+							query: "web search",
+							queries: ["web search"],
+							sources: [{ type: "url", url: "https://example.com/bun" }],
+						},
+					},
+					{
+						id: "msg_1",
+						type: "message",
+						role: "assistant",
+						status: "completed",
+						content: [{ type: "output_text", text: "Earlier answer." }],
+					},
+					{
+						role: "user",
+						content: [{ type: "input_text", text: "Continue." }],
+					},
+				],
+			}),
+		);
+
+		expect(normalized).toEqual([
+			{ role: "assistant", content: "Earlier answer." },
+			{ role: "user", content: "Continue." },
+		]);
+	});
+
 	test("throws BridgeError for unsupported input content parts", () => {
 		const error = captureBridgeError(() =>
 			normalizeCurrentInput(

@@ -1,8 +1,12 @@
 import type { ProviderCapabilities } from "../../bridge/compatibility";
 import type { ProviderStreamDelta } from "../../bridge/stream/stream-delta";
+import { isRecord } from "../../common";
 import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
 import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
-import type { ResponseUsage } from "../../protocol/openai/responses";
+import type {
+	ResponseItem,
+	ResponseUsage,
+} from "../../protocol/openai/responses";
 import {
 	assertProviderChatRequest,
 	extractChoiceReasoningContent,
@@ -91,6 +95,32 @@ export function zhipuReasoningText(
 	return extractChoiceReasoningContent(zhipuFirstChoice(response));
 }
 
+export function zhipuWebSearchCalls(
+	response: ChatCompletionResponse,
+): ResponseItem[] {
+	const results = response.web_search ?? [];
+	if (results.length === 0) return [];
+	const query = "web search";
+	return [
+		{
+			id: `ws_${response.id}_0`,
+			type: "web_search_call",
+			status: "completed",
+			action: {
+				type: "search",
+				query,
+				queries: [query],
+				sources: results
+					.map((result) => result.link)
+					.filter(
+						(url): url is string => typeof url === "string" && url.length > 0,
+					)
+					.map((url) => ({ type: "url", url })),
+			},
+		},
+	];
+}
+
 export function mapZhipuUsage(
 	usage: CompletionUsage | null | undefined,
 ): ResponseUsage | null {
@@ -122,22 +152,43 @@ export function zhipuPatchRequest(
 ): ZhipuChatCompletionCreateRequest {
 	assertProviderChatRequest("zhipu", request);
 	const { reasoning_effort: _reasoningEffort, ...providerRequest } = request;
-	if (providerRequest.thinking) {
+	const patchedRequest = patchNativeWebSearchResultDetails(providerRequest);
+	if (patchedRequest.thinking) {
 		return {
-			...providerRequest,
+			...patchedRequest,
 			thinking: {
-				...providerRequest.thinking,
+				...patchedRequest.thinking,
 				clear_thinking: false,
 			},
 		} as unknown as ZhipuChatCompletionCreateRequest;
 	}
-	if (hasHistoricalReasoningContent(providerRequest.messages)) {
+	if (hasHistoricalReasoningContent(patchedRequest.messages)) {
 		return {
-			...providerRequest,
+			...patchedRequest,
 			thinking: { type: "enabled", clear_thinking: false },
 		} as unknown as ZhipuChatCompletionCreateRequest;
 	}
-	return providerRequest as unknown as ZhipuChatCompletionCreateRequest;
+	return patchedRequest as unknown as ZhipuChatCompletionCreateRequest;
+}
+
+function patchNativeWebSearchResultDetails<
+	T extends Omit<BridgeChatCompletionCreateRequest, "reasoning_effort">,
+>(request: T): T {
+	const tools = (request as { readonly tools?: unknown }).tools;
+	if (!Array.isArray(tools)) return request;
+	return {
+		...request,
+		tools: tools.map((tool) => {
+			if (!isRecord(tool) || tool.type !== "web_search") return tool;
+			return {
+				...tool,
+				web_search: {
+					...(isRecord(tool.web_search) ? tool.web_search : {}),
+					search_result: true,
+				},
+			};
+		}),
+	} as T;
 }
 
 function hasHistoricalReasoningContent(

@@ -1,5 +1,8 @@
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
-import type { ResponseUsage } from "../../protocol/openai/responses";
+import type {
+	ResponseItem,
+	ResponseUsage,
+} from "../../protocol/openai/responses";
 import type { ProviderCapabilities } from "../compatibility";
 
 export type ProviderSpecStreamDelta = unknown;
@@ -34,6 +37,7 @@ export interface ChatCompletionResponseAccessor<TResponse> {
 	finishReason(response: TResponse): string | undefined;
 	outputText(response: TResponse): string;
 	reasoningText?(response: TResponse): string | undefined;
+	webSearchCalls?(response: TResponse): ResponseItem[];
 	usage(response: TResponse): ResponseUsage | null;
 }
 
