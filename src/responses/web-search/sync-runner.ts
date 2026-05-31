@@ -6,7 +6,6 @@ import type {
 	ResponseItem,
 	ResponseObject,
 } from "../../protocol/openai/responses";
-import type { SearchRequest, SearchResponse } from "../../search";
 import type {
 	ProviderExchangeRequestOptions,
 	ProviderRequestExchangeResult,
@@ -14,6 +13,7 @@ import type {
 import { responseRequestEchoFields } from "../response-request-echo";
 import { extractManagedWebSearchCalls, webSearchCallItem } from "./calls";
 import { buildContinuationRequest } from "./continuation";
+import { executeSearchWithTimeout } from "./search-execution";
 
 export interface HostedWebSearchSyncResult {
 	readonly response: ResponseObject;
@@ -121,38 +121,5 @@ export class HostedWebSearchSyncRunner {
 				parameter: "web_search",
 			},
 		);
-	}
-}
-
-async function executeSearchWithTimeout(
-	request: SearchRequest,
-	timeoutMs: number,
-	search: (signal: AbortSignal) => Promise<SearchResponse>,
-): Promise<SearchResponse> {
-	const controller = new AbortController();
-	let timeout: ReturnType<typeof setTimeout> | undefined;
-	try {
-		return await Promise.race([
-			search(controller.signal),
-			new Promise<SearchResponse>((_, reject) => {
-				timeout = setTimeout(() => {
-					controller.abort();
-					reject(
-						new BridgeError(
-							BRIDGE_REQUEST_UNSUPPORTED_TOOL,
-							`web_search timed out after ${timeoutMs}ms.`,
-							{
-								provider: "web_search",
-								model: "search",
-								parameter: "web_search.timeout_ms",
-								query: request.query,
-							},
-						),
-					);
-				}, timeoutMs);
-			}),
-		]);
-	} finally {
-		if (timeout) clearTimeout(timeout);
 	}
 }
