@@ -41,6 +41,10 @@ describe("planOutputContract", () => {
 		expect(plan.jsonSchemaInstruction).not.toContain(
 			"conforms to the JSON Schema",
 		);
+		expect(plan.jsonSchemaInstruction).not.toContain("GodeX validates");
+		expect(plan.jsonSchemaInstruction).not.toContain(
+			"json_schema-to-json_object downgrade",
+		);
 		expect(plan.jsonSchemaInstruction).toContain('"ok"');
 	});
 
