@@ -36,7 +36,7 @@ export class ProviderExchange {
 		const providerResponse = await ctx.provider.request(providerRequest, {
 			onPatchedRequest: (patchedRequest) => {
 				recordTraceRequest(ctx, false, patchedRequest);
-				recordTraceEvent(ctx, "provider.request.sent", undefined);
+				recordTraceEvent(ctx, "provider.request.started", undefined);
 			},
 		});
 		recordTraceEvent(ctx, "provider.response.body", providerResponse);
@@ -62,7 +62,7 @@ export class ProviderExchange {
 		const providerStream = await ctx.provider.stream(providerRequest, {
 			onPatchedRequest: (patchedRequest) => {
 				recordTraceRequest(ctx, true, patchedRequest);
-				recordTraceEvent(ctx, "provider.request.sent", undefined);
+				recordTraceEvent(ctx, "provider.request.started", undefined);
 			},
 		});
 		const upstreamLatencyMillis = Date.now() - upstreamStart;
