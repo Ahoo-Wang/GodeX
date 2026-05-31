@@ -65,7 +65,7 @@ export type WebSearchMode =
 	| "godex_managed"
 	| "disabled";
 
-export type WebSearchProvider = "none" | "mock";
+export type WebSearchProvider = "none" | "mock" | "zhipu";
 
 export type WebSearchOnUnavailable = "client_tool_call" | "fail" | "ignore";
 

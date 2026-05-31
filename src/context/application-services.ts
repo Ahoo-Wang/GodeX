@@ -44,7 +44,7 @@ export function createApplicationServices(
 		registrar: configuredRegistrar,
 		responses: new ResponsesBridgeRuntime(),
 		sessionStore: createResponseSessionStore(config.session),
-		search: createSearchService(config.web_search),
+		search: createSearchService(config),
 		traceRecorder: trace.traceRecorder,
 		traceEnabled: trace.traceEnabled,
 	};

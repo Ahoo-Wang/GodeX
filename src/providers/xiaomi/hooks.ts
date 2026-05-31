@@ -2,7 +2,10 @@ import type { ProviderCapabilities } from "../../bridge/compatibility";
 import type { ProviderStreamDelta } from "../../bridge/stream/stream-delta";
 import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
 import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
-import type { ResponseUsage } from "../../protocol/openai/responses";
+import type {
+	ResponseItem,
+	ResponseUsage,
+} from "../../protocol/openai/responses";
 import {
 	assertProviderChatRequest,
 	extractChoiceReasoningContent,
@@ -14,6 +17,7 @@ import type {
 	ChatCompletionRequest,
 	ChatCompletionStreamDelta,
 	CompletionUsage,
+	MimoToolDefinition,
 } from "./protocol";
 
 export const XIAOMI_MAX_TOOLS = 128;
@@ -33,6 +37,7 @@ export const XIAOMI_SPEC_CAPABILITIES: ProviderCapabilities = {
 	tools: {
 		supported: new Set([
 			"function",
+			"web_search",
 			"local_shell",
 			"shell",
 			"apply_patch",
@@ -40,6 +45,9 @@ export const XIAOMI_SPEC_CAPABILITIES: ProviderCapabilities = {
 			"namespace",
 		]),
 		degraded: new Map([
+			["web_search_2025_08_26", "web_search"],
+			["web_search_preview", "web_search"],
+			["web_search_preview_2025_03_11", "web_search"],
 			["local_shell", "function"],
 			["shell", "function"],
 			["apply_patch", "function"],
@@ -76,6 +84,31 @@ export function xiaomiReasoningText(
 	response: ChatCompletion,
 ): string | undefined {
 	return extractChoiceReasoningContent(xiaomiFirstChoice(response));
+}
+
+export function xiaomiWebSearchCalls(response: ChatCompletion): ResponseItem[] {
+	const annotations = xiaomiFirstChoice(response)?.message.annotations ?? [];
+	const sources = annotations
+		.filter((annotation) => annotation.type === "url_citation")
+		.filter(
+			(annotation) =>
+				typeof annotation.url === "string" && annotation.url.length > 0,
+		)
+		.map((annotation) => ({ type: "url" as const, url: annotation.url }));
+	if (sources.length === 0) return [];
+	return [
+		{
+			id: `ws_${response.id}_0`,
+			type: "web_search_call",
+			status: "completed",
+			action: {
+				type: "search",
+				query: "",
+				queries: [],
+				sources,
+			},
+		},
+	];
 }
 
 export function mapXiaomiUsage(
@@ -121,6 +154,9 @@ export function xiaomiPatchRequest(
 		...rest,
 		...(max_tokens !== undefined ? { max_completion_tokens: max_tokens } : {}),
 	} as unknown as ChatCompletionRequest;
+	if (providerRequest.tools) {
+		providerRequest.tools = providerRequest.tools.map(xiaomiTool);
+	}
 	if (hasHistoricalReasoningContent(providerRequest.messages)) {
 		return {
 			...providerRequest,
@@ -134,6 +170,45 @@ export function xiaomiPatchRequest(
 		};
 	}
 	return providerRequest;
+}
+
+function xiaomiTool(tool: MimoToolDefinition): MimoToolDefinition {
+	if (!isGenericWebSearchTool(tool)) return tool;
+	const config = tool.web_search;
+	return {
+		type: "web_search",
+		max_keyword: 3,
+		limit: config.content_size === "high" ? 5 : 3,
+		...(isApproximateLocation(config.user_location)
+			? { user_location: config.user_location }
+			: {}),
+	};
+}
+
+function isGenericWebSearchTool(
+	tool: MimoToolDefinition,
+): tool is MimoToolDefinition & {
+	readonly web_search: {
+		readonly content_size?: unknown;
+		readonly user_location?: unknown;
+	};
+} {
+	return (
+		tool.type === "web_search" &&
+		"web_search" in tool &&
+		typeof tool.web_search === "object" &&
+		tool.web_search !== null
+	);
+}
+
+function isApproximateLocation(value: unknown): value is {
+	type?: "approximate";
+	country?: string;
+	region?: string;
+	city?: string;
+	timezone?: string;
+} {
+	return typeof value === "object" && value !== null;
 }
 
 function hasHistoricalReasoningContent(

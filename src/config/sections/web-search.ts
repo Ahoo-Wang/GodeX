@@ -23,7 +23,11 @@ const WEB_SEARCH_MODES: readonly WebSearchMode[] = [
 	"disabled",
 ];
 
-const WEB_SEARCH_PROVIDERS: readonly WebSearchProvider[] = ["none", "mock"];
+const WEB_SEARCH_PROVIDERS: readonly WebSearchProvider[] = [
+	"none",
+	"mock",
+	"zhipu",
+];
 
 const WEB_SEARCH_UNAVAILABLE_POLICIES: readonly WebSearchOnUnavailable[] = [
 	"client_tool_call",

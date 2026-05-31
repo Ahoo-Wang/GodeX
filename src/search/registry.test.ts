@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { WebSearchConfig } from "../config";
+import type { GodeXConfig, WebSearchConfig } from "../config";
 import { createSearchService } from "./registry";
 
 const config: WebSearchConfig = {
@@ -13,7 +13,7 @@ const config: WebSearchConfig = {
 
 describe("createSearchService", () => {
 	test("creates an executable mock provider", async () => {
-		const service = createSearchService(config);
+		const service = createSearchService({ web_search: config } as GodeXConfig);
 
 		expect(service.available).toBe(true);
 		const result = await service.search({
@@ -28,7 +28,9 @@ describe("createSearchService", () => {
 	});
 
 	test("creates an unavailable service for provider none", async () => {
-		const service = createSearchService({ ...config, provider: "none" });
+		const service = createSearchService({
+			web_search: { ...config, provider: "none" },
+		} as GodeXConfig);
 
 		expect(service.available).toBe(false);
 		await expect(
@@ -38,5 +40,21 @@ describe("createSearchService", () => {
 				contentTypes: ["text"],
 			}),
 		).rejects.toThrow(/not configured/);
+	});
+
+	test("creates a Zhipu search provider from configured Zhipu credentials", () => {
+		const service = createSearchService({
+			web_search: { ...config, provider: "zhipu" },
+			providers: {
+				zhipu: {
+					spec: "zhipu",
+					credentials: { api_key: "zhipu-key" },
+					endpoint: { base_url: "https://open.bigmodel.cn/api/paas/v4" },
+				},
+			},
+		} as unknown as GodeXConfig);
+
+		expect(service.name).toBe("zhipu");
+		expect(service.available).toBe(true);
 	});
 });
