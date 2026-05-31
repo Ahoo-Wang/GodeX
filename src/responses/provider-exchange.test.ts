@@ -93,6 +93,12 @@ function traceEventNames(ctx: { traceEvents: unknown[] }): string[] {
 		.map((event) => (event as { event_name: string }).event_name);
 }
 
+function tracePayloads(ctx: { traceEvents: unknown[] }): unknown[] {
+	return ctx.traceEvents.map(
+		(event) => (event as { payload?: { payload?: unknown } }).payload?.payload,
+	);
+}
+
 describe("ProviderExchange", () => {
 	test("builds the provider request before calling the sync edge", async () => {
 		const providerResponse = { choices: [{ finish_reason: "stop" }] };
@@ -148,6 +154,34 @@ describe("ProviderExchange", () => {
 					model: "test",
 					upstreamDurationMillis: expect.any(Number),
 				}) as Record<string, unknown>,
+			},
+		]);
+	});
+
+	test("records patched sync provider request payload", async () => {
+		const providerResponse = { choices: [{ finish_reason: "stop" }] };
+		const provider: ProviderEdge<unknown, unknown, unknown> = {
+			...createMockProvider(providerResponse),
+			async request(body, options) {
+				const patched = { ...(body as object), patched: true };
+				options?.onPatchedRequest?.(patched);
+				return providerResponse;
+			},
+		};
+		const ctx = createMockCtx(provider);
+
+		await new ProviderExchange().request(ctx);
+
+		expect(tracePayloads(ctx).slice(0, 2)).toEqual([
+			{
+				model: "test",
+				messages: [{ role: "user", content: "hello" }],
+				patched: true,
+			},
+			{
+				model: "test",
+				messages: [{ role: "user", content: "hello" }],
+				patched: true,
 			},
 		]);
 	});
@@ -235,5 +269,46 @@ describe("ProviderExchange", () => {
 				}) as Record<string, unknown>,
 			},
 		]);
+	});
+
+	test("records patched stream provider request payload", async () => {
+		let providerStream:
+			| ReadableStream<JsonServerSentEvent<unknown>>
+			| undefined;
+		const provider: ProviderEdge<unknown, unknown, unknown> = {
+			...createMockProvider({ choices: [{ finish_reason: "stop" }] }),
+			async stream(body, options) {
+				const patched = { ...(body as object), patched: true };
+				options?.onPatchedRequest?.(patched);
+				providerStream = new ReadableStream({
+					start(controller) {
+						controller.enqueue({ event: "chunk", data: { text: "hi" } });
+						controller.close();
+					},
+				});
+				return providerStream;
+			},
+		};
+		const ctx = createMockCtx(provider);
+
+		await new ProviderExchange().stream(ctx);
+
+		expect(tracePayloads(ctx)).toEqual([
+			{
+				model: "test",
+				messages: [{ role: "user", content: "hello" }],
+				stream: true,
+				stream_options: { include_usage: true },
+				patched: true,
+			},
+			{
+				model: "test",
+				messages: [{ role: "user", content: "hello" }],
+				stream: true,
+				stream_options: { include_usage: true },
+				patched: true,
+			},
+		]);
+		expect(providerStream).toBeDefined();
 	});
 });

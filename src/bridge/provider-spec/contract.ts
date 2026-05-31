@@ -51,6 +51,10 @@ export interface ProviderHooks<
 	normalizeChunk?(chunk: TChunk): TChunk;
 }
 
+export interface ProviderRequestOptions<TProviderRequest = unknown> {
+	onPatchedRequest?(body: TProviderRequest): void;
+}
+
 export interface ProviderSpec<
 	TBridgeRequest,
 	TResponse,
@@ -86,8 +90,12 @@ export interface ProviderEdge<
 		TChunk,
 		TProviderRequest
 	>;
-	request(body: TBridgeRequest): Promise<TResponse>;
+	request(
+		body: TBridgeRequest,
+		options?: ProviderRequestOptions<TProviderRequest>,
+	): Promise<TResponse>;
 	stream(
 		body: TBridgeRequest,
+		options?: ProviderRequestOptions<TProviderRequest>,
 	): Promise<ReadableStream<JsonServerSentEvent<TChunk>>>;
 }

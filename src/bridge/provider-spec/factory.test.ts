@@ -30,6 +30,7 @@ describe("createProviderEdge", () => {
 
 	test("patches request bodies and normalizes responses around request impl", async () => {
 		const seenBodies: ExampleChatRequest[] = [];
+		const patchedBodies: ExampleChatRequest[] = [];
 		const spec = {
 			...EXAMPLE_PROVIDER_SPEC,
 			hooks: {
@@ -67,10 +68,17 @@ describe("createProviderEdge", () => {
 			},
 		});
 
-		const response = await edge.request({
-			model: "example/test",
-			messages: [{ role: "user", content: "hi" }],
-		});
+		const response = await edge.request(
+			{
+				model: "example/test",
+				messages: [{ role: "user", content: "hi" }],
+			},
+			{
+				onPatchedRequest: (body) => {
+					patchedBodies.push(body);
+				},
+			},
+		);
 
 		expect(seenBodies).toEqual([
 			{
@@ -81,11 +89,13 @@ describe("createProviderEdge", () => {
 				],
 			},
 		]);
+		expect(patchedBodies).toEqual(seenBodies);
 		expect(response.choices[0]?.message.content).toBe("hello!");
 	});
 
 	test("patches stream request bodies before calling stream impl", async () => {
 		let seenBody: ExampleChatRequest | undefined;
+		let patchedBody: ExampleChatRequest | undefined;
 		const spec = {
 			...EXAMPLE_PROVIDER_SPEC,
 			hooks: {
@@ -105,12 +115,20 @@ describe("createProviderEdge", () => {
 			},
 		});
 
-		await edge.stream({
-			model: "example/test",
-			messages: [{ role: "user", content: "hi" }],
-		});
+		await edge.stream(
+			{
+				model: "example/test",
+				messages: [{ role: "user", content: "hi" }],
+			},
+			{
+				onPatchedRequest: (body) => {
+					patchedBody = body;
+				},
+			},
+		);
 
 		expect(seenBody?.model).toBe("example/test-patched");
+		expect(patchedBody).toEqual(seenBody);
 	});
 
 	test("normalizes stream chunks before returning provider event stream", async () => {
@@ -154,9 +172,17 @@ describe("createProviderEdge", () => {
 			spec: EXAMPLE_PROVIDER_SPEC,
 			config: runtimeConfig,
 		});
+		const patchedBodies: ExampleChatRequest[] = [];
 
 		await expect(
-			edge.request({ model: "example/test", messages: [] }),
+			edge.request(
+				{ model: "example/test", messages: [] },
+				{
+					onPatchedRequest: (body) => {
+						patchedBodies.push(body);
+					},
+				},
+			),
 		).rejects.toBeInstanceOf(ProviderError);
 		await expect(
 			edge.request({ model: "example/test", messages: [] }),
@@ -171,6 +197,7 @@ describe("createProviderEdge", () => {
 				endpointBaseURL: "https://example.test",
 			},
 		});
+		expect(patchedBodies).toEqual([]);
 	});
 
 	test("throws ProviderError when stream implementation is not configured", async () => {
@@ -178,9 +205,17 @@ describe("createProviderEdge", () => {
 			spec: EXAMPLE_PROVIDER_SPEC,
 			config: runtimeConfig,
 		});
+		const patchedBodies: ExampleChatRequest[] = [];
 
 		await expect(
-			edge.stream({ model: "example/test", messages: [] }),
+			edge.stream(
+				{ model: "example/test", messages: [] },
+				{
+					onPatchedRequest: (body) => {
+						patchedBodies.push(body);
+					},
+				},
+			),
 		).rejects.toBeInstanceOf(ProviderError);
 		await expect(
 			edge.stream({ model: "example/test", messages: [] }),
@@ -195,6 +230,7 @@ describe("createProviderEdge", () => {
 				endpointBaseURL: "https://example.test",
 			},
 		});
+		expect(patchedBodies).toEqual([]);
 	});
 });
 

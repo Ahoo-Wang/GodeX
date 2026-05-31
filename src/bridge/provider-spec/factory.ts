@@ -50,7 +50,7 @@ export function createProviderEdge<
 	return {
 		name: spec.name,
 		spec,
-		request: async (body) => {
+		request: async (body, options) => {
 			const patched =
 				spec.hooks?.patchRequest?.(body) ??
 				(body as unknown as TProviderRequest);
@@ -63,10 +63,11 @@ export function createProviderEdge<
 					endpointBaseURL,
 				});
 			}
+			options?.onPatchedRequest?.(patched);
 			const response = await input.request(patched);
 			return spec.hooks?.normalizeResponse?.(response) ?? response;
 		},
-		stream: async (body) => {
+		stream: async (body, options) => {
 			const patched =
 				spec.hooks?.patchRequest?.(body) ??
 				(body as unknown as TProviderRequest);
@@ -79,6 +80,7 @@ export function createProviderEdge<
 					endpointBaseURL,
 				});
 			}
+			options?.onPatchedRequest?.(patched);
 			return normalizeChunkStream(
 				await input.stream(patched),
 				spec.hooks?.normalizeChunk,
