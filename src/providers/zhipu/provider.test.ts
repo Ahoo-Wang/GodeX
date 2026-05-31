@@ -35,8 +35,8 @@ describe("zhipuWebSearchCalls", () => {
 				status: "completed",
 				action: {
 					type: "search",
-					query: "web search",
-					queries: ["web search"],
+					query: "Latest Bun release",
+					queries: ["Latest Bun release"],
 					sources: [{ type: "url", url: "https://example.com/bun" }],
 				},
 			},
