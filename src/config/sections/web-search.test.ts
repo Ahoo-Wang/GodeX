@@ -11,7 +11,7 @@ describe("parseWebSearchConfig", () => {
 			parseWebSearchConfig({
 				enabled: false,
 				mode: "godex_managed",
-				provider: "mock",
+				provider: "zhipu",
 				on_unavailable: "fail",
 				max_iterations: 3,
 				timeout_ms: 2500,
@@ -19,14 +19,14 @@ describe("parseWebSearchConfig", () => {
 		).toEqual({
 			enabled: false,
 			mode: "godex_managed",
-			provider: "mock",
+			provider: "zhipu",
 			on_unavailable: "fail",
 			max_iterations: 3,
 			timeout_ms: 2500,
 		});
 	});
 
-	test("rejects unsupported real provider IDs until implemented", () => {
+	test("rejects unsupported real provider IDs", () => {
 		expect(() => parseWebSearchConfig({ provider: "brave" })).toThrow(
 			/web_search.provider/,
 		);

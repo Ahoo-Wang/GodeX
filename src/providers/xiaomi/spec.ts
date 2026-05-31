@@ -15,6 +15,7 @@ import {
 	xiaomiReasoningText,
 	xiaomiResponseUsage,
 	xiaomiStreamDeltas,
+	xiaomiWebSearchCalls,
 } from "./hooks";
 import type {
 	ChatCompletion,
@@ -45,6 +46,7 @@ export const XIAOMI_PROVIDER_SPEC: ProviderSpec<
 		finishReason: xiaomiFinishReason,
 		outputText: xiaomiOutputText,
 		reasoningText: xiaomiReasoningText,
+		webSearchCalls: xiaomiWebSearchCalls,
 		usage: xiaomiResponseUsage,
 	},
 	stream: {

@@ -121,12 +121,16 @@ function webSearchDeclaration(
 	tool: ResponseTool,
 ): ProviderToolDeclaration | undefined {
 	if (!isWebSearchTool(tool)) return undefined;
+	const allowedDomain =
+		"filters" in tool ? tool.filters?.allowed_domains?.[0] : undefined;
 	return {
 		type: "web_search",
 		web_search: {
 			enable: true,
 			search_engine: "search_std",
 			content_size: tool.search_context_size === "high" ? "high" : "medium",
+			...(allowedDomain ? { search_domain_filter: allowedDomain } : {}),
+			...(tool.user_location ? { user_location: tool.user_location } : {}),
 		},
 	};
 }
