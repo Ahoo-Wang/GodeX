@@ -137,8 +137,11 @@ describe("ProviderExchange", () => {
 
 		expect(
 			ctx.traceEvents.map((event) => (event as { kind: string }).kind),
-		).toEqual(["request", "event"]);
-		expect(traceEventNames(ctx)).toEqual(["provider.response.body"]);
+		).toEqual(["request", "event", "event"]);
+		expect(traceEventNames(ctx)).toEqual([
+			"provider.request.sent",
+			"provider.response.body",
+		]);
 		expect(debugLogs).toEqual([
 			{
 				event: "provider.request.sending",
@@ -175,6 +178,7 @@ describe("ProviderExchange", () => {
 				messages: [{ role: "user", content: "hello" }],
 				patched: true,
 			},
+			undefined,
 			providerResponse,
 		]);
 	});
@@ -247,7 +251,7 @@ describe("ProviderExchange", () => {
 		]);
 		expect(providerStream).toBe(result.providerStream);
 		expect(result.upstreamLatencyMillis).toEqual(expect.any(Number));
-		expect(traceEventNames(ctx)).toEqual([]);
+		expect(traceEventNames(ctx)).toEqual(["provider.request.sent"]);
 		expect(debugLogs).toEqual([
 			{
 				event: "provider.request.sending",
@@ -294,6 +298,7 @@ describe("ProviderExchange", () => {
 				stream_options: { include_usage: true },
 				patched: true,
 			},
+			undefined,
 		]);
 		expect(providerStream).toBeDefined();
 	});

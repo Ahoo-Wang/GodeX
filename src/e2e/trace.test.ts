@@ -240,6 +240,9 @@ describe("E2E: trace recording", () => {
 				"provider.request.body",
 			);
 			expect(eventRows.map((row) => row.event_name)).toContain(
+				"provider.request.sent",
+			);
+			expect(eventRows.map((row) => row.event_name)).toContain(
 				"upstream.stream.event.raw",
 			);
 			expect(eventRows.map((row) => row.event_name)).toContain(
