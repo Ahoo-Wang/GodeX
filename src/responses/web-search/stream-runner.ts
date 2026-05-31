@@ -65,10 +65,17 @@ export class HostedWebSearchStreamRunner {
 			provider: ctx.provider.name,
 			echo: responseRequestEchoFields(ctx),
 		});
+		const firstExchange = await this.exchange.stream(ctx, {
+			request: ctx.request,
+		});
+		ctx.attributes.set(
+			ATTR_UPSTREAM_LATENCY_MILLIS,
+			firstExchange.upstreamLatencyMillis,
+		);
 		const stream = new ReadableStream<ResponseStreamEvent>({
 			start: async (controller) => {
 				try {
-					await this.run(ctx, machine, controller);
+					await this.run(ctx, machine, controller, firstExchange);
 					controller.close();
 				} catch (error) {
 					controller.error(error);
@@ -82,16 +89,16 @@ export class HostedWebSearchStreamRunner {
 		ctx: ResponsesContext,
 		machine: ResponseStreamStateMachine,
 		controller: ResponseStreamController,
+		firstExchange: ProviderStreamExchangeResult,
 	): Promise<void> {
 		let request = ctx.request;
+		let pendingExchange: ProviderStreamExchangeResult | null = firstExchange;
 		const config = ctx.app.config.web_search ?? DEFAULT_WEB_SEARCH_CONFIG;
 
 		for (let iteration = 0; iteration <= config.max_iterations; iteration++) {
-			const { providerStream, upstreamLatencyMillis, built } =
-				await this.exchange.stream(ctx, { request });
-			if (iteration === 0) {
-				ctx.attributes.set(ATTR_UPSTREAM_LATENCY_MILLIS, upstreamLatencyMillis);
-			}
+			const { providerStream, built } =
+				pendingExchange ?? (await this.exchange.stream(ctx, { request }));
+			pendingExchange = null;
 
 			const toolIdentities = new ToolIdentityMap();
 			toolIdentities.addDeclarations(built.tools.declarations);
