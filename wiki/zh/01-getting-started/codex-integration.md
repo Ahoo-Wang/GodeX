@@ -84,23 +84,6 @@ curl http://localhost:5678/v1/responses \
   -d '{"model":"gpt-5.5","input":"你好，你是谁？"}'
 ```
 
-## 切换模型
-
-修改 `config.toml` 中的 `model` 字段即可：
-
-```toml
-# 主力模型
-model = "gpt-5.5"
-
-# 或旗舰模型
-model = "gpt-5.4"
-
-# 或快速 spark 模型
-model = "gpt-5.3-codex-spark"
-```
-
-所有别名到 provider/model 的实际映射都在 `godex.yaml` 中管理。
-
 ## 推理努力
 
 Codex 的 `model_reasoning_effort`（`low` / `medium` / `high` / `xhigh`）会被 GodeX 桥接为对应 provider 的 reasoning 参数：

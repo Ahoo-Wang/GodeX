@@ -84,23 +84,6 @@ curl http://localhost:5678/v1/responses \
   -d '{"model":"gpt-5.5","input":"Hello, who are you?"}'
 ```
 
-## Switching Models
-
-Change the `model` field in `config.toml`:
-
-```toml
-# Primary model
-model = "gpt-5.5"
-
-# or flagship
-model = "gpt-5.4"
-
-# or fast spark model
-model = "gpt-5.3-codex-spark"
-```
-
-All alias-to-provider mappings live in `godex.yaml`.
-
 ## Reasoning Effort
 
 Codex `model_reasoning_effort` (`low` / `medium` / `high` / `xhigh`) is bridged by GodeX per provider:
