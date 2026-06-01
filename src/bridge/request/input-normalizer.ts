@@ -349,9 +349,9 @@ type VideoInputPart = {
 
 function isVideoPart(part: unknown): part is VideoInputPart {
 	if (!isRecord(part) || part.type !== "input_file") return false;
-	if (typeof part.file_url === "string") return isVideoReference(part.file_url);
 	if (typeof part.file_data === "string")
 		return isVideoReference(part.file_data);
+	if (typeof part.file_url === "string") return isVideoReference(part.file_url);
 	return false;
 }
 
@@ -368,8 +368,11 @@ function toVideoContentPart(part: VideoInputPart): ChatCompletionContentPart {
 }
 
 function videoUrl(part: VideoInputPart): string {
+	if (typeof part.file_url === "string" && isVideoReference(part.file_url))
+		return part.file_url;
+	if (typeof part.file_data === "string") return part.file_data;
 	if (typeof part.file_url === "string") return part.file_url;
-	return part.file_data;
+	throw new TypeError("Video input part does not contain a video reference.");
 }
 
 function imageDetail(value: unknown): "low" | "high" | undefined {
@@ -380,11 +383,37 @@ function videoDetail(value: unknown): "low" | "high" | undefined {
 	return value === "low" || value === "high" ? value : undefined;
 }
 
+const VIDEO_FILE_EXTENSIONS = new Set(["mp4", "avi", "mov", "mkv"]);
+const NON_VIDEO_FILE_EXTENSIONS = new Set([
+	"bmp",
+	"csv",
+	"gif",
+	"html",
+	"jpeg",
+	"jpg",
+	"json",
+	"pdf",
+	"png",
+	"svg",
+	"txt",
+	"webp",
+	"xml",
+	"zip",
+]);
+
 function isVideoReference(value: string): boolean {
-	return (
-		value.startsWith("data:video/") ||
-		/\.(mp4|avi|mov|mkv)(?:[?#].*)?$/i.test(value)
-	);
+	if (value.startsWith("data:video/")) return true;
+	if (!/^https?:\/\//i.test(value)) return false;
+	let pathname: string;
+	try {
+		pathname = new URL(value).pathname;
+	} catch {
+		return false;
+	}
+	const extension = pathname.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
+	if (!extension) return true;
+	if (VIDEO_FILE_EXTENSIONS.has(extension)) return true;
+	return !NON_VIDEO_FILE_EXTENSIONS.has(extension);
 }
 
 function outputText(

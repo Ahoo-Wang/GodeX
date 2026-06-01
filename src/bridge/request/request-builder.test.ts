@@ -1191,6 +1191,75 @@ describe("normalizeCurrentInput", () => {
 		]);
 	});
 
+	test("normalizes extensionless video URLs", () => {
+		const normalized = normalizeCurrentInput(
+			request({
+				input: [
+					{
+						role: "user",
+						content: [
+							{
+								type: "input_file",
+								file_url: "https://cdn.example.com/signed-video?token=abc",
+								detail: "low",
+							},
+						],
+					},
+				],
+			}),
+			{ supportsVideoInput: true },
+		);
+
+		expect(normalized).toEqual([
+			{
+				role: "user",
+				content: [
+					{
+						type: "video_url",
+						video_url: {
+							url: "https://cdn.example.com/signed-video?token=abc",
+							detail: "low",
+						},
+					},
+				],
+			},
+		]);
+	});
+
+	test("normalizes video file data when file_url is not a video reference", () => {
+		const normalized = normalizeCurrentInput(
+			request({
+				input: [
+					{
+						role: "user",
+						content: [
+							{
+								type: "input_file",
+								file_url: "https://example.com/document.pdf",
+								file_data: "data:video/mp4;base64,AAAA",
+							},
+						],
+					},
+				],
+			}),
+			{ supportsVideoInput: true },
+		);
+
+		expect(normalized).toEqual([
+			{
+				role: "user",
+				content: [
+					{
+						type: "video_url",
+						video_url: {
+							url: "data:video/mp4;base64,AAAA",
+						},
+					},
+				],
+			},
+		]);
+	});
+
 	test("throws BridgeError for opaque file identifiers in video input", () => {
 		const error = captureBridgeError(() =>
 			normalizeCurrentInput(

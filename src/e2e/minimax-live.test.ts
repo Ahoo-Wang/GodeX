@@ -23,8 +23,9 @@ const liveEnabled = process.env.MINIMAX_LIVE_TESTS === "1";
 const liveDescribe = apiKey && liveEnabled ? describe : describe.skip;
 const minimaxBaseUrl = process.env.MINIMAX_BASE_URL ?? DEFAULT_MINIMAX_BASE_URL;
 const liveModel = process.env.MINIMAX_LIVE_MODEL ?? "MiniMax-M3";
-const maxOutputTokens = Number(
-	process.env.MINIMAX_LIVE_MAX_OUTPUT_TOKENS ?? 512,
+const maxOutputTokens = parsePositiveNumber(
+	process.env.MINIMAX_LIVE_MAX_OUTPUT_TOKENS,
+	512,
 );
 const liveImageUrl =
 	process.env.MINIMAX_LIVE_IMAGE_URL ??
@@ -35,6 +36,15 @@ const liveVideoUrl =
 
 let godexServer: ReturnType<typeof Bun.serve> | null = null;
 let client: GodeXClient;
+
+function parsePositiveNumber(
+	value: string | undefined,
+	fallback: number,
+): number {
+	if (value === undefined) return fallback;
+	const parsed = Number(value);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 function createLiveConfig(port: number): GodeXConfig {
 	return {
