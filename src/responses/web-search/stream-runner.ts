@@ -15,6 +15,7 @@ import type {
 	ResponseStreamEvent,
 	WebSearchCall,
 } from "../../protocol/openai/responses";
+import { recordTraceEvent } from "../../trace";
 import type {
 	ProviderExchangeStreamOptions,
 	ProviderStreamExchangeResult,
@@ -124,11 +125,13 @@ export class HostedWebSearchStreamRunner {
 				);
 			}
 
+			recordTraceEvent(ctx, "web_search.request", managed.search);
 			const search = await executeSearchWithTimeout(
 				managed.search,
 				config.timeout_ms,
 				(signal) => ctx.app.search.search(managed.search, signal),
 			);
+			recordTraceEvent(ctx, "web_search.response", search);
 			emitWebSearchLifecycle({
 				controller,
 				machine,

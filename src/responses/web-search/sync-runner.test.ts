@@ -90,6 +90,23 @@ describe("HostedWebSearchSyncRunner", () => {
 				output: expect.stringContaining("latest bun release"),
 			}),
 		]);
+		expect(traceEventNames(ctx)).toEqual([
+			"web_search.request",
+			"web_search.response",
+		]);
+		expect(tracePayloads(ctx, "web_search.request")).toEqual([
+			expect.objectContaining({ query: "latest bun release" }),
+		]);
+		expect(tracePayloads(ctx, "web_search.response")).toEqual([
+			expect.objectContaining({
+				query: "latest bun release",
+				results: [
+					expect.objectContaining({
+						url: "https://example.com/search/latest-bun-release",
+					}),
+				],
+			}),
+		]);
 	});
 
 	test("returns client fallback unchanged when search execution is client-visible", async () => {
@@ -283,7 +300,7 @@ function providerTextResponse(text: string): unknown {
 
 function createHostedSearchTestContext(
 	options: { readonly searchAvailable?: boolean } = {},
-): ResponsesContext {
+): ResponsesContext & { traceEvents: unknown[] } {
 	const searchAvailable = options.searchAvailable ?? true;
 	const provider = createTestProviderEdge({ name: "mock" });
 	const traceEvents: unknown[] = [];
@@ -345,7 +362,32 @@ function createHostedSearchTestContext(
 		attributes: new Map(),
 		outputContract: new OutputContractSlot(),
 		session: null,
-	} as unknown as ResponsesContext;
+		traceEvents,
+	} as unknown as ResponsesContext & { traceEvents: unknown[] };
+}
+
+function traceEventNames(ctx: {
+	readonly traceEvents: readonly unknown[];
+}): string[] {
+	return ctx.traceEvents
+		.filter((event) => (event as { kind?: string }).kind === "event")
+		.map((event) => (event as { event_name: string }).event_name);
+}
+
+function tracePayloads(
+	ctx: { readonly traceEvents: readonly unknown[] },
+	eventName: string,
+): unknown[] {
+	return ctx.traceEvents
+		.filter(
+			(event) =>
+				(event as { kind?: string; event_name?: string }).kind === "event" &&
+				(event as { event_name?: string }).event_name === eventName,
+		)
+		.map(
+			(event) =>
+				(event as { payload?: { payload?: unknown } }).payload?.payload,
+		);
 }
 
 function createMockSessionStore(): ResponseSessionStore & {
