@@ -324,27 +324,24 @@ function toImageContentPart(part: {
 	};
 }
 
-function isVideoPart(part: unknown): part is {
+type VideoInputPart = {
 	readonly type: "input_file";
-	readonly file_url?: string;
-	readonly file_data?: string;
-	readonly file_id?: string;
 	readonly detail?: unknown;
-} {
+} & (
+	| { readonly file_url: string; readonly file_data?: string }
+	| { readonly file_url?: undefined; readonly file_data: string }
+);
+
+function isVideoPart(part: unknown): part is VideoInputPart {
 	if (!isRecord(part) || part.type !== "input_file") return false;
 	if (typeof part.file_url === "string") return isVideoReference(part.file_url);
 	if (typeof part.file_data === "string")
 		return isVideoReference(part.file_data);
-	return typeof part.file_id === "string" && part.file_id.length > 0;
+	return false;
 }
 
-function toVideoContentPart(part: {
-	readonly file_url?: string;
-	readonly file_data?: string;
-	readonly file_id?: string;
-	readonly detail?: unknown;
-}): ChatCompletionContentPart {
-	const url = part.file_url ?? part.file_data ?? `mm_file://${part.file_id}`;
+function toVideoContentPart(part: VideoInputPart): ChatCompletionContentPart {
+	const url = videoUrl(part);
 	const detail = videoDetail(part.detail);
 	return {
 		type: "video_url",
@@ -353,6 +350,11 @@ function toVideoContentPart(part: {
 			...(detail ? { detail } : {}),
 		},
 	};
+}
+
+function videoUrl(part: VideoInputPart): string {
+	if (typeof part.file_url === "string") return part.file_url;
+	return part.file_data;
 }
 
 function imageDetail(value: unknown): "low" | "high" | undefined {
@@ -365,7 +367,6 @@ function videoDetail(value: unknown): "low" | "high" | undefined {
 
 function isVideoReference(value: string): boolean {
 	return (
-		value.startsWith("mm_file://") ||
 		value.startsWith("data:video/") ||
 		/\.(mp4|avi|mov|mkv)(?:[?#].*)?$/i.test(value)
 	);

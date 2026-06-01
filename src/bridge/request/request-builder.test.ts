@@ -1156,7 +1156,7 @@ describe("normalizeCurrentInput", () => {
 		]);
 	});
 
-	test("normalizes video file data and MiniMax file identifiers", () => {
+	test("normalizes video file data", () => {
 		const normalized = normalizeCurrentInput(
 			request({
 				input: [
@@ -1167,10 +1167,6 @@ describe("normalizeCurrentInput", () => {
 								type: "input_file",
 								file_data: "data:video/mp4;base64,AAAA",
 								detail: "high",
-							},
-							{
-								type: "input_file",
-								file_id: "video_file_123",
 							},
 						],
 					},
@@ -1190,15 +1186,79 @@ describe("normalizeCurrentInput", () => {
 							detail: "high",
 						},
 					},
-					{
-						type: "video_url",
-						video_url: {
-							url: "mm_file://video_file_123",
-						},
-					},
 				],
 			},
 		]);
+	});
+
+	test("throws BridgeError for opaque file identifiers in video input", () => {
+		const error = captureBridgeError(() =>
+			normalizeCurrentInput(
+				request({
+					input: [
+						{
+							role: "user",
+							content: [
+								{
+									type: "input_file",
+									file_id: "video_file_123",
+								},
+							],
+						},
+					],
+				}),
+				{
+					provider: "minimax",
+					model: "MiniMax-M3",
+					supportsVideoInput: true,
+				},
+			),
+		);
+
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT);
+		expect(error.message).toContain(
+			"Unsupported Responses input content type: input_file for minimax.",
+		);
+		expect(error.context).toMatchObject({
+			provider: "minimax",
+			model: "MiniMax-M3",
+			parameter: "input.content",
+		});
+	});
+
+	test("throws BridgeError for provider-specific file reference schemes in video input", () => {
+		const error = captureBridgeError(() =>
+			normalizeCurrentInput(
+				request({
+					input: [
+						{
+							role: "user",
+							content: [
+								{
+									type: "input_file",
+									file_url: "mm_file://video_file_123",
+								},
+							],
+						},
+					],
+				}),
+				{
+					provider: "minimax",
+					model: "MiniMax-M3",
+					supportsVideoInput: true,
+				},
+			),
+		);
+
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT);
+		expect(error.message).toContain(
+			"Unsupported Responses input content type: input_file for minimax.",
+		);
+		expect(error.context).toMatchObject({
+			provider: "minimax",
+			model: "MiniMax-M3",
+			parameter: "input.content",
+		});
 	});
 
 	test("throws BridgeError for unsupported input content parts", () => {
