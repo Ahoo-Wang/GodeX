@@ -24,7 +24,7 @@ import type {
 
 export const DEFAULT_MINIMAX_BASE_URL = "https://api.minimaxi.com/v1";
 export const MINIMAX_PROVIDER_NAME = "minimax";
-export const MINIMAX_DEFAULT_MODEL = "MiniMax-M2.7";
+export const MINIMAX_DEFAULT_MODEL = "MiniMax-M3";
 
 export const MINIMAX_PROVIDER_SPEC: ProviderSpec<
 	BridgeChatCompletionCreateRequest,

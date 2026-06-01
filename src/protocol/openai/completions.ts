@@ -38,6 +38,16 @@ export interface ChatCompletionContentPartImage {
 	};
 }
 
+export interface ChatCompletionContentPartVideo {
+	type: "video_url";
+	video_url: {
+		url: string;
+		detail?: "low" | "default" | "high";
+		fps?: number;
+		max_long_side_pixel?: number;
+	};
+}
+
 export interface ChatCompletionContentPartInputAudio {
 	type: "input_audio";
 	input_audio: {
@@ -64,6 +74,7 @@ export interface ChatCompletionContentPartRefusal {
 export type ChatCompletionContentPart =
 	| ChatCompletionContentPartText
 	| ChatCompletionContentPartImage
+	| ChatCompletionContentPartVideo
 	| ChatCompletionContentPartInputAudio
 	| ChatCompletionContentPartFile;
 

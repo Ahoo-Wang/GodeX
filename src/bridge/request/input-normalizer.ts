@@ -3,7 +3,10 @@ import {
 	BRIDGE_REQUEST_UNSUPPORTED_INPUT_ITEM,
 	BridgeError,
 } from "../../error";
-import type { ChatCompletionMessageParam } from "../../protocol/openai/completions";
+import type {
+	ChatCompletionContentPart,
+	ChatCompletionMessageParam,
+} from "../../protocol/openai/completions";
 import type {
 	ResponseCreateRequest,
 	ResponseItem,
@@ -16,6 +19,8 @@ export interface InputNormalizerContext {
 	readonly provider?: string;
 	readonly model?: string;
 	readonly toolPlan?: ToolPlan;
+	readonly supportsImageInput?: boolean;
+	readonly supportsVideoInput?: boolean;
 }
 
 export function normalizeCurrentInput(
@@ -229,7 +234,7 @@ function normalizeMessageContent(
 	content: unknown,
 	request: ResponseCreateRequest,
 	context: InputNormalizerContext,
-): string {
+): string | ChatCompletionContentPart[] {
 	if (typeof content === "string") return content;
 	if (!Array.isArray(content)) {
 		throw unsupportedInputContentError(
@@ -239,10 +244,23 @@ function normalizeMessageContent(
 		);
 	}
 
+	const parts: ChatCompletionContentPart[] = [];
 	const textParts: string[] = [];
+	let hasNonTextPart = false;
 	for (const part of content) {
 		if (isTextPart(part)) {
+			parts.push({ type: "text", text: part.text });
 			textParts.push(part.text);
+			continue;
+		}
+		if (isImagePart(part) && context.supportsImageInput) {
+			parts.push(toImageContentPart(part));
+			hasNonTextPart = true;
+			continue;
+		}
+		if (isVideoPart(part) && context.supportsVideoInput) {
+			parts.push(toVideoContentPart(part));
+			hasNonTextPart = true;
 			continue;
 		}
 		throw unsupportedInputContentError(
@@ -251,7 +269,8 @@ function normalizeMessageContent(
 			context,
 		);
 	}
-	return textParts.join("");
+	if (!hasNonTextPart) return textParts.join("");
+	return parts;
 }
 
 function isSimpleMessageItem(item: ResponseItem): item is ResponseItem & {
@@ -279,13 +298,96 @@ function isTextPart(
 	);
 }
 
+function isImagePart(part: unknown): part is {
+	readonly type: "input_image";
+	readonly image_url: string;
+	readonly detail?: unknown;
+} {
+	return (
+		isRecord(part) &&
+		part.type === "input_image" &&
+		typeof part.image_url === "string"
+	);
+}
+
+function toImageContentPart(part: {
+	readonly image_url: string;
+	readonly detail?: unknown;
+}): ChatCompletionContentPart {
+	const detail = imageDetail(part.detail);
+	return {
+		type: "image_url",
+		image_url: {
+			url: part.image_url,
+			...(detail ? { detail } : {}),
+		},
+	};
+}
+
+function isVideoPart(part: unknown): part is {
+	readonly type: "input_file";
+	readonly file_url?: string;
+	readonly file_data?: string;
+	readonly file_id?: string;
+	readonly detail?: unknown;
+} {
+	if (!isRecord(part) || part.type !== "input_file") return false;
+	if (typeof part.file_url === "string") return isVideoReference(part.file_url);
+	if (typeof part.file_data === "string")
+		return isVideoReference(part.file_data);
+	return typeof part.file_id === "string" && part.file_id.length > 0;
+}
+
+function toVideoContentPart(part: {
+	readonly file_url?: string;
+	readonly file_data?: string;
+	readonly file_id?: string;
+	readonly detail?: unknown;
+}): ChatCompletionContentPart {
+	const url = part.file_url ?? part.file_data ?? `mm_file://${part.file_id}`;
+	const detail = videoDetail(part.detail);
+	return {
+		type: "video_url",
+		video_url: {
+			url,
+			...(detail ? { detail } : {}),
+		},
+	};
+}
+
+function imageDetail(value: unknown): "low" | "high" | undefined {
+	return value === "low" || value === "high" ? value : undefined;
+}
+
+function videoDetail(value: unknown): "low" | "high" | undefined {
+	return value === "low" || value === "high" ? value : undefined;
+}
+
+function isVideoReference(value: string): boolean {
+	return (
+		value.startsWith("mm_file://") ||
+		value.startsWith("data:video/") ||
+		/\.(mp4|avi|mov|mkv)(?:[?#].*)?$/i.test(value)
+	);
+}
+
 function outputText(
 	output: string | readonly unknown[],
 	request: ResponseCreateRequest,
 	context: InputNormalizerContext,
 ): string {
 	if (typeof output === "string") return output;
-	return normalizeMessageContent(output, request, context);
+	const normalized = normalizeMessageContent(output, request, {
+		...context,
+		supportsImageInput: false,
+		supportsVideoInput: false,
+	});
+	return typeof normalized === "string"
+		? normalized
+		: normalized
+				.filter((part) => part.type === "text")
+				.map((part) => part.text)
+				.join("");
 }
 
 function toolName(item: { name: string; namespace?: string }): string {

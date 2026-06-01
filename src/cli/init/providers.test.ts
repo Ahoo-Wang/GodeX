@@ -40,7 +40,7 @@ describe("INIT_PROVIDER_DEFINITIONS", () => {
 		expect(getInitProviderDefinition("minimax")).toMatchObject({
 			apiKeyPlaceholder: "${MINIMAX_API_KEY}",
 			defaultBaseUrl: DEFAULT_MINIMAX_BASE_URL,
-			defaultModel: "MiniMax-M2.7",
+			defaultModel: "MiniMax-M3",
 		});
 		expect(getInitProviderDefinition("zhipu")).toMatchObject({
 			apiKeyPlaceholder: "${ZHIPU_API_KEY}",

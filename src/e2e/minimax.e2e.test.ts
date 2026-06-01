@@ -36,7 +36,7 @@ function handleMockChat(body: Record<string, unknown>) {
 		return jsonResponse({
 			id: "minimax-mock-tools",
 			created: Math.floor(Date.now() / 1000),
-			model: "MiniMax-M2.7",
+			model: "MiniMax-M3",
 			choices: [
 				{
 					index: 0,
@@ -70,7 +70,7 @@ function handleMockChat(body: Record<string, unknown>) {
 	return jsonResponse({
 		id: "minimax-mock-chat",
 		created: Math.floor(Date.now() / 1000),
-		model: "MiniMax-M2.7",
+		model: "MiniMax-M3",
 		choices: [
 			{
 				index: 0,
@@ -178,25 +178,120 @@ function lastUpstreamRequest(): Record<string, unknown> {
 }
 
 describe("MiniMax mocked e2e", () => {
-	test("maps default request and strips reasoning_effort", async () => {
+	test("maps reasoning effort to MiniMax adaptive thinking and strips reasoning_effort", async () => {
 		resetUpstreamRequests();
 		const res = await postResponses({
-			model: "MiniMax-M2.7",
+			model: "MiniMax-M3",
 			input: "Hello!",
 			reasoning: { effort: "medium" },
 		});
 
 		expect(res.status).toBe(200);
 		expect(lastUpstreamRequest()).toMatchObject({
-			model: "MiniMax-M2.7",
+			model: "MiniMax-M3",
 			messages: [{ role: "user", content: "Hello!" }],
+			thinking: { type: "adaptive" },
 		});
 		expect(lastUpstreamRequest()).not.toHaveProperty("reasoning_effort");
 	});
 
+	test("maps reasoning effort none to MiniMax disabled thinking", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "MiniMax-M3",
+			input: "Hello!",
+			reasoning: { effort: "none" },
+		});
+
+		expect(res.status).toBe(200);
+		expect(lastUpstreamRequest()).toMatchObject({
+			model: "MiniMax-M3",
+			thinking: { type: "disabled" },
+		});
+		expect(lastUpstreamRequest()).not.toHaveProperty("reasoning_effort");
+	});
+
+	test("maps Responses image input to MiniMax image_url content", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "MiniMax-M3",
+			input: [
+				{
+					role: "user",
+					content: [
+						{ type: "input_text", text: "Describe this image." },
+						{
+							type: "input_image",
+							image_url: "https://example.com/cat.png",
+							detail: "high",
+						},
+					],
+				},
+			],
+		});
+
+		expect(res.status).toBe(200);
+		expect(lastUpstreamRequest()).toMatchObject({
+			messages: [
+				{
+					role: "user",
+					content: [
+						{ type: "text", text: "Describe this image." },
+						{
+							type: "image_url",
+							image_url: {
+								url: "https://example.com/cat.png",
+								detail: "high",
+							},
+						},
+					],
+				},
+			],
+		});
+	});
+
+	test("maps Responses video file URL input to MiniMax video_url content", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "MiniMax-M3",
+			input: [
+				{
+					role: "user",
+					content: [
+						{ type: "input_text", text: "Describe this video." },
+						{
+							type: "input_file",
+							file_url: "https://example.com/cat-dive.mp4",
+							detail: "low",
+						},
+					],
+				},
+			],
+		});
+
+		expect(res.status).toBe(200);
+		expect(lastUpstreamRequest()).toMatchObject({
+			messages: [
+				{
+					role: "user",
+					content: [
+						{ type: "text", text: "Describe this video." },
+						{
+							type: "video_url",
+							video_url: {
+								url: "https://example.com/cat-dive.mp4",
+								detail: "low",
+							},
+						},
+					],
+				},
+			],
+		});
+	});
+
 	test("returns MiniMax usage with prompt_tokens_details", async () => {
 		resetUpstreamRequests();
-		const res = await postResponses({ model: "MiniMax-M2.7", input: "Hi" });
+		const res = await postResponses({ model: "MiniMax-M3", input: "Hi" });
 		const body = (await res.json()) as {
 			usage: {
 				input_tokens: number;
@@ -215,7 +310,7 @@ describe("MiniMax mocked e2e", () => {
 	test("returns function_call output from upstream tool_calls", async () => {
 		resetUpstreamRequests();
 		const res = await postResponses({
-			model: "MiniMax-M2.7",
+			model: "MiniMax-M3",
 			input: "List files.",
 		});
 
@@ -238,7 +333,7 @@ describe("MiniMax mocked e2e", () => {
 	test("restores degraded local_shell tool call back to local_shell_call", async () => {
 		resetUpstreamRequests();
 		const res = await postResponses({
-			model: "MiniMax-M2.7",
+			model: "MiniMax-M3",
 			input: "List files.",
 			tools: [{ type: "local_shell" }],
 		});
@@ -266,7 +361,7 @@ describe("MiniMax mocked e2e", () => {
 	test("sends tool_choice: required to upstream when tools are present", async () => {
 		resetUpstreamRequests();
 		const res = await postResponses({
-			model: "MiniMax-M2.7",
+			model: "MiniMax-M3",
 			input: "List files.",
 			tool_choice: "required",
 			tools: [{ type: "local_shell" }],
@@ -281,7 +376,7 @@ describe("MiniMax mocked e2e", () => {
 	test("sends named function tool_choice with degraded tools", async () => {
 		resetUpstreamRequests();
 		const res = await postResponses({
-			model: "MiniMax-M2.7",
+			model: "MiniMax-M3",
 			input: "List files.",
 			tool_choice: { type: "function", name: "read-file" },
 			tools: [
@@ -305,7 +400,7 @@ describe("MiniMax mocked e2e", () => {
 	test("degrades Codex built-in tools to function type", async () => {
 		resetUpstreamRequests();
 		const res = await postResponses({
-			model: "MiniMax-M2.7",
+			model: "MiniMax-M3",
 			input: "List files.",
 			tools: [
 				{ type: "local_shell" },
@@ -337,7 +432,7 @@ describe("MiniMax mocked e2e", () => {
 	test("maps Responses function call history to upstream tool_calls messages", async () => {
 		resetUpstreamRequests();
 		const res = await postResponses({
-			model: "MiniMax-M2.7",
+			model: "MiniMax-M3",
 			input: [
 				{
 					type: "function_call",

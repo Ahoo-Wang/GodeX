@@ -353,5 +353,9 @@ function normalizerContext(
 		provider: input.provider,
 		model: input.model,
 		toolPlan: tools,
+		supportsImageInput:
+			input.capabilities.parameters.supported.has("input.image"),
+		supportsVideoInput:
+			input.capabilities.parameters.supported.has("input.video"),
 	};
 }

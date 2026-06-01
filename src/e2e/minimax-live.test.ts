@@ -15,7 +15,7 @@ const apiKey = process.env.MINIMAX_API_KEY;
 const liveEnabled = process.env.MINIMAX_LIVE_TESTS === "1";
 const liveDescribe = apiKey && liveEnabled ? describe : describe.skip;
 const minimaxBaseUrl = process.env.MINIMAX_BASE_URL ?? DEFAULT_MINIMAX_BASE_URL;
-const liveModel = process.env.MINIMAX_LIVE_MODEL ?? "MiniMax-M2.7";
+const liveModel = process.env.MINIMAX_LIVE_MODEL ?? "MiniMax-M3";
 
 let godexServer: ReturnType<typeof Bun.serve> | null = null;
 let client: GodeXClient;
