@@ -1,7 +1,10 @@
 import type { ProviderCapabilities } from "../../bridge/compatibility";
 import type { ProviderStreamDelta } from "../../bridge/stream/stream-delta";
 import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../../error";
-import type { ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest } from "../../protocol/openai/completions";
+import type {
+	ChatCompletionCreateRequest as BridgeChatCompletionCreateRequest,
+	ChatCompletionThinking,
+} from "../../protocol/openai/completions";
 import type { ResponseUsage } from "../../protocol/openai/responses";
 import {
 	assertProviderChatRequest,
@@ -27,6 +30,9 @@ export const MINIMAX_SPEC_CAPABILITIES: ProviderCapabilities = {
 			"max_output_tokens",
 			"user",
 			"text.format",
+			"reasoning",
+			"input.image",
+			"input.video",
 		]),
 	},
 	tools: {
@@ -51,7 +57,7 @@ export const MINIMAX_SPEC_CAPABILITIES: ProviderCapabilities = {
 	responseFormats: {
 		supported: new Set(["text", "json_object"]),
 	},
-	reasoning: { effort: "none" },
+	reasoning: { effort: "boolean" },
 	streaming: { usage: true },
 };
 
@@ -74,15 +80,6 @@ export function minimaxOutputText(response: ChatCompletion): string {
 export function minimaxReasoningText(
 	response: ChatCompletion,
 ): string | undefined {
-	const message = minimaxFirstChoice(response)?.message;
-	if (!message) return undefined;
-	if (Array.isArray(message.reasoning_details)) {
-		const text = message.reasoning_details
-			.filter((detail) => detail.text.length > 0)
-			.map((detail) => detail.text)
-			.join("");
-		return text.length > 0 ? text : undefined;
-	}
 	return extractChoiceReasoningContent(minimaxFirstChoice(response));
 }
 
@@ -130,34 +127,26 @@ export function minimaxPatchRequest(
 	request: BridgeChatCompletionCreateRequest,
 ): ChatCompletionRequest {
 	assertProviderChatRequest("minimax", request);
-	const { reasoning_effort: _reasoningEffort, max_tokens, ...rest } = request;
+	const {
+		reasoning_effort: _reasoningEffort,
+		max_tokens,
+		thinking,
+		...rest
+	} = request;
+	const miniMaxThinking = normalizeMiniMaxThinking(thinking);
 	return {
 		...rest,
 		reasoning_split: true,
-		messages: rest.messages.map(convertReasoningContent),
+		...(miniMaxThinking ? { thinking: miniMaxThinking } : {}),
 		...(max_tokens !== undefined ? { max_completion_tokens: max_tokens } : {}),
 	} as unknown as ChatCompletionRequest;
 }
 
-function convertReasoningContent(message: unknown): unknown {
-	if (
-		typeof message !== "object" ||
-		message === null ||
-		!("role" in message) ||
-		message.role !== "assistant"
-	) {
-		return message;
-	}
-	const assistant = message as Record<string, unknown>;
-	const reasoningContent = assistant.reasoning_content;
-	if (typeof reasoningContent !== "string" || reasoningContent.length === 0) {
-		return message;
-	}
-	const { reasoning_content: _rc, ...rest } = assistant;
-	return {
-		...rest,
-		reasoning_details: [{ text: reasoningContent }],
-	};
+function normalizeMiniMaxThinking(
+	thinking: ChatCompletionThinking | undefined,
+): ChatCompletionRequest["thinking"] | undefined {
+	if (!thinking) return undefined;
+	return { type: thinking.type === "disabled" ? "disabled" : "adaptive" };
 }
 
 export function minimaxStreamDeltas(
@@ -181,17 +170,14 @@ function mapMiniMaxChoiceDelta(
 	delta: ChatCompletionStreamDelta,
 ): ProviderStreamDelta[] {
 	const deltas: ProviderStreamDelta[] = [];
-	if (delta.reasoning_details) {
-		for (const detail of delta.reasoning_details) {
-			if (detail.text) {
-				deltas.push({ reasoning: detail.text });
-			}
-		}
+	if (delta.reasoning_content) {
+		deltas.push({ reasoning: delta.reasoning_content });
 	}
 	if (delta.content) {
 		deltas.push({ text: delta.content });
 	}
-	deltas.push(...mapCommonChatStreamDelta(delta));
+	const { reasoning_content: _reasoningContent, ...rest } = delta;
+	deltas.push(...mapCommonChatStreamDelta(rest));
 	return deltas;
 }
 

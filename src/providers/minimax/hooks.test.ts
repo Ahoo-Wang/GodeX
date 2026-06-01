@@ -5,7 +5,7 @@ import type { ChatCompletionChunk } from "./protocol";
 
 function bridgeRequest(overrides: Partial<BridgeRequest> = {}): BridgeRequest {
 	return {
-		model: "MiniMax-M2.7-highspeed",
+		model: "MiniMax-M3",
 		messages: [
 			{ role: "system", content: "You are a helpful assistant." },
 			{ role: "user", content: "Hi" },
@@ -24,7 +24,7 @@ describe("minimaxPatchRequest", () => {
 		expect(result.reasoning_split).toBe(true);
 	});
 
-	test("converts reasoning_content to reasoning_details on assistant messages", () => {
+	test("preserves reasoning_content on assistant messages", () => {
 		const result = minimaxPatchRequest(
 			bridgeRequest({
 				messages: [
@@ -40,11 +40,29 @@ describe("minimaxPatchRequest", () => {
 		);
 
 		const assistant = toRecord(result.messages[1]);
-		expect(assistant.reasoning_details).toEqual([
-			{ text: "The user is greeting me." },
-		]);
-		expect("reasoning_content" in assistant).toBe(false);
+		expect(assistant.reasoning_content).toBe("The user is greeting me.");
+		expect("reasoning_details" in assistant).toBe(false);
 		expect(assistant.content).toBe("Hello!");
+	});
+
+	test("maps bridge thinking enabled to MiniMax adaptive thinking", () => {
+		const result = minimaxPatchRequest(
+			bridgeRequest({
+				thinking: { type: "enabled" },
+			} as unknown as BridgeRequest),
+		);
+
+		expect(toRecord(result).thinking).toEqual({ type: "adaptive" });
+	});
+
+	test("preserves bridge thinking disabled", () => {
+		const result = minimaxPatchRequest(
+			bridgeRequest({
+				thinking: { type: "disabled" },
+			} as unknown as BridgeRequest),
+		);
+
+		expect(toRecord(result).thinking).toEqual({ type: "disabled" });
 	});
 
 	test("preserves assistant messages without reasoning_content unchanged", () => {
@@ -101,13 +119,13 @@ describe("minimaxPatchRequest", () => {
 });
 
 describe("minimaxStreamDeltas", () => {
-	test("maps reasoning_details to reasoning deltas", () => {
+	test("maps reasoning_content to reasoning deltas", () => {
 		const chunk: ChatCompletionChunk = {
 			choices: [
 				{
 					index: 0,
 					delta: {
-						reasoning_details: [{ text: "Let me think..." }],
+						reasoning_content: "Let me think...",
 					},
 				},
 			],
@@ -117,14 +135,14 @@ describe("minimaxStreamDeltas", () => {
 		expect(deltas).toEqual([{ reasoning: "Let me think..." }]);
 	});
 
-	test("maps reasoning_details before content when both arrive together", () => {
+	test("maps reasoning_content before content when both arrive together", () => {
 		const chunk: ChatCompletionChunk = {
 			choices: [
 				{
 					index: 0,
 					delta: {
 						content: '{"ok":true}',
-						reasoning_details: [{ text: "thinking" }],
+						reasoning_content: "thinking",
 					},
 				},
 			],
@@ -135,37 +153,5 @@ describe("minimaxStreamDeltas", () => {
 			{ reasoning: "thinking" },
 			{ text: '{"ok":true}' },
 		]);
-	});
-
-	test("ignores empty reasoning_details entries", () => {
-		const chunk: ChatCompletionChunk = {
-			choices: [
-				{
-					index: 0,
-					delta: {
-						reasoning_details: [{ text: "" }],
-					},
-				},
-			],
-		};
-
-		const deltas = minimaxStreamDeltas(chunk);
-		expect(deltas).toEqual([]);
-	});
-
-	test("still maps legacy reasoning_content via shared mapper", () => {
-		const chunk: ChatCompletionChunk = {
-			choices: [
-				{
-					index: 0,
-					delta: {
-						reasoning_content: "legacy thinking",
-					},
-				},
-			],
-		};
-
-		const deltas = minimaxStreamDeltas(chunk);
-		expect(deltas).toEqual([{ reasoning: "legacy thinking" }]);
 	});
 });

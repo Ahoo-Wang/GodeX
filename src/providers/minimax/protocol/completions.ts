@@ -1,6 +1,6 @@
 export type MiniMaxModel = string;
 
-export type FinishReason = "stop" | "length" | "tool_calls";
+export type FinishReason = "stop" | "length" | "content_filter" | "tool_calls";
 
 export interface MiniMaxFunctionDefinition {
 	name: string;
@@ -35,14 +35,39 @@ export interface MiniMaxSystemMessage {
 	name?: string;
 }
 
-export interface MiniMaxUserMessage {
-	role: "user";
-	content: string;
-	name?: string;
+export interface MiniMaxContentPartText {
+	type: "text";
+	text: string;
 }
 
-export interface MiniMaxReasoningDetail {
-	text: string;
+export interface MiniMaxContentPartImage {
+	type: "image_url";
+	image_url: {
+		url: string;
+		detail?: "low" | "default" | "high";
+		max_long_side_pixel?: number;
+	};
+}
+
+export interface MiniMaxContentPartVideo {
+	type: "video_url";
+	video_url: {
+		url: string;
+		detail?: "low" | "default" | "high";
+		fps?: number;
+		max_long_side_pixel?: number;
+	};
+}
+
+export type MiniMaxContentPart =
+	| MiniMaxContentPartText
+	| MiniMaxContentPartImage
+	| MiniMaxContentPartVideo;
+
+export interface MiniMaxUserMessage {
+	role: "user";
+	content: string | MiniMaxContentPart[];
+	name?: string;
 }
 
 export interface MiniMaxAssistantMessage {
@@ -50,7 +75,6 @@ export interface MiniMaxAssistantMessage {
 	content?: string | null;
 	name?: string;
 	reasoning_content?: string | null;
-	reasoning_details?: MiniMaxReasoningDetail[];
 	tool_calls?: MiniMaxMessageToolCall[];
 }
 
@@ -71,6 +95,7 @@ export interface ChatCompletionRequest {
 	messages: MiniMaxMessage[];
 	max_completion_tokens?: number;
 	response_format?: { type: "text" | "json_object" };
+	thinking?: MiniMaxThinking;
 	reasoning_split?: boolean;
 	stream?: boolean;
 	stream_options?: { include_usage: boolean };
@@ -79,6 +104,10 @@ export interface ChatCompletionRequest {
 	tools?: MiniMaxTool[];
 	tool_choice?: MiniMaxToolChoice;
 	user_id?: string;
+}
+
+export interface MiniMaxThinking {
+	type: "disabled" | "adaptive";
 }
 
 export interface CompletionUsage {
@@ -115,7 +144,6 @@ export interface ChatCompletionStreamDelta {
 	role?: "assistant";
 	content?: string | null;
 	reasoning_content?: string | null;
-	reasoning_details?: MiniMaxReasoningDetail[];
 	tool_calls?: Array<{
 		index?: number;
 		id?: string;

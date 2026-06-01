@@ -54,7 +54,7 @@ describe("ProviderSpec usage mapping", () => {
 			MINIMAX_PROVIDER_SPEC.response.usage({
 				id: "minimax-zero",
 				created: 1,
-				model: "MiniMax-M2.7",
+				model: "MiniMax-M3",
 				choices: [],
 				usage: {
 					prompt_tokens: 1,
@@ -144,7 +144,7 @@ describe("ProviderSpec usage mapping", () => {
 			MINIMAX_PROVIDER_SPEC.response.usage({
 				id: "minimax-bad-usage",
 				created: 1,
-				model: "MiniMax-M2.7",
+				model: "MiniMax-M3",
 				choices: [],
 				usage: {
 					prompt_tokens: "1",
@@ -193,7 +193,7 @@ describe("ProviderSpec usage mapping", () => {
 			MINIMAX_PROVIDER_SPEC.response.usage({
 				id: "minimax-bad-reasoning",
 				created: 1,
-				model: "MiniMax-M2.7",
+				model: "MiniMax-M3",
 				choices: [],
 				usage: {
 					prompt_tokens: 1,
@@ -210,7 +210,7 @@ describe("ProviderSpec usage mapping", () => {
 			MINIMAX_PROVIDER_SPEC.response.usage({
 				id: "minimax-bad-cached",
 				created: 1,
-				model: "MiniMax-M2.7",
+				model: "MiniMax-M3",
 				choices: [],
 				usage: {
 					prompt_tokens: 1,
@@ -227,7 +227,7 @@ describe("ProviderSpec usage mapping", () => {
 			MINIMAX_PROVIDER_SPEC.response.usage({
 				id: "minimax-bad-total",
 				created: 1,
-				model: "MiniMax-M2.7",
+				model: "MiniMax-M3",
 				choices: [],
 				usage: {
 					prompt_tokens: 1,
@@ -243,7 +243,7 @@ describe("ProviderSpec usage mapping", () => {
 			MINIMAX_PROVIDER_SPEC.response.usage({
 				id: "minimax-null-usage",
 				created: 1,
-				model: "MiniMax-M2.7",
+				model: "MiniMax-M3",
 				choices: [],
 				usage: null as never,
 			}),
@@ -267,7 +267,7 @@ describe("ProviderSpec usage mapping", () => {
 			MINIMAX_PROVIDER_SPEC.response.usage({
 				id: "minimax-partial-usage",
 				created: 1,
-				model: "MiniMax-M2.7",
+				model: "MiniMax-M3",
 				choices: [],
 				usage: {
 					prompt_tokens: 1,

@@ -13,8 +13,9 @@ GodeX ships with four built-in providers that cover the most popular non-OpenAI 
 |---|---|---|---|---|
 | **Spec Name** | `deepseek` | `zhipu` | `minimax` | `xiaomi` |
 | **Default Base URL** | `api.deepseek.com` | `open.bigmodel.cn` (coding plan) | `api.minimaxi.com/v1` | `api.xiaomimimo.com/v1` |
-| **Default Model** | `deepseek-v4-pro` | `glm-5.1` | `MiniMax-M2.7` | `mimo-v2.5-pro` |
-| **Reasoning Effort** | `native` | `boolean` | `none` | `boolean` |
+| **Default Model** | `deepseek-v4-pro` | `glm-5.1` | `MiniMax-M3` | `mimo-v2.5-pro` |
+| **Reasoning Effort** | `native` | `boolean` | `boolean` | `boolean` |
+| **GodeX Input** | text | text | text, image, video | text |
 | **Max Tools** | 128 | 128 | 128 | 128 |
 | **Response Formats** | text, json_object | text, json_object | text, json_object | text, json_object |
 | **Streaming Usage** | Yes | Yes | Yes | Yes |
@@ -123,7 +124,7 @@ Each provider handles reasoning (chain-of-thought) differently. The compatibilit
 |---|---|---|
 | DeepSeek | `native` | Maps `high` -> `high`, `xhigh` -> `max`. Adds `thinking: {type: "enabled"}` to the request. |
 | Zhipu | `boolean` | Adds `thinking: {type: "enabled", clear_thinking: false}` when reasoning content is detected. |
-| MiniMax | `none` | Strips `reasoning_effort` entirely; reasoning is not supported. |
+| MiniMax | `boolean` | Maps `reasoning.effort: "none"` to `thinking: {type: "disabled"}` and other effort values to MiniMax adaptive thinking. Reads reasoning output from `reasoning_content`. |
 | Xiaomi | `boolean` | Bridge maps effort to `thinking: {type: "enabled"/"disabled"}`. Forces `thinking: enabled` when historical `reasoning_content` exists in messages. Defaults to `thinking: disabled` when no reasoning was requested. |
 
 DeepSeek's `deepSeekPatchRequest` handles this mapping in [src/providers/deepseek/hooks.ts:113-136](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L113-L136), Zhipu's in [src/providers/zhipu/hooks.ts:113-134](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L113-L134), and Xiaomi's in [src/providers/xiaomi/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts).
@@ -194,16 +195,17 @@ The Zhipu spec defaults to the coding plan endpoint at `https://open.bigmodel.cn
 
 ### MiniMax
 
-The MiniMax spec targets `https://api.minimaxi.com/v1` ([src/providers/minimax/spec.ts:24-54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/spec.ts#L24-54)).
+The MiniMax spec targets `https://api.minimaxi.com/v1` ([src/providers/minimax/spec.ts:25-56](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/spec.ts#L25-L56)).
 
 | Property | Value |
 |---|---|
 | Name | `minimax` |
 | Protocol | `chat_completions` |
 | Default Base URL | `https://api.minimaxi.com/v1` |
-| Default Model | `MiniMax-M2.7` |
+| Default Model | `MiniMax-M3` |
 | Auth | Bearer |
-| Reasoning | None |
+| Reasoning | Boolean (adaptive/disabled thinking, returned as `reasoning_content`) |
+| Input | Text, image, and video content parts |
 
 ### Xiaomi
 
@@ -234,8 +236,8 @@ The Xiaomi spec targets the MiMo API at `https://api.xiaomimimo.com/v1` ([src/pr
 - [src/providers/deepseek/hooks.ts:18-57](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L18-57) - DeepSeek capabilities and hooks
 - [src/providers/zhipu/spec.ts:1-59](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/spec.ts#L1-59) - Zhipu spec definition
 - [src/providers/zhipu/hooks.ts:16-69](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L16-69) - Zhipu capabilities and hooks
-- [src/providers/minimax/spec.ts:1-57](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/spec.ts#L1-57) - MiniMax spec definition
-- [src/providers/minimax/hooks.ts:17-54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/hooks.ts#L17-54) - MiniMax capabilities and hooks
+- [src/providers/minimax/spec.ts:1-58](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/spec.ts#L1-L58) - MiniMax spec definition
+- [src/providers/minimax/hooks.ts:24-62](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/hooks.ts#L24-L62) - MiniMax capabilities and hooks
 - [src/providers/xiaomi/spec.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/spec.ts) - Xiaomi spec definition
 - [src/providers/xiaomi/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts) - Xiaomi capabilities and hooks
 - [src/providers/definition.ts:6-29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/definition.ts#L6-29) - ProviderDefinition interface

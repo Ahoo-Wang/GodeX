@@ -92,7 +92,7 @@ Codex `model_reasoning_effort` (`low` / `medium` / `high` / `xhigh`) is bridged 
 |---|---|
 | DeepSeek | Native `reasoning_effort`, passed through directly |
 | Zhipu | Boolean `thinking` switch, mapped from effort level |
-| MiniMax | No native reasoning, ignored |
+| MiniMax | Boolean `thinking` switch; `none` disables thinking, other effort values use adaptive thinking |
 | Xiaomi MiMo | Boolean `thinking` switch, similar to Zhipu |
 
 GodeX includes compatibility diagnostics in responses, so you always know what was degraded or ignored.

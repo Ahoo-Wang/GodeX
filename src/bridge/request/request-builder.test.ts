@@ -1096,6 +1096,275 @@ describe("normalizeCurrentInput", () => {
 		]);
 	});
 
+	test("normalizes supported image and video content parts", () => {
+		const normalized = normalizeCurrentInput(
+			request({
+				input: [
+					{
+						role: "user",
+						content: [
+							{ type: "input_text", text: "Inspect these." },
+							{
+								type: "input_image",
+								image_url: "https://example.com/image.png",
+								detail: "high",
+							},
+							{
+								type: "input_image",
+								image_url: "https://example.com/thumbnail.png",
+								detail: "auto",
+							},
+							{
+								type: "input_file",
+								file_url: "https://example.com/demo.mp4?token=1",
+								detail: "low",
+							},
+						],
+					},
+				],
+			}),
+			{ supportsImageInput: true, supportsVideoInput: true },
+		);
+
+		expect(normalized).toEqual([
+			{
+				role: "user",
+				content: [
+					{ type: "text", text: "Inspect these." },
+					{
+						type: "image_url",
+						image_url: {
+							url: "https://example.com/image.png",
+							detail: "high",
+						},
+					},
+					{
+						type: "image_url",
+						image_url: {
+							url: "https://example.com/thumbnail.png",
+						},
+					},
+					{
+						type: "video_url",
+						video_url: {
+							url: "https://example.com/demo.mp4?token=1",
+							detail: "low",
+						},
+					},
+				],
+			},
+		]);
+	});
+
+	test("normalizes video file data", () => {
+		const normalized = normalizeCurrentInput(
+			request({
+				input: [
+					{
+						role: "user",
+						content: [
+							{
+								type: "input_file",
+								file_data: "data:video/mp4;base64,AAAA",
+								detail: "high",
+							},
+						],
+					},
+				],
+			}),
+			{ supportsVideoInput: true },
+		);
+
+		expect(normalized).toEqual([
+			{
+				role: "user",
+				content: [
+					{
+						type: "video_url",
+						video_url: {
+							url: "data:video/mp4;base64,AAAA",
+							detail: "high",
+						},
+					},
+				],
+			},
+		]);
+	});
+
+	test("normalizes extensionless video URLs", () => {
+		const normalized = normalizeCurrentInput(
+			request({
+				input: [
+					{
+						role: "user",
+						content: [
+							{
+								type: "input_file",
+								file_url: "https://cdn.example.com/signed-video?token=abc",
+								detail: "low",
+							},
+						],
+					},
+				],
+			}),
+			{ supportsVideoInput: true },
+		);
+
+		expect(normalized).toEqual([
+			{
+				role: "user",
+				content: [
+					{
+						type: "video_url",
+						video_url: {
+							url: "https://cdn.example.com/signed-video?token=abc",
+							detail: "low",
+						},
+					},
+				],
+			},
+		]);
+	});
+
+	test("normalizes video file data when file_url is not a video reference", () => {
+		const normalized = normalizeCurrentInput(
+			request({
+				input: [
+					{
+						role: "user",
+						content: [
+							{
+								type: "input_file",
+								file_url: "https://example.com/document.pdf",
+								file_data: "data:video/mp4;base64,AAAA",
+							},
+						],
+					},
+				],
+			}),
+			{ supportsVideoInput: true },
+		);
+
+		expect(normalized).toEqual([
+			{
+				role: "user",
+				content: [
+					{
+						type: "video_url",
+						video_url: {
+							url: "data:video/mp4;base64,AAAA",
+						},
+					},
+				],
+			},
+		]);
+	});
+
+	test("throws BridgeError for unknown file extensions in video input", () => {
+		const error = captureBridgeError(() =>
+			normalizeCurrentInput(
+				request({
+					input: [
+						{
+							role: "user",
+							content: [
+								{
+									type: "input_file",
+									file_url: "https://example.com/report.docx",
+								},
+							],
+						},
+					],
+				}),
+				{
+					provider: "minimax",
+					model: "MiniMax-M3",
+					supportsVideoInput: true,
+				},
+			),
+		);
+
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT);
+		expect(error.message).toContain(
+			"Unsupported Responses input content type: input_file for minimax.",
+		);
+		expect(error.context).toMatchObject({
+			provider: "minimax",
+			model: "MiniMax-M3",
+			parameter: "input.content",
+		});
+	});
+
+	test("throws BridgeError for opaque file identifiers in video input", () => {
+		const error = captureBridgeError(() =>
+			normalizeCurrentInput(
+				request({
+					input: [
+						{
+							role: "user",
+							content: [
+								{
+									type: "input_file",
+									file_id: "video_file_123",
+								},
+							],
+						},
+					],
+				}),
+				{
+					provider: "minimax",
+					model: "MiniMax-M3",
+					supportsVideoInput: true,
+				},
+			),
+		);
+
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT);
+		expect(error.message).toContain(
+			"Unsupported Responses input content type: input_file for minimax.",
+		);
+		expect(error.context).toMatchObject({
+			provider: "minimax",
+			model: "MiniMax-M3",
+			parameter: "input.content",
+		});
+	});
+
+	test("throws BridgeError for provider-specific file reference schemes in video input", () => {
+		const error = captureBridgeError(() =>
+			normalizeCurrentInput(
+				request({
+					input: [
+						{
+							role: "user",
+							content: [
+								{
+									type: "input_file",
+									file_url: "mm_file://video_file_123",
+								},
+							],
+						},
+					],
+				}),
+				{
+					provider: "minimax",
+					model: "MiniMax-M3",
+					supportsVideoInput: true,
+				},
+			),
+		);
+
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT);
+		expect(error.message).toContain(
+			"Unsupported Responses input content type: input_file for minimax.",
+		);
+		expect(error.context).toMatchObject({
+			provider: "minimax",
+			model: "MiniMax-M3",
+			parameter: "input.content",
+		});
+	});
+
 	test("throws BridgeError for unsupported input content parts", () => {
 		const error = captureBridgeError(() =>
 			normalizeCurrentInput(
@@ -1116,6 +1385,41 @@ describe("normalizeCurrentInput", () => {
 		);
 
 		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT);
+	});
+
+	test("throws BridgeError for non-video file input content parts", () => {
+		const error = captureBridgeError(() =>
+			normalizeCurrentInput(
+				request({
+					input: [
+						{
+							role: "user",
+							content: [
+								{
+									type: "input_file",
+									file_url: "https://example.com/document.pdf",
+								},
+							],
+						},
+					],
+				}),
+				{
+					provider: "minimax",
+					model: "MiniMax-M3",
+					supportsVideoInput: true,
+				},
+			),
+		);
+
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT);
+		expect(error.message).toContain(
+			"Unsupported Responses input content type: input_file for minimax.",
+		);
+		expect(error.context).toMatchObject({
+			provider: "minimax",
+			model: "MiniMax-M3",
+			parameter: "input.content",
+		});
 	});
 
 	test("throws BridgeError for unsupported non-array input content", () => {

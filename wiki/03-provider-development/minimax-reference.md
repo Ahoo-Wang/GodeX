@@ -1,12 +1,12 @@
 ---
 title: "MiniMax Reference Implementation"
-description: "Walkthrough of the MiniMax provider — demonstrating cached token usage, reasoning tokens, and request patching for max_completion_tokens."
+description: "Walkthrough of the MiniMax provider — demonstrating MiniMax-M3, multimodal input, thinking control, reasoning_content, cached token usage, and request patching for max_completion_tokens."
 keywords: "GodeX, MiniMax, provider reference, implementation"
 ---
 
 # MiniMax Reference Implementation
 
-The MiniMax provider is one of the bundled reference implementations in GodeX. It demonstrates cached token and reasoning token usage reporting, `max_tokens` to `max_completion_tokens` request patching, and defensive content array text extraction.
+The MiniMax provider is one of the bundled reference implementations in GodeX. It demonstrates MiniMax-M3 routing, image and video input, boolean thinking control, `reasoning_content` extraction, cached token usage reporting, `max_tokens` to `max_completion_tokens` request patching, and defensive content array text extraction.
 
 ## Module Structure
 
@@ -42,6 +42,7 @@ export const MINIMAX_PROVIDER_SPEC: ProviderSpec<
     firstChoice: minimaxFirstChoice,
     finishReason: minimaxFinishReason,
     outputText: minimaxOutputText,
+    reasoningText: minimaxReasoningText,
     usage: minimaxResponseUsage,
   },
   stream: { deltas: minimaxStreamDeltas },
@@ -56,35 +57,36 @@ const MINIMAX_SPEC_CAPABILITIES: ProviderCapabilities = {
   parameters: {
     supported: new Set([
       "stream", "temperature", "top_p", "max_output_tokens",
-      "user", "text.format",
+      "user", "text.format", "reasoning", "input.image", "input.video",
     ]),
   },
   tools: {
     supported: new Set([
       "function", "local_shell", "shell", "apply_patch",
-      "custom", "tool_search", "namespace",
+      "custom", "namespace",
     ]),
     degraded: new Map([
       ["local_shell", "function"],
       ["shell", "function"],
       ["apply_patch", "function"],
       ["custom", "function"],
-      ["tool_search", "function"],
       ["namespace", "function"],
     ]),
     maxTools: 128,
   },
   toolChoice: { supported: new Set(["auto", "none", "required", "function"]) },
   responseFormats: { supported: new Set(["text", "json_object"]) },
-  reasoning: { effort: "none" },
+  reasoning: { effort: "boolean" },
   streaming: { usage: true },
 };
 ```
 
 Notable capability details:
 
-- **No reasoning effort**: MiniMax uses `reasoning.effort: "none"`, meaning the bridge strips `reasoning_effort` from the request entirely.
-- **Tool degradation**: Codex built-in tools (`local_shell`, `shell`, `apply_patch`, `custom`, `tool_search`, `namespace`) are degraded to `function` type.
+- **MiniMax-M3 default**: GodeX recommends `MiniMax-M3` as the built-in MiniMax default.
+- **Multimodal input**: MiniMax declares support for text, image, and video input content parts.
+- **Boolean reasoning**: Responses `reasoning.effort: "none"` becomes MiniMax `thinking: { type: "disabled" }`; other effort values become adaptive thinking. Reasoning output is read from `reasoning_content`.
+- **Tool degradation**: Codex built-in tools (`local_shell`, `shell`, `apply_patch`, `custom`, `namespace`) are degraded to `function` type.
 - **Full tool choice**: Supports `auto`, `none`, `required`, and `function` tool choice modes.
 - **Max 128 tools**: MiniMax accepts up to 128 tools per request.
 - **Cached tokens**: MiniMax reports `prompt_tokens_details.cached_tokens`.
@@ -96,13 +98,16 @@ Notable capability details:
 
 Transforms the bridge's Chat Completions request for MiniMax-specific behavior:
 
-1. Strips `reasoning_effort` from the request (MiniMax does not support it).
-2. Maps `max_tokens` → `max_completion_tokens` (MiniMax uses the `max_completion_tokens` parameter name).
+1. Strips bridge-only `reasoning_effort` from the upstream request.
+2. Maps bridge `thinking` to MiniMax `thinking`: enabled becomes `adaptive`, disabled stays `disabled`.
+3. Sets `reasoning_split: true` so MiniMax returns reasoning through `reasoning_content`.
+4. Maps `max_tokens` → `max_completion_tokens` (MiniMax uses the `max_completion_tokens` parameter name).
 
 ### `minimaxStreamDeltas`
 
 Extracts typed deltas from MiniMax's SSE chunks:
 
+- `reasoning_content` → reasoning delta
 - `content` → text delta
 - `tool_calls` → tool call deltas (via shared `mapCommonChatStreamDelta`)
 - `usage` → usage delta (with cached token and reasoning token mapping)
@@ -135,20 +140,19 @@ export const MINIMAX_PROVIDER_DEFINITION = createProviderDefinition(
 );
 ```
 
-The default MiniMax base URL is `https://api.minimaxi.com/v1`. The default model is `MiniMax-M2.7`.
+The default MiniMax base URL is `https://api.minimaxi.com/v1`. The default model is `MiniMax-M3`.
 
 ## Content Handling
 
 MiniMax may return `message.content` as either a string or an array of content parts. The `minimaxOutputText` accessor handles both cases, extracting text from `type: "text"` parts in array content. When `content` is `null` or an unrecognized type, it returns an empty string.
 
+GodeX maps Responses `input_image` to MiniMax `image_url` content parts and Responses video `input_file.file_url` / video data URLs to MiniMax `video_url` content parts. Opaque `file_id` values and provider-specific `mm_file://` references are intentionally rejected at the bridge boundary.
+
 ## Models
 
 | Model ID | Description |
 |----------|-------------|
-| `MiniMax-M2.7` | Default model |
-| `MiniMax-M2.7-highspeed` | High-speed variant |
-| `MiniMax-M2.5` | Previous generation |
-| `MiniMax-M2.1` | Earlier generation |
+| `MiniMax-M3` | Recommended default model; supports coding/agentic workflows, long context, multimodal understanding, and thinking control |
 
 [Zhipu Reference](/03-provider-development/zhipu-reference)
 [DeepSeek Reference](/03-provider-development/deepseek-reference)

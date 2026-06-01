@@ -143,17 +143,32 @@ describe("ProviderSpec patch hooks", () => {
 		expect(patched).not.toHaveProperty("reasoning_effort");
 	});
 
-	test("MiniMax provider patch strips bridge-only reasoning_effort", () => {
+	test("MiniMax provider patch maps enabled thinking to adaptive and strips bridge-only reasoning_effort", () => {
 		const patched = MINIMAX_PROVIDER_SPEC.hooks?.patchRequest?.({
-			model: "MiniMax-M2.7",
+			model: "MiniMax-M3",
 			messages: [{ role: "user", content: "hello" }],
+			thinking: { type: "enabled" },
 			reasoning_effort: "medium",
 		} as never) as Record<string, unknown> | undefined;
 
 		expect(patched).toMatchObject({
-			model: "MiniMax-M2.7",
+			model: "MiniMax-M3",
+			thinking: { type: "adaptive" },
 		});
 		expect(patched).not.toHaveProperty("reasoning_effort");
+	});
+
+	test("MiniMax provider patch preserves disabled thinking", () => {
+		const patched = MINIMAX_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "MiniMax-M3",
+			messages: [{ role: "user", content: "hello" }],
+			thinking: { type: "disabled" },
+		} as never) as Record<string, unknown> | undefined;
+
+		expect(patched).toMatchObject({
+			model: "MiniMax-M3",
+			thinking: { type: "disabled" },
+		});
 	});
 
 	test("Xiaomi provider patch strips bridge-only reasoning_effort and maps max_tokens", () => {

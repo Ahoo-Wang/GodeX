@@ -34,7 +34,7 @@ describe("ProviderSpec output accessors", () => {
 			MINIMAX_PROVIDER_SPEC.response.outputText({
 				id: "minimax-array-content",
 				created: 1,
-				model: "MiniMax-M2.7",
+				model: "MiniMax-M3",
 				choices: [
 					{
 						index: 0,
@@ -119,12 +119,12 @@ describe("ProviderSpec output accessors", () => {
 		).toBe("thinking");
 	});
 
-	test("MiniMax provider spec extracts sync reasoning details", () => {
+	test("MiniMax provider spec extracts sync reasoning content", () => {
 		expect(
 			MINIMAX_PROVIDER_SPEC.response.reasoningText?.({
 				id: "minimax-reasoning",
 				created: 1,
-				model: "MiniMax-M2.7",
+				model: "MiniMax-M3",
 				choices: [
 					{
 						index: 0,
@@ -132,12 +132,12 @@ describe("ProviderSpec output accessors", () => {
 						message: {
 							role: "assistant",
 							content: "answer",
-							reasoning_details: [{ text: "think " }, { text: "more" }],
+							reasoning_content: "thinking",
 						},
 					},
 				],
 			}),
-		).toBe("think more");
+		).toBe("thinking");
 	});
 
 	test("Xiaomi provider spec extracts sync reasoning content", () => {
@@ -166,7 +166,7 @@ describe("ProviderSpec output accessors", () => {
 			MINIMAX_PROVIDER_SPEC.response.outputText({
 				id: "minimax-null-content",
 				created: 1,
-				model: "MiniMax-M2.7",
+				model: "MiniMax-M3",
 				choices: [
 					{
 						index: 0,

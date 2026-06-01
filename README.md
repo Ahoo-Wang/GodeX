@@ -30,12 +30,12 @@ GodeX lets clients that speak the OpenAI Responses API use providers such as Dee
 
 ## Built-in Providers
 
-| Provider | Reasoning | Tool Choice | Response Format | Cached Tokens | Default Model |
-|----------|-----------|-------------|-----------------|---------------|---------------|
-| DeepSeek | native | auto, none, required, function | text, json_object | ✅ | `deepseek-v4-pro` |
-| Xiaomi   | boolean | auto | text, json_object | ✅ | `mimo-v2.5-pro` |
-| MiniMax  | none  | auto, none, required, function | text, json_object | ✅ | `MiniMax-M2.7` |
-| Zhipu    | boolean | auto, none | text, json_object | ✅ | `glm-5.1` |
+| Provider | Reasoning | GodeX Input | Tool Choice | Response Format | Cached Tokens | Default Model |
+|----------|-----------|-------------|-------------|-----------------|---------------|---------------|
+| DeepSeek | native | text | auto, none, required, function | text, json_object | ✅ | `deepseek-v4-pro` |
+| Xiaomi   | boolean | text | auto | text, json_object | ✅ | `mimo-v2.5-pro` |
+| MiniMax  | boolean | text, image, video | auto, none, required, function | text, json_object | ✅ | `MiniMax-M3` |
+| Zhipu    | boolean | text | auto, none | text, json_object | ✅ | `glm-5.1` |
 
 ## Architecture
 
@@ -159,8 +159,7 @@ models:
     glm-4.7: "zhipu/glm-4.7"
     glm-4.5-air: "zhipu/glm-4.5-air"
 
-    MiniMax-M2.7: "minimax/MiniMax-M2.7"
-    MiniMax-M2.7-highspeed: "minimax/MiniMax-M2.7-highspeed"
+    MiniMax-M3: "minimax/MiniMax-M3"
 
     # Fallback for unknown bare model names
     "*": "deepseek/deepseek-v4-pro"
