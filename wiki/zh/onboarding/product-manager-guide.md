@@ -149,7 +149,7 @@ sequenceDiagram
 
 | 功能 | 限制 | 用户影响 |
 |------|------|---------|
-| **推理支持** | 因提供商而异：DeepSeek 完全支持，Xiaomi 和智谱基础支持，MiniMax 不支持 | 如果需要推理功能，选择 DeepSeek、Xiaomi 或智谱 |
+| **推理支持** | 因提供商而异：DeepSeek 原生支持，Xiaomi、智谱和 MiniMax 使用布尔 thinking 开关 | 根据任务需要选择合适的 thinking 行为 |
 | **工具选择控制** | Xiaomi 仅支持 "auto"；智谱仅支持 "auto" 和 "none"（不支持 "required" 或指定函数） | 在 Xiaomi 或智谱上，无法强制 AI 总是调用特定工具 |
 | **JSON Schema 验证** | 当提供商不支持 schema 时降级为 JSON Object 格式 | AI 会生成 JSON，但不保证所有提供商都进行严格的 schema 验证 |
 | **网页搜索** | 尚未支持 | AI 无法在对话中搜索网页获取信息 |
@@ -175,7 +175,7 @@ sequenceDiagram
 |--------|-----------|---------|---------|
 | **DeepSeek** | 高性价比编码和推理 | `deepseek-v4-pro` | `deepseek-v4-pro`、`deepseek-v4-flash` 及 DeepSeek 目录中的其他模型 |
 | **Xiaomi / MiMo** | 推理和中国市场部署 | `mimo-v2.5-pro` | `mimo-v2.5-pro`、`mimo-v2.5`、`mimo-v2-flash` 及 MiMo 目录中的其他模型 |
-| **MiniMax** | 快速响应和工具调用 | `MiniMax-M2.7` | `MiniMax-M2.7` 及 MiniMax 目录中的其他模型 |
+| **MiniMax** | 快速响应、工具调用和图片/视频理解 | `MiniMax-M3` | `MiniMax-M3` 及 MiniMax 目录中的其他模型 |
 | **智谱 / ChatGLM** | 中国市场部署和中文编程 | `glm-5.1` | `glm-5.1` 及智谱目录中的其他模型 |
 
 > **注意**：GodeX 路由到你配置的提供商提供的任何模型。上面的默认模型只是推荐的起点。你可以配置每个提供商目录中的任何模型。
@@ -192,10 +192,11 @@ sequenceDiagram
 | 工具选择：required | 是 | 否 | 是 | 否 |
 | 工具选择：指定函数 | 是 | 否 | 是 | 否 |
 | JSON 输出 | 是 | 是 | 是 | 是 |
-| 推理/思考 | 是（原生） | 是（布尔） | 否 | 是（基础） |
-| 缓存 Token | 是 | 是 | 是 |
-| 网页搜索工具 | 否 | 否 | 是（通过智谱的 web_search） |
-| 最大并发工具数 | 128 | 128 | 128 |
+| 推理/思考 | 是（原生） | 是（布尔） | 是（布尔） | 是（基础） |
+| 图片/视频理解 | 否 | 否 | 是 | 否 |
+| 缓存 Token | 是 | 是 | 是 | 是 |
+| 网页搜索工具 | 否 | 否 | 否 | 是（通过智谱的 web_search） |
+| 最大并发工具数 | 128 | 128 | 128 | 128 |
 
 ---
 

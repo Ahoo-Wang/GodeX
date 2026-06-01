@@ -5,7 +5,7 @@ description: ProviderHooks let each upstream provider patch requests, normalize 
 
 # Provider Hooks
 
-GodeX's bridge runtime speaks one internal protocol, but every upstream provider has quirks -- DeepSeek uses a native `reasoning_effort` parameter and `thinking` object, Zhipu supports `web_search` and `file_search` tool types, MiniMax remaps `max_tokens` to `max_completion_tokens`, and Xiaomi uses a boolean thinking switch. `ProviderHooks` is the extension point where each provider injects its own normalisation logic. By keeping hooks optional and co-located with the provider spec, GodeX avoids a monolithic adapter layer and lets each provider own its transformations.
+GodeX's bridge runtime speaks one internal protocol, but every upstream provider has quirks -- DeepSeek uses a native `reasoning_effort` parameter and `thinking` object, Zhipu supports `web_search` and `file_search` tool types, MiniMax maps boolean thinking to adaptive/disabled mode and remaps `max_tokens` to `max_completion_tokens`, and Xiaomi uses a boolean thinking switch. `ProviderHooks` is the extension point where each provider injects its own normalisation logic. By keeping hooks optional and co-located with the provider spec, GodeX avoids a monolithic adapter layer and lets each provider own its transformations.
 
 The hooks interface defines three optional methods ([contract.ts:43-52](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L43)): `patchRequest`, `normalizeResponse`, and `normalizeChunk`. These are invoked inside `createProviderEdge` at the boundary between the bridge runtime and the upstream HTTP call.
 
@@ -104,15 +104,19 @@ Zhipu also supports a wider set of tool types ([hooks.ts:16-30](https://github.c
 
 ## MiniMax Hooks
 
-MiniMax's `minimaxPatchRequest` ([hooks.ts:112-121](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/hooks.ts#L112)) is simpler:
+MiniMax's `minimaxPatchRequest` ([hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/hooks.ts)) keeps MiniMax-M3 quirks inside the provider hook:
 
-1. Strips `reasoning_effort` (MiniMax does not support reasoning parameters).
-2. Remaps `max_tokens` to `max_completion_tokens` when present.
+1. Strips bridge-only `reasoning_effort`.
+2. Maps bridge `thinking` to MiniMax `thinking`: enabled becomes `adaptive`, disabled stays `disabled`.
+3. Sets `reasoning_split: true` so MiniMax returns reasoning through `reasoning_content`.
+4. Remaps `max_tokens` to `max_completion_tokens` when present.
 
 ```mermaid
 flowchart LR
     req["Bridge Request"] --> strip["Strip reasoning_effort"]
-    strip --> mt{"Has max_tokens?"}
+    strip --> think["Map thinking<br>enabled -> adaptive<br>disabled -> disabled"]
+    think --> split["Set reasoning_split: true"]
+    split --> mt{"Has max_tokens?"}
     mt -->|Yes| remap["max_tokens -> max_completion_tokens"]
     mt -->|No| pass["Pass through"]
     remap --> out["MiniMax Request"]
@@ -120,6 +124,8 @@ flowchart LR
 
     style req fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
     style strip fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style think fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style split fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
     style mt fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
     style remap fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
     style pass fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
@@ -171,7 +177,8 @@ Each provider's stream delta function calls `mapCommonChatStreamDelta` after ext
 
 | Capability | DeepSeek | Zhipu | MiniMax | Xiaomi |
 |---|---|---|---|---|
-| Reasoning effort | `native` (high/max) | `boolean` (enabled/disabled) | `none` | `boolean` (enabled/disabled) |
+| Reasoning effort | `native` (high/max) | `boolean` (enabled/disabled) | `boolean` (adaptive/disabled) | `boolean` (enabled/disabled) |
+| Input modalities | text | text | text, image, video | text |
 | Max tools | 128 | 128 | 128 | 128 |
 | Tool choice modes | auto, none, required, function | auto, none | auto, none, required, function | auto |
 | Response formats | text, json_object | text, json_object | text, json_object | text, json_object |
@@ -187,7 +194,7 @@ Each provider's stream delta function calls `mapCommonChatStreamDelta` after ext
 
 - [src/providers/deepseek/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts) -- DeepSeek patchRequest, streamDeltas, usage mapping
 - [src/providers/zhipu/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts) -- Zhipu patchRequest, web_search degradation, streamDeltas
-- [src/providers/minimax/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/hooks.ts) -- MiniMax patchRequest, max_tokens remapping
+- [src/providers/minimax/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/hooks.ts) -- MiniMax patchRequest, thinking mapping, `reasoning_content`, max_tokens remapping
 - [src/providers/xiaomi/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts) -- Xiaomi patchRequest, thinking switch, streamDeltas
 - [src/providers/shared/stream-delta-mapper.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/stream-delta-mapper.ts) -- `mapCommonChatStreamDelta`
 - [src/providers/shared/custom-tool-degradation.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/custom-tool-degradation.ts) -- custom tool to function tool degradation

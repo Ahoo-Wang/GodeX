@@ -30,12 +30,12 @@ GodeX lets clients that speak the OpenAI Responses API use providers such as Dee
 
 ## Built-in Providers
 
-| Provider | Reasoning | Tool Choice | Response Format | Cached Tokens | Default Model |
-|----------|-----------|-------------|-----------------|---------------|---------------|
-| DeepSeek | native | auto, none, required, function | text, json_object | ✅ | `deepseek-v4-pro` |
-| Xiaomi   | boolean | auto | text, json_object | ✅ | `mimo-v2.5-pro` |
-| MiniMax  | boolean | auto, none, required, function | text, json_object | ✅ | `MiniMax-M3` |
-| Zhipu    | boolean | auto, none | text, json_object | ✅ | `glm-5.1` |
+| Provider | Reasoning | GodeX Input | Tool Choice | Response Format | Cached Tokens | Default Model |
+|----------|-----------|-------------|-------------|-----------------|---------------|---------------|
+| DeepSeek | native | text | auto, none, required, function | text, json_object | ✅ | `deepseek-v4-pro` |
+| Xiaomi   | boolean | text | auto | text, json_object | ✅ | `mimo-v2.5-pro` |
+| MiniMax  | boolean | text, image, video | auto, none, required, function | text, json_object | ✅ | `MiniMax-M3` |
+| Zhipu    | boolean | text | auto, none | text, json_object | ✅ | `glm-5.1` |
 
 ## Architecture
 

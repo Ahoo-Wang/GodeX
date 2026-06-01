@@ -104,7 +104,7 @@ init 命令位于
 |---|---|---|---|
 | `deepseek` | DeepSeek | `deepseek-v4-pro` | `${DEEPSEEK_API_KEY}` |
 | `zhipu` | Zhipu (智谱) | `glm-5.1` | `${ZHIPU_API_KEY}` |
-| `minimax` | MiniMax | `MiniMax-M2.7` | `${MINIMAX_API_KEY}` |
+| `minimax` | MiniMax | `MiniMax-M3` | `${MINIMAX_API_KEY}` |
 | `xiaomi` | Xiaomi (小米) | `mimo-v2.5-pro` | `${MIMO_API_KEY}` |
 
 ### 提示序列

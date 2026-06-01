@@ -49,7 +49,7 @@ This matters because the Responses API is becoming the standard protocol for nex
 | Protocol translation (streaming) | Stable | State-machine-based SSE reconstruction |
 | Tool calling degradation | Stable | Built-in Codex tools map to `function` on all providers |
 | JSON Schema structured output | Beta | Downgraded to `json_object` with validation |
-| Reasoning/thinking tokens | Beta | DeepSeek: native. Xiaomi: boolean toggle. Zhipu: boolean toggle. MiniMax: not supported |
+| Reasoning/thinking tokens | Beta | DeepSeek: native. Xiaomi: boolean toggle. Zhipu: boolean toggle. MiniMax: boolean adaptive/disabled thinking |
 | Cached token tracking | Stable | Reported when provider returns cache metadata |
 | Session chain resolution | Stable | Cycle detection, depth limits, incomplete response handling |
 | Web search passthrough | Planned | Not yet implemented |
@@ -331,7 +331,7 @@ The primary cost saving comes from using cheaper providers. GodeX itself adds ne
 |----------|--------------|-----------|-------------|----------------|---------------|---------------|
 | **DeepSeek** | `deepseek-v4-pro` | Native (high, max) | auto, none, required, function | text, json_object | Yes | Best for cost-effective coding. Native reasoning support. |
 | **Xiaomi / MiMo** | `mimo-v2.5-pro` | Boolean toggle | auto | text, json_object | Yes | Reasoning via thinking toggle. Up to 128 tools. |
-| **MiniMax** | `MiniMax-M2.7` | Not supported | auto, none, required, function | text, json_object | Yes | Fast responses. Full tool choice support. |
+| **MiniMax** | `MiniMax-M3` | Boolean toggle | auto, none, required, function | text, json_object | Yes | Fast responses, image/video understanding, and full tool choice support. |
 | **Zhipu / ChatGLM** | `glm-5.1` | Boolean toggle | auto, none | text, json_object | Yes | China-market provider. Pre-configured coding endpoint. Web search tool support. |
 
 ### Adding New Providers

@@ -149,7 +149,7 @@ This is the key value proposition for PMs: **provider decisions become configura
 
 | Feature | Limitation | User Impact |
 |---------|-----------|-------------|
-| **Reasoning support** | Varies by provider: DeepSeek has full support, Xiaomi and Zhipu have basic support, MiniMax has none | If you need reasoning, choose DeepSeek, Xiaomi, or Zhipu |
+| **Reasoning support** | Varies by provider: DeepSeek has native support; Xiaomi, Zhipu, and MiniMax use boolean thinking switches | Choose the provider whose thinking behavior fits the task |
 | **Tool choice control** | Xiaomi only supports "auto"; Zhipu supports "auto" and "none" (no "required" or specific function) | On Xiaomi or Zhipu, you cannot force the AI to always call a specific tool |
 | **JSON Schema validation** | Downgraded to JSON Object format when the provider does not support schemas | The AI will produce JSON, but strict schema validation is not guaranteed on all providers |
 | **Web search** | Not yet supported | The AI cannot search the web for information during a conversation |
@@ -175,7 +175,7 @@ This is the key value proposition for PMs: **provider decisions become configura
 |----------|-------------------|---------------|-----------------|
 | **DeepSeek** | Cost-effective coding and reasoning | `deepseek-v4-pro` | `deepseek-v4-pro`, `deepseek-v4-flash`, and others from DeepSeek's catalog |
 | **Xiaomi / MiMo** | Reasoning and China-market deployment | `mimo-v2.5-pro` | `mimo-v2.5-pro`, `mimo-v2.5`, `mimo-v2-flash`, and others from MiMo's catalog |
-| **MiniMax** | Fast responses and tool calling | `MiniMax-M2.7` | `MiniMax-M2.7` and others from MiniMax's catalog |
+| **MiniMax** | Fast responses, tool calling, and image/video understanding | `MiniMax-M3` | `MiniMax-M3` and others from MiniMax's catalog |
 | **Zhipu / ChatGLM** | China-market deployment and Chinese-language coding | `glm-5.1` | `glm-5.1` and others from Zhipu's catalog |
 
 > **Note**: GodeX routes to whatever models your configured providers offer. The default models above are just the recommended starting points. You can configure any model from each provider's catalog.
@@ -192,10 +192,11 @@ This is the key value proposition for PMs: **provider decisions become configura
 | Tool choice: required | Yes | No | Yes | No |
 | Tool choice: specific function | Yes | No | Yes | No |
 | JSON output | Yes | Yes | Yes | Yes |
-| Reasoning / thinking | Yes (native) | Yes (boolean) | No | Yes (basic) |
-| Cached tokens | Yes | Yes | Yes |
-| Web search tools | No | No | Yes (via Zhipu's web_search) |
-| Max concurrent tools | 128 | 128 | 128 |
+| Reasoning / thinking | Yes (native) | Yes (boolean) | Yes (boolean) | Yes (basic) |
+| Image/video understanding | No | No | Yes | No |
+| Cached tokens | Yes | Yes | Yes | Yes |
+| Web search tools | No | No | No | Yes (via Zhipu's web_search) |
+| Max concurrent tools | 128 | 128 | 128 | 128 |
 
 ---
 
