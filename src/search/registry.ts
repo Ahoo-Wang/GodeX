@@ -1,6 +1,6 @@
 import type { GodeXConfig } from "../config";
 import { DEFAULT_WEB_SEARCH_CONFIG } from "../config/sections/web-search";
-import { ZHIPU_BASE_URL, ZHIPU_CODING_PLAN_BASE_URL } from "../providers/zhipu";
+import { ZHIPU_BASE_URL } from "../providers/zhipu";
 import { MockSearchProvider } from "./mock-provider";
 import { NoneSearchProvider } from "./none-provider";
 import type { SearchService } from "./types";
@@ -17,14 +17,9 @@ export function createSearchService(config?: GodeXConfig): SearchService {
 		if (!providerConfig?.credentials.api_key) return new NoneSearchProvider();
 		return new ZhipuSearchProvider({
 			apiKey: providerConfig.credentials.api_key,
-			baseURL: zhipuSearchBaseURL(providerConfig.endpoint?.base_url),
+			baseURL: providerConfig.endpoint?.base_url ?? ZHIPU_BASE_URL,
 			timeoutMs: providerConfig.timeout_ms,
 		});
 	}
 	return new NoneSearchProvider();
-}
-
-function zhipuSearchBaseURL(baseURL: string | undefined): string {
-	if (!baseURL) return ZHIPU_BASE_URL;
-	return baseURL.replace(ZHIPU_CODING_PLAN_BASE_URL, ZHIPU_BASE_URL);
 }

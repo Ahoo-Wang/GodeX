@@ -57,4 +57,45 @@ describe("createSearchService", () => {
 		expect(service.name).toBe("zhipu");
 		expect(service.available).toBe(true);
 	});
+
+	test("keeps a configured Zhipu coding-plan base URL for web search", async () => {
+		const requests: string[] = [];
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = (async (
+			input: Parameters<typeof fetch>[0],
+			_init?: Parameters<typeof fetch>[1],
+		) => {
+			requests.push(String(input));
+			return new Response(JSON.stringify({ search_result: [] }), {
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			});
+		}) as typeof fetch;
+		try {
+			const service = createSearchService({
+				web_search: { ...config, provider: "zhipu" },
+				providers: {
+					zhipu: {
+						spec: "zhipu",
+						credentials: { api_key: "zhipu-key" },
+						endpoint: {
+							base_url: "https://open.bigmodel.cn/api/coding/paas/v4",
+						},
+					},
+				},
+			} as unknown as GodeXConfig);
+
+			await service.search({
+				query: "Bun latest",
+				contextSize: "medium",
+				contentTypes: ["text"],
+			});
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+
+		expect(requests).toEqual([
+			"https://open.bigmodel.cn/api/coding/paas/v4/web_search",
+		]);
+	});
 });
