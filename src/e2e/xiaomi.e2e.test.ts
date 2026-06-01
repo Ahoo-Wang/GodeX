@@ -32,6 +32,40 @@ async function startMockUpstream() {
 }
 
 function handleMockChat(body: Record<string, unknown>) {
+	if (hasXiaomiWebSearchTool(body)) {
+		return jsonResponse({
+			id: "xiaomi-mock-web-search",
+			created: Math.floor(Date.now() / 1000),
+			model: "mimo-v2.5-pro",
+			choices: [
+				{
+					index: 0,
+					finish_reason: "stop",
+					message: {
+						role: "assistant",
+						content: "Search-backed Xiaomi answer.",
+						annotations: [
+							{
+								type: "url_citation",
+								url: "https://news.example.com/search-result",
+								title: "Search result",
+								summary: "Search result summary.",
+								site_name: "Example News",
+								publish_time: "2026-05-30T12:00:00+08:00",
+							},
+						],
+					},
+				},
+			],
+			usage: {
+				prompt_tokens: 30,
+				completion_tokens: 12,
+				total_tokens: 42,
+				web_search_usage: { tool_usage: 1, page_usage: 1 },
+			},
+		});
+	}
+
 	if (lastUserMessageContent(body) === "List files.") {
 		return jsonResponse({
 			id: "xiaomi-mock-tools",
@@ -108,6 +142,20 @@ function lastUserMessageContent(body: Record<string, unknown>): unknown {
 	}
 
 	return undefined;
+}
+
+function hasXiaomiWebSearchTool(body: Record<string, unknown>): boolean {
+	const tools = body.tools;
+	return (
+		Array.isArray(tools) &&
+		tools.some(
+			(tool) =>
+				typeof tool === "object" &&
+				tool !== null &&
+				"type" in tool &&
+				tool.type === "web_search",
+		)
+	);
 }
 
 function jsonResponse(body: unknown): Response {
@@ -339,6 +387,58 @@ describe("Xiaomi mocked e2e", () => {
 				(tool) => (tool.function as Record<string, unknown>).name as string,
 			),
 		).toEqual(["local_shell", "apply_patch", "read-file"]);
+	});
+
+	test("maps Responses web_search to Xiaomi native search and restores citations", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "mimo-v2.5-pro",
+			input: "Search current Xiaomi news.",
+			tools: [
+				{
+					type: "web_search",
+					search_context_size: "high",
+					user_location: {
+						type: "approximate",
+						country: "China",
+						region: "Hubei",
+						city: "Wuhan",
+					},
+				},
+			],
+		});
+
+		expect(res.status).toBe(200);
+		const upstream = lastUpstreamRequest();
+		expect(upstream.tools).toEqual([
+			{
+				type: "web_search",
+				max_keyword: 3,
+				limit: 5,
+				user_location: {
+					type: "approximate",
+					country: "China",
+					region: "Hubei",
+					city: "Wuhan",
+				},
+			},
+		]);
+
+		const body = (await res.json()) as {
+			output_text: string;
+			output: Array<Record<string, unknown>>;
+		};
+		expect(body.output_text).toBe("Search-backed Xiaomi answer.");
+		expect(body.output[0]).toMatchObject({
+			type: "web_search_call",
+			status: "completed",
+			action: {
+				type: "search",
+				sources: [
+					{ type: "url", url: "https://news.example.com/search-result" },
+				],
+			},
+		});
 	});
 
 	test("maps Responses function call history to upstream tool_calls messages", async () => {

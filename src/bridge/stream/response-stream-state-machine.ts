@@ -94,7 +94,7 @@ export class ResponseStreamStateMachine {
 	private readonly activeToolCalls = new Map<number, ToolCallBlock>();
 	private outputText = "";
 	private pendingFinishReason?: ProviderStreamFinishReason | null;
-	private readonly toolIdentities: ToolIdentityMap;
+	private toolIdentities: ToolIdentityMap;
 
 	constructor(private readonly options: ResponseStreamStateMachineOptions) {
 		this.nowSeconds =
@@ -133,6 +133,36 @@ export class ResponseStreamStateMachine {
 
 	get model(): string {
 		return this.options.model;
+	}
+
+	replaceToolIdentities(toolIdentities: ToolIdentityMap): void {
+		this.toolIdentities = toolIdentities;
+	}
+
+	appendOutputItem(item: ResponseItem): number {
+		const outputIndex = this.output.length;
+		this.output.push(item);
+		this.refreshSnapshot();
+		return outputIndex;
+	}
+
+	updateOutputItem(outputIndex: number, item: ResponseItem): void {
+		this.output[outputIndex] = item;
+		this.refreshSnapshot();
+	}
+
+	removeOutputItem(outputIndex: number): void {
+		for (const [streamIndex, block] of this.activeToolCalls) {
+			if (block.outputIndex === outputIndex) {
+				this.activeToolCalls.delete(streamIndex);
+			}
+		}
+		this.output.splice(outputIndex, 1);
+		this.refreshSnapshot();
+	}
+
+	clearDeferredFinish(): void {
+		this.pendingFinishReason = undefined;
 	}
 
 	start(): ResponseStreamEvent[] {

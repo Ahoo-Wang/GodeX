@@ -4,6 +4,7 @@ import type { Registrar } from "../providers/registrar";
 import { ModelResolver } from "../resolver";
 import type { ResponsesBridge } from "../responses/bridge";
 import { ResponsesBridgeRuntime } from "../responses/runtime";
+import { createSearchService, type SearchService } from "../search";
 import type { ResponseSessionStore } from "../session";
 import type { TraceRecorder } from "../trace";
 import { createConfiguredRegistrar } from "./provider-bootstrap";
@@ -16,6 +17,7 @@ export interface ApplicationServices {
 	registrar: Registrar;
 	responses: ResponsesBridge;
 	sessionStore: ResponseSessionStore;
+	search: SearchService;
 	traceRecorder: TraceRecorder;
 	traceEnabled: boolean;
 }
@@ -42,6 +44,7 @@ export function createApplicationServices(
 		registrar: configuredRegistrar,
 		responses: new ResponsesBridgeRuntime(),
 		sessionStore: createResponseSessionStore(config.session),
+		search: createSearchService(config),
 		traceRecorder: trace.traceRecorder,
 		traceEnabled: trace.traceEnabled,
 	};

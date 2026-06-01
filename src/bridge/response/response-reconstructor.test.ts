@@ -129,6 +129,42 @@ describe("reconstructResponseObject", () => {
 		]);
 	});
 
+	test("includes provider-native web_search_call items before assistant message", () => {
+		const response = reconstructResponseObject({
+			requestId: "req_123",
+			responseId: "resp_123",
+			createdAt: 1710000000,
+			completedAt: 1710000000,
+			provider: "zhipu",
+			model: "glm-test",
+			providerResponse: providerResponse("stop", "Answer from search."),
+			accessor: {
+				...accessor,
+				webSearchCalls: () => [
+					{
+						id: "ws_resp_123_0",
+						type: "web_search_call",
+						status: "completed",
+						action: {
+							type: "search",
+							query: "latest bun release",
+							queries: ["latest bun release"],
+							sources: [{ type: "url", url: "https://example.com/bun" }],
+						},
+					},
+				],
+			},
+			toolIdentity: undefined,
+			outputContract: { requiresValidJson: false },
+		});
+
+		expect(response.output[0]).toMatchObject({ type: "web_search_call" });
+		expect(response.output[1]).toMatchObject({
+			type: "message",
+			content: [{ type: "output_text", text: "Answer from search." }],
+		});
+	});
+
 	test("uses completion time instead of request creation time", () => {
 		const response = reconstructResponseObject({
 			requestId: "req_123",

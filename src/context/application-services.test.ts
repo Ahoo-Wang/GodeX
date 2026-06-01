@@ -43,6 +43,8 @@ describe("createApplicationServices", () => {
 		expect(services.sessionStore).toBeInstanceOf(MemoryResponseSessionStore);
 		expect(services.traceEnabled).toBe(false);
 		expect(services.traceRecorder).toBeInstanceOf(NoopTraceRecorder);
+		expect(services.search.name).toBe("none");
+		expect(services.search.available).toBe(false);
 	});
 
 	test("reuses a supplied registrar", () => {

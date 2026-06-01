@@ -464,6 +464,7 @@ describe("planTools", () => {
 			providerName: "weather_now",
 			requestedType: "function",
 			providerType: "function",
+			execution: "provider",
 		});
 	});
 
@@ -533,6 +534,70 @@ describe("planTools", () => {
 				},
 			},
 		]);
+	});
+
+	test("renders GodeX-managed web search as a strict internal function declaration", () => {
+		const plan = planTools({
+			tools: [{ type: "web_search", search_context_size: "high" }],
+			profile: {
+				...kernelProfile,
+				nativeToolTypes: new Set(["function"]),
+				degradedToolTypes: new Map(),
+				webSearch: {
+					mode: "godex_managed",
+					available: true,
+					onUnavailable: "client_tool_call",
+				},
+			},
+		});
+
+		expect(plan.declarations[0]).toMatchObject({
+			requestedType: "web_search",
+			providerType: "function",
+			providerName: "web_search",
+			execution: "godex_managed",
+		});
+		expect(renderProviderToolDeclarations(plan.declarations)).toEqual([
+			{
+				type: "function",
+				function: {
+					name: "web_search",
+					description: expect.stringContaining("Search the web"),
+					parameters: expect.objectContaining({
+						type: "object",
+						required: ["query"],
+						additionalProperties: false,
+					}),
+				},
+			},
+		]);
+	});
+
+	test("falls back to a client function call when managed search is unavailable by default", () => {
+		const plan = planTools({
+			tools: [{ type: "web_search_preview" }],
+			profile: {
+				...kernelProfile,
+				nativeToolTypes: new Set(["function"]),
+				degradedToolTypes: new Map(),
+				webSearch: {
+					mode: "auto",
+					available: false,
+					onUnavailable: "client_tool_call",
+				},
+			},
+		});
+
+		expect(plan.declarations[0]).toMatchObject({
+			requestedType: "web_search_preview",
+			providerType: "function",
+			providerName: "web_search",
+			execution: "client",
+		});
+		expect(plan.decisions.at(-1)).toMatchObject({
+			action: "degraded",
+			path: "tools[type=web_search_preview]",
+		});
 	});
 
 	test("renders native retrieval and mcp declarations from provider plans", () => {

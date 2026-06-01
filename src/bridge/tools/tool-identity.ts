@@ -1,11 +1,13 @@
 import { BRIDGE_REQUEST_UNSUPPORTED_PARAMETER, BridgeError } from "../../error";
 import type { ToolNameCodec } from "../provider-spec";
+import type { ToolExecutionMode } from "./tool-plan";
 
 export interface ToolIdentity {
 	readonly requestedName: string;
 	readonly providerName: string;
 	readonly requestedType: string;
 	readonly providerType: string;
+	readonly execution: ToolExecutionMode;
 }
 
 export interface ToolIdentityDeclaration {
@@ -13,26 +15,31 @@ export interface ToolIdentityDeclaration {
 	readonly providerName: string;
 	readonly requestedType: string;
 	readonly providerType: string;
+	readonly execution?: ToolExecutionMode;
 }
 
 export class ToolIdentityMap {
 	readonly #byProviderName = new Map<string, ToolIdentity>();
 
-	add(identity: ToolIdentity): void {
-		const existing = this.#byProviderName.get(identity.providerName);
-		if (existing && !sameIdentity(existing, identity)) {
+	add(identity: ToolIdentityDeclaration): void {
+		const normalized: ToolIdentity = {
+			...identity,
+			execution: identity.execution ?? "provider",
+		};
+		const existing = this.#byProviderName.get(normalized.providerName);
+		if (existing && !sameIdentity(existing, normalized)) {
 			throw new BridgeError(
 				BRIDGE_REQUEST_UNSUPPORTED_PARAMETER,
-				`Multiple tools map to provider name '${identity.providerName}'.`,
+				`Multiple tools map to provider name '${normalized.providerName}'.`,
 				{
 					provider: "unknown",
 					model: "unknown",
 					parameter: "tools",
-					providerName: identity.providerName,
+					providerName: normalized.providerName,
 				},
 			);
 		}
-		this.#byProviderName.set(identity.providerName, identity);
+		this.#byProviderName.set(normalized.providerName, normalized);
 	}
 
 	addDeclarations(declarations: readonly ToolIdentityDeclaration[]): void {
@@ -42,6 +49,7 @@ export class ToolIdentityMap {
 				providerName: declaration.providerName,
 				requestedType: declaration.requestedType,
 				providerType: declaration.providerType,
+				execution: declaration.execution ?? "provider",
 			});
 		}
 	}
@@ -66,6 +74,7 @@ function sameIdentity(left: ToolIdentity, right: ToolIdentity): boolean {
 		left.requestedName === right.requestedName &&
 		left.providerName === right.providerName &&
 		left.requestedType === right.requestedType &&
-		left.providerType === right.providerType
+		left.providerType === right.providerType &&
+		left.execution === right.execution
 	);
 }

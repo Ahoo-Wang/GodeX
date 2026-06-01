@@ -6,6 +6,7 @@ import type {
 	ShellCall,
 } from "../../protocol/openai/responses";
 import type { ToolIdentityMap } from "./tool-identity";
+import { isWebSearchToolType, WEB_SEARCH_FUNCTION_NAME } from "./web-search";
 
 export interface ProviderFunctionCall {
 	readonly callId: string;
@@ -18,6 +19,14 @@ export function restoreToolCall(
 	identities: ToolIdentityMap,
 ): ResponseItem {
 	const identity = identities.get(call.name);
+	if (
+		identity?.providerType === "function" &&
+		(identity.execution === "client" ||
+			identity.execution === "godex_managed") &&
+		isWebSearchToolType(identity.requestedType)
+	) {
+		return fallbackFunctionCall(call, WEB_SEARCH_FUNCTION_NAME);
+	}
 	if (identity?.requestedType === "local_shell") {
 		return (
 			localShellCall(call) ?? fallbackFunctionCall(call, identity.requestedName)

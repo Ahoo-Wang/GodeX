@@ -34,6 +34,7 @@ describe("ApplicationContext", () => {
 		expect(app.registrar).toBeDefined();
 		expect(app.responses).toBeDefined();
 		expect(app.sessionStore).toBeDefined();
+		expect(app.search.name).toBe("none");
 	});
 
 	test("closes trace recorder and session store", async () => {

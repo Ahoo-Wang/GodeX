@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { ProviderEdge } from "../bridge/provider-spec";
+import { DEFAULT_WEB_SEARCH_CONFIG } from "../config/sections/web-search";
 import { OutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type {
@@ -51,6 +52,14 @@ function createMockCtx(
 	return {
 		provider,
 		app: {
+			config: { web_search: DEFAULT_WEB_SEARCH_CONFIG },
+			search: {
+				name: "none",
+				available: false,
+				search: async () => {
+					throw new Error("search is unavailable in this runtime test");
+				},
+			},
 			sessionStore,
 			traceEnabled: true,
 			traceRecorder: { record: () => {} },
