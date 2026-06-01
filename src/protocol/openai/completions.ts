@@ -70,7 +70,7 @@ export interface ChatCompletionContentPartRefusal {
 	refusal: string;
 }
 
-/** Content parts for user messages (text, image, audio, file). */
+/** Content parts for user messages (text, image, video, audio, file). */
 export type ChatCompletionContentPart =
 	| ChatCompletionContentPartText
 	| ChatCompletionContentPartImage

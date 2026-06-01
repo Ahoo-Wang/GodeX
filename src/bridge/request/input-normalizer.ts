@@ -384,23 +384,6 @@ function videoDetail(value: unknown): "low" | "high" | undefined {
 }
 
 const VIDEO_FILE_EXTENSIONS = new Set(["mp4", "avi", "mov", "mkv"]);
-const NON_VIDEO_FILE_EXTENSIONS = new Set([
-	"bmp",
-	"csv",
-	"gif",
-	"html",
-	"jpeg",
-	"jpg",
-	"json",
-	"pdf",
-	"png",
-	"svg",
-	"txt",
-	"webp",
-	"xml",
-	"zip",
-]);
-
 function isVideoReference(value: string): boolean {
 	if (value.startsWith("data:video/")) return true;
 	if (!/^https?:\/\//i.test(value)) return false;
@@ -412,8 +395,7 @@ function isVideoReference(value: string): boolean {
 	}
 	const extension = pathname.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
 	if (!extension) return true;
-	if (VIDEO_FILE_EXTENSIONS.has(extension)) return true;
-	return !NON_VIDEO_FILE_EXTENSIONS.has(extension);
+	return VIDEO_FILE_EXTENSIONS.has(extension);
 }
 
 function outputText(

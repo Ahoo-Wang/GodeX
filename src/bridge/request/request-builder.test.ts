@@ -1260,6 +1260,41 @@ describe("normalizeCurrentInput", () => {
 		]);
 	});
 
+	test("throws BridgeError for unknown file extensions in video input", () => {
+		const error = captureBridgeError(() =>
+			normalizeCurrentInput(
+				request({
+					input: [
+						{
+							role: "user",
+							content: [
+								{
+									type: "input_file",
+									file_url: "https://example.com/report.docx",
+								},
+							],
+						},
+					],
+				}),
+				{
+					provider: "minimax",
+					model: "MiniMax-M3",
+					supportsVideoInput: true,
+				},
+			),
+		);
+
+		expect(error.code).toBe(BRIDGE_REQUEST_UNSUPPORTED_INPUT_CONTENT);
+		expect(error.message).toContain(
+			"Unsupported Responses input content type: input_file for minimax.",
+		);
+		expect(error.context).toMatchObject({
+			provider: "minimax",
+			model: "MiniMax-M3",
+			parameter: "input.content",
+		});
+	});
+
 	test("throws BridgeError for opaque file identifiers in video input", () => {
 		const error = captureBridgeError(() =>
 			normalizeCurrentInput(
