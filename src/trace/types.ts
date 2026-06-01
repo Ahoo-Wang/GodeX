@@ -51,7 +51,9 @@ export interface TraceEventRecordEvent extends TraceRecordBase {
 		| "provider.request.prepared"
 		| "provider.response.body"
 		| "upstream.stream.event.raw"
-		| "upstream.stream.event.transformed";
+		| "upstream.stream.event.transformed"
+		| "web_search.request"
+		| "web_search.response";
 	sequence?: number;
 	payload?: TracePayloadInput;
 }

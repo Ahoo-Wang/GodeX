@@ -6,6 +6,7 @@ import type {
 	ResponseItem,
 	ResponseObject,
 } from "../../protocol/openai/responses";
+import { recordTraceEvent } from "../../trace";
 import type {
 	ProviderExchangeRequestOptions,
 	ProviderRequestExchangeResult,
@@ -89,11 +90,13 @@ export class HostedWebSearchSyncRunner {
 					},
 				);
 			}
+			recordTraceEvent(ctx, "web_search.request", call.search);
 			const search = await executeSearchWithTimeout(
 				call.search,
 				config.timeout_ms,
 				(signal) => ctx.app.search.search(call.search, signal),
 			);
+			recordTraceEvent(ctx, "web_search.response", search);
 			hostedItems.push(
 				webSearchCallItem({
 					responseId: ctx.responseId,
