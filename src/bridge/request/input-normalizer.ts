@@ -112,6 +112,9 @@ function normalizeInputItem(
 			),
 		];
 	}
+	if (item.type === "web_search_call") {
+		return [];
+	}
 	if (item.type === "shell_call") {
 		return [
 			assistantToolCallMessage(

@@ -75,6 +75,34 @@ describe("ProviderSpec patch hooks", () => {
 		});
 	});
 
+	test("Zhipu provider patch requests native web search result details", () => {
+		const patched = ZHIPU_PROVIDER_SPEC.hooks?.patchRequest?.({
+			model: "glm-5.1",
+			messages: [{ role: "user", content: "search the web" }],
+			tools: [
+				{
+					type: "web_search",
+					web_search: {
+						enable: true,
+						search_engine: "search_std",
+						content_size: "medium",
+					},
+				},
+			],
+		} as never) as
+			| {
+					tools?: Array<{ type: string; web_search?: Record<string, unknown> }>;
+			  }
+			| undefined;
+
+		expect(patched?.tools?.[0]?.web_search).toMatchObject({
+			enable: true,
+			search_engine: "search_std",
+			content_size: "medium",
+			search_result: true,
+		});
+	});
+
 	test("DeepSeek provider patch normalizes native reasoning effort", () => {
 		const max = DEEPSEEK_PROVIDER_SPEC.hooks?.patchRequest?.({
 			model: "deepseek-chat",
