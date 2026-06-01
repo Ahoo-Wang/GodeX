@@ -23,6 +23,11 @@ export interface InputNormalizerContext {
 	readonly supportsVideoInput?: boolean;
 }
 
+type TextOnlyInputNormalizerContext = InputNormalizerContext & {
+	readonly supportsImageInput?: false;
+	readonly supportsVideoInput?: false;
+};
+
 export function normalizeCurrentInput(
 	request: ResponseCreateRequest,
 	context: InputNormalizerContext = {},
@@ -233,6 +238,16 @@ function toolOutputMessage(
 function normalizeMessageContent(
 	content: unknown,
 	request: ResponseCreateRequest,
+	context: TextOnlyInputNormalizerContext,
+): string;
+function normalizeMessageContent(
+	content: unknown,
+	request: ResponseCreateRequest,
+	context: InputNormalizerContext,
+): string | ChatCompletionContentPart[];
+function normalizeMessageContent(
+	content: unknown,
+	request: ResponseCreateRequest,
 	context: InputNormalizerContext,
 ): string | ChatCompletionContentPart[] {
 	if (typeof content === "string") return content;
@@ -383,12 +398,7 @@ function outputText(
 		supportsImageInput: false,
 		supportsVideoInput: false,
 	});
-	return typeof normalized === "string"
-		? normalized
-		: normalized
-				.filter((part) => part.type === "text")
-				.map((part) => part.text)
-				.join("");
+	return normalized;
 }
 
 function toolName(item: { name: string; namespace?: string }): string {
