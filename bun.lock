@@ -33,11 +33,11 @@
     },
   },
   "packages": {
-    "@ahoo-wang/fetcher": ["@ahoo-wang/fetcher@3.16.9", "", {}, "sha512-MjRD4t0iz855LlyfUrbbGPQwAcSl3SNCe8Atz7WWlYdc40J3G4r8CB2n8ISifRxCEznO2BSXxg0RPddRlBilqQ=="],
+    "@ahoo-wang/fetcher": ["@ahoo-wang/fetcher@3.16.10", "", {}, "sha512-v77TpBygssFQluMwV0ALszkDPOIB90xEzYQ5SiaD6i7kVK+fliluIYqf46OtnkYNJP7gBXhdawQIcr9XcMvAAg=="],
 
-    "@ahoo-wang/fetcher-decorator": ["@ahoo-wang/fetcher-decorator@3.16.9", "", { "dependencies": { "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@ahoo-wang/fetcher": "^3.0.0" } }, "sha512-QEfLKnHu938iIpqIkX/pyHLxSOCbczWq4ycb0OwN16Oz1gMV8GdljSAUYaWt4VGcueMVC20r4TO7ea30NYle8Q=="],
+    "@ahoo-wang/fetcher-decorator": ["@ahoo-wang/fetcher-decorator@3.16.10", "", { "dependencies": { "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@ahoo-wang/fetcher": "^3.0.0" } }, "sha512-iTSNs27T1qoBoprYgDk8D7Yx4Vp656f8/hN2b3LSZHh9qxPeDYhUK+WWh+N18mXwdx45npOUyW+0UzjROYMVAA=="],
 
-    "@ahoo-wang/fetcher-eventstream": ["@ahoo-wang/fetcher-eventstream@3.16.9", "", { "peerDependencies": { "@ahoo-wang/fetcher": "^3.0.0" } }, "sha512-XN2OM80nAjRFI261Vk+rB/kx7bDL6h2LUptJJfzR0VDQKuZ+S64pTubo8ekvUoeV9K7QpT+drlWXbevsDqilAA=="],
+    "@ahoo-wang/fetcher-eventstream": ["@ahoo-wang/fetcher-eventstream@3.16.10", "", { "peerDependencies": { "@ahoo-wang/fetcher": "^3.0.0" } }, "sha512-FpQL89M7I7R//p/aOzo87cg/1MVZzXMsZbvYuWEjVJeju4yu+InUWYW3bFUPqbamEvTi6QYTt/dNcCzrKivkXg=="],
 
     "@biomejs/biome": ["@biomejs/biome@2.4.16", "", { "optionalDependencies": { "@biomejs/cli-darwin-arm64": "2.4.16", "@biomejs/cli-darwin-x64": "2.4.16", "@biomejs/cli-linux-arm64": "2.4.16", "@biomejs/cli-linux-arm64-musl": "2.4.16", "@biomejs/cli-linux-x64": "2.4.16", "@biomejs/cli-linux-x64-musl": "2.4.16", "@biomejs/cli-win32-arm64": "2.4.16", "@biomejs/cli-win32-x64": "2.4.16" }, "bin": { "biome": "bin/biome" } }, "sha512-x9ajFh1zChVybCiM3TN6OD4phAqLgtPZjFrZF+aTMYCPjwBO+k529TX7PPsAqtGNLeV4UgzwQnowEgS7bGmzcA=="],
 
