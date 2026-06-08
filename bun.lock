@@ -61,7 +61,7 @@
 
     "@clack/prompts": ["@clack/prompts@1.5.0", "", { "dependencies": { "@clack/core": "1.4.0", "fast-string-width": "^3.0.2", "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-wKh+wTjmrUoUdkZg8KpJO5X+p9PWV+KE9mePseq9UYWkukgTKsGS47RRL2HstwVcvDQH+PenrPJWII8+MfiiyA=="],
 
-    "@logtape/file": ["@logtape/file@2.1.1", "", { "peerDependencies": { "@logtape/logtape": "^2.1.1" } }, "sha512-AlT69oM1MEe1TV04go9s50/orHxc9n4fPu9MW7P5sG+hH55EDHJALd6D9zTEIm0PP4znR+XgTeml2ANnY2bkNw=="],
+    "@logtape/file": ["@logtape/file@2.1.2", "", { "peerDependencies": { "@logtape/logtape": "^2.1.2" } }, "sha512-FugIatbskz5g5DQl1xkOfuUlGSxflGXMGgDdDB8iIKaQWqrbAiuyw1zYcGrxZZFGIsifpcWhEKJYNom8q0YkQA=="],
 
     "@logtape/logtape": ["@logtape/logtape@2.1.1", "", {}, "sha512-aULbCqUQGerfOsZ3CMvcKtueKzmdchluXYUd3bIHKmOIS93fx1ko0+hyRQ4flloGZ8EiyRPydZXiy8n1J/eAQA=="],
 
