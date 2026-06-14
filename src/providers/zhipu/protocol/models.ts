@@ -2,6 +2,7 @@
 
 /** 文本对话模型 */
 export const TEXT_MODELS = [
+	"glm-5.2",
 	"glm-5.1",
 	"glm-5-turbo",
 	"glm-5",
@@ -54,6 +55,7 @@ export type ChatModel = (typeof ALL_MODELS)[number];
 
 /** 支持 thinking 的模型 — 开启后为强制思考 */
 export const THINKING_FORCE_MODELS = [
+	"glm-5.2",
 	"glm-5.1",
 	"glm-5",
 	"glm-5-turbo",
@@ -86,6 +88,7 @@ export type ThinkingModel = (typeof THINKING_MODELS)[number];
 
 /** 支持 tool_stream 的模型 */
 export const TOOL_STREAM_MODELS = [
+	"glm-5.2",
 	"glm-5.1",
 	"glm-5",
 	"glm-5-turbo",
