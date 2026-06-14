@@ -332,7 +332,7 @@ GodeX 被设计为轻量级单进程网关。与上游 LLM 提供商相比，资
 | **DeepSeek** | `deepseek-v4-pro` | 原生（high、max） | auto、none、required、function | text、json_object | 是 | 最适合高性价比编程。原生推理支持。 |
 | **Xiaomi / MiMo** | `mimo-v2.5-pro` | 布尔开关 | auto | text、json_object | 是 | 推理 via thinking 开关。最多 128 个工具。 |
 | **MiniMax** | `MiniMax-M3` | 布尔开关 | auto、none、required、function | text、json_object | 是 | 快速响应、图片/视频理解，以及完整的工具选择支持。 |
-| **Zhipu / ChatGLM** | `glm-5.1` | 布尔开关 | auto、none | text、json_object | 是 | 中国市场提供商。预配置编程端点。网页搜索工具支持。 |
+| **Zhipu / ChatGLM** | `glm-5.2` | 布尔开关 | auto、none | text、json_object | 是 | 中国市场提供商。预配置编程端点。网页搜索工具支持。 |
 
 ### 添加新提供商
 

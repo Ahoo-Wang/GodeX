@@ -13,7 +13,7 @@ GodeX ships with four built-in providers that cover the most popular non-OpenAI 
 |---|---|---|---|---|
 | **Spec Name** | `deepseek` | `zhipu` | `minimax` | `xiaomi` |
 | **Default Base URL** | `api.deepseek.com` | `open.bigmodel.cn` (coding plan) | `api.minimaxi.com/v1` | `api.xiaomimimo.com/v1` |
-| **Default Model** | `deepseek-v4-pro` | `glm-5.1` | `MiniMax-M3` | `mimo-v2.5-pro` |
+| **Default Model** | `deepseek-v4-pro` | `glm-5.2` | `MiniMax-M3` | `mimo-v2.5-pro` |
 | **Reasoning Effort** | `native` | `boolean` | `boolean` | `boolean` |
 | **GodeX Input** | text | text | text, image, video | text |
 | **Max Tools** | 128 | 128 | 128 | 128 |
@@ -189,7 +189,7 @@ The Zhipu spec defaults to the coding plan endpoint at `https://open.bigmodel.cn
 | Name | `zhipu` |
 | Protocol | `chat_completions` |
 | Default Base URL | `https://open.bigmodel.cn/api/coding/paas/v4` |
-| Default Model | `glm-5.1` |
+| Default Model | `glm-5.2` |
 | Auth | Bearer |
 | Reasoning | Boolean (thinking enabled/disabled) |
 

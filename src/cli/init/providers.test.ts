@@ -45,7 +45,7 @@ describe("INIT_PROVIDER_DEFINITIONS", () => {
 		expect(getInitProviderDefinition("zhipu")).toMatchObject({
 			apiKeyPlaceholder: "${ZHIPU_API_KEY}",
 			defaultBaseUrl: ZHIPU_CODING_PLAN_BASE_URL,
-			defaultModel: "glm-5.1",
+			defaultModel: "glm-5.2",
 		});
 		expect(getInitProviderDefinition("xiaomi")).toMatchObject({
 			apiKeyPlaceholder: "${MIMO_API_KEY}",

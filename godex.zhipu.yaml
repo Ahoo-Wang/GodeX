@@ -11,14 +11,14 @@ models:
     # -------------------------------------------------------------------------
     # Codex-compatible model aliases
     # -------------------------------------------------------------------------
-    gpt-5.5: "zhipu/glm-5.1"
+    gpt-5.5: "zhipu/glm-5.2"
     gpt-5.4: "zhipu/glm-5-turbo"
     gpt-5.4-mini: "zhipu/glm-4.7"
-    gpt-5.3-codex: "zhipu/glm-5.1"
+    gpt-5.3-codex: "zhipu/glm-5.2"
     gpt-5.3-codex-spark: "zhipu/glm-4.5-air"
     gpt-5.2: "zhipu/glm-4.7"
     # Fallback for unknown bare model names
-    "*": "zhipu/glm-5.1"
+    "*": "zhipu/glm-5.2"
 
 providers:
   zhipu:
