@@ -112,7 +112,7 @@ The wizard offers four built-in providers defined in
 | Provider | Label | Default Model | API Key Placeholder |
 |---|---|---|---|
 | `deepseek` | DeepSeek | `deepseek-v4-pro` | `${DEEPSEEK_API_KEY}` |
-| `zhipu` | Zhipu (智谱) | `glm-5.1` | `${ZHIPU_API_KEY}` |
+| `zhipu` | Zhipu (智谱) | `glm-5.2` | `${ZHIPU_API_KEY}` |
 | `minimax` | MiniMax | `MiniMax-M3` | `${MINIMAX_API_KEY}` |
 | `xiaomi` | Xiaomi (小米) | `mimo-v2.5-pro` | `${MIMO_API_KEY}` |
 

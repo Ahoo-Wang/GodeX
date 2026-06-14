@@ -176,7 +176,7 @@ sequenceDiagram
 | **DeepSeek** | 高性价比编码和推理 | `deepseek-v4-pro` | `deepseek-v4-pro`、`deepseek-v4-flash` 及 DeepSeek 目录中的其他模型 |
 | **Xiaomi / MiMo** | 推理和中国市场部署 | `mimo-v2.5-pro` | `mimo-v2.5-pro`、`mimo-v2.5`、`mimo-v2-flash` 及 MiMo 目录中的其他模型 |
 | **MiniMax** | 快速响应、工具调用和图片/视频理解 | `MiniMax-M3` | `MiniMax-M3` 及 MiniMax 目录中的其他模型 |
-| **智谱 / ChatGLM** | 中国市场部署和中文编程 | `glm-5.1` | `glm-5.1` 及智谱目录中的其他模型 |
+| **智谱 / ChatGLM** | 中国市场部署和中文编程 | `glm-5.2` | `glm-5.2`、`glm-5.1` 及智谱目录中的其他模型 |
 
 > **注意**：GodeX 路由到你配置的提供商提供的任何模型。上面的默认模型只是推荐的起点。你可以配置每个提供商目录中的任何模型。
 

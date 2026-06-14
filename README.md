@@ -35,7 +35,7 @@ GodeX lets clients that speak the OpenAI Responses API use providers such as Dee
 | DeepSeek | native | text | auto, none, required, function | text, json_object | ✅ | `deepseek-v4-pro` |
 | Xiaomi   | boolean | text | auto | text, json_object | ✅ | `mimo-v2.5-pro` |
 | MiniMax  | boolean | text, image, video | auto, none, required, function | text, json_object | ✅ | `MiniMax-M3` |
-| Zhipu    | boolean | text | auto, none | text, json_object | ✅ | `glm-5.1` |
+| Zhipu    | boolean | text | auto, none | text, json_object | ✅ | `glm-5.2` |
 
 ## Architecture
 

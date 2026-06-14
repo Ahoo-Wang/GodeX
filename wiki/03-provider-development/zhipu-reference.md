@@ -150,7 +150,7 @@ Zhipu has two base URLs:
 | `https://open.bigmodel.cn/api/paas/v4` | Standard API endpoint |
 | `https://open.bigmodel.cn/api/coding/paas/v4` | Coding plan endpoint (default) |
 
-The default base URL is the coding plan endpoint. The default model is `glm-5.1`.
+The default base URL is the coding plan endpoint. The default model is `glm-5.2`.
 
 [Message & Tool Mapping](/03-provider-development/message-tool-mapping)
 [DeepSeek Reference](/03-provider-development/deepseek-reference)

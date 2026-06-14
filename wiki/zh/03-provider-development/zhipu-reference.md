@@ -150,7 +150,7 @@ export const ZHIPU_PROVIDER_DEFINITION = createProviderDefinition(
 | `https://open.bigmodel.cn/api/paas/v4` | 标准 API 端点 |
 | `https://open.bigmodel.cn/api/coding/paas/v4` | 编程套餐端点（默认） |
 
-默认 base URL 为编程套餐端点。默认模型为 `glm-5.1`。
+默认 base URL 为编程套餐端点。默认模型为 `glm-5.2`。
 
 [消息与工具映射](/zh/03-provider-development/message-tool-mapping)
 [DeepSeek 参考](/zh/03-provider-development/deepseek-reference)

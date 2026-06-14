@@ -176,7 +176,7 @@ This is the key value proposition for PMs: **provider decisions become configura
 | **DeepSeek** | Cost-effective coding and reasoning | `deepseek-v4-pro` | `deepseek-v4-pro`, `deepseek-v4-flash`, and others from DeepSeek's catalog |
 | **Xiaomi / MiMo** | Reasoning and China-market deployment | `mimo-v2.5-pro` | `mimo-v2.5-pro`, `mimo-v2.5`, `mimo-v2-flash`, and others from MiMo's catalog |
 | **MiniMax** | Fast responses, tool calling, and image/video understanding | `MiniMax-M3` | `MiniMax-M3` and others from MiniMax's catalog |
-| **Zhipu / ChatGLM** | China-market deployment and Chinese-language coding | `glm-5.1` | `glm-5.1` and others from Zhipu's catalog |
+| **Zhipu / ChatGLM** | China-market deployment and Chinese-language coding | `glm-5.2` | `glm-5.2`, `glm-5.1` and others from Zhipu's catalog |
 
 > **Note**: GodeX routes to whatever models your configured providers offer. The default models above are just the recommended starting points. You can configure any model from each provider's catalog.
 
