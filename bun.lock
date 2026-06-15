@@ -65,7 +65,7 @@
 
     "@logtape/logtape": ["@logtape/logtape@2.1.2", "", {}, "sha512-Qx+WVzN8V8IUF+VzOFrX9C5vxocpiS8YoE63EZtv9vZViMY3cDASSzwerNqjl2xqJqUZnn9nrcCL5QroqEEqcg=="],
 
-    "@logtape/pretty": ["@logtape/pretty@2.1.1", "", { "peerDependencies": { "@logtape/logtape": "^2.1.1" } }, "sha512-lSscfaNpYxfvwA5ydbrSVHlw6Wc5L5/JxpI6po9FT/4PMjsdoNAMbsN9ejBaH2yP3jf2ARi4GdivOw7YDJHAxA=="],
+    "@logtape/pretty": ["@logtape/pretty@2.1.4", "", { "peerDependencies": { "@logtape/logtape": "^2.1.4" } }, "sha512-pq5sSyTn8hiekjCqlofSZULh5Got2IpTATr2ofTo5Zcq9KqUZjUnkZ2w/pRlRgHHOQdXzHBqEmNGw7p8MEd7mQ=="],
 
     "@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
