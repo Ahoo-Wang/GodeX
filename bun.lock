@@ -12,7 +12,7 @@
       "devDependencies": {
         "@ahoo-wang/fetcher": "^3.16.10",
         "@ahoo-wang/fetcher-decorator": "^3.16.10",
-        "@ahoo-wang/fetcher-eventstream": "^3.16.8",
+        "@ahoo-wang/fetcher-eventstream": "^3.16.10",
         "@biomejs/biome": "^2.4.15",
         "@clack/prompts": "^1.4.0",
         "@types/bun": "^1.2.0",
