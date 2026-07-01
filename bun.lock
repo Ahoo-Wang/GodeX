@@ -5,7 +5,7 @@
     "": {
       "name": "@ahoo-wang/godex",
       "dependencies": {
-        "@logtape/file": "^2.1.1",
+        "@logtape/file": "^2.2.2",
         "@logtape/logtape": "^2.1.1",
         "@logtape/pretty": "^2.1.1",
       },
@@ -61,7 +61,7 @@
 
     "@clack/prompts": ["@clack/prompts@1.5.1", "", { "dependencies": { "@clack/core": "1.4.1", "fast-string-width": "^3.0.2", "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-zccHj2z2oCCO4yrDiRSlFOxWerGqRiysP7a5jPK6uoI9URKAquwY42Dd/iUP8JWHxEzdRe4TlbvZCo8z1/mhrw=="],
 
-    "@logtape/file": ["@logtape/file@2.1.4", "", { "peerDependencies": { "@logtape/logtape": "^2.1.4" } }, "sha512-jC90wtZTShrXYEeT/TdFDsZ4ipQEKPGhSL8rNcHJ/u4j3bWNJ9W/OnMGs94UEdJcSL6q5r01bIAGNmqpoSOQFQ=="],
+    "@logtape/file": ["@logtape/file@2.2.2", "", { "peerDependencies": { "@logtape/logtape": "^2.2.2" } }, "sha512-HrK8K/bVh331g2GKm4LWIwBUiuOMQiHXLQjieFAGd0v9qaM+uSj79x0WAZn9wjTFJX8Ih1Q1o/OhQrRkVPaRTw=="],
 
     "@logtape/logtape": ["@logtape/logtape@2.1.4", "", {}, "sha512-ZQbAeHSxAd/bZKWwAfRIb4phTNuoSiaZoeE5GgfNwKxhik6L1+XZXQr0r8x2Bsm4K98B/d5InORVy0jcmA4kCA=="],
 
