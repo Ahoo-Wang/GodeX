@@ -6,7 +6,7 @@
       "name": "@ahoo-wang/godex",
       "dependencies": {
         "@logtape/file": "^2.2.2",
-        "@logtape/logtape": "^2.1.1",
+        "@logtape/logtape": "^2.2.3",
         "@logtape/pretty": "^2.2.2",
       },
       "devDependencies": {
@@ -63,7 +63,7 @@
 
     "@logtape/file": ["@logtape/file@2.2.2", "", { "peerDependencies": { "@logtape/logtape": "^2.2.2" } }, "sha512-HrK8K/bVh331g2GKm4LWIwBUiuOMQiHXLQjieFAGd0v9qaM+uSj79x0WAZn9wjTFJX8Ih1Q1o/OhQrRkVPaRTw=="],
 
-    "@logtape/logtape": ["@logtape/logtape@2.1.4", "", {}, "sha512-ZQbAeHSxAd/bZKWwAfRIb4phTNuoSiaZoeE5GgfNwKxhik6L1+XZXQr0r8x2Bsm4K98B/d5InORVy0jcmA4kCA=="],
+    "@logtape/logtape": ["@logtape/logtape@2.2.3", "", {}, "sha512-NIPzXBJneBv7Ar6sFBbEo5L8zZr2lopQnlVeT881y68qGNcJBy/Y8s8uAwUaVhobB8GIiMluOY7j3bOsaaIhQQ=="],
 
     "@logtape/pretty": ["@logtape/pretty@2.2.2", "", { "peerDependencies": { "@logtape/logtape": "^2.2.2" } }, "sha512-c5hzSMSOo8ZotN0gs4N8bWQA5mlCo0yBSKfq/JsJVq+ZgbKyQBv4A808rMGe/nHI/WtM/g0YL73c+I5mp/c1gA=="],
 
