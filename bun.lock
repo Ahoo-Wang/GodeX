@@ -7,7 +7,7 @@
       "dependencies": {
         "@logtape/file": "^2.2.2",
         "@logtape/logtape": "^2.2.3",
-        "@logtape/pretty": "^2.2.2",
+        "@logtape/pretty": "^2.2.4",
       },
       "devDependencies": {
         "@ahoo-wang/fetcher": "^3.16.10",
@@ -65,7 +65,7 @@
 
     "@logtape/logtape": ["@logtape/logtape@2.2.3", "", {}, "sha512-NIPzXBJneBv7Ar6sFBbEo5L8zZr2lopQnlVeT881y68qGNcJBy/Y8s8uAwUaVhobB8GIiMluOY7j3bOsaaIhQQ=="],
 
-    "@logtape/pretty": ["@logtape/pretty@2.2.2", "", { "peerDependencies": { "@logtape/logtape": "^2.2.2" } }, "sha512-c5hzSMSOo8ZotN0gs4N8bWQA5mlCo0yBSKfq/JsJVq+ZgbKyQBv4A808rMGe/nHI/WtM/g0YL73c+I5mp/c1gA=="],
+    "@logtape/pretty": ["@logtape/pretty@2.2.4", "", { "peerDependencies": { "@logtape/logtape": "^2.2.4" } }, "sha512-eUaa7+Y3WieTDeSSo3osGDE3m1ohTPGCjqOY9006sYrEZGPRvf4HyU+kbMcKm7Q3syWLF6RkSyJ1WhxTs1Ccvg=="],
 
     "@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
