@@ -76,7 +76,7 @@
     "commander": "^15.0.0",
     "js-yaml": "^4.1.1",
     "nanoid": "^5.1.16",
-    "typescript": "^6"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "@logtape/file": "^2.2.4",
