@@ -14,7 +14,9 @@ import type {
 	ResponseItem,
 	ResponseStreamEvent,
 	WebSearchCall,
+	WebSearchCallActionSearch,
 } from "../../protocol/openai/responses";
+import type { SearchResponse } from "../../search";
 import { recordTraceEvent } from "../../trace";
 import type {
 	ProviderExchangeStreamOptions,
@@ -126,13 +128,9 @@ export class HostedWebSearchStreamRunner {
 			}
 
 			recordTraceEvent(ctx, "web_search.request", managed.search);
-			const search = await executeSearchWithTimeout(
-				managed.search,
-				config.timeout_ms,
-				(signal) => ctx.app.search.search(managed.search, signal),
-			);
-			recordTraceEvent(ctx, "web_search.response", search);
-			emitWebSearchLifecycle({
+			// Emit in_progress + searching BEFORE the await so the client observes
+			// search progress while it runs, not as a burst after it completes.
+			const lifecycle = beginWebSearchLifecycle({
 				controller,
 				machine,
 				item: webSearchCallItem({
@@ -140,9 +138,26 @@ export class HostedWebSearchStreamRunner {
 					index: machine.snapshot.output.length,
 					query: managed.query,
 					queries: managed.queries,
-					sources: search.results.map((result) => ({ url: result.url })),
-					status: "completed",
+					sources: [],
+					status: "in_progress",
 				}),
+			});
+			let search: SearchResponse;
+			try {
+				search = await executeSearchWithTimeout(
+					managed.search,
+					config.timeout_ms,
+					(signal) => ctx.app.search.search(managed.search, signal),
+				);
+			} catch (error) {
+				// Surface a failed web_search_call rather than letting the whole
+				// stream die without a terminal item.
+				lifecycle.fail();
+				throw error;
+			}
+			recordTraceEvent(ctx, "web_search.response", search);
+			lifecycle.complete({
+				sources: search.results.map((result) => ({ url: result.url })),
 			});
 			request = buildContinuationRequest({
 				original: request,
@@ -271,23 +286,30 @@ function isSuppressedFunctionCallEvent(
 	);
 }
 
-function emitWebSearchLifecycle(input: {
+interface WebSearchLifecycle {
+	readonly outputIndex: number;
+	complete(update: {
+		readonly sources: readonly { readonly url: string }[];
+	}): void;
+	fail(): void;
+}
+
+function beginWebSearchLifecycle(input: {
 	readonly controller: ResponseStreamController;
 	readonly machine: ResponseStreamStateMachine;
 	readonly item: WebSearchCall;
-}): void {
-	const inProgress: WebSearchCall = { ...input.item, status: "in_progress" };
-	const outputIndex = input.machine.appendOutputItem(inProgress);
+}): WebSearchLifecycle {
+	const outputIndex = input.machine.appendOutputItem(input.item);
 	input.controller.enqueue({
 		type: "response.output_item.added",
 		output_index: outputIndex,
-		item: inProgress,
+		item: input.item,
 	});
 	input.controller.enqueue({
 		type: "response.web_search_call.in_progress",
 		output_index: outputIndex,
 		item_id: input.item.id,
-		item: inProgress,
+		item: input.item,
 	});
 
 	const searching: WebSearchCall = { ...input.item, status: "searching" };
@@ -299,19 +321,52 @@ function emitWebSearchLifecycle(input: {
 		item: searching,
 	});
 
-	const completed: WebSearchCall = { ...input.item, status: "completed" };
-	input.machine.updateOutputItem(outputIndex, completed);
-	input.controller.enqueue({
-		type: "response.web_search_call.completed",
-		output_index: outputIndex,
-		item_id: input.item.id,
-		item: completed,
-	});
-	input.controller.enqueue({
-		type: "response.output_item.done",
-		output_index: outputIndex,
-		item: completed,
-	});
+	const baseAction = searchAction(input.item.action);
+	return {
+		outputIndex,
+		complete(update) {
+			const completed: WebSearchCall = {
+				...input.item,
+				status: "completed",
+				action: {
+					...baseAction,
+					sources: update.sources.map((source) => ({
+						type: "url" as const,
+						url: source.url,
+					})),
+				},
+			};
+			input.machine.updateOutputItem(outputIndex, completed);
+			input.controller.enqueue({
+				type: "response.web_search_call.completed",
+				output_index: outputIndex,
+				item_id: input.item.id,
+				item: completed,
+			});
+			input.controller.enqueue({
+				type: "response.output_item.done",
+				output_index: outputIndex,
+				item: completed,
+			});
+		},
+		fail() {
+			const failed: WebSearchCall = { ...input.item, status: "failed" };
+			input.machine.updateOutputItem(outputIndex, failed);
+			input.controller.enqueue({
+				type: "response.output_item.done",
+				output_index: outputIndex,
+				item: failed,
+			});
+		},
+	};
+}
+
+function searchAction(
+	action: WebSearchCall["action"],
+): WebSearchCallActionSearch {
+	return action.type === "search"
+		? action
+		: { type: "search", query: "", queries: [] };
 }
 
 function responseItemId(item: ResponseItem | undefined): string | undefined {

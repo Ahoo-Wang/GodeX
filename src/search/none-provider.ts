@@ -1,3 +1,4 @@
+import { PROVIDER_UPSTREAM_ERROR, ProviderError } from "../error";
 import type { SearchRequest, SearchResponse, SearchService } from "./types";
 
 export class NoneSearchProvider implements SearchService {
@@ -5,6 +6,14 @@ export class NoneSearchProvider implements SearchService {
 	readonly available = false;
 
 	async search(_request: SearchRequest): Promise<SearchResponse> {
-		throw new Error("web_search provider is not configured.");
+		throw new ProviderError(
+			PROVIDER_UPSTREAM_ERROR,
+			"web_search provider is not configured.",
+			{
+				provider: this.name,
+				model: "web_search",
+				upstreamStatus: 503,
+			},
+		);
 	}
 }

@@ -6,6 +6,7 @@ import type {
 	ResponseItem,
 	ResponseObject,
 } from "../../protocol/openai/responses";
+import type { SearchResponse } from "../../search";
 import { recordTraceEvent } from "../../trace";
 import type {
 	ProviderExchangeRequestOptions,
@@ -91,11 +92,27 @@ export class HostedWebSearchSyncRunner {
 				);
 			}
 			recordTraceEvent(ctx, "web_search.request", call.search);
-			const search = await executeSearchWithTimeout(
-				call.search,
-				config.timeout_ms,
-				(signal) => ctx.app.search.search(call.search, signal),
-			);
+			let search: SearchResponse;
+			try {
+				search = await executeSearchWithTimeout(
+					call.search,
+					config.timeout_ms,
+					(signal) => ctx.app.search.search(call.search, signal),
+				);
+			} catch (error) {
+				// Surface a failed web_search_call in the output before propagating.
+				hostedItems.push(
+					webSearchCallItem({
+						responseId: ctx.responseId,
+						index: hostedItems.length,
+						query: call.query,
+						queries: call.queries,
+						sources: [],
+						status: "failed",
+					}),
+				);
+				throw error;
+			}
 			recordTraceEvent(ctx, "web_search.response", search);
 			hostedItems.push(
 				webSearchCallItem({

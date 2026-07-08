@@ -1,4 +1,4 @@
-import { BRIDGE_REQUEST_UNSUPPORTED_TOOL, BridgeError } from "../../error";
+import { PROVIDER_UPSTREAM_TIMEOUT, ProviderError } from "../../error";
 import type { SearchRequest, SearchResponse } from "../../search";
 
 export async function executeSearchWithTimeout(
@@ -9,20 +9,25 @@ export async function executeSearchWithTimeout(
 	const controller = new AbortController();
 	let timeout: ReturnType<typeof setTimeout> | undefined;
 	try {
+		const searchPromise = search(controller.signal);
+		// Absorb the abandoned search promise when the timeout wins the race:
+		// abort() makes it reject (ProviderError/AbortError) with no awaiter,
+		// which would surface as an unhandled rejection.
+		searchPromise.catch(() => {});
 		return await Promise.race([
-			search(controller.signal),
+			searchPromise,
 			new Promise<SearchResponse>((_, reject) => {
 				timeout = setTimeout(() => {
 					controller.abort();
 					reject(
-						new BridgeError(
-							BRIDGE_REQUEST_UNSUPPORTED_TOOL,
+						new ProviderError(
+							PROVIDER_UPSTREAM_TIMEOUT,
 							`web_search timed out after ${timeoutMs}ms.`,
 							{
 								provider: "web_search",
 								model: "search",
-								parameter: "web_search.timeout_ms",
-								query: request.query,
+								upstreamStatus: 408,
+								upstreamBody: { query: request.query },
 							},
 						),
 					);

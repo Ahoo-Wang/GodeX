@@ -9,7 +9,10 @@ import { createToolPlanningProfile } from "../../bridge/tools";
 import { DEFAULT_WEB_SEARCH_CONFIG } from "../../config/sections/web-search";
 import { OutputContractSlot } from "../../context/output-contract-slot";
 import type { ResponsesContext } from "../../context/responses-context";
-import type { ResponseCreateRequest } from "../../protocol/openai/responses";
+import type {
+	ResponseCreateRequest,
+	ResponseStreamEvent,
+} from "../../protocol/openai/responses";
 import type { SearchRequest } from "../../search";
 import type {
 	ResponseSessionStore,
@@ -122,6 +125,77 @@ describe("HostedWebSearchStreamRunner", () => {
 				],
 			}),
 		]);
+	});
+
+	test("emits a failed web_search_call when the search provider throws", async () => {
+		const ctx = createHostedSearchTestContext();
+		// Make the hosted search provider reject.
+		(ctx.app as { search: { search: unknown } }).search.search = async () => {
+			throw new Error("upstream search failed");
+		};
+		const exchange = {
+			async stream(
+				receivedCtx: ResponsesContext,
+				options?: { request?: ResponseCreateRequest },
+			): Promise<ProviderStreamExchangeResult> {
+				const request = options?.request ?? receivedCtx.request;
+				return {
+					providerStream: createStream([
+						{
+							event: "chunk",
+							data: {
+								toolCall: {
+									index: 0,
+									id: "call_search",
+									type: "function",
+									name: "web_search",
+									arguments: JSON.stringify({ query: "latest bun release" }),
+								},
+								finishReason: "tool_calls",
+							},
+						},
+					]),
+					upstreamLatencyMillis: 1,
+					built: buildManagedSearchRequest(receivedCtx, request),
+				};
+			},
+		};
+		const runner = new HostedWebSearchStreamRunner(exchange);
+
+		const { stream } = await runner.stream(ctx);
+		// The runner emits the failed lifecycle, then errors the stream.
+		const events: ResponseStreamEvent[] = [];
+		const reader = stream.getReader();
+		let streamError: unknown;
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				events.push(value);
+			}
+		} catch (error) {
+			streamError = error;
+		} finally {
+			reader.releaseLock();
+		}
+		expect(streamError).toBeInstanceOf(Error);
+		expect(String(streamError)).toContain("upstream search failed");
+
+		const doneItem = events.find(
+			(event) =>
+				event.type === "response.output_item.done" &&
+				event.item?.type === "web_search_call",
+		)?.item;
+		expect(doneItem).toMatchObject({
+			type: "web_search_call",
+			status: "failed",
+		});
+		expect(events.map((event) => event.type)).toEqual(
+			expect.arrayContaining([
+				"response.web_search_call.in_progress",
+				"response.web_search_call.searching",
+			]),
+		);
 	});
 });
 

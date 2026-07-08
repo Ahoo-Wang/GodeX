@@ -205,6 +205,38 @@ describe("HostedWebSearchSyncRunner", () => {
 			}),
 		]);
 	});
+
+	test("rejects and records a failed web_search_call when search throws", async () => {
+		const ctx = createHostedSearchTestContext();
+		// Force the hosted search provider to reject.
+		(ctx.app as { search: { search: unknown } }).search.search = async () => {
+			throw new Error("upstream search failed");
+		};
+		const exchange = {
+			async request(
+				receivedCtx: ResponsesContext,
+				options?: { request?: ResponseCreateRequest },
+			): Promise<ProviderRequestExchangeResult> {
+				const request = options?.request ?? receivedCtx.request;
+				return {
+					built: buildManagedSearchRequest(receivedCtx, request),
+					providerResponse: providerToolCallResponse({
+						callId: "call_search",
+						name: "web_search",
+						argumentsValue: JSON.stringify({ query: "latest bun release" }),
+					}),
+				};
+			},
+		};
+		const runner = new HostedWebSearchSyncRunner(exchange);
+
+		await expect(runner.request(ctx)).rejects.toThrow("upstream search failed");
+		// The failed web_search_call is pushed onto hostedItems before throwing,
+		// but hostedItems is local to run(); the caller observes the rejection.
+		// The trace records the request but not the response (search threw).
+		expect(traceEventNames(ctx)).toContain("web_search.request");
+		expect(traceEventNames(ctx)).not.toContain("web_search.response");
+	});
 });
 
 function buildManagedSearchRequest(
