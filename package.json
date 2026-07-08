@@ -81,6 +81,6 @@
   "dependencies": {
     "@logtape/file": "^2.2.4",
     "@logtape/logtape": "^2.2.3",
-    "@logtape/pretty": "^2.2.2"
+    "@logtape/pretty": "^2.2.4"
   }
 }
