@@ -3,21 +3,42 @@
   "extends": ["config:recommended"],
   "timezone": "Asia/Shanghai",
   "labels": ["dependencies"],
-  "commitMessagePrefix": "fix(deps)",
-  "commitMessageTopic": "{{depName}}",
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
   "rangeStrategy": "bump",
   "lockFileMaintenance": { "enabled": false },
   "prConcurrentLimit": 5,
   "packageRules": [
     {
-      "description": "Group Spring ecosystem updates into a single PR",
-      "matchPackagePatterns": ["^org\\.springframework"],
-      "groupName": "spring"
+      "description": "Group @logtape logging packages (co-released upstream)",
+      "matchPackagePatterns": ["^@logtape/"],
+      "groupName": "logtape"
     },
     {
-      "description": "Group Kotlin-related updates into a single PR",
-      "matchPackagePatterns": ["^org\\.jetbrains\\.kotlin"],
-      "groupName": "kotlin"
+      "description": "Group @ahoo-wang/fetcher ecosystem packages",
+      "matchPackagePatterns": ["^@ahoo-wang/fetcher"],
+      "groupName": "fetcher-ecosystem"
+    },
+    {
+      "description": "Group TypeScript type definitions",
+      "matchPackagePatterns": ["^@types/"],
+      "groupName": "types"
+    },
+    {
+      "description": "Group VitePress wiki toolchain updates",
+      "matchFileNames": ["wiki/package.json"],
+      "groupName": "vitepress-wiki"
+    },
+    {
+      "description": "Use ci(deps) prefix for GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "semanticCommitType": "ci"
+    },
+    {
+      "description": "Ignore platform-specific binary packages; versions are synced via scripts/version.ts",
+      "matchPackagePatterns": ["^@ahoo-wang/godex-"],
+      "enabled": false
     }
   ]
 }
