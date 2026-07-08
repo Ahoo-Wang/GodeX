@@ -24,6 +24,22 @@ export interface MimoTool {
 	function: MimoFunctionDefinition;
 }
 
+export interface MimoWebSearchTool {
+	type: "web_search";
+	max_keyword?: number;
+	force_search?: boolean;
+	limit?: number;
+	user_location?: {
+		type?: "approximate";
+		country?: string;
+		region?: string;
+		city?: string;
+		timezone?: string;
+	};
+}
+
+export type MimoToolDefinition = MimoTool | MimoWebSearchTool;
+
 export type MimoToolChoice = "auto";
 
 export interface MimoMessageToolCall {
@@ -52,6 +68,7 @@ export interface MimoAssistantMessage {
 	content?: string | null;
 	name?: string;
 	reasoning_content?: string | null;
+	annotations?: MimoAnnotation[];
 	tool_calls?: MimoMessageToolCall[];
 }
 
@@ -77,10 +94,22 @@ export interface ChatCompletionRequest {
 	stream_options?: { include_usage: boolean };
 	temperature?: number;
 	top_p?: number;
-	tools?: MimoTool[];
+	tools?: MimoToolDefinition[];
 	tool_choice?: MimoToolChoice;
 	user_id?: string;
 }
+
+export interface MimoUrlCitationAnnotation {
+	type: "url_citation";
+	url: string;
+	title?: string;
+	summary?: string;
+	site_name?: string;
+	publish_time?: string;
+	logo_url?: string;
+}
+
+export type MimoAnnotation = MimoUrlCitationAnnotation;
 
 export interface CompletionUsage {
 	prompt_tokens: number;
@@ -94,6 +123,10 @@ export interface CompletionUsage {
 	};
 	completion_tokens_details?: {
 		reasoning_tokens?: number;
+	};
+	web_search_usage?: {
+		tool_usage?: number;
+		page_usage?: number;
 	};
 }
 

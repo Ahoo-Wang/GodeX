@@ -5,12 +5,14 @@ import { planOutputContract } from "../bridge/output";
 import type { ProviderEdge } from "../bridge/provider-spec";
 import { buildChatCompletionRequest } from "../bridge/request";
 import { createToolPlanningProfile } from "../bridge/tools";
+import { DEFAULT_WEB_SEARCH_CONFIG } from "../config/sections/web-search";
 import { OutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import type {
 	ResponseCreateRequest,
 	ResponseObject,
 } from "../protocol/openai/responses";
+import type { SearchRequest } from "../search";
 import type { ResponseSessionStore, StoredResponseSession } from "../session";
 import { createTestProviderEdge } from "../testing/provider-edge";
 import type { ProviderStreamExchangeResult } from "./provider-exchange";
@@ -81,6 +83,14 @@ function createMockCtx(
 	return {
 		provider,
 		app: {
+			config: { web_search: DEFAULT_WEB_SEARCH_CONFIG },
+			search: {
+				name: "none",
+				available: false,
+				search: async () => {
+					throw new Error("not configured");
+				},
+			},
 			sessionStore: createMockSessionStore(),
 			traceEnabled: true,
 			traceRecorder: {
@@ -153,6 +163,29 @@ function createExchange(
 			}),
 		}),
 	};
+}
+
+function buildManagedSearchRequest(
+	ctx: ResponsesContext,
+	request: ResponseCreateRequest,
+) {
+	return buildChatCompletionRequest({
+		request: { ...request, stream: true },
+		provider: ctx.provider.name,
+		model: ctx.resolved.model,
+		capabilities: ctx.provider.spec.capabilities,
+		profile: createToolPlanningProfile({
+			provider: ctx.provider.name,
+			capabilities: ctx.provider.spec.capabilities,
+			toProviderName: ctx.provider.spec.toolName.toProviderName,
+		}),
+		session: ctx.session,
+		webSearch: {
+			mode: "godex_managed",
+			available: true,
+			onUnavailable: "client_tool_call",
+		},
+	});
 }
 
 async function readStream<T>(stream: ReadableStream<T>): Promise<T[]> {
@@ -244,6 +277,121 @@ describe("StreamPipeline", () => {
 				}) as Record<string, unknown>,
 			},
 		]);
+	});
+
+	test("streams hosted web search lifecycle and saves the final response", async () => {
+		const provider = createMockProvider();
+		const ctx = createMockCtx(
+			provider,
+			true,
+			{},
+			{
+				stream: true,
+				tools: [{ type: "web_search", search_context_size: "medium" }],
+			},
+		);
+		(ctx.app as unknown as { config: { web_search: unknown } }).config = {
+			web_search: {
+				...DEFAULT_WEB_SEARCH_CONFIG,
+				mode: "godex_managed",
+				provider: "mock",
+			},
+		};
+		(ctx.app as unknown as { search: unknown }).search = {
+			name: "mock",
+			available: true,
+			search: async (request: SearchRequest) => ({
+				query: request.query,
+				results: [
+					{
+						title: `Mock result for ${request.query}`,
+						url: "https://example.com/search/latest-bun-release",
+						snippet: `Deterministic mock search result for ${request.query}.`,
+					},
+				],
+			}),
+		};
+		const requests: ResponseCreateRequest[] = [];
+		const exchange = {
+			stream: async (
+				receivedCtx: ResponsesContext,
+				options?: { request?: ResponseCreateRequest },
+			): Promise<ProviderStreamExchangeResult> => {
+				const request = options?.request ?? receivedCtx.request;
+				requests.push(request);
+				return {
+					providerStream:
+						requests.length === 1
+							? createStream([
+									{
+										event: "chunk",
+										data: {
+											toolCall: {
+												index: 0,
+												id: "call_search",
+												type: "function",
+												name: "web_search",
+												arguments: JSON.stringify({
+													query: "latest bun release",
+												}),
+											},
+											finishReason: "tool_calls",
+										},
+									},
+								])
+							: createStream([
+									{
+										event: "chunk",
+										data: {
+											text: "Bun latest release is listed in the mock result.",
+											finishReason: "stop",
+										},
+									},
+								]),
+					upstreamLatencyMillis: 17,
+					built: buildManagedSearchRequest(receivedCtx, request),
+				};
+			},
+		};
+		const saved: ResponseObject[] = [];
+
+		const events = await readStream(
+			await new StreamPipeline(exchange, async (_store, response) => {
+				saved.push(response);
+			}).stream(ctx),
+		);
+
+		expect(events.map((event) => event.type)).toEqual(
+			expect.arrayContaining([
+				"response.web_search_call.in_progress",
+				"response.web_search_call.searching",
+				"response.web_search_call.completed",
+				"response.output_text.delta",
+				"response.completed",
+			]),
+		);
+		expect(events.map((event) => event.type)).not.toContain(
+			"response.function_call_arguments.delta",
+		);
+		expect(requests).toHaveLength(2);
+		expect(requests[1]?.input).toEqual([
+			{ role: "user", content: "hello" },
+			expect.objectContaining({
+				type: "function_call",
+				call_id: "call_search",
+			}),
+			expect.objectContaining({
+				type: "function_call_output",
+				call_id: "call_search",
+			}),
+		]);
+		expect(saved[0]).toMatchObject({
+			output: [
+				expect.objectContaining({ type: "web_search_call" }),
+				expect.objectContaining({ type: "message" }),
+			],
+			output_text: "Bun latest release is listed in the mock result.",
+		});
 	});
 
 	test("skips session persistence when response storage is disabled", async () => {

@@ -12,6 +12,7 @@ import type {
 	ResponseCreateRequest,
 	ResponseStreamEvent,
 } from "../protocol/openai/responses";
+import { createDeepSeekProvider } from "../providers/deepseek";
 import { Registrar } from "../providers/registrar";
 import { createZhipuProvider } from "../providers/zhipu";
 import { createBuiltinRoutes, startServer } from "../server";
@@ -59,6 +60,73 @@ async function startMockUpstream() {
 }
 
 function handleMockChat(body: Record<string, unknown>) {
+	if (hasToolOutputMessage(body, "call_search")) {
+		return new Response(
+			JSON.stringify({
+				id: "mock-task-id",
+				created: Math.floor(Date.now() / 1000),
+				model: String(body.model ?? "mock"),
+				choices: [
+					{
+						index: 0,
+						finish_reason: "stop",
+						message: {
+							role: "assistant",
+							content: "The latest Bun release appears in the mock result.",
+						},
+					},
+				],
+				usage: {
+					prompt_tokens: 20,
+					completion_tokens: 7,
+					total_tokens: 27,
+				},
+			}),
+			{ headers: { "Content-Type": "application/json" } },
+		);
+	}
+
+	if (
+		hasManagedWebSearchTool(body) &&
+		lastUserMessageContent(body) === "What is the latest Bun release?"
+	) {
+		return new Response(
+			JSON.stringify({
+				id: "mock-task-id",
+				created: Math.floor(Date.now() / 1000),
+				model: String(body.model ?? "mock"),
+				choices: [
+					{
+						index: 0,
+						finish_reason: "tool_calls",
+						message: {
+							role: "assistant",
+							content: null,
+							tool_calls: [
+								{
+									id: "call_search",
+									type: "function",
+									function: {
+										name: "web_search",
+										arguments: JSON.stringify({
+											query: "latest Bun release",
+										}),
+									},
+								},
+							],
+						},
+					},
+				],
+				usage: {
+					prompt_tokens: 10,
+					completion_tokens: 5,
+					total_tokens: 15,
+				},
+			}),
+			{ headers: { "Content-Type": "application/json" } },
+		);
+	}
+
 	if (lastUserMessageContent(body) === "List workspace.") {
 		return new Response(
 			JSON.stringify({
@@ -177,12 +245,65 @@ function lastUserMessageContent(body: Record<string, unknown>): unknown {
 	return undefined;
 }
 
+function hasManagedWebSearchTool(body: Record<string, unknown>): boolean {
+	const tools = body.tools;
+	return (
+		Array.isArray(tools) &&
+		tools.some(
+			(tool) =>
+				tool &&
+				typeof tool === "object" &&
+				"type" in tool &&
+				tool.type === "function" &&
+				"function" in tool &&
+				tool.function &&
+				typeof tool.function === "object" &&
+				"name" in tool.function &&
+				tool.function.name === "web_search",
+		)
+	);
+}
+
+function hasToolOutputMessage(
+	body: Record<string, unknown>,
+	callId: string,
+): boolean {
+	const messages = body.messages;
+	return (
+		Array.isArray(messages) &&
+		messages.some(
+			(message) =>
+				message &&
+				typeof message === "object" &&
+				"role" in message &&
+				message.role === "tool" &&
+				"tool_call_id" in message &&
+				message.tool_call_id === callId,
+		)
+	);
+}
+
 function handleMockStream(body: Record<string, unknown>) {
 	const taskId = "mock-stream-task";
 	const created = Math.floor(Date.now() / 1000);
 
-	const chunks =
-		lastUserMessageContent(body) === "Stream inspect cwd."
+	const chunks = hasToolOutputMessage(body, "call_search")
+		? [
+				{
+					choices: [
+						{
+							index: 0,
+							delta: {
+								role: "assistant",
+								content: "The latest Bun release appears in the mock result.",
+							},
+							finish_reason: "stop",
+						},
+					],
+				},
+			]
+		: hasManagedWebSearchTool(body) &&
+				lastUserMessageContent(body) === "Search for latest Bun release."
 			? [
 					{
 						choices: [
@@ -193,10 +314,13 @@ function handleMockStream(body: Record<string, unknown>) {
 									tool_calls: [
 										{
 											index: 0,
+											id: "call_search",
 											type: "function",
 											function: {
-												name: "local_shell",
-												arguments: '{"command"',
+												name: "web_search",
+												arguments: JSON.stringify({
+													query: "latest Bun release",
+												}),
 											},
 										},
 									],
@@ -206,41 +330,10 @@ function handleMockStream(body: Record<string, unknown>) {
 						],
 					},
 					{
-						choices: [
-							{
-								index: 0,
-								delta: {
-									tool_calls: [
-										{
-											index: 0,
-											id: "call_stream_shell",
-											function: { arguments: ':["pwd"],"env":{}' },
-										},
-									],
-								},
-								finish_reason: null,
-							},
-						],
+						choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
 					},
-					{
-						choices: [
-							{
-								index: 0,
-								delta: {
-									tool_calls: [
-										{
-											index: 0,
-											function: { arguments: ',"working_directory":"/tmp"}' },
-										},
-									],
-								},
-								finish_reason: null,
-							},
-						],
-					},
-					{ choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] },
 				]
-			: lastUserMessageContent(body) === "Stream two tools."
+			: lastUserMessageContent(body) === "Stream inspect cwd."
 				? [
 						{
 							choices: [
@@ -251,20 +344,10 @@ function handleMockStream(body: Record<string, unknown>) {
 										tool_calls: [
 											{
 												index: 0,
-												id: "call_weather",
 												type: "function",
 												function: {
-													name: "get_weather",
-													arguments: '{"city"',
-												},
-											},
-											{
-												index: 1,
-												id: "call_time",
-												type: "function",
-												function: {
-													name: "get_time",
-													arguments: '{"zone"',
+													name: "local_shell",
+													arguments: '{"command"',
 												},
 											},
 										],
@@ -281,11 +364,8 @@ function handleMockStream(body: Record<string, unknown>) {
 										tool_calls: [
 											{
 												index: 0,
-												function: { arguments: ':"Paris"}' },
-											},
-											{
-												index: 1,
-												function: { arguments: ':"UTC"}' },
+												id: "call_stream_shell",
+												function: { arguments: ':["pwd"],"env":{}' },
 											},
 										],
 									},
@@ -294,31 +374,110 @@ function handleMockStream(body: Record<string, unknown>) {
 							],
 						},
 						{
-							choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
-						},
-					]
-				: [
-						{
 							choices: [
 								{
 									index: 0,
-									delta: { role: "assistant", content: "Hello" },
+									delta: {
+										tool_calls: [
+											{
+												index: 0,
+												function: { arguments: ',"working_directory":"/tmp"}' },
+											},
+										],
+									},
 									finish_reason: null,
 								},
 							],
 						},
-						{
-							choices: [
-								{ index: 0, delta: { content: " from" }, finish_reason: null },
-							],
-						},
-						{
-							choices: [
-								{ index: 0, delta: { content: " mock!" }, finish_reason: null },
-							],
-						},
-						{ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] },
-					];
+						{ choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] },
+					]
+				: lastUserMessageContent(body) === "Stream two tools."
+					? [
+							{
+								choices: [
+									{
+										index: 0,
+										delta: {
+											role: "assistant",
+											tool_calls: [
+												{
+													index: 0,
+													id: "call_weather",
+													type: "function",
+													function: {
+														name: "get_weather",
+														arguments: '{"city"',
+													},
+												},
+												{
+													index: 1,
+													id: "call_time",
+													type: "function",
+													function: {
+														name: "get_time",
+														arguments: '{"zone"',
+													},
+												},
+											],
+										},
+										finish_reason: null,
+									},
+								],
+							},
+							{
+								choices: [
+									{
+										index: 0,
+										delta: {
+											tool_calls: [
+												{
+													index: 0,
+													function: { arguments: ':"Paris"}' },
+												},
+												{
+													index: 1,
+													function: { arguments: ':"UTC"}' },
+												},
+											],
+										},
+										finish_reason: null,
+									},
+								],
+							},
+							{
+								choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
+							},
+						]
+					: [
+							{
+								choices: [
+									{
+										index: 0,
+										delta: { role: "assistant", content: "Hello" },
+										finish_reason: null,
+									},
+								],
+							},
+							{
+								choices: [
+									{
+										index: 0,
+										delta: { content: " from" },
+										finish_reason: null,
+									},
+								],
+							},
+							{
+								choices: [
+									{
+										index: 0,
+										delta: { content: " mock!" },
+										finish_reason: null,
+									},
+								],
+							},
+							{ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] },
+						];
 
 	const encoder = new TextEncoder();
 	const stream = new ReadableStream({
@@ -365,6 +524,11 @@ beforeAll(async () => {
 				credentials: { api_key: "test-key" },
 				endpoint: { base_url: "http://127.0.0.1:1" },
 			},
+			deepseek: {
+				spec: "deepseek",
+				credentials: { api_key: "test-key" },
+				endpoint: { base_url: mockUpstreamBase },
+			},
 		},
 		session: { backend: "memory" },
 		logging: { level: "error" },
@@ -377,12 +541,27 @@ beforeAll(async () => {
 			capture_payload: false,
 			payload_max_bytes: 65536,
 		},
+		web_search: {
+			enabled: true,
+			mode: "godex_managed",
+			provider: "mock",
+			on_unavailable: "client_tool_call",
+			max_iterations: 2,
+			timeout_ms: 10000,
+		},
 	};
 
 	const registrar = new Registrar();
 	registrar.registerFactory("zhipu", () =>
 		createZhipuProvider({
 			spec: "zhipu",
+			credentials: { api_key: "test-key" },
+			endpoint: { base_url: mockUpstreamBase },
+		}),
+	);
+	registrar.registerFactory("deepseek", () =>
+		createDeepSeekProvider({
+			spec: "deepseek",
 			credentials: { api_key: "test-key" },
 			endpoint: { base_url: mockUpstreamBase },
 		}),
@@ -891,6 +1070,39 @@ describe("E2E: sync response", () => {
 			{ type: "function", function: { name: "local_shell" } },
 		]);
 	});
+
+	test("executes managed web search and continues the model for non-native providers", async () => {
+		resetUpstreamRequests();
+		const res = await postResponses({
+			model: "deepseek/test",
+			input: "What is the latest Bun release?",
+			tools: [{ type: "web_search", search_context_size: "medium" }],
+		});
+
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as {
+			output?: Array<{ type: string }>;
+			output_text?: string;
+		};
+		expect(body.output?.some((item) => item.type === "web_search_call")).toBe(
+			true,
+		);
+		expect(body.output_text).toContain("mock result");
+		expect(upstreamRequests).toHaveLength(2);
+		expect(upstreamRequests[0]?.tools).toEqual([
+			expect.objectContaining({
+				type: "function",
+				function: expect.objectContaining({ name: "web_search" }),
+			}),
+		]);
+		expect(upstreamMessages()).toContainEqual(
+			expect.objectContaining({
+				role: "tool",
+				tool_call_id: "call_search",
+				content: expect.stringContaining("latest Bun release"),
+			}),
+		);
+	});
 });
 
 describe("E2E: stream response", () => {
@@ -1058,6 +1270,30 @@ describe("E2E: stream response", () => {
 				arguments: '{"zone":"UTC"}',
 			}),
 		]);
+	});
+
+	test("streams managed web search lifecycle before final text", async () => {
+		resetUpstreamRequests();
+		const events = await streamResponses({
+			model: "deepseek/test",
+			input: "Search for latest Bun release.",
+			stream: true,
+			tools: [{ type: "web_search", search_context_size: "medium" }],
+		});
+
+		expect(events.map((event) => event.type)).toEqual(
+			expect.arrayContaining([
+				"response.web_search_call.in_progress",
+				"response.web_search_call.searching",
+				"response.web_search_call.completed",
+				"response.output_text.delta",
+				"response.completed",
+			]),
+		);
+		expect(events.map((event) => event.type)).not.toContain(
+			"response.function_call_arguments.delta",
+		);
+		expect(upstreamRequests).toHaveLength(2);
 	});
 });
 

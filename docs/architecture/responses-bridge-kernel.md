@@ -67,6 +67,7 @@ Rules:
 - `tool_choice: "none"` disables declarations.
 - Explicit `tool_choice` for a tool that cannot be declared is rejected.
 - Built-in Codex tools, custom tools, and namespace tools may downgrade to function tools when the provider supports that loss.
+- Web search uses a hybrid path: Zhipu and Xiaomi receive provider-native declarations, while other providers can receive an internal GodeX-managed `web_search` function backed by `web_search.provider: zhipu` when hosted execution is enabled. If no backend is configured, `web_search.on_unavailable` controls whether GodeX returns a client-visible function call, rejects the request, or ignores the tool with diagnostics.
 - OpenAI-native discovery controls such as `tool_search` are not executable functions; providers without native support ignore them and keep any eagerly declared tools.
 - Provider hooks expose protocol differences; shared support/degrade/reject policy stays in `bridge/tools`.
 

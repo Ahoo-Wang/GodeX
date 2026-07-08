@@ -2,8 +2,6 @@ import type {
 	FileSearchTool,
 	McpTool,
 	ResponseTool,
-	WebSearchPreviewTool,
-	WebSearchTool,
 } from "../../protocol/openai/responses";
 import { getBuiltinFunctionToolDefinition } from "../../tools";
 import {
@@ -11,6 +9,11 @@ import {
 	degradedCustomToolParameters,
 } from "./custom-tool-degradation";
 import type { ToolDeclarationPlan } from "./tool-plan";
+import {
+	isWebSearchTool,
+	webSearchFunctionDescription,
+	webSearchFunctionParameters,
+} from "./web-search";
 
 export interface ChatFunctionToolDeclaration {
 	readonly type: "function";
@@ -39,7 +42,7 @@ export function renderFunctionDeclarations(
 ): ChatFunctionToolDeclaration[] {
 	return plans
 		.filter((plan) => plan.providerType === "function")
-		.map((plan) => functionDeclaration(plan.tool, plan.providerName));
+		.map((plan) => functionDeclaration(plan));
 }
 
 function providerToolDeclaration(
@@ -47,7 +50,7 @@ function providerToolDeclaration(
 ): ProviderToolDeclaration | undefined {
 	switch (plan.providerType) {
 		case "function":
-			return functionDeclaration(plan.tool, plan.providerName);
+			return functionDeclaration(plan);
 		case "web_search":
 			return webSearchDeclaration(plan.tool);
 		case "retrieval":
@@ -60,9 +63,9 @@ function providerToolDeclaration(
 }
 
 function functionDeclaration(
-	tool: ResponseTool,
-	providerName: string,
+	plan: ToolDeclarationPlan,
 ): ChatFunctionToolDeclaration {
+	const { tool, providerName } = plan;
 	if (tool.type === "function") {
 		return {
 			type: "function",
@@ -81,6 +84,16 @@ function functionDeclaration(
 				name: providerName,
 				description: degradedCustomToolDescription(tool),
 				parameters: degradedCustomToolParameters(tool),
+			},
+		};
+	}
+	if (isWebSearchTool(tool) && plan.providerType === "function") {
+		return {
+			type: "function",
+			function: {
+				name: providerName,
+				description: webSearchFunctionDescription(),
+				parameters: webSearchFunctionParameters(),
 			},
 		};
 	}
@@ -108,12 +121,16 @@ function webSearchDeclaration(
 	tool: ResponseTool,
 ): ProviderToolDeclaration | undefined {
 	if (!isWebSearchTool(tool)) return undefined;
+	const allowedDomain =
+		"filters" in tool ? tool.filters?.allowed_domains?.[0] : undefined;
 	return {
 		type: "web_search",
 		web_search: {
 			enable: true,
 			search_engine: "search_std",
 			content_size: tool.search_context_size === "high" ? "high" : "medium",
+			...(allowedDomain ? { search_domain_filter: allowedDomain } : {}),
+			...(tool.user_location ? { user_location: tool.user_location } : {}),
 		},
 	};
 }
@@ -152,17 +169,6 @@ function genericObjectSchema(): Record<string, unknown> {
 		type: "object",
 		additionalProperties: true,
 	};
-}
-
-function isWebSearchTool(
-	tool: ResponseTool,
-): tool is WebSearchTool | WebSearchPreviewTool {
-	return (
-		tool.type === "web_search" ||
-		tool.type === "web_search_2025_08_26" ||
-		tool.type === "web_search_preview" ||
-		tool.type === "web_search_preview_2025_03_11"
-	);
 }
 
 function isFileSearchTool(tool: ResponseTool): tool is FileSearchTool {

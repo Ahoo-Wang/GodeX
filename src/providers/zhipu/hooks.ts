@@ -18,6 +18,7 @@ import type {
 	ChatCompletionResponseMessage,
 	ChatCompletionStreamDelta,
 	CompletionUsage,
+	WebSearchResult,
 	ChatCompletionCreateRequest as ZhipuChatCompletionCreateRequest,
 } from "./protocol";
 
@@ -100,7 +101,7 @@ export function zhipuWebSearchCalls(
 ): ResponseItem[] {
 	const results = response.web_search ?? [];
 	if (results.length === 0) return [];
-	const query = "web search";
+	const query = firstSearchQuery(results);
 	return [
 		{
 			id: `ws_${response.id}_0`,
@@ -248,6 +249,14 @@ function extractZhipuText(
 			.join("");
 	}
 	return "";
+}
+
+function firstSearchQuery(results: readonly WebSearchResult[]): string {
+	return (
+		results.find(
+			(result) => typeof result.title === "string" && result.title.length > 0,
+		)?.title ?? "web search"
+	);
 }
 
 function assertFiniteNumber(

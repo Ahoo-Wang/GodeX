@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { JsonServerSentEvent } from "@ahoo-wang/fetcher-eventstream";
 import type { CompatibilityDiagnostic } from "../bridge/compatibility";
 import { createProviderEdge, type ProviderEdge } from "../bridge/provider-spec";
+import { DEFAULT_WEB_SEARCH_CONFIG } from "../config/sections/web-search";
 import { OutputContractSlot } from "../context/output-contract-slot";
 import type { ResponsesContext } from "../context/responses-context";
 import { ProviderError } from "../error";
@@ -65,6 +66,14 @@ function createMockCtx(
 	return {
 		provider,
 		app: {
+			config: { web_search: DEFAULT_WEB_SEARCH_CONFIG },
+			search: {
+				name: "none",
+				available: false,
+				search: async () => {
+					throw new Error("not configured");
+				},
+			},
 			sessionStore: createMockSessionStore(),
 			traceEnabled: true,
 			traceRecorder: {
@@ -214,6 +223,47 @@ describe("ProviderExchange", () => {
 				message: expect.stringContaining("does not support Responses tool"),
 			}),
 		);
+	});
+
+	test("passes configured web search planning options into provider request builds", async () => {
+		const providerResponse = { choices: [{ finish_reason: "stop" }] };
+		const calls: unknown[] = [];
+		const provider = createMockProvider(providerResponse, [], (body) => {
+			calls.push(body);
+		});
+		const ctx = createMockCtx(provider);
+		(ctx as unknown as { request: ResponsesContext["request"] }).request = {
+			...ctx.request,
+			tools: [{ type: "web_search", search_context_size: "medium" }],
+		};
+		(ctx.app as unknown as { config: { web_search: unknown } }).config = {
+			web_search: {
+				...DEFAULT_WEB_SEARCH_CONFIG,
+				mode: "godex_managed",
+				provider: "mock",
+			},
+		};
+		(ctx.app as unknown as { search: { available: boolean } }).search = {
+			available: true,
+		};
+
+		const result = await new ProviderExchange().request(ctx);
+
+		expect(result.built.tools.declarations[0]).toMatchObject({
+			requestedType: "web_search",
+			providerType: "function",
+			execution: "godex_managed",
+		});
+		expect(calls[0]).toMatchObject({
+			tools: [
+				expect.objectContaining({
+					type: "function",
+					function: expect.objectContaining({
+						name: "web_search",
+					}),
+				}),
+			],
+		});
 	});
 
 	test("opens stream exchange without mapping Responses output", async () => {

@@ -24,6 +24,7 @@ GodeX lets clients that speak the OpenAI Responses API use providers such as Dee
 - `GET /v1/models` aliases so clients can use stable model names while GodeX routes to provider/model targets.
 - Built-in bridge providers for DeepSeek, Xiaomi, MiniMax, and Zhipu.
 - Provider capability planning for request parameters, tools, `tool_choice`, structured output formats, reasoning, and stream usage.
+- Hybrid web search support with provider-native declarations for Zhipu/Xiaomi and GodeX-managed hosted search through the Zhipu Web Search API.
 - Responses `previous_response_id` session chains backed by memory or SQLite.
 - Trace recording for provider requests, provider responses, stream events, usage, and errors.
 - Native Bun runtime, TypeScript source, and compiled platform binaries for releases.
@@ -189,6 +190,13 @@ providers:
       api_key: ${MIMO_API_KEY}
     endpoint:
       base_url: https://api.xiaomimimo.com/v1
+
+web_search:
+  enabled: true
+  mode: auto
+  provider: zhipu
+  on_unavailable: client_tool_call
+  max_iterations: 2
 
 session:
   backend: sqlite

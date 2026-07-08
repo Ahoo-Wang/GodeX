@@ -173,6 +173,37 @@ describe("buildChatCompletionRequest", () => {
 		});
 	});
 
+	test("passes web-search planning options into tool planning", () => {
+		const result = buildChatCompletionRequest({
+			provider: "acme",
+			model: "acme-chat",
+			capabilities,
+			profile: toolProfile,
+			webSearch: {
+				mode: "godex_managed",
+				available: true,
+				onUnavailable: "client_tool_call",
+			},
+			request: request({
+				tools: [{ type: "web_search", search_context_size: "medium" }],
+			}),
+		});
+
+		expect(result.tools.declarations[0]).toMatchObject({
+			requestedType: "web_search",
+			providerType: "function",
+			execution: "godex_managed",
+		});
+		expect(result.request.tools).toEqual([
+			expect.objectContaining({
+				type: "function",
+				function: expect.objectContaining({
+					name: "web_search",
+				}),
+			}),
+		]);
+	});
+
 	test("plans strict degraded json_schema as json_object and appends schema instruction to the last user turn", () => {
 		const result = buildChatCompletionRequest({
 			provider: "acme",
