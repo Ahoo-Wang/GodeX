@@ -64,9 +64,9 @@ const ZHIPU_SPEC_CAPABILITIES: ProviderCapabilities = {
     supported: new Set([
       "function", "web_search", "web_search_2025_08_26",
       "web_search_preview", "web_search_preview_2025_03_11",
-      "file_search", "mcp",
+      "file_search",
       "local_shell", "shell", "apply_patch",
-      "custom", "tool_search", "namespace",
+      "custom", "namespace",
     ]),
     degraded: new Map([
       ["web_search_2025_08_26", "web_search"],
@@ -77,7 +77,6 @@ const ZHIPU_SPEC_CAPABILITIES: ProviderCapabilities = {
       ["shell", "function"],
       ["apply_patch", "function"],
       ["custom", "function"],
-      ["tool_search", "function"],
       ["namespace", "function"],
     ]),
     maxTools: 128,
@@ -92,7 +91,7 @@ const ZHIPU_SPEC_CAPABILITIES: ProviderCapabilities = {
 Notable capability details:
 
 - **Boolean reasoning effort**: Zhipu uses `reasoning.effort: "boolean"`, meaning the bridge maps reasoning to a boolean on/off toggle rather than a multi-level effort value.
-- **Rich tool support**: Zhipu supports `web_search` (with versioned variants), `file_search` (degraded to `retrieval`), `mcp`, and all standard Codex built-in tools.
+- **Rich tool support**: Zhipu supports `web_search` (with versioned variants), `file_search` (degraded to `retrieval`), and all standard Codex built-in tools.
 - **Limited tool choice**: Only `auto` and `none` are supported — `required` and `function` modes are not available.
 - **Max 128 tools**: Zhipu accepts up to 128 tools per request.
 - **Cached tokens**: Zhipu reports cached tokens via `prompt_tokens_details.cached_tokens`.

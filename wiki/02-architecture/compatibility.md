@@ -210,8 +210,8 @@ classDiagram
 
 ## References
 
-- [src/bridge/compatibility/planner.ts:1-164](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts#L1-L164) -- `planBridgeCompatibility` entry point and parameter decision recording
+- [src/bridge/compatibility/planner.ts:1-163](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts#L1-L163) -- `planBridgeCompatibility` entry point and parameter decision recording
 - [src/bridge/compatibility/compatibility-plan.ts:1-60](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/compatibility-plan.ts#L1-L60) -- `CompatibilityPlan`, `CompatibilityDecision`, and `ProviderCapabilities` types
 - [src/bridge/compatibility/diagnostic.ts:1-10](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/diagnostic.ts#L1-L10) -- `CompatibilityDiagnostic` interface with severity and action
-- [src/bridge/tools/tool-plan.ts:1-319](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L1-L319) -- `planTools`, tool declaration decisions, and tool_choice resolution
-- [src/bridge/output/output-contract.ts:1-75](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L1-L75) -- `planOutputContract` and JSON Schema degradation with synthetic instructions
+- [src/bridge/tools/tool-plan.ts:1-443](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L1-L443) -- `planTools`, tool declaration decisions, and tool_choice resolution
+- [src/bridge/output/output-contract.ts:1-80](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L1-L80) -- `planOutputContract` and JSON Schema degradation with synthetic instructions

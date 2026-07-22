@@ -152,13 +152,11 @@ This is the key value proposition for PMs: **provider decisions become configura
 | **Reasoning support** | Varies by provider: DeepSeek has native support; Xiaomi, Zhipu, and MiniMax use boolean thinking switches | Choose the provider whose thinking behavior fits the task |
 | **Tool choice control** | Xiaomi only supports "auto"; Zhipu supports "auto" and "none" (no "required" or specific function) | On Xiaomi or Zhipu, you cannot force the AI to always call a specific tool |
 | **JSON Schema validation** | Downgraded to JSON Object format when the provider does not support schemas | The AI will produce JSON, but strict schema validation is not guaranteed on all providers |
-| **Web search** | Not yet supported | The AI cannot search the web for information during a conversation |
 
 ### What Does Not Work Yet
 
 | Feature | Status | When |
 |---------|--------|------|
-| **Web search integration** | Planned | Future release |
 | **Image generation** | Planned | Future release |
 | **Automatic failover** | Under consideration | If one provider goes down, requests do not automatically reroute to another |
 | **Built-in authentication** | Not built | Anyone who can reach the server can use it |
@@ -195,7 +193,7 @@ This is the key value proposition for PMs: **provider decisions become configura
 | Reasoning / thinking | Yes (native) | Yes (boolean) | Yes (boolean) | Yes (basic) |
 | Image/video understanding | No | No | Yes | No |
 | Cached tokens | Yes | Yes | Yes | Yes |
-| Web search tools | No | No | No | Yes (via Zhipu's web_search) |
+| Web search tools | No | Yes | No | Yes (via Zhipu's web_search) |
 | Max concurrent tools | 128 | 128 | 128 | 128 |
 
 ---

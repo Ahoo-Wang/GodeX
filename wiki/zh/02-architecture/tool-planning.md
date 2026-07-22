@@ -11,18 +11,18 @@ description: How GodeX plans, degrades, and renders tool declarations for hetero
 
 | 关注点 | 组件 | 关键文件 |
 |---------|-----------|----------|
-| 工具规划编排 | `planTools` | [tool-plan.ts:66](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66) |
+| 工具规划编排 | `planTools` | [tool-plan.ts:81](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L81) |
 | 目录构建器 | `buildToolCatalog` | [tool-catalog.ts:9](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-catalog.ts#L9) |
-| 单工具声明规划 | `planToolDeclaration` | [tool-plan.ts:108](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L108) |
-| 名称分配 | `createProviderNameAllocator` | [tool-plan.ts:157](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L157) |
-| 身份映射 | `ToolIdentityMap` | [tool-identity.ts:18](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L18) |
-| 调用还原 | `restoreToolCall` | [call-restorer.ts:16](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L16) |
-| 声明渲染 | `renderProviderToolDeclarations` | [declaration-renderer.ts:29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L29) |
-| 工具选择规划 | `planProviderToolChoice` | [tool-plan.ts:198](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L198) |
+| 单工具声明规划 | `planToolDeclaration` | [tool-plan.ts:123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L123) |
+| 名称分配 | `createProviderNameAllocator` | [tool-plan.ts:281](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L281) |
+| 身份映射 | `ToolIdentityMap` | [tool-identity.ts:21](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L21) |
+| 调用还原 | `restoreToolCall` | [call-restorer.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L17) |
+| 声明渲染 | `renderProviderToolDeclarations` | [declaration-renderer.ts:32](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L32) |
+| 工具选择规划 | `planProviderToolChoice` | [tool-plan.ts:322](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L322) |
 
 ## 规划流程
 
-`planTools` 函数 ([tool-plan.ts:66](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66)) 编排整个规划过程：
+`planTools` 函数 ([tool-plan.ts:81](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L81)) 编排整个规划过程：
 
 ```mermaid
 flowchart TD
@@ -48,7 +48,7 @@ flowchart TD
 
 ## 单工具决策逻辑
 
-对于目录中的每个工具，`planToolDeclaration` ([tool-plan.ts:108](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L108)) 做出以下三种决策之一：
+对于目录中的每个工具，`planToolDeclaration` ([tool-plan.ts:123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L123)) 做出以下三种决策之一：
 
 | 决策 | 条件 | 结果 |
 |----------|-----------|---------|
@@ -74,15 +74,15 @@ flowchart TD
 
 ## 提供者名称分配
 
-提供者命名约束要求经过清理的唯一工具名称。`createProviderNameAllocator` ([tool-plan.ts:157](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L157)) 返回一个闭包，该闭包：
+提供者命名约束要求经过清理的唯一工具名称。`createProviderNameAllocator` ([tool-plan.ts:281](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L281)) 返回一个闭包，该闭包：
 
-1. 应用 `toProviderName` 编解码器（默认为 [tool-identity.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L54) 中的 `defaultToolNameCodec`）
+1. 应用 `toProviderName` 编解码器（默认为 [tool-identity.ts:62](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L62) 中的 `defaultToolNameCodec`）
 2. 将名称清理为仅包含字母数字、下划线和连字符（最多 64 个字符）
 3. 通过后缀追加（`_2`、`_3` 等）进行去重
 
 ## 工具身份映射
 
-`ToolIdentityMap` ([tool-identity.ts:18](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L18)) 维护请求的工具名称与提供者分配名称之间的双向映射。它在规划阶段填充，在响应重建阶段消费，用于将提供者工具调用映射回原始请求类型。
+`ToolIdentityMap` ([tool-identity.ts:21](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L21)) 维护请求的工具名称与提供者分配名称之间的双向映射。它在规划阶段填充，在响应重建阶段消费，用于将提供者工具调用映射回原始请求类型。
 
 | 字段 | 描述 |
 |-------|-------------|
@@ -91,11 +91,11 @@ flowchart TD
 | `requestedType` | 原始工具类型（如 `custom`、`local_shell`） |
 | `providerType` | 提供者侧工具类型（如 `function`） |
 
-该映射强制唯一性：如果两个不同的工具映射到相同的提供者名称，它会抛出 `BRIDGE_REQUEST_UNSUPPORTED_PARAMETER` 错误 ([tool-identity.ts:23](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L23))。
+该映射强制唯一性：如果两个不同的工具映射到相同的提供者名称，它会抛出 `BRIDGE_REQUEST_UNSUPPORTED_PARAMETER` 错误 ([tool-identity.ts:32](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L32))。
 
 ## 工具选择规划
 
-工具选择在 `planProviderToolChoice` ([tool-plan.ts:198](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L198)) 中规划：
+工具选择在 `planProviderToolChoice` ([tool-plan.ts:322](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L322)) 中规划：
 
 | 请求的选择 | 解析逻辑 |
 |-----------------|-----------------|
@@ -107,7 +107,7 @@ flowchart TD
 
 ## 声明渲染
 
-`renderProviderToolDeclarations` ([declaration-renderer.ts:29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L29)) 将每个 `ToolDeclarationPlan` 转换为提供者期望的格式：
+`renderProviderToolDeclarations` ([declaration-renderer.ts:32](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L32)) 将每个 `ToolDeclarationPlan` 转换为提供者期望的格式：
 
 | 提供者类型 | 渲染逻辑 |
 |--------------|----------------|
@@ -116,13 +116,13 @@ flowchart TD
 | `retrieval` | 文件搜索，包含来自 `vector_store_ids` 的 `knowledge_id` |
 | `mcp` | MCP 服务器配置，包含 `server_label`、`headers` 等 |
 
-自定义工具通过 `degradedCustomToolDescription` 和 `degradedCustomToolParameters`（来自 [custom-tool-degradation.ts:14](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/custom-tool-degradation.ts#L14)）进行降级，将自定义工具的 `input` 字段包装为单个字符串参数。
+自定义工具通过 `degradedCustomToolDescription` 和 `degradedCustomToolParameters`（来自 [custom-tool-degradation.ts:11](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/custom-tool-degradation.ts#L11)）进行降级，将自定义工具的 `input` 字段包装为单个字符串参数。
 
 内置工具类型（`local_shell`、`shell`、`apply_patch`）使用 [builtin.ts:9](https://github.com/Ahoo-Wang/GodeX/blob/main/src/tools/builtin.ts#L9) 中的定义。
 
 ## 调用还原
 
-当提供者在响应中返回工具调用时，`restoreToolCall` ([call-restorer.ts:16](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L16)) 使用身份映射重建正确的 Responses API 项类型：
+当提供者在响应中返回工具调用时，`restoreToolCall` ([call-restorer.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L17)) 使用身份映射重建正确的 Responses API 项类型：
 
 ```mermaid
 sequenceDiagram
@@ -151,7 +151,7 @@ sequenceDiagram
 
 ## 最大工具数强制
 
-`assertMaxTools` ([tool-plan.ts:175](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L175)) 在规划的声明数量超过提供者的 `maxTools` 限制时抛出 `BridgeError`。这防止发送超出提供者处理能力的工具数量。
+`assertMaxTools` ([tool-plan.ts:299](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L299)) 在规划的声明数量超过提供者的 `maxTools` 限制时抛出 `BridgeError`。这防止发送超出提供者处理能力的工具数量。
 
 ## 交叉引用
 
@@ -162,11 +162,11 @@ sequenceDiagram
 
 ## 参考
 
-- [tool-plan.ts:66](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66) -- `planTools` 编排
-- [tool-plan.ts:108](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L108) -- `planToolDeclaration` 决策逻辑
-- [tool-plan.ts:157](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L157) -- `createProviderNameAllocator`
+- [tool-plan.ts:81](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L81) -- `planTools` 编排
+- [tool-plan.ts:123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L123) -- `planToolDeclaration` 决策逻辑
+- [tool-plan.ts:281](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L281) -- `createProviderNameAllocator`
 - [tool-catalog.ts:9](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-catalog.ts#L9) -- `buildToolCatalog`
-- [tool-identity.ts:18](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L18) -- `ToolIdentityMap`
-- [call-restorer.ts:16](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L16) -- `restoreToolCall`
-- [declaration-renderer.ts:29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L29) -- `renderProviderToolDeclarations`
-- [custom-tool-degradation.ts:14](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/custom-tool-degradation.ts#L14) -- 自定义工具降级辅助函数
+- [tool-identity.ts:21](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L21) -- `ToolIdentityMap`
+- [call-restorer.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L17) -- `restoreToolCall`
+- [declaration-renderer.ts:32](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L32) -- `renderProviderToolDeclarations`
+- [custom-tool-degradation.ts:11](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/custom-tool-degradation.ts#L11) -- 自定义工具降级辅助函数

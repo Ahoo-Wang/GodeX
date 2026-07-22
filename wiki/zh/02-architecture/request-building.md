@@ -14,10 +14,10 @@ GodeX 桥接的核心目标是将 OpenAI **Responses API** 的 `ResponseCreateRe
 | 1 | `planBridgeCompatibility` | 包含参数和格式决策的 `CompatibilityPlan` | [planner.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts#L25-L36) |
 | 2 | `planTools` | 包含声明、tool_choice 和决策的 `ToolPlan` | [tool-plan.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66-L106) |
 | 3 | `planOutputContract` | 包含格式和合成指令的 `OutputContractPlan` | [output-contract.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L19-L52) |
-| 4 | `normalizeCurrentInput` + `normalizeResponseItems` | `NormalizedChatMessage[]` | [input-normalizer.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/input-normalizer.ts#L21-L46) |
+| 4 | `normalizeCurrentInput` + `normalizeResponseItems` | `NormalizedChatMessage[]` | [input-normalizer.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/input-normalizer.ts#L31-L50) |
 | 5 | `buildChatMessages` | 合并助手轮次后的 `ChatCompletionMessageParam[]` | [message-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/message-builder.ts#L7-L56) |
-| 6 | `applyTools` | `request.tools` 和 `request.tool_choice` | [request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L146-L172) |
-| 7 | `applyRequestOptions` | stream、temperature、top_p、max_tokens、reasoning | [request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L174-L224) |
+| 6 | `applyTools` | `request.tools` 和 `request.tool_choice` | [request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L180) |
+| 7 | `applyRequestOptions` | stream、temperature、top_p、max_tokens、reasoning | [request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L208) |
 
 ## 管道概览
 
@@ -177,9 +177,9 @@ flowchart TD
 
 ## 参考
 
-- [src/bridge/request/request-builder.ts:1-329](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L1-L329) -- `buildChatCompletionRequest` 编排完整管道
-- [src/bridge/request/input-normalizer.ts:1-368](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/input-normalizer.ts#L1-L368) -- 输入项类型标准化和工具名称映射
+- [src/bridge/request/request-builder.ts:1-366](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L1-L366) -- `buildChatCompletionRequest` 编排完整管道
+- [src/bridge/request/input-normalizer.ts:1-494](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/input-normalizer.ts#L1-L494) -- 输入项类型标准化和工具名称映射
 - [src/bridge/request/message-builder.ts:1-163](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/message-builder.ts#L1-L163) -- 助手消息合并逻辑
 - [src/bridge/compatibility/planner.ts:25-36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts#L25-L36) -- `planBridgeCompatibility` 入口点
-- [src/bridge/tools/tool-plan.ts:66-106](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66-L106) -- `planTools` 包含声明和 tool_choice 规划
+- [src/bridge/tools/tool-plan.ts:81](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L81) -- `planTools` 包含声明和 tool_choice 规划
 - [src/bridge/output/output-contract.ts:19-52](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L19-L52) -- `planOutputContract` 包含 JSON Schema 降级

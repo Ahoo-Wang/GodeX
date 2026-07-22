@@ -7,7 +7,7 @@ description: ProviderHooks let each upstream provider patch requests, normalize 
 
 GodeX's bridge runtime speaks one internal protocol, but every upstream provider has quirks -- DeepSeek uses a native `reasoning_effort` parameter and `thinking` object, Zhipu supports `web_search` and `file_search` tool types, MiniMax maps boolean thinking to adaptive/disabled mode and remaps `max_tokens` to `max_completion_tokens`, and Xiaomi uses a boolean thinking switch. `ProviderHooks` is the extension point where each provider injects its own normalisation logic. By keeping hooks optional and co-located with the provider spec, GodeX avoids a monolithic adapter layer and lets each provider own its transformations.
 
-The hooks interface defines three optional methods ([contract.ts:43-52](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L43)): `patchRequest`, `normalizeResponse`, and `normalizeChunk`. These are invoked inside `createProviderEdge` at the boundary between the bridge runtime and the upstream HTTP call.
+The hooks interface defines three optional methods ([contract.ts:48-57](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L48)): `patchRequest`, `normalizeResponse`, and `normalizeChunk`. These are invoked inside `createProviderEdge` at the boundary between the bridge runtime and the upstream HTTP call.
 
 ## At a Glance
 
@@ -52,7 +52,7 @@ sequenceDiagram
 
 ## DeepSeek Hooks
 
-The DeepSeek provider hooks in [hooks.ts:113-136](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L113) handle reasoning effort mapping and thinking mode activation:
+The DeepSeek provider hooks in [hooks.ts:121-144](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L121) handle reasoning effort mapping and thinking mode activation:
 
 | Scenario | Patch Behaviour |
 |---|---|
@@ -60,7 +60,7 @@ The DeepSeek provider hooks in [hooks.ts:113-136](https://github.com/Ahoo-Wang/G
 | Messages contain historical `reasoning_content` | Sets `thinking: { type: "enabled" }` to maintain continuity |
 | Default (no reasoning) | Sets `thinking: { type: "disabled" }` explicitly |
 
-The `deepSeekStreamDeltas` function ([hooks.ts:149-164](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L149)) maps each SSE chunk into an array of `ProviderStreamDelta` by extracting usage data, content text, tool calls, reasoning content, and finish reasons.
+The `deepSeekStreamDeltas` function ([hooks.ts:157-172](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L157)) maps each SSE chunk into an array of `ProviderStreamDelta` by extracting usage data, content text, tool calls, reasoning content, and finish reasons.
 
 ```mermaid
 flowchart TD
@@ -84,7 +84,7 @@ flowchart TD
 
 ## Zhipu Hooks
 
-Zhipu's `zhipuPatchRequest` ([hooks.ts:113-134](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L113)) follows a similar pattern but with Zhipu-specific differences:
+Zhipu's `zhipuPatchRequest` ([hooks.ts:151-173](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L151)) follows a similar pattern but with Zhipu-specific differences:
 
 | Scenario | Patch Behaviour |
 |---|---|
@@ -92,15 +92,16 @@ Zhipu's `zhipuPatchRequest` ([hooks.ts:113-134](https://github.com/Ahoo-Wang/God
 | Messages contain historical `reasoning_content` | Injects `thinking: { type: "enabled", clear_thinking: false }` |
 | Default | Strips `reasoning_effort` and passes through unchanged |
 
-Zhipu also supports a wider set of tool types ([hooks.ts:16-30](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L16)) including `web_search`, `file_search`, `mcp`, and `shell`, with a degradation map that converts provider-specific tool types into standard Chat Completions equivalents:
+Zhipu also supports a wider set of tool types ([hooks.ts:25-39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L25)) including `web_search` (with versioned variants), `file_search`, and `shell`, with a degradation map that converts provider-specific tool types into standard Chat Completions equivalents:
 
 | Upstream Type | Degraded To |
 |---|---|
 | `web_search_2025_08_26` | `web_search` |
 | `web_search_preview` | `web_search` |
+| `web_search_preview_2025_03_11` | `web_search` |
 | `file_search` | `retrieval` |
 | `local_shell` / `shell` | `function` |
-| `custom` / `tool_search` / `namespace` | `function` |
+| `custom` / `namespace` | `function` |
 
 ## MiniMax Hooks
 
@@ -134,7 +135,7 @@ flowchart LR
 
 ## Xiaomi Hooks
 
-Xiaomi's `xiaomiPatchRequest` ([hooks.ts:115-143](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts#L115-L143)) follows the MiMo thinking model:
+Xiaomi's `xiaomiPatchRequest` ([hooks.ts:148-173](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts#L148-L173)) follows the MiMo thinking model:
 
 | Scenario | Patch Behaviour |
 |---|---|
@@ -156,18 +157,18 @@ All four built-in providers delegate tool-call and reasoning-content extraction 
 | `tool_calls[i].index` | Copied to `toolCall.index` |
 | `tool_calls[i].type` | Copied to `toolCall.type` |
 
-Each provider's stream delta function calls `mapCommonChatStreamDelta` after extracting provider-specific content deltas. For example, DeepSeek's `mapDeepSeekChoiceDelta` ([hooks.ts:166-175](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L166)) pushes a `{ text }` delta for `delta.content`, then spreads the common deltas on top.
+Each provider's stream delta function calls `mapCommonChatStreamDelta` after extracting provider-specific content deltas. For example, DeepSeek's `mapDeepSeekChoiceDelta` ([hooks.ts:174-183](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L174)) pushes a `{ text }` delta for `delta.content`, then spreads the common deltas on top.
 
 ## Custom Tool Degradation
 
 [custom-tool-degradation.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/custom-tool-degradation.ts) provides helpers to convert Responses API custom tools into Chat Completions function tools when a provider does not support them natively:
 
-- `degradedCustomToolDescription` ([custom-tool-degradation.ts:14-20](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/custom-tool-degradation.ts#L14)) appends a note that the tool has been degraded and describes the input format.
-- `degradedCustomToolParameters` ([custom-tool-degradation.ts:24-38](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/custom-tool-degradation.ts#L24)) generates a schema with a single required `input` string parameter.
+- `degradedCustomToolDescription` ([custom-tool-degradation.ts:11-20](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/custom-tool-degradation.ts#L11)) appends a note that the tool has been degraded and describes the input format.
+- `degradedCustomToolParameters` ([custom-tool-degradation.ts:22-36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/custom-tool-degradation.ts#L22)) generates a schema with a single required `input` string parameter.
 
 ## Input Compatibility
 
-`warnUnsupportedCurrentInputContent` in [input-compatibility.ts:9-34](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/input-compatibility.ts#L9) emits diagnostics when a Responses request contains content types that Chat Completions cannot represent (anything other than `input_text` / `output_text`). This is called during bridging to give users visibility into silently ignored fields.
+`warnUnsupportedCurrentInputContent` in [input-compatibility.ts:6-31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/input-compatibility.ts#L6) emits diagnostics when a Responses request contains content types that Chat Completions cannot represent (anything other than `input_text` / `output_text`). This is called during bridging to give users visibility into silently ignored fields.
 
 ## Request Guard
 
@@ -183,7 +184,7 @@ Each provider's stream delta function calls `mapCommonChatStreamDelta` after ext
 | Tool choice modes | auto, none, required, function | auto, none | auto, none, required, function | auto |
 | Response formats | text, json_object | text, json_object | text, json_object | text, json_object |
 | Streaming usage | Yes | Yes | Yes | Yes |
-| Web search tools | No | Yes | No | No |
+| Web search tools | No | Yes | No | Yes |
 
 ## Cross-references
 

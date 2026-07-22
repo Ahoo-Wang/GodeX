@@ -49,7 +49,7 @@ flowchart TD
 
 ## Synthetic Instruction Generation
 
-When `json_schema` is degraded to `json_object`, GodeX generates a synthetic instruction via `jsonSchemaInstruction` ([output-contract.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L54)). This instruction includes:
+When `json_schema` is degraded to `json_object`, GodeX generates a synthetic instruction via `buildJsonSchemaInstruction` ([output-contract.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L54)). This instruction includes:
 
 1. Schema name and description (if provided)
 2. Explicit JSON output rules
@@ -59,7 +59,7 @@ The instruction is injected into the system message so the provider knows to out
 
 ## Output Contract Slot
 
-`OutputContractSlot` ([output-contract-slot.ts:3](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/output-contract-slot.ts#L3)) is a mutable slot on the `ResponsesContext` that holds the current `OutputContractPlan`. It is set once during request building (in `buildProviderRequest` at [provider-exchange.ts:98](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L98)) and read during response validation.
+`OutputContractSlot` ([output-contract-slot.ts:3](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/output-contract-slot.ts#L3)) is a mutable slot on the `ResponsesContext` that holds the current `OutputContractPlan`. It is set once during request building (in `buildProviderRequest` at [provider-exchange.ts:131](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L131)) and read during response validation.
 
 | Method | Purpose |
 |--------|---------|
@@ -122,7 +122,7 @@ The `failedResponse` helper ([response-output-contract-validation-transformer.ts
 
 ## Output Text Extraction
 
-`extractResponseOutputText` ([response-output-contract-validation.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-output-contract-validation.ts#L25)) obtains the text to validate by:
+`extractResponseOutputText` ([validator.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/validator.ts#L25)) obtains the text to validate by:
 
 1. Using `response.output_text` if available (string)
 2. Otherwise, concatenating `output_text` content parts from all `message` output items
@@ -131,7 +131,7 @@ This ensures validation works regardless of how the provider structures its resp
 
 ## Error Handling
 
-When validation fails, a diagnostic is recorded with code `BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT`, severity `"error"`, and path `"response.output_text"` ([response-output-contract-validation.ts:36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-output-contract-validation.ts#L36)). The error is then propagated to the caller.
+When validation fails, a diagnostic is recorded with code `BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT`, severity `"error"`, and path `"response.output_text"` ([response-output-contract-validation.ts:39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-output-contract-validation.ts#L39)). The error is then propagated to the caller.
 
 ## Cross-References
 
@@ -142,7 +142,7 @@ When validation fails, a diagnostic is recorded with code `BRIDGE_RESPONSE_INVAL
 ## References
 
 - [output-contract.ts:19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L19) -- `planOutputContract` function
-- [output-contract.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L54) -- `jsonSchemaInstruction` synthetic instruction generator
+- [output-contract.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L54) -- `buildJsonSchemaInstruction` synthetic instruction generator
 - [output-validator.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-validator.ts#L6) -- `validateOutputContract` function
 - [output-contract-slot.ts:3](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/output-contract-slot.ts#L3) -- `OutputContractSlot` class
 - [response-output-contract-validation.ts:14](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-output-contract-validation.ts#L14) -- `validateResponseOutputContract` (response-level)

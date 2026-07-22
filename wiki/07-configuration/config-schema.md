@@ -68,6 +68,14 @@ logging:
     max_size: 10485760    # 10MB
     max_files: 5
 
+web_search:                      # Built-in web search (default: enabled, no provider)
+  enabled: true                  # Master switch
+  mode: auto                     # auto | provider_native | godex_managed | disabled
+  provider: none                 # none | mock | zhipu (search backend for godex_managed)
+  on_unavailable: client_tool_call  # client_tool_call | fail | ignore
+  max_iterations: 2              # Max managed search rounds per request
+  timeout_ms: 10000              # Per-search timeout
+
 trace:
   enabled: true
   path: ./data/trace.db
@@ -90,6 +98,7 @@ classDiagram
     +providers: Record~string, ProviderConfig~
     +session: SessionConfig
     +logging: LoggingConfig
+    +web_search: WebSearchConfig
     +trace: TraceConfig
   }
 
@@ -139,11 +148,21 @@ classDiagram
     +payload_max_bytes: number
   }
 
+  class WebSearchConfig {
+    +enabled: boolean
+    +mode: WebSearchMode
+    +provider: WebSearchProvider
+    +on_unavailable: WebSearchOnUnavailable
+    +max_iterations: number
+    +timeout_ms: number
+  }
+
   GodeXConfig --> ServerConfig
   GodeXConfig --> ModelsConfig
   GodeXConfig --> ProviderConfig
   GodeXConfig --> SessionConfig
   GodeXConfig --> LoggingConfig
+  GodeXConfig --> WebSearchConfig
   GodeXConfig --> TraceConfig
   ProviderConfig --> CredentialsConfig
   ProviderConfig --> EndpointConfig
@@ -163,6 +182,62 @@ providers:
       base_url: https://api.example.com/v1
     timeout_ms: 30000
 ```
+
+## Web Search
+
+GodeX can run web search in two ways: let the provider handle it natively, or run the search itself ("GodeX-managed" / "hosted") and feed results back into a continuation request. The `web_search` block ([src/config/sections/web-search.ts:10](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/web-search.ts#L10)) controls this.
+
+::: warning Important: native providers always use native search
+For providers whose tool set already includes `web_search` as a native tool (Zhipu, Xiaomi), the planner returns the tool as natively supported **before** consulting `mode`. This means `mode: godex_managed` and `mode: disabled` have **no effect** on those providers — they always get native `web_search`. The `mode` settings below govern how `web_search` is handled for providers that do **not** support it natively (DeepSeek, MiniMax), or when you want GodeX to host the search loop. See [tool-plan.ts:129](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L129) for the precedence (native → degraded → web-search planning).
+:::
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `enabled` | `true` | Master switch. When `false`, the effective `mode` becomes `disabled` and `available` is `false`. |
+| `mode` | `auto` | Execution strategy — see the table below (applies to non-native providers). |
+| `provider` | `none` | The search backend GodeX uses in `godex_managed` mode. |
+| `on_unavailable` | `client_tool_call` | What to do when managed search is selected but no backend is available. |
+| `max_iterations` | `2` | Maximum number of managed search rounds per request. |
+| `timeout_ms` | `10000` | Per-search timeout in milliseconds. |
+
+### `mode` — execution strategy
+
+These modes apply to providers that do **not** support `web_search` natively. The planner ([tool-plan.ts:164](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L164)) reaches web-search planning only after the native and degraded checks, so for native providers the tool is always handled by the provider regardless of `mode`.
+
+| Mode | Behavior (non-native providers) |
+|------|----------|
+| `auto` | If a search `provider` backend is `available`, GodeX hosts the search loop (managed); otherwise the `on_unavailable` policy applies. |
+| `provider_native` | Declares the tool with provider-native execution. For providers without native `web_search`, this falls through to web-search planning like `auto`. |
+| `godex_managed` | GodeX intercepts the `web_search` function call, runs the search itself via the configured `provider` backend, emits the `web_search_call` lifecycle (`in_progress` → `searching` → `completed` / failed), and submits a continuation request with the results. Up to `max_iterations` rounds. If no backend is `available`, the `on_unavailable` policy applies. |
+| `disabled` | The managed loop is not offered. For non-native providers the `on_unavailable` policy still applies (default `client_tool_call`), so a search tool may still be exposed as a client-visible function call — set `on_unavailable: ignore` (or `fail`) to suppress it entirely. |
+
+### `provider` — managed search backend
+
+| Provider | Description |
+|----------|-------------|
+| `none` | No backend. Managed search is unavailable (`available` is `false`); the `on_unavailable` policy then applies. |
+| `mock` | Returns canned results; used for testing. |
+| `zhipu` | [Zhipu Web Search API](https://open.bigmodel.cn/dev/api/search-tool/websearch). |
+
+::: warning The Zhipu search backend reads the provider config, not just env
+Selecting `provider: zhipu` makes the backend `available` only when a `providers.zhipu` block with a `credentials.api_key` exists in `godex.yaml` — `createSearchService` reads `config.providers.zhipu.credentials.api_key` ([search/registry.ts:16-17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/search/registry.ts#L16-L17)) and falls back to a no-op provider when it is absent. So on a DeepSeek/MiniMax-only config, exporting `ZHIPU_API_KEY` alone is **not** enough; add a full `providers.zhipu` entry (env interpolation works, e.g. `api_key: ${ZHIPU_API_KEY}`), or GodeX will take the `on_unavailable` path instead of hosting search.
+:::
+
+### `on_unavailable` — fallback policy
+
+Applies when the managed search loop is selected (`mode` is `auto`/`godex_managed`) but no backend is `available`, as well as when `mode` is `disabled` for a non-native provider.
+
+| Policy | Behavior |
+|--------|----------|
+| `client_tool_call` | Forward the `web_search` call to the client as a normal function call (the client handles it). |
+| `fail` | Fail the request with a `BridgeError`. |
+| `ignore` | Silently drop the search call. |
+
+::: tip
+With the shipped defaults (`mode: auto`, `provider: none`), providers that support native web search (Zhipu, Xiaomi) use it directly, while other providers forward `web_search` calls to the client. To enable GodeX-managed search for **non-native** providers, set `provider: zhipu` **and** add a `providers.zhipu` block (with `credentials.api_key`) to `godex.yaml` — see the warning above.
+:::
+
+The managed search loop is implemented by `HostedWebSearchStreamRunner` / `HostedWebSearchSyncRunner` in `src/responses/web-search/`. See [Streaming Pipeline](../02-architecture/streaming-pipeline.md) for how it integrates into the event production stage.
 
 ## Environment Interpolation
 

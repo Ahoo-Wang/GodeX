@@ -12,7 +12,6 @@ When GodeX proxies a streaming response from an upstream LLM provider, the raw S
 | Transformer | Input Type | Output Type | Purpose |
 |---|---|---|---|
 | `TraceTransformer` | `T` | `T` | Records raw/transformed events to the trace subsystem |
-| `ProviderStreamEventBridge` | `JsonServerSentEvent` | `ResponseStreamEvent` | Maps provider deltas to OpenAI-compatible events |
 | `wrapWithErrorHandler` | `ResponseStreamEvent` | `ResponseStreamEvent` | Converts stream errors into `response.failed` events |
 | `ResponseOutputContractValidationTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Validates output contract on terminal events |
 | `ResponseLogTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Logs stream completion with timing and usage |
@@ -20,18 +19,25 @@ When GodeX proxies a streaming response from an upstream LLM provider, the raw S
 | `CompatibilityLogTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Logs compatibility diagnostics at stream end |
 | `ResponseSseEncoder` | `ResponseStreamEvent` | `Uint8Array` | Encodes events to SSE text lines |
 
+Delta-to-event mapping is **not** a transform stage — it happens inside `HostedWebSearchStreamRunner` (see [Streaming Pipeline](./streaming-pipeline.md)), which produces the `ResponseStreamEvent` stream the chain consumes.
+
 ## Transform Chain Order
 
-The `StreamPipeline.stream()` method in [src/responses/stream-pipeline.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts) assembles the full chain. Every stage is connected via the `pipeTransform` helper from [src/responses/stream-transforms/stream-utils.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/stream-utils.ts#L6), which wraps each transformer in a standard `TransformStream`.
+The `StreamPipeline.stream()` method in [src/responses/stream-pipeline.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L25) assembles the chain. Every stage is connected via the `pipeTransform` helper from [src/responses/stream-transforms/stream-utils.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/stream-utils.ts#L6), which wraps each transformer in a standard `TransformStream`. The event stream itself is produced by `HostedWebSearchStreamRunner` ([web-search/stream-runner.ts:60](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L60)).
 
 ```mermaid
 flowchart LR
-    subgraph Pipeline ["Stream Pipeline (StreamPipeline.stream)"]
-        style Pipeline fill:#161b22,stroke:#30363d,color:#e6edf3
+    subgraph Production ["Event Production (HostedWebSearchStreamRunner)"]
+        style Production fill:#161b22,stroke:#30363d,color:#e6edf3
 
         Upstream["Provider<br>Stream"]
         T1["TraceTransformer<br>(raw)"]
-        Bridge["EventBridge<br>(delta mapping)"]
+        Map["mapProviderDeltasToEvents<br>+ web search loop"]
+    end
+
+    subgraph Chain ["Transform Chain (StreamPipeline.stream)"]
+        style Chain fill:#161b22,stroke:#30363d,color:#e6edf3
+
         Err["ErrorHandler<br>(error wrapping)"]
         Valid["ContractValidation<br>(output check)"]
         T2["TraceTransformer<br>(transformed)"]
@@ -41,8 +47,8 @@ flowchart LR
     end
 
     Upstream -->|"JsonServerSentEvent"| T1
-    T1 -->|"passthrough"| Bridge
-    Bridge -->|"ResponseStreamEvent"| Err
+    T1 -->|"passthrough"| Map
+    Map -->|"ResponseStreamEvent"| Err
     Err -->|"passthrough"| Valid
     Valid -->|"passthrough (or failed)"| T2
     T2 -->|"passthrough"| Log
@@ -50,7 +56,7 @@ flowchart LR
     Sess -->|"passthrough"| Comp
 ```
 
-The pipeline is assembled at [src/responses/stream-pipeline.ts:37](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L37) and each `pipeTransform` call chains the previous `ReadableStream` into the next transformer.
+The chain is assembled at [src/responses/stream-pipeline.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L31) and each `pipeTransform` call chains the previous `ReadableStream` into the next transformer.
 
 ## The pipeTransform Helper
 
@@ -69,7 +75,7 @@ The module also exports `ATTR_UPSTREAM_LATENCY_MILLIS` ([stream-utils.ts:13](htt
 
 ## TraceTransformer
 
-The `TraceTransformer` is a passthrough transformer that records every stream event to the trace subsystem. It appears **twice** in the pipeline -- once before the event bridge (recording raw upstream events) and once after validation (recording transformed events).
+The `TraceTransformer` is a passthrough transformer that records every stream event to the trace subsystem. It appears **twice** in the path -- once inside `HostedWebSearchStreamRunner` (recording raw upstream events) and once in the transform chain after validation (recording transformed events).
 
 ```mermaid
 sequenceDiagram
@@ -128,7 +134,7 @@ flowchart TD
     CheckLogged -->|"Yes"| Skip["Skip (already logged)"]
 ```
 
-The `onFlush` fallback at [src/responses/stream-transforms/compatibility-log-transformer.ts:24](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/compatibility-log-transformer.ts#L24) ensures diagnostics are logged even if the stream closes without a terminal event. The severity of the log entry matches the worst diagnostic -- errors at `error` level, warnings at `warn` level, and informational diagnostics at `info` level.
+The `onFlush` fallback at [src/responses/stream-transforms/compatibility-log-transformer.ts:29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/compatibility-log-transformer.ts#L29) ensures diagnostics are logged even if the stream closes without a terminal event. The severity of the log entry matches the worst diagnostic -- errors at `error` level, warnings at `warn` level, and informational diagnostics at `info` level.
 
 ## ResponseOutputContractValidationTransformer
 
@@ -152,7 +158,7 @@ sequenceDiagram
     end
 ```
 
-Once a terminal event is rewritten, all subsequent events are silently dropped (`if (this.rewrittenTerminal) return` at [src/responses/stream-transforms/response-output-contract-validation-transformer.ts:22](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-output-contract-validation-transformer.ts#L22)). This prevents partial output from leaking to the client after a contract failure.
+Once a terminal event is rewritten, all subsequent events are silently dropped (`if (this.rewrittenTerminal) return` at [src/responses/stream-transforms/response-output-contract-validation-transformer.ts:27](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-output-contract-validation-transformer.ts#L27)). This prevents partial output from leaking to the client after a contract failure.
 
 ## ResponseSessionPersistenceTransformer
 
@@ -271,7 +277,7 @@ To add a new concern to the pipeline:
 ## Cross-References
 
 - [Stream Pipeline](./streaming-pipeline.md) -- how transforms assemble into the full streaming pipeline
-- [Architecture Overview](./overview.md) -- system-level context for where stream transforms fit
+- [Architecture Overview](./architecture-overview.md) -- system-level context for where stream transforms fit
 - [Error Handling](../06-error-handling/error-handling.md) -- the `wrapWithErrorHandler` stage and error propagation
 - [Session Management](../04-session-management/session-stores.md) -- how the persistence transformer saves sessions
 - [Testing](../08-testing/testing.md) -- co-located unit tests for each transformer

@@ -87,4 +87,4 @@ flowchart TD
 
 提供商特定差异属于每个提供商的 `spec.ts`、`hooks.ts`、协议类型和 HTTP 客户端。Bridge 内核本身从不包含提供商特定逻辑。
 
-[流式管道](/zh/02-architecture/stream-pipeline)
+[流式管道](/zh/02-architecture/streaming-pipeline)

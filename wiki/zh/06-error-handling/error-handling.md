@@ -103,7 +103,7 @@ graph TB
 | `server.request.invalid_parameter` | 400 | 参数验证失败 |
 | `server.provider.not_registered` | 400 | 引用的提供商未注册 |
 
-[来源：src/error/codes.ts:46-51](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L46)
+[来源：src/error/codes.ts:46-52](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L46)
 
 ### Bridge 领域
 
@@ -132,7 +132,7 @@ graph TB
 | `provider.upstream.server_error` | >= 500 | 502 |
 | `provider.upstream.error` | 其他 | 422 |
 
-[来源：src/error/codes.ts:33-36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L33)，
+[来源：src/error/codes.ts:33-37](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L33)，
 [来源：src/server/errors.ts:20-44](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/errors.ts#L20)
 
 ### Session 领域
@@ -147,7 +147,7 @@ graph TB
 | `session.chain.unavailable` | 503 | 会话存储暂时不可用 |
 | `session.store.conflict` | 409 | 并发写入冲突 |
 
-[来源：src/error/codes.ts:39-43](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L39)
+[来源：src/error/codes.ts:39-44](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L39)
 
 ## 错误传播流程
 

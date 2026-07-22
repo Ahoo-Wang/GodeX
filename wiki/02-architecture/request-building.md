@@ -14,10 +14,10 @@ The core purpose of the GodeX bridge is translating an OpenAI **Responses API** 
 | 1 | `planBridgeCompatibility` | `CompatibilityPlan` with parameter and format decisions | [planner.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts#L25-L36) |
 | 2 | `planTools` | `ToolPlan` with declarations, tool_choice, and decisions | [tool-plan.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66-L106) |
 | 3 | `planOutputContract` | `OutputContractPlan` with format and synthetic instruction | [output-contract.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L19-L52) |
-| 4 | `normalizeCurrentInput` + `normalizeResponseItems` | `NormalizedChatMessage[]` | [input-normalizer.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/input-normalizer.ts#L21-L46) |
+| 4 | `normalizeCurrentInput` + `normalizeResponseItems` | `NormalizedChatMessage[]` | [input-normalizer.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/input-normalizer.ts#L31-L50) |
 | 5 | `buildChatMessages` | `ChatCompletionMessageParam[]` with merged assistant turns | [message-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/message-builder.ts#L7-L56) |
-| 6 | `applyTools` | `request.tools` and `request.tool_choice` | [request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L146-L172) |
-| 7 | `applyRequestOptions` | stream, temperature, top_p, max_tokens, reasoning | [request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L174-L224) |
+| 6 | `applyTools` | `request.tools` and `request.tool_choice` | [request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L180) |
+| 7 | `applyRequestOptions` | stream, temperature, top_p, max_tokens, reasoning | [request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L208) |
 
 ## Pipeline Overview
 
@@ -177,9 +177,9 @@ When a request includes a session (from `previous_response_id`), the session's `
 
 ## References
 
-- [src/bridge/request/request-builder.ts:1-329](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L1-L329) -- `buildChatCompletionRequest` orchestrating the full pipeline
-- [src/bridge/request/input-normalizer.ts:1-368](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/input-normalizer.ts#L1-L368) -- Input item type normalization and tool name mapping
+- [src/bridge/request/request-builder.ts:1-366](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L1-L366) -- `buildChatCompletionRequest` orchestrating the full pipeline
+- [src/bridge/request/input-normalizer.ts:1-494](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/input-normalizer.ts#L1-L494) -- Input item type normalization and tool name mapping
 - [src/bridge/request/message-builder.ts:1-163](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/message-builder.ts#L1-L163) -- Assistant message merging logic
 - [src/bridge/compatibility/planner.ts:25-36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts#L25-L36) -- `planBridgeCompatibility` entry point
-- [src/bridge/tools/tool-plan.ts:66-106](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66-L106) -- `planTools` with declaration and tool_choice planning
+- [src/bridge/tools/tool-plan.ts:81](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L81) -- `planTools` with declaration and tool_choice planning
 - [src/bridge/output/output-contract.ts:19-52](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L19-L52) -- `planOutputContract` with JSON Schema degradation

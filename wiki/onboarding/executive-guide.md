@@ -52,7 +52,7 @@ This matters because the Responses API is becoming the standard protocol for nex
 | Reasoning/thinking tokens | Beta | DeepSeek: native. Xiaomi: boolean toggle. Zhipu: boolean toggle. MiniMax: boolean adaptive/disabled thinking |
 | Cached token tracking | Stable | Reported when provider returns cache metadata |
 | Session chain resolution | Stable | Cycle detection, depth limits, incomplete response handling |
-| Web search passthrough | Planned | Not yet implemented |
+| Web search | Stable | Native provider passthrough (Zhipu, Xiaomi) and GodeX-managed hosted search via the Zhipu Web Search API |
 | Multi-tenant isolation | Not built | Single-tenant today |
 | Automatic provider failover | Not built | Requests fail if the target provider is down |
 

@@ -26,7 +26,7 @@ src/providers/deepseek/
 DeepSeek 提供商的关键能力特点：
 
 - **原生推理力度**：DeepSeek 支持 `reasoning.effort: "native"`，bridge 将 Responses API 的 effort 值映射为 DeepSeek 原生 `reasoning_effort` 参数（`high` → `high`，`xhigh` → `max`）。
-- **工具降级**：Codex 内置工具（`local_shell`、`shell`、`apply_patch`、`custom`、`tool_search`、`namespace`）降级为 `function` 类型。
+- **工具降级**：Codex 内置工具（`local_shell`、`shell`、`apply_patch`、`custom`、`namespace`）降级为 `function` 类型。
 - **最多 128 个工具**：DeepSeek 每个请求最多接受 128 个工具。
 - **缓存令牌**：DeepSeek 报告 `prompt_cache_hit_tokens`，映射为 `input_tokens_details.cached_tokens`。
 

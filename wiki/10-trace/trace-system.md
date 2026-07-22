@@ -17,7 +17,7 @@ The trace system is attached to the `ResponsesContext` via `TraceRecordingContex
 | `AsyncTraceRecorder` | [recorder.ts:30-110](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/recorder.ts#L30) | Queue-based batching recorder |
 | `NoopTraceRecorder` | [recorder.ts:25-28](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/recorder.ts#L25) | Zero-op recorder when tracing is disabled |
 | `SQLiteTraceStore` | [sqlite.ts:69-297](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/sqlite.ts#L69) | SQLite storage with four tables |
-| `TraceRecordEvent` | [types.ts:70-74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts#L70) | Union of all record kinds |
+| `TraceRecordEvent` | [types.ts:72-76](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts#L72) | Union of all record kinds |
 | `mapTraceRecordToRow` | [row-mapper.ts:16-98](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/row-mapper.ts#L16) | Converts events to storage rows |
 | `summarizePayload` | [payload.ts:10-35](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/payload.ts#L10) | SHA-256 hash, byte count, optional JSON capture |
 | `TraceRecordingContext` | [context.ts:4-12](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/context.ts#L4) | Context attached to every request |
@@ -216,7 +216,7 @@ Batch inserts are wrapped in a transaction ([sqlite.ts:90-95](https://github.com
 
 ## Trace Record Types
 
-The `TraceRecordEvent` union ([types.ts:70-74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts#L70)) has four variants:
+The `TraceRecordEvent` union ([types.ts:72-76](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts#L72)) has four variants:
 
 | Kind | Interface | Key Fields |
 |---|---|---|
@@ -229,7 +229,7 @@ All variants share a `TraceRecordBase` ([types.ts:19-25](https://github.com/Ahoo
 
 ### Event Names
 
-The `TraceEventRecordEvent` restricts `event_name` ([types.ts:50-54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts#L50)) to:
+The `TraceEventRecordEvent` restricts `event_name` ([types.ts:50-56](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts#L50)) to:
 
 | Event Name | When Recorded |
 |---|---|
@@ -237,6 +237,8 @@ The `TraceEventRecordEvent` restricts `event_name` ([types.ts:50-54](https://git
 | `provider.response.body` | Sync response body received from upstream |
 | `upstream.stream.event.raw` | Raw SSE chunk from upstream |
 | `upstream.stream.event.transformed` | After bridge transforms are applied |
+| `web_search.request` | Managed web search request payload |
+| `web_search.response` | Managed web search response payload |
 
 Provider request payloads are stored on `trace_requests`, not duplicated in `trace_events`. Join the request row with `provider.request.prepared` to see both the final patched request summary and the lifecycle point that preceded the provider client call. The `prepared` event is recorded after provider `patchRequest` hooks run and before `request()` or `stream()` invokes the provider client's HTTP operation; it does not prove that the network send succeeded.
 
@@ -250,7 +252,7 @@ Provider request payloads are stored on `trace_requests`, not duplicated in `tra
 | Full capture | `true` | Full JSON string (up to `payloadMaxBytes`) | SHA-256 hex |
 | Truncated capture | `true` | Truncated JSON string | SHA-256 hex |
 
-The `payload_bytes` field always records the original byte length regardless of truncation ([payload.ts:23-24](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/payload.ts#L23)). The hash is computed with `Bun.CryptoHasher("sha256")` ([payload.ts:6-8](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/payload.ts#L6)).
+The `payload_bytes` field always records the original byte length regardless of truncation ([payload.ts:27](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/payload.ts#L27)). The hash is computed with `Bun.CryptoHasher("sha256")` ([payload.ts:6-8](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/payload.ts#L6)).
 
 ## Row Mapping
 
@@ -279,7 +281,7 @@ Four helper functions attach to the `TraceRecordingContext` and provide ergonomi
 
 ### recordTraceEvent
 
-[event-recorder.ts:5-25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/event-recorder.ts#L5) records a named event with an optional payload and sequence number for ordering within a stream.
+[event-recorder.ts:7-25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/event-recorder.ts#L7) records a named event with an optional payload and sequence number for ordering within a stream.
 
 ### recordTraceError
 

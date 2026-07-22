@@ -64,9 +64,9 @@ const ZHIPU_SPEC_CAPABILITIES: ProviderCapabilities = {
     supported: new Set([
       "function", "web_search", "web_search_2025_08_26",
       "web_search_preview", "web_search_preview_2025_03_11",
-      "file_search", "mcp",
+      "file_search",
       "local_shell", "shell", "apply_patch",
-      "custom", "tool_search", "namespace",
+      "custom", "namespace",
     ]),
     degraded: new Map([
       ["web_search_2025_08_26", "web_search"],
@@ -77,7 +77,6 @@ const ZHIPU_SPEC_CAPABILITIES: ProviderCapabilities = {
       ["shell", "function"],
       ["apply_patch", "function"],
       ["custom", "function"],
-      ["tool_search", "function"],
       ["namespace", "function"],
     ]),
     maxTools: 128,
@@ -92,7 +91,7 @@ const ZHIPU_SPEC_CAPABILITIES: ProviderCapabilities = {
 关键能力说明：
 
 - **布尔推理努力**：智谱使用 `reasoning.effort: "boolean"`，表示 bridge 将推理映射为开/关布尔切换，而非多级努力值。
-- **丰富的工具支持**：智谱支持 `web_search`（含版本化变体）、`file_search`（降级为 `retrieval`）、`mcp` 以及所有标准 Codex 内置工具。
+- **丰富的工具支持**：智谱支持 `web_search`（含版本化变体）、`file_search`（降级为 `retrieval`）以及所有标准 Codex 内置工具。
 - **有限的工具选择**：仅支持 `auto` 和 `none`，不支持 `required` 和 `function` 模式。
 - **最多 128 个工具**：智谱每个请求最多接受 128 个工具。
 - **缓存令牌**：智谱通过 `prompt_tokens_details.cached_tokens` 报告缓存令牌。

@@ -62,4 +62,4 @@ const response = await client.responses.create({
 });
 ```
 
-[系统总览](/zh/02-architecture/overview)
+[架构概览](/zh/02-architecture/architecture-overview)

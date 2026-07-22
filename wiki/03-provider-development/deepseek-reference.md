@@ -62,14 +62,13 @@ const DEEPSEEK_SPEC_CAPABILITIES: ProviderCapabilities = {
   tools: {
     supported: new Set([
       "function", "local_shell", "shell", "apply_patch",
-      "custom", "tool_search", "namespace",
+      "custom", "namespace",
     ]),
     degraded: new Map([
       ["local_shell", "function"],
       ["shell", "function"],
       ["apply_patch", "function"],
       ["custom", "function"],
-      ["tool_search", "function"],
       ["namespace", "function"],
     ]),
     maxTools: 128,
@@ -84,7 +83,7 @@ const DEEPSEEK_SPEC_CAPABILITIES: ProviderCapabilities = {
 Notable capability details:
 
 - **Native reasoning effort**: DeepSeek supports `reasoning.effort: "native"`, meaning the bridge maps Responses API effort values to DeepSeek's native `reasoning_effort` parameter.
-- **Tool degradation**: Codex built-in tools (`local_shell`, `shell`, `apply_patch`, `custom`, `tool_search`, `namespace`) are degraded to `function` type.
+- **Tool degradation**: Codex built-in tools (`local_shell`, `shell`, `apply_patch`, `custom`, `namespace`) are degraded to `function` type.
 - **Max 128 tools**: DeepSeek accepts up to 128 tools per request.
 - **Cached tokens**: DeepSeek reports `prompt_cache_hit_tokens` which are mapped to `input_tokens_details.cached_tokens`.
 

@@ -76,4 +76,4 @@ When the provider returns tool calls in its response, the bridge restores them:
 
 Every compatibility decision — degraded tools, ignored parameters, rejected formats — produces a `CompatibilityDiagnostic` that is accumulated in `ResponsesContext.diagnostics` and logged after the response completes.
 
-[Session Store](/04-session-management/session-store)
+[Session Store](/04-session-management/session-stores)

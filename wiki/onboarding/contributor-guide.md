@@ -788,12 +788,13 @@ ctx.addDiagnostic({
 });
 ```
 
-**Pattern: TransformStream pipeline.** The stream pipeline uses composable `TransformStream` stages. Each stage is a `Transformer` implementation that processes events and passes them to the next stage:
+**Pattern: TransformStream pipeline.** The stream pipeline uses composable `TransformStream` stages. `HostedWebSearchStreamRunner` first produces an event stream (mapping provider deltas to Responses events via the state machine), then each stage is a `Transformer` implementation that processes events and passes them to the next stage:
 
 ```typescript
-const stream1 = pipeTransform(providerStream, new TraceTransformer(...));
-const stream2 = pipeTransform(stream1, new EventBridge(...));
-const stream3 = pipeTransform(stream2, new OutputContractValidator(...));
+const { stream: eventStream } = await new HostedWebSearchStreamRunner(exchange).stream(ctx);
+const safe = wrapWithErrorHandler(eventStream, machine, ctx);
+const validated = pipeTransform(safe, new OutputContractValidator(...));
+const logged = pipeTransform(validated, new ResponseLogTransformer(...));
 ```
 
 ### 3.8 Anti-Patterns

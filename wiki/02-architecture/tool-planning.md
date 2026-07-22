@@ -11,18 +11,18 @@ Tool planning is the process by which GodeX takes a unified set of Responses API
 
 | Concern | Component | Key File |
 |---------|-----------|----------|
-| Tool plan orchestration | `planTools` | [tool-plan.ts:66](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66) |
+| Tool plan orchestration | `planTools` | [tool-plan.ts:81](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L81) |
 | Catalog builder | `buildToolCatalog` | [tool-catalog.ts:9](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-catalog.ts#L9) |
-| Per-tool declaration | `planToolDeclaration` | [tool-plan.ts:108](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L108) |
-| Name allocation | `createProviderNameAllocator` | [tool-plan.ts:157](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L157) |
-| Identity mapping | `ToolIdentityMap` | [tool-identity.ts:18](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L18) |
-| Call restoration | `restoreToolCall` | [call-restorer.ts:16](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L16) |
-| Declaration rendering | `renderProviderToolDeclarations` | [declaration-renderer.ts:29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L29) |
-| Tool choice planning | `planProviderToolChoice` | [tool-plan.ts:198](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L198) |
+| Per-tool declaration | `planToolDeclaration` | [tool-plan.ts:123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L123) |
+| Name allocation | `createProviderNameAllocator` | [tool-plan.ts:281](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L281) |
+| Identity mapping | `ToolIdentityMap` | [tool-identity.ts:21](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L21) |
+| Call restoration | `restoreToolCall` | [call-restorer.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L17) |
+| Declaration rendering | `renderProviderToolDeclarations` | [declaration-renderer.ts:32](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L32) |
+| Tool choice planning | `planProviderToolChoice` | [tool-plan.ts:322](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L322) |
 
 ## Planning Flow
 
-The `planTools` function ([tool-plan.ts:66](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66)) orchestrates the full planning process:
+The `planTools` function ([tool-plan.ts:81](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L81)) orchestrates the full planning process:
 
 ```mermaid
 flowchart TD
@@ -48,7 +48,7 @@ flowchart TD
 
 ## Per-Tool Decision Logic
 
-For each tool in the catalog, `planToolDeclaration` ([tool-plan.ts:108](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L108)) makes one of three decisions:
+For each tool in the catalog, `planToolDeclaration` ([tool-plan.ts:123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L123)) makes one of three decisions:
 
 | Decision | Condition | Outcome |
 |----------|-----------|---------|
@@ -74,15 +74,15 @@ flowchart TD
 
 ## Provider Name Allocation
 
-Provider naming constraints require sanitized, unique tool names. The `createProviderNameAllocator` ([tool-plan.ts:157](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L157)) returns a closure that:
+Provider naming constraints require sanitized, unique tool names. The `createProviderNameAllocator` ([tool-plan.ts:281](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L281)) returns a closure that:
 
-1. Applies the `toProviderName` codec (defaults to `defaultToolNameCodec` from [tool-identity.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L54))
+1. Applies the `toProviderName` codec (defaults to `defaultToolNameCodec` from [tool-identity.ts:62](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L62))
 2. Sanitizes names to alphanumeric, underscore, and hyphen characters (max 64 chars)
 3. Deduplicates via suffix appending (`_2`, `_3`, etc.)
 
 ## Tool Identity Map
 
-`ToolIdentityMap` ([tool-identity.ts:18](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L18)) maintains the bidirectional mapping between requested tool names and provider-assigned names. It is populated during planning and consumed during response reconstruction to map provider tool calls back to the original requested types.
+`ToolIdentityMap` ([tool-identity.ts:21](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L21)) maintains the bidirectional mapping between requested tool names and provider-assigned names. It is populated during planning and consumed during response reconstruction to map provider tool calls back to the original requested types.
 
 | Field | Description |
 |-------|-------------|
@@ -91,11 +91,11 @@ Provider naming constraints require sanitized, unique tool names. The `createPro
 | `requestedType` | Original tool type (e.g., `custom`, `local_shell`) |
 | `providerType` | Provider-side tool type (e.g., `function`) |
 
-The map enforces uniqueness: if two different tools map to the same provider name, it throws a `BRIDGE_REQUEST_UNSUPPORTED_PARAMETER` error ([tool-identity.ts:23](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L23)).
+The map enforces uniqueness: if two different tools map to the same provider name, it throws a `BRIDGE_REQUEST_UNSUPPORTED_PARAMETER` error ([tool-identity.ts:32](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L32)).
 
 ## Tool Choice Planning
 
-Tool choice is planned in `planProviderToolChoice` ([tool-plan.ts:198](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L198)):
+Tool choice is planned in `planProviderToolChoice` ([tool-plan.ts:322](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L322)):
 
 | Requested Choice | Resolution Logic |
 |-----------------|-----------------|
@@ -107,7 +107,7 @@ The `renderProviderToolChoice` function ([tool-choice.ts:19](https://github.com/
 
 ## Declaration Rendering
 
-`renderProviderToolDeclarations` ([declaration-renderer.ts:29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L29)) converts each `ToolDeclarationPlan` into the format expected by the provider:
+`renderProviderToolDeclarations` ([declaration-renderer.ts:32](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L32)) converts each `ToolDeclarationPlan` into the format expected by the provider:
 
 | Provider Type | Rendering Logic |
 |--------------|----------------|
@@ -116,13 +116,13 @@ The `renderProviderToolChoice` function ([tool-choice.ts:19](https://github.com/
 | `retrieval` | File search with `knowledge_id` from `vector_store_ids` |
 | `mcp` | MCP server configuration with `server_label`, `headers`, etc. |
 
-Custom tools are degraded via `degradedCustomToolDescription` and `degradedCustomToolParameters` from [custom-tool-degradation.ts:14](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/custom-tool-degradation.ts#L14), wrapping the custom tool's `input` field as a single string parameter.
+Custom tools are degraded via `degradedCustomToolDescription` and `degradedCustomToolParameters` from [custom-tool-degradation.ts:11](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/custom-tool-degradation.ts#L11), wrapping the custom tool's `input` field as a single string parameter.
 
 Builtin tool types (`local_shell`, `shell`, `apply_patch`) use definitions from [builtin.ts:9](https://github.com/Ahoo-Wang/GodeX/blob/main/src/tools/builtin.ts#L9).
 
 ## Call Restoration
 
-When the provider returns a tool call in its response, `restoreToolCall` ([call-restorer.ts:16](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L16)) uses the identity map to reconstruct the correct Responses API item type:
+When the provider returns a tool call in its response, `restoreToolCall` ([call-restorer.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L17)) uses the identity map to reconstruct the correct Responses API item type:
 
 ```mermaid
 sequenceDiagram
@@ -151,7 +151,7 @@ Each specialized type (e.g., `LocalShellCall`, `ShellCall`) attempts to parse th
 
 ## Max Tools Enforcement
 
-`assertMaxTools` ([tool-plan.ts:175](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L175)) throws a `BridgeError` if the number of planned declarations exceeds the provider's `maxTools` limit. This prevents sending more tools than the provider can handle.
+`assertMaxTools` ([tool-plan.ts:299](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L299)) throws a `BridgeError` if the number of planned declarations exceeds the provider's `maxTools` limit. This prevents sending more tools than the provider can handle.
 
 ## Cross-References
 
@@ -162,11 +162,11 @@ Each specialized type (e.g., `LocalShellCall`, `ShellCall`) attempts to parse th
 
 ## References
 
-- [tool-plan.ts:66](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66) -- `planTools` orchestration
-- [tool-plan.ts:108](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L108) -- `planToolDeclaration` decision logic
-- [tool-plan.ts:157](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L157) -- `createProviderNameAllocator`
+- [tool-plan.ts:81](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L81) -- `planTools` orchestration
+- [tool-plan.ts:123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L123) -- `planToolDeclaration` decision logic
+- [tool-plan.ts:281](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L281) -- `createProviderNameAllocator`
 - [tool-catalog.ts:9](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-catalog.ts#L9) -- `buildToolCatalog`
-- [tool-identity.ts:18](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L18) -- `ToolIdentityMap`
-- [call-restorer.ts:16](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L16) -- `restoreToolCall`
-- [declaration-renderer.ts:29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L29) -- `renderProviderToolDeclarations`
-- [custom-tool-degradation.ts:14](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/custom-tool-degradation.ts#L14) -- Custom tool degradation helpers
+- [tool-identity.ts:21](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L21) -- `ToolIdentityMap`
+- [call-restorer.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L17) -- `restoreToolCall`
+- [declaration-renderer.ts:32](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L32) -- `renderProviderToolDeclarations`
+- [custom-tool-degradation.ts:11](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/custom-tool-degradation.ts#L11) -- Custom tool degradation helpers

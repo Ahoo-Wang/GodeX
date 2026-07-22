@@ -1,11 +1,14 @@
 ---
 title: Architecture Overview
-description: End-to-end request lifecycle in GodeX, from CLI startup through the bridge to upstream providers and back.
+description: GodeX architecture — the end-to-end request lifecycle, component model, layer responsibilities, and dependency flow.
+keywords: "GodeX, architecture, system overview, component model, request lifecycle, design patterns"
 ---
 
 # Architecture Overview
 
-GodeX is a gateway that translates OpenAI **Responses API** requests into **Chat Completions API** calls for any configured upstream provider. Understanding the full request lifecycle is essential for debugging compatibility issues, adding new providers, or extending the bridge. This page traces a single request from the moment the Bun server receives it to the point where the reconstructed response is returned to the caller.
+GodeX is a gateway that translates OpenAI **Responses API** requests into **Chat Completions API** calls for any configured upstream provider. It follows a layered architecture with clear separation of concerns: protocol handling at the boundary, bridge logic in the middle, and provider-specific code isolated in specs and hooks.
+
+This page has two complementary views: the **request lifecycle** (how a single request flows through the system) and the **component model** (what the building blocks are and how they depend on each other). Understanding both is essential for debugging compatibility issues, adding new providers, or extending the bridge.
 
 ## At a Glance
 
@@ -250,6 +253,181 @@ flowchart LR
     style I fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
+## System Components
+
+The full request path connects every layer — from the Bun server routes through the bridge request builder, the provider edge, and the reconstruction layer:
+
+```mermaid
+flowchart TB
+  Client["Client<br>Codex, SDK, CLI, IDE"] --> Routes["Bun server routes<br>/health<br>/v1/models<br>/v1/responses"]
+  Routes --> Ctx["ResponsesContext<br>request id, response id, resolved model,<br>provider, session, diagnostics"]
+
+  Ctx --> Resolver["ModelResolver<br>alias and provider/model selection"]
+  Ctx --> Session["ResponseSessionStore<br>memory or SQLite<br>previous_response_id chains"]
+  Ctx --> Registrar["Registrar<br>built-in ProviderEdge factories"]
+  Ctx --> Runtime["ResponsesBridgeRuntime"]
+
+  Runtime --> Sync["SyncRequestPipeline"]
+  Runtime --> Stream["StreamPipeline"]
+  Sync --> Exchange["ProviderExchange"]
+  Stream --> Exchange
+
+  Exchange --> Builder["bridge/request<br>buildChatCompletionRequest"]
+  Builder --> Compat["bridge/compatibility<br>parameter and response-format decisions"]
+  Builder --> Tools["bridge/tools<br>tool declarations, tool_choice,<br>identity restoration"]
+  Builder --> Output["bridge/output<br>structured-output contract"]
+
+  Exchange --> Edge["ProviderEdge<br>ProviderSpec + hooks"]
+  Edge --> ClientHttp["ChatProviderClient<br>Fetcher HTTP boundary"]
+  ClientHttp --> Upstream["Chat Completions upstream<br>DeepSeek, Zhipu, custom"]
+
+  Upstream --> SyncRecon["bridge/response<br>reconstructResponseObject"]
+  Upstream --> StreamRecon["bridge/stream<br>ResponseStreamStateMachine"]
+  SyncRecon --> ResponseJson["ResponseObject JSON"]
+  StreamRecon --> StreamTransforms["stream transforms<br>validate, trace, log, persist, diagnostics"]
+  StreamTransforms --> Sse["Responses SSE"]
+
+  Ctx --> Trace["trace recorder<br>request, usage, event, error rows"]
+  Ctx --> Logger["structured logger"]
+```
+
+The core domain types and their relationships:
+
+```mermaid
+classDiagram
+
+  class ApplicationContext {
+    +config: GodeXConfig
+    +logger: Logger
+    +resolver: ModelResolver
+    +registrar: Registrar
+    +responses: ResponsesBridge
+    +sessionStore: ResponseSessionStore
+    +traceRecorder: TraceRecorder
+  }
+
+  class ResponsesContext {
+    +app: ApplicationContext
+    +request: ResponseCreateRequest
+    +session: ResponseSessionSnapshot
+    +resolved: ResolvedModel
+    +provider: ProviderEdge
+    +responseId: string
+    +requestId: string
+    +diagnostics: CompatibilityDiagnostic[]
+    +attributes: Map
+    +outputContract: OutputContractSlot
+  }
+
+  class ModelResolver {
+    -defaultProvider: string
+    -providerConfigs: Record
+    +resolve(model) ResolvedModel
+  }
+
+  class Registrar {
+    -factories: Map
+    -providers: Map
+    +registerDefinitions(definitions)
+    +registerProviders(configs, logger)
+    +resolve(name) ProviderEdge
+    +list() string[]
+    +unsupported() string[]
+  }
+
+  class ResponsesBridge {
+    <<interface>>
+    +request(ctx) Promise~ResponseObject~
+    +stream(ctx) Promise~ReadableStream~
+  }
+
+  class ResponsesBridgeRuntime {
+    -syncPipeline: SyncRequestPipeline
+    -streamPipeline: StreamPipeline
+    +request(ctx) Promise~ResponseObject~
+    +stream(ctx) Promise~ReadableStream~
+  }
+
+  class ProviderEdge {
+    <<interface>>
+    +name: string
+    +spec: ProviderSpec
+    +request(body) Promise~TResponse~
+    +stream(body) Promise~ReadableStream~
+  }
+
+  class ProviderSpec {
+    +name: string
+    +protocol: ProviderProtocol
+    +capabilities: ProviderCapabilities
+    +endpoint: ProviderEndpointSpec
+    +auth: ProviderAuthSpec
+    +toolName: ToolNameCodec
+    +response: ChatCompletionResponseAccessor
+    +stream: ChatCompletionStreamAccessor
+    +hooks?: ProviderHooks
+  }
+
+  class ResponseSessionStore {
+    <<interface>>
+    +get(id) Promise~StoredResponseSession~
+    +save(session, opts) Promise~void~
+    +resolveChain(id, opts) Promise~ResponseSessionSnapshot~
+    +delete(id) Promise~void~
+    +close() void
+  }
+
+  ApplicationContext --> ResponsesContext : creates
+  ApplicationContext --> ModelResolver
+  ApplicationContext --> Registrar
+  ApplicationContext --> ResponsesBridge
+  ApplicationContext --> ResponseSessionStore
+  ResponsesContext --> ProviderEdge : uses
+  ProviderEdge --> ProviderSpec
+  ResponsesBridge <|.. ResponsesBridgeRuntime
+  ResponsesBridgeRuntime --> SyncRequestPipeline
+  ResponsesBridgeRuntime --> StreamPipeline
+```
+
+## Layer Responsibilities
+
+| Layer | Module | Role |
+|-------|--------|------|
+| Server | `src/server/` | HTTP routing, request parsing, SSE encoding, error handling |
+| Context | `src/context/` | `ApplicationContext` (app-wide services) and `ResponsesContext` (per-request state) |
+| Bridge | `src/bridge/` | Provider-agnostic Responses-to-Chat planning and reconstruction |
+| Responses | `src/responses/` | Sync and stream orchestration pipelines around the bridge |
+| Provider | `src/providers/` | Provider-specific specs, hooks, clients, and registry |
+| Session | `src/session/` | History persistence and `previous_response_id` chain resolution |
+| Resolver | `src/resolver/` | Model alias and provider/model selector resolution |
+| Config | `src/config/` | YAML schema, env interpolation, defaults, validation |
+| Error | `src/error/` | Structured error hierarchy with domain codes |
+
+## Dependency Flow
+
+```mermaid
+flowchart TD
+  Server["Server (Routes)"]
+  CTX["ApplicationContext"]
+  RCTX["ResponsesContext"]
+  Resolver["ModelResolver"]
+  Reg["Registrar"]
+  Bridge["ResponsesBridgeRuntime"]
+  Exchange["ProviderExchange"]
+  Prov["ProviderEdge"]
+  Store["SessionStore"]
+
+  Server --> CTX
+  Server --> RCTX
+  RCTX --> Resolver
+  RCTX --> Reg
+  RCTX --> Store
+  CTX --> Bridge
+  Bridge --> Exchange
+  Exchange --> Prov
+  Reg --> Prov
+```
+
 ## Cross-References
 
 - **[Compatibility](./compatibility.md)**: How the bridge plans feature compatibility before building a request
@@ -264,6 +442,6 @@ flowchart LR
 - [src/server/server.ts:21-51](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/server.ts#L21-L51) -- Route map creation and Bun server startup
 - [src/server/routes/responses/handler.ts:1-33](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/routes/responses/handler.ts#L1-L33) -- Responses route handler with parse, context creation, and dispatch
 - [src/responses/runtime.ts:19-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/runtime.ts#L19-L41) -- `ResponsesBridgeRuntime` delegating to sync and stream pipelines
-- [src/responses/provider-exchange.ts:1-123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L1-L123) -- `ProviderExchange` orchestrating request building and upstream calls
+- [src/responses/provider-exchange.ts:1-166](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L1-L166) -- `ProviderExchange` orchestrating request building and upstream calls
 - [src/providers/registrar.ts:1-95](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/registrar.ts#L1-L95) -- Provider factory registration and resolution
 - [src/resolver/model-resolver.ts:1-37](https://github.com/Ahoo-Wang/GodeX/blob/main/src/resolver/model-resolver.ts#L1-L37) -- Model selector parsing and alias resolution

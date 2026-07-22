@@ -61,15 +61,18 @@ const XIAOMI_SPEC_CAPABILITIES: ProviderCapabilities = {
   },
   tools: {
     supported: new Set([
-      "function", "local_shell", "shell", "apply_patch",
-      "custom", "tool_search", "namespace",
+      "function", "web_search",
+      "local_shell", "shell", "apply_patch",
+      "custom", "namespace",
     ]),
     degraded: new Map([
+      ["web_search_2025_08_26", "web_search"],
+      ["web_search_preview", "web_search"],
+      ["web_search_preview_2025_03_11", "web_search"],
       ["local_shell", "function"],
       ["shell", "function"],
       ["apply_patch", "function"],
       ["custom", "function"],
-      ["tool_search", "function"],
       ["namespace", "function"],
     ]),
     maxTools: 128,
@@ -85,7 +88,8 @@ Notable capability details:
 
 - **Boolean reasoning**: Xiaomi uses `reasoning.effort: "boolean"`, so the bridge maps reasoning effort to `thinking: { type: "enabled"/"disabled" }`.
 - **Tool choice limited**: Only `auto` is supported for `tool_choice`.
-- **Tool degradation**: Codex built-in tools are degraded to `function` type.
+- **Tool degradation**: Codex built-in tools (`local_shell`, `shell`, `apply_patch`, `custom`, `namespace`) are degraded to `function` type; versioned `web_search` variants degrade to `web_search`.
+- **Web search support**: Xiaomi natively supports the `web_search` tool type.
 - **Max 128 tools**: Xiaomi accepts up to 128 tools per request.
 - **Cached tokens**: Xiaomi reports `prompt_tokens_details.cached_tokens`.
 - **Reasoning tokens**: Xiaomi reports `completion_tokens_details.reasoning_tokens`.

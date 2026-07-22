@@ -206,9 +206,9 @@ The `output` array is ordered: reasoning items first, then restored tool calls, 
 
 ## References
 
-- [src/bridge/response/response-reconstructor.ts:1-196](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/response/response-reconstructor.ts#L1-L196) -- `reconstructResponseObject` and output assembly
-- [src/bridge/finish-reason/finish-reason.ts:1-75](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/finish-reason/finish-reason.ts#L1-L75) -- `mapProviderFinishReason` with full provider-to-Responses mapping
-- [src/bridge/tools/call-restorer.ts:1-178](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L1-L178) -- `restoreToolCall` with type-specific parsing and fallbacks
-- [src/bridge/tools/tool-identity.ts:1-72](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L1-L72) -- `ToolIdentityMap` for bidirectional name/type lookup
-- [src/bridge/output/output-validator.ts:1-30](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-validator.ts#L1-L30) -- `validateOutputContract` for degraded JSON Schema validation
+- [src/bridge/response/response-reconstructor.ts:1-189](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/response/response-reconstructor.ts#L1-L189) -- `reconstructResponseObject` and output assembly
+- [src/bridge/finish-reason/finish-reason.ts:1-74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/finish-reason/finish-reason.ts#L1-L74) -- `mapProviderFinishReason` with full provider-to-Responses mapping
+- [src/bridge/tools/call-restorer.ts:1-186](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L1-L186) -- `restoreToolCall` with type-specific parsing and fallbacks
+- [src/bridge/tools/tool-identity.ts:1-80](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L1-L80) -- `ToolIdentityMap` for bidirectional name/type lookup
+- [src/bridge/output/output-validator.ts:1-29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-validator.ts#L1-L29) -- `validateOutputContract` for degraded JSON Schema validation
 - [src/bridge/output/validator.ts:1-47](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/validator.ts#L1-L47) -- `validateResponseOutputContract` extracting text from `ResponseObject`
