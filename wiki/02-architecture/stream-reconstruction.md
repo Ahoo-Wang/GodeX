@@ -15,7 +15,7 @@ Stream reconstruction is the bridge layer that translates heterogeneous provider
 | Delta-to-event mapping | `mapProviderDeltasToEvents` | [stream-reconstructor.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L17) |
 | Delta validation | `validateDelta` + helpers | [stream-reconstructor.ts:69](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L69) |
 | Delta type contract | `ProviderStreamDelta` | [stream-delta.ts:28](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-delta.ts#L28) |
-| Deferred terminal events | `deferFinish` / `deferTerminal` | [response-stream-state-machine.ts:263](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L263) |
+| Deferred terminal events | `deferFinish` / `deferTerminal` | [response-stream-state-machine.ts:293](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L293) |
 
 ## Stream State Machine Phases
 
@@ -45,7 +45,7 @@ stateDiagram-v2
     inprog --> failed : finish(content_filter)
 ```
 
-The transition logic lives in [response-stream-state-machine.ts:787](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L787), which maps the provider finish reason to the correct terminal phase.
+The transition logic lives in [response-stream-state-machine.ts:819](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L819), which maps the provider finish reason to the correct terminal phase.
 
 ## Block Management
 
@@ -87,7 +87,7 @@ flowchart TD
     style L fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
-Each block is lazily created on its first delta and closed when the stream reaches a terminal phase via `closeActiveBlocks` ([response-stream-state-machine.ts:428](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L428)).
+Each block is lazily created on its first delta and closed when the stream reaches a terminal phase via `closeActiveBlocks` ([response-stream-state-machine.ts:458](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L458)).
 
 ## Delta Validation Pipeline
 
@@ -103,7 +103,7 @@ Each block is lazily created on its first delta and closed when the stream reach
 | `finishReason` | String, null, or undefined |
 | `error` | Object with required `message` string and optional `code` string |
 
-Unrecognized fields cause a `BridgeError` with code `BRIDGE_STREAM_INVALID_TRANSITION` ([stream-reconstructor.ts:120](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L120)).
+Unrecognized fields cause a `BridgeError` with code `BRIDGE_STREAM_INVALID_TRANSITION` ([stream-reconstructor.ts:399](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L399)).
 
 ```mermaid
 sequenceDiagram
@@ -133,9 +133,9 @@ sequenceDiagram
 
 ## Deferred Terminal Events
 
-When `deferTerminal` is true (as it is in the streaming pipeline), the state machine's `deferFinish` method stores the finish reason without transitioning to a terminal phase ([response-stream-state-machine.ts:263](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L263)). This allows downstream transformers -- notably the output contract validation transformer -- to inspect and potentially rewrite the terminal event before it reaches the client.
+When `deferTerminal` is true (as it is in the streaming pipeline), the state machine's `deferFinish` method stores the finish reason without transitioning to a terminal phase ([response-stream-state-machine.ts:293](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L293)). This allows downstream transformers -- notably the output contract validation transformer -- to inspect and potentially rewrite the terminal event before it reaches the client.
 
-The `ProviderStreamEventBridge.flush` method ([stream-pipeline.ts:123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L123)) calls `machine.finish(machine.deferredFinishReason)` when the upstream stream closes, ensuring the terminal event is always emitted.
+The `consumeProviderStream` function ([web-search/stream-runner.ts:182](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L182)) calls `machine.finish(machine.deferredFinishReason)` when the upstream stream closes (and no managed web search call is pending), ensuring the terminal event is always emitted.
 
 ```mermaid
 flowchart LR
@@ -162,11 +162,11 @@ Tool call blocks are tracked by `streamIndex` in a `Map<number, ToolCallBlock>` 
 
 1. Verifies both `callId` and `providerName` are present (otherwise throws `BRIDGE_STREAM_INCOMPLETE_TOOL_CALL`)
 2. Checks the `ToolIdentityMap` to determine if the tool is a custom tool
-3. Calls `restoreToolCall` from [call-restorer.ts:16](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L16) to map the provider function call back to the correct Responses API type (`function_call`, `local_shell_call`, `shell_call`, `apply_patch_call`, or `custom_tool_call`)
+3. Calls `restoreToolCall` from [call-restorer.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L17) to map the provider function call back to the correct Responses API type (`function_call`, `local_shell_call`, `shell_call`, `apply_patch_call`, or `custom_tool_call`)
 
 ## Error Normalization
 
-Provider errors are normalized through `normalizeError` ([response-stream-state-machine.ts:753](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L753)), which maps the provider error code against a known set of `ResponseErrorCode` values. Unknown codes fall back to `server_error`.
+Provider errors are normalized through `normalizeError` ([response-stream-state-machine.ts:783](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L783)), which maps the provider error code against a known set of `ResponseErrorCode` values. Unknown codes fall back to `server_error`.
 
 ## Cross-References
 
@@ -182,5 +182,5 @@ Provider errors are normalized through `normalizeError` ([response-stream-state-
 - [stream-reconstructor.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L17) -- `mapProviderDeltasToEvents` function
 - [stream-reconstructor.ts:69](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L69) -- `validateDelta` function
 - [stream-delta.ts:28](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-delta.ts#L28) -- `ProviderStreamDelta` interface
-- [response-stream-state-machine.ts:263](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L263) -- `deferFinish` method
-- [response-stream-state-machine.ts:428](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L428) -- `closeActiveBlocks` method
+- [response-stream-state-machine.ts:293](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L293) -- `deferFinish` method
+- [response-stream-state-machine.ts:458](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L458) -- `closeActiveBlocks` method

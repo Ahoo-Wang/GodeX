@@ -210,8 +210,8 @@ classDiagram
 
 ## 参考
 
-- [src/bridge/compatibility/planner.ts:1-164](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts#L1-L164) -- `planBridgeCompatibility` 入口点和参数决策记录
+- [src/bridge/compatibility/planner.ts:1-163](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts#L1-L163) -- `planBridgeCompatibility` 入口点和参数决策记录
 - [src/bridge/compatibility/compatibility-plan.ts:1-60](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/compatibility-plan.ts#L1-L60) -- `CompatibilityPlan`、`CompatibilityDecision` 和 `ProviderCapabilities` 类型
 - [src/bridge/compatibility/diagnostic.ts:1-10](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/diagnostic.ts#L1-L10) -- `CompatibilityDiagnostic` 接口，包含严重程度和动作
-- [src/bridge/tools/tool-plan.ts:1-319](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L1-L319) -- `planTools`、工具声明决策和 tool_choice 解析
-- [src/bridge/output/output-contract.ts:1-75](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L1-L75) -- `planOutputContract` 和 JSON Schema 降级与合成指令
+- [src/bridge/tools/tool-plan.ts:1-443](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L1-L443) -- `planTools`、工具声明决策和 tool_choice 解析
+- [src/bridge/output/output-contract.ts:1-80](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L1-L80) -- `planOutputContract` 和 JSON Schema 降级与合成指令

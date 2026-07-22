@@ -62,4 +62,4 @@ const response = await client.responses.create({
 });
 ```
 
-[Architecture Overview](/02-architecture/overview)
+[Architecture Overview](/02-architecture/architecture-overview)

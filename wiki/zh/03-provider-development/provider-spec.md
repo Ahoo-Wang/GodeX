@@ -87,7 +87,7 @@ classDiagram
 
 ### 响应访问器
 
-`ChatCompletionResponseAccessor<TResponse>` 告诉桥接如何从上游响应中提取标准化数据（[contract.ts:32-37](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L32)）：
+`ChatCompletionResponseAccessor<TResponse>` 告诉桥接如何从上游响应中提取标准化数据（[contract.ts:35-40](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L35)）：
 
 | 方法 | 返回值 |
 |---|---|
@@ -98,7 +98,7 @@ classDiagram
 
 ### 流访问器
 
-`ChatCompletionStreamAccessor<TChunk>` 有一个单一方法 `deltas(chunk)`，返回 `ProviderSpecStreamDelta` 数组 -- 桥接内部的流式 delta 表示（[contract.ts:39-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L39)）。
+`ChatCompletionStreamAccessor<TChunk>` 有一个单一方法 `deltas(chunk)`，返回 `ProviderSpecStreamDelta` 数组 -- 桥接内部的流式 delta 表示（[contract.ts:44-46](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L44)）。
 
 ## ProviderEdge 和工厂
 
@@ -135,7 +135,7 @@ sequenceDiagram
 
 ## ProviderRuntimeConfig
 
-`ProviderRuntimeConfig`（[contract.ts:10-15](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L10)）是每个提供商从 GodeX 配置层接收的形状：
+`ProviderRuntimeConfig`（[contract.ts:13-18](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L13)）是每个提供商从 GodeX 配置层接收的形状：
 
 | 字段 | 类型 | 描述 |
 |---|---|---|
@@ -174,11 +174,11 @@ flowchart LR
     style PM fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
-内置定义在 [builtin.ts:22-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L22) 中声明，并通过 `createBuiltinRegistrar()`（[builtin.ts:49-55](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L49)）自动注册。
+内置定义在 [builtin.ts:27-45](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L27) 中声明，并通过 `createBuiltinRegistrar()`（[builtin.ts:61-67](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L61)）自动注册。
 
 ## 包验证
 
-`validateProviderPackageShape` 函数（[validation.ts:13-51](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/validation.ts#L13)）强制要求每个提供商目录包含所需文件（`spec.ts`、`client.ts`、`index.ts`），并且不包含允许列表之外的文件（`hooks.ts`、测试、`protocol/` DTO）。这使提供商包保持一致性。
+`validateProviderPackageShape` 函数（[validation.ts:10-51](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/validation.ts#L10)）强制要求每个提供商目录包含所需文件（`spec.ts`、`client.ts`、`index.ts`），并且不包含允许列表之外的文件（`hooks.ts`、测试、`protocol/` DTO）。这使提供商包保持一致性。
 
 ```mermaid
 flowchart TD

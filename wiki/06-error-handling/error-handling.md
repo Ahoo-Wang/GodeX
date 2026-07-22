@@ -111,7 +111,7 @@ Raised during request parsing and configuration validation.
 | `server.request.invalid_parameter` | 400 | Parameter fails validation |
 | `server.provider.not_registered` | 400 | Referenced provider has no registration |
 
-[source: src/error/codes.ts:46-51](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L46)
+[source: src/error/codes.ts:46-52](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L46)
 
 ### Bridge Domain
 
@@ -142,7 +142,7 @@ status carries a specific meaning.
 | `provider.upstream.server_error` | >= 500 | 502 |
 | `provider.upstream.error` | other | 422 |
 
-[source: src/error/codes.ts:33-36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L33),
+[source: src/error/codes.ts:33-37](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L33),
 [source: src/server/errors.ts:20-44](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/errors.ts#L20)
 
 ### Session Domain
@@ -157,7 +157,7 @@ Raised when managing conversation chains.
 | `session.chain.unavailable` | 503 | Session store temporarily unavailable |
 | `session.store.conflict` | 409 | Concurrent write conflict |
 
-[source: src/error/codes.ts:39-43](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L39)
+[source: src/error/codes.ts:39-44](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L39)
 
 ## Error Propagation Flow
 

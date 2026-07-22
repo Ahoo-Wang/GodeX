@@ -689,16 +689,15 @@ For sync requests, `reconstructResponseObject` in `src/bridge/response/response-
 
 ### Step 6: Stream Processing (Streaming)
 
-For streaming requests, the `StreamPipeline` creates a pipeline of `TransformStream` stages:
+For streaming requests, the `StreamPipeline` consumes an event stream produced by `HostedWebSearchStreamRunner` (which maps provider deltas to Responses events via the state machine and runs the web search loop), then pipes it through a chain of `TransformStream` stages:
 
-1. `TraceTransformer` (raw) — records raw upstream events
-2. `ProviderStreamEventBridge` — feeds deltas to the state machine, emits Responses events
-3. Error wrapping — catches exceptions, emits `response.failed`
-4. `ResponseOutputContractValidationTransformer` — validates terminal output
-5. `TraceTransformer` (transformed) — records transformed events
-6. `ResponseLogTransformer` — logs usage and duration
-7. `ResponseSessionPersistenceTransformer` — persists the completed session
-8. `CompatibilityLogTransformer` — logs compatibility diagnostics
+1. `HostedWebSearchStreamRunner` (event production) — feeds deltas to the state machine via `mapProviderDeltasToEvents`, emits Responses events; includes a `TraceTransformer` (raw) and the managed web search continuation loop
+2. Error wrapping — catches exceptions, emits `response.failed`
+3. `ResponseOutputContractValidationTransformer` — validates terminal output
+4. `TraceTransformer` (transformed) — records transformed events
+5. `ResponseLogTransformer` — logs usage and duration
+6. `ResponseSessionPersistenceTransformer` — persists the completed session
+7. `CompatibilityLogTransformer` — logs compatibility diagnostics
 
 ### Step 7: Session Persistence
 

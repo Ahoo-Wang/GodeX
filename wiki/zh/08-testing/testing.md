@@ -74,7 +74,7 @@ graph LR
 "test": "bun test --path-ignore-patterns 'src/e2e/**'"
 ```
 
-这保持了单元测试套件的快速和确定性（[package.json:31](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L31)）。
+这保持了单元测试套件的快速和确定性（[package.json:45](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L45)）。
 
 ## 测试夹具
 
@@ -149,6 +149,7 @@ sequenceDiagram
 | `health.get()` | `GET /health` | 健康检查 |
 | `models.list()` | `GET /v1/models` | 模型列表 |
 | `responses.create(req)` | `POST /v1/responses` | 非流式响应 |
+| `responses.createRaw(req)` | `POST /v1/responses` | 原始 `Promise<Response>`（不解码） |
 | `responses.stream(req)` | `POST /v1/responses` | 流式响应（SSE） |
 
 `collectGodexStreamEvents` 辅助函数（[src/e2e/godex-client.ts:114](https://github.com/Ahoo-Wang/GodeX/blob/main/src/e2e/godex-client.ts#L114)）将整个 SSE 流读入数组用于断言。
@@ -258,12 +259,12 @@ flowchart TD
 | `bun run check` | 类型检查 + 代码检查 + 单元测试 |
 | `bun run ci` | 完整 CI：类型检查 + 代码检查 + 单元测试 + E2E |
 
-所有脚本定义在 [package.json:36-53](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L36-L53)。
+所有脚本定义在 [package.json:35-56](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L35-L56)。
 
 ## 交叉引用
 
 - [流式管道](../02-architecture/streaming-pipeline.md) -- 单元测试的转换器如何组装成响应管道
-- [架构概览](../02-architecture/overview.md) -- 被测试模块与系统架构的关系
+- [架构概览](../02-architecture/architecture-overview.md) -- 被测试模块与系统架构的关系
 - [提供商开发](../03-provider-development/provider-spec.md) -- 兼容性测试套件如何应用于新提供商
 - [会话管理](../04-session-management/session-stores.md) -- 会话夹具和多轮测试场景
 - [追踪系统](../10-trace/trace-system.md) -- 追踪相关的单元测试和实时追踪验证
@@ -279,4 +280,4 @@ flowchart TD
 7. [src/server/routes/responses/test-fixtures.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/routes/responses/test-fixtures.ts) -- 路由处理器夹具
 8. [src/providers/shared/compatibility-test-suite.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/compatibility-test-suite.ts) -- 共享提供商兼容性测试
 9. [src/testing/provider-edge.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/testing/provider-edge.ts) -- 模拟提供商边缘工厂
-10. [package.json](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json) -- 测试脚本（第 25-44 行）
+10. [package.json](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json) -- 测试脚本（第 45-55 行）

@@ -87,7 +87,7 @@ classDiagram
 
 ### Response Accessor
 
-The `ChatCompletionResponseAccessor<TResponse>` tells the bridge how to extract standardised data from an upstream response ([contract.ts:32-37](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L32)):
+The `ChatCompletionResponseAccessor<TResponse>` tells the bridge how to extract standardised data from an upstream response ([contract.ts:35-40](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L35)):
 
 | Method | Returns |
 |---|---|
@@ -98,7 +98,7 @@ The `ChatCompletionResponseAccessor<TResponse>` tells the bridge how to extract 
 
 ### Stream Accessor
 
-`ChatCompletionStreamAccessor<TChunk>` has a single method `deltas(chunk)` that returns an array of `ProviderSpecStreamDelta` -- the bridge-internal streaming delta representation ([contract.ts:39-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L39)).
+`ChatCompletionStreamAccessor<TChunk>` has a single method `deltas(chunk)` that returns an array of `ProviderSpecStreamDelta` -- the bridge-internal streaming delta representation ([contract.ts:44-46](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L44)).
 
 ## ProviderEdge and the Factory
 
@@ -135,7 +135,7 @@ sequenceDiagram
 
 ## ProviderRuntimeConfig
 
-`ProviderRuntimeConfig` ([contract.ts:10-15](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L10)) is the shape each provider receives from the GodeX configuration layer:
+`ProviderRuntimeConfig` ([contract.ts:13-18](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L13)) is the shape each provider receives from the GodeX configuration layer:
 
 | Field | Type | Description |
 |---|---|---|
@@ -174,11 +174,11 @@ flowchart LR
     style PM fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
-Built-in definitions are declared in [builtin.ts:22-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L22) and registered automatically via `createBuiltinRegistrar()` ([builtin.ts:49-55](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L49)).
+Built-in definitions are declared in [builtin.ts:27-45](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L27) and registered automatically via `createBuiltinRegistrar()` ([builtin.ts:61-67](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L61)).
 
 ## Package Validation
 
-The `validateProviderPackageShape` function ([validation.ts:13-51](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/validation.ts#L13)) enforces that every provider directory contains the required files (`spec.ts`, `client.ts`, `index.ts`) and nothing outside the allow-list (`hooks.ts`, tests, `protocol/` DTOs). This keeps provider packages consistent.
+The `validateProviderPackageShape` function ([validation.ts:10-51](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/validation.ts#L10)) enforces that every provider directory contains the required files (`spec.ts`, `client.ts`, `index.ts`) and nothing outside the allow-list (`hooks.ts`, tests, `protocol/` DTOs). This keeps provider packages consistent.
 
 ```mermaid
 flowchart TD

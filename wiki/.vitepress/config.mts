@@ -51,7 +51,6 @@ const enSidebar = [
     collapsed: false,
     items: [
       { text: 'Architecture Overview', link: '/02-architecture/architecture-overview' },
-      { text: 'System Overview', link: '/02-architecture/overview' },
       { text: 'Request Flow', link: '/02-architecture/request-flow' },
       { text: 'Model Resolution', link: '/02-architecture/model-resolution' },
       { text: 'Bridge Kernel', link: '/02-architecture/bridge-kernel' },
@@ -100,14 +99,6 @@ const enSidebar = [
     items: [
       { text: 'Session Stores', link: '/04-session-management/session-stores' },
       { text: 'Chain Resolution', link: '/04-session-management/chain-resolution' },
-    ],
-  },
-  {
-    text: 'Streaming Pipeline',
-    collapsed: true,
-    items: [
-      { text: 'Transformers', link: '/05-streaming-pipeline/transformers' },
-      { text: 'Stream State', link: '/05-streaming-pipeline/stream-state' },
     ],
   },
   {
@@ -180,7 +171,6 @@ const zhSidebar = [
     collapsed: false,
     items: [
       { text: '架构概览', link: '/zh/02-architecture/architecture-overview' },
-      { text: '系统总览', link: '/zh/02-architecture/overview' },
       { text: '请求流程', link: '/zh/02-architecture/request-flow' },
       { text: '模型解析', link: '/zh/02-architecture/model-resolution' },
       { text: 'Bridge 内核', link: '/zh/02-architecture/bridge-kernel' },
@@ -232,14 +222,6 @@ const zhSidebar = [
     ],
   },
   {
-    text: '流式管道',
-    collapsed: true,
-    items: [
-      { text: '转换器', link: '/zh/05-streaming-pipeline/transformers' },
-      { text: '流状态', link: '/zh/05-streaming-pipeline/stream-state' },
-    ],
-  },
-  {
     text: '错误处理',
     collapsed: true,
     items: [
@@ -285,7 +267,7 @@ export default withMermaid(
     description: 'OpenAI-compatible Responses API gateway for Codex and developer tools',
     appearance: 'dark',
     cleanUrls: true,
-    ignoreDeadLinks: true,
+    ignoreDeadLinks: false,
     sitemap: {
       hostname: 'https://godex.ahoo.me',
     },

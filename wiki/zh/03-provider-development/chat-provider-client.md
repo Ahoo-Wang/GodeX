@@ -73,7 +73,7 @@ classDiagram
 
 ## ChatApi 和 chatApi 工厂
 
-`ChatApi` 是一个装饰器生成的类（[chat-api.ts:23-40](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/chat-api.ts#L23)），有两个方法：
+`ChatApi` 是一个装饰器生成的类（[chat-api.ts:24-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/chat-api.ts#L24)），有两个方法：
 
 | 方法 | 端点 | 结果处理 |
 |---|---|---|

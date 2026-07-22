@@ -11,7 +11,7 @@
 
 ## Architecture
 
-- [Architecture Overview](02-architecture/architecture-overview.md): End-to-end request flow, core types, component model
+- [Architecture Overview](02-architecture/architecture-overview.md): End-to-end request flow, core types, component model, layer responsibilities
 - [Compatibility Planning](02-architecture/compatibility.md): How features are planned as supported/degraded/ignored/rejected
 - [Request Building](02-architecture/request-building.md): Responses API to Chat Completions conversion
 - [Response Reconstruction](02-architecture/response-reconstruction.md): Chat Completions responses to ResponseObject
@@ -19,7 +19,7 @@
 - [Tool Planning](02-architecture/tool-planning.md): Tool catalog, declarations, identity mapping
 - [Output Contracts](02-architecture/output-contracts.md): JSON schema validation and degradation
 - [Sync Pipeline](02-architecture/sync-pipeline.md): Synchronous request orchestration
-- [Streaming Pipeline](02-architecture/streaming-pipeline.md): Stream pipeline and transform chain
+- [Streaming Pipeline](02-architecture/streaming-pipeline.md): HostedWebSearchStreamRunner, transform chain, web search loop
 - [Stream Transforms](02-architecture/stream-transforms.md): Composable TransformStream stages
 - [Model Resolution](02-architecture/model-resolution.md): Model aliasing and selector parsing
 - [Server Routes](02-architecture/server-routes.md): Bun HTTP routes and request dispatch
@@ -50,6 +50,7 @@
 - [Logging](07-configuration/logging.md): LogTape-based structured logging
 - [Testing](08-testing/testing.md): Unit, E2E, live provider tests
 - [Deployment](09-deployment/deployment.md): Docker, native binary, CI/CD
+- [Web Search Config](07-configuration/config-schema.md#web-search): mode, provider, on_unavailable, managed search loop
 
 ## Optional
 

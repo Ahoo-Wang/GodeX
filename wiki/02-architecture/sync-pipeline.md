@@ -11,44 +11,50 @@ The sync pipeline handles non-streaming Requests API calls end to end. It is the
 
 | Concern | Component | Key File |
 |---------|-----------|----------|
-| Pipeline orchestrator | `SyncRequestPipeline` | [sync-request-pipeline.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L25) |
-| Provider exchange | `ProviderExchange` | [provider-exchange.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L25) |
+| Pipeline orchestrator | `SyncRequestPipeline` | [sync-request-pipeline.ts:28](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L28) |
+| Upstream call + reconstruction + web search loop | `HostedWebSearchSyncRunner` | [web-search/sync-runner.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/sync-runner.ts#L31) |
+| Provider exchange | `ProviderExchange` | [provider-exchange.ts:39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L39) |
 | Bridge interface | `ResponsesBridge` | [bridge.ts:7](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/bridge.ts#L7) |
 | Runtime wiring | `ResponsesBridgeRuntime` | [runtime.ts:19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/runtime.ts#L19) |
 | Session persistence | `saveResponseSession` | [response-session-persistence.ts:5](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-session-persistence.ts#L5) |
 
 ## Pipeline Steps
 
-`SyncRequestPipeline.request` ([sync-request-pipeline.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L31)) executes seven steps in sequence:
+`SyncRequestPipeline.request` ([sync-request-pipeline.ts:34](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L34)) delegates the upstream call, reconstruction, and web search loop to `HostedWebSearchSyncRunner`, then runs five post-processing steps on the resulting `ResponseObject`:
 
 | Step | Operation | Key Code |
 |------|-----------|----------|
-| 1 | Build provider request and call upstream | `exchange.request(ctx)` |
-| 2 | Reconstruct response object | `reconstructResponseObject(...)` |
-| 3 | Validate output contract | `validateResponseOutputContract(...)` |
-| 4 | Record trace usage | `recordTraceUsage(ctx, response.usage)` |
-| 5 | Log completion | `ctx.logger.info(...)` |
-| 6 | Log diagnostics | `logDiagnostics(ctx, ...)` |
-| 7 | Save response session | `saveResponseSession(...)` |
+| 1 | Upstream call + reconstruction + web search loop | `new HostedWebSearchSyncRunner(exchange).request(ctx)` |
+| 2 | Validate output contract | `validateResponseOutputContract(...)` |
+| 3 | Record trace usage | `recordTraceUsage(ctx, response.usage)` |
+| 4 | Log completion | `ctx.logger.info("responses.request.completed")` |
+| 5 | Log diagnostics | `logDiagnostics(ctx, ...)` |
+| 6 | Save response session | `saveResponseSession(...)` |
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant C as Caller
     participant S as SyncRequestPipeline
+    participant R as HostedWebSearchSyncRunner
     participant E as ProviderExchange
     participant P as Provider
 
     C->>S: request(ctx)
-    S->>E: request(ctx)
-    E->>E: buildProviderRequest(ctx, stream=false)
-    E->>P: provider.request(built.request)
-    P->>P: patchRequest(...)
-    P-->>E: onPatchedRequest(patched)
-    E->>E: trace_requests + provider.request.prepared
-    P-->>E: providerResponse
-    E-->>S: {providerResponse, built}
-    S->>S: reconstructResponseObject(...)
+    S->>R: request(ctx)
+    loop web search loop (up to max_iterations)
+        R->>E: request(ctx)
+        E->>E: buildProviderRequest(ctx, stream=false)
+        E->>P: provider.request(built.request)
+        P-->>E: providerResponse
+        E-->>R: {providerResponse, built}
+        R->>R: reconstructResponseObject(...)
+        alt managed web_search call present
+            R->>R: execute search, build continuation
+        else no managed call
+            R-->>S: { response }
+        end
+    end
     S->>S: validateResponseOutputContract(...)
     S->>S: recordTraceUsage(ctx, response.usage)
     S->>S: logger.info("responses.request.completed")
@@ -57,21 +63,29 @@ sequenceDiagram
     S-->>C: ResponseObject
 ```
 
+## Upstream Call and Web Search Loop
+
+`HostedWebSearchSyncRunner` ([web-search/sync-runner.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/sync-runner.ts#L31)) owns everything that was previously a direct pipeline concern: the upstream exchange, reconstruction, and the managed web search continuation loop. Its `request(ctx)` method ([web-search/sync-runner.ts:34](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/sync-runner.ts#L34)) iterates up to `config.max_iterations`:
+
+1. Calls `exchange.request(ctx)` to build the provider request and call upstream.
+2. Reconstructs the response via `reconstructResponseObject(...)` ([web-search/sync-runner.ts:43](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/sync-runner.ts#L43)).
+3. Checks for a managed `web_search` function call. If none, returns the response (prepended with any `hostedItems` from prior rounds). If present, executes the search, records a `web_search_call` item, and builds a continuation request for another round.
+
 ## Provider Exchange
 
-`ProviderExchange` ([provider-exchange.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L25)) encapsulates the interaction with the upstream provider. For sync requests:
+`ProviderExchange` ([provider-exchange.ts:39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L39)) encapsulates the interaction with the upstream provider. For sync requests:
 
-1. **Build request**: `buildProviderRequest(ctx, false)` constructs the provider-specific chat completion request, including tool planning and output contract setup ([provider-exchange.ts:73](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L73))
+1. **Build request**: `buildProviderRequest(ctx, false)` constructs the provider-specific chat completion request, including tool planning and output contract setup ([provider-exchange.ts:103](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L103))
 2. **Patch and trace request**: The provider edge applies `patchRequest`, then `onPatchedRequest` records the final patched provider request into `trace_requests` plus a body-less `provider.request.prepared` lifecycle event
 3. **Call upstream**: Awaits `ctx.provider.request(providerRequest)` -- the actual HTTP call after patching
 4. **Trace response**: Records the sync provider response body
 5. **Return**: Provides both the raw response and the built request metadata
 
-The exchange also records tool decision diagnostics ([provider-exchange.ts:102](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L102)) and sets the output contract slot on the context ([provider-exchange.ts:98](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L98)).
+The exchange also records tool decision diagnostics ([provider-exchange.ts:146](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L146)) and sets the output contract slot on the context ([provider-exchange.ts:131](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L131)).
 
 ## Response Reconstruction
 
-After the exchange returns, the pipeline calls `reconstructResponseObject` ([sync-request-pipeline.ts:34](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L34)) with:
+Inside the runner, `reconstructResponseObject` ([web-search/sync-runner.ts:43](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/sync-runner.ts#L43)) is called with:
 
 | Parameter | Source |
 |-----------|--------|
@@ -103,7 +117,7 @@ After reconstruction, `validateResponseOutputContract` checks that the output sa
 | Request snapshot | `input`, `instructions`, `model`, `tools`, `tool_choice`, `reasoning`, `text`, `truncation` |
 | Response snapshot | `id`, `output`, `output_text`, `usage`, `error`, `incomplete_details` |
 
-Session save errors are caught and logged at warn level, never failing the request ([sync-request-pipeline.ts:62](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L62)).
+Session save errors are caught and logged at warn level, never failing the request ([sync-request-pipeline.ts:53](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L53)).
 
 ## Runtime Wiring
 
@@ -157,11 +171,13 @@ Trace records capture the final patched request body in `trace_requests`, the bo
 - [Output Contracts](./output-contracts.md) -- validation logic used after reconstruction
 - [Stream Reconstruction](./stream-reconstruction.md) -- how streaming deltas are reconstructed (contrast with sync reconstruction)
 - [Tool Planning](./tool-planning.md) -- tool declarations consumed during request building
+- [Config Schema - Web Search](../07-configuration/config-schema.md#web-search) -- the `web_search` config block that governs the managed search loop
 
 ## References
 
-- [sync-request-pipeline.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L25) -- `SyncRequestPipeline` class
-- [provider-exchange.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L25) -- `ProviderExchange` class
+- [sync-request-pipeline.ts:28](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L28) -- `SyncRequestPipeline` class
+- [web-search/sync-runner.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/sync-runner.ts#L31) -- `HostedWebSearchSyncRunner` class
+- [provider-exchange.ts:39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L39) -- `ProviderExchange` class
 - [bridge.ts:7](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/bridge.ts#L7) -- `ResponsesBridge` interface
 - [runtime.ts:19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/runtime.ts#L19) -- `ResponsesBridgeRuntime` class
 - [response-session-persistence.ts:5](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-session-persistence.ts#L5) -- `saveResponseSession` function

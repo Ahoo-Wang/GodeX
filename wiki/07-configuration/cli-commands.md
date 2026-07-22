@@ -84,4 +84,4 @@ bun run compile:all  # Cross-compile all 6 platform binaries
 | `GODEX_LOG_LEVEL` | Override log level |
 | `GODEX_DEFAULT_PROVIDER` | Override default provider (falls back to `zhipu` if unset) |
 
-[Testing Guide](/08-testing/testing-guide)
+[Testing Guide](/08-testing/testing)

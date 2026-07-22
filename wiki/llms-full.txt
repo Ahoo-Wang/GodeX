@@ -3,6 +3,7 @@
 > Full inlined content from the GodeX wiki. Strip YAML frontmatter; preserve Mermaid diagrams and citations.
 
 
+
 <doc title="Contributor Guide" path="onboarding/contributor-guide.md">
 # Contributor Guide
 
@@ -788,12 +789,13 @@ ctx.addDiagnostic({
 });
 ```
 
-**Pattern: TransformStream pipeline.** The stream pipeline uses composable `TransformStream` stages. Each stage is a `Transformer` implementation that processes events and passes them to the next stage:
+**Pattern: TransformStream pipeline.** The stream pipeline uses composable `TransformStream` stages. `HostedWebSearchStreamRunner` first produces an event stream (mapping provider deltas to Responses events via the state machine), then each stage is a `Transformer` implementation that processes events and passes them to the next stage:
 
 ```typescript
-const stream1 = pipeTransform(providerStream, new TraceTransformer(...));
-const stream2 = pipeTransform(stream1, new EventBridge(...));
-const stream3 = pipeTransform(stream2, new OutputContractValidator(...));
+const { stream: eventStream } = await new HostedWebSearchStreamRunner(exchange).stream(ctx);
+const safe = wrapWithErrorHandler(eventStream, machine, ctx);
+const validated = pipeTransform(safe, new OutputContractValidator(...));
+const logged = pipeTransform(validated, new ResponseLogTransformer(...));
 ```
 
 ### 3.8 Anti-Patterns
@@ -1706,16 +1708,15 @@ For sync requests, `reconstructResponseObject` in `src/bridge/response/response-
 
 ### Step 6: Stream Processing (Streaming)
 
-For streaming requests, the `StreamPipeline` creates a pipeline of `TransformStream` stages:
+For streaming requests, the `StreamPipeline` consumes an event stream produced by `HostedWebSearchStreamRunner` (which maps provider deltas to Responses events via the state machine and runs the web search loop), then pipes it through a chain of `TransformStream` stages:
 
-1. `TraceTransformer` (raw) — records raw upstream events
-2. `ProviderStreamEventBridge` — feeds deltas to the state machine, emits Responses events
-3. Error wrapping — catches exceptions, emits `response.failed`
-4. `ResponseOutputContractValidationTransformer` — validates terminal output
-5. `TraceTransformer` (transformed) — records transformed events
-6. `ResponseLogTransformer` — logs usage and duration
-7. `ResponseSessionPersistenceTransformer` — persists the completed session
-8. `CompatibilityLogTransformer` — logs compatibility diagnostics
+1. `HostedWebSearchStreamRunner` (event production) — feeds deltas to the state machine via `mapProviderDeltasToEvents`, emits Responses events; includes a `TraceTransformer` (raw) and the managed web search continuation loop
+2. Error wrapping — catches exceptions, emits `response.failed`
+3. `ResponseOutputContractValidationTransformer` — validates terminal output
+4. `TraceTransformer` (transformed) — records transformed events
+5. `ResponseLogTransformer` — logs usage and duration
+6. `ResponseSessionPersistenceTransformer` — persists the completed session
+7. `CompatibilityLogTransformer` — logs compatibility diagnostics
 
 ### Step 7: Session Persistence
 
@@ -1951,7 +1952,7 @@ This matters because the Responses API is becoming the standard protocol for nex
 | Reasoning/thinking tokens | Beta | DeepSeek: native. Xiaomi: boolean toggle. Zhipu: boolean toggle. MiniMax: boolean adaptive/disabled thinking |
 | Cached token tracking | Stable | Reported when provider returns cache metadata |
 | Session chain resolution | Stable | Cycle detection, depth limits, incomplete response handling |
-| Web search passthrough | Planned | Not yet implemented |
+| Web search | Stable | Native provider passthrough (Zhipu, Xiaomi) and GodeX-managed hosted search via the Zhipu Web Search API |
 | Multi-tenant isolation | Not built | Single-tenant today |
 | Automatic provider failover | Not built | Requests fail if the target provider is down |
 
@@ -2231,7 +2232,7 @@ The primary cost saving comes from using cheaper providers. GodeX itself adds ne
 | **DeepSeek** | `deepseek-v4-pro` | Native (high, max) | auto, none, required, function | text, json_object | Yes | Best for cost-effective coding. Native reasoning support. |
 | **Xiaomi / MiMo** | `mimo-v2.5-pro` | Boolean toggle | auto | text, json_object | Yes | Reasoning via thinking toggle. Up to 128 tools. |
 | **MiniMax** | `MiniMax-M3` | Boolean toggle | auto, none, required, function | text, json_object | Yes | Fast responses, image/video understanding, and full tool choice support. |
-| **Zhipu / ChatGLM** | `glm-5.1` | Boolean toggle | auto, none | text, json_object | Yes | China-market provider. Pre-configured coding endpoint. Web search tool support. |
+| **Zhipu / ChatGLM** | `glm-5.2` | Boolean toggle | auto, none | text, json_object | Yes | China-market provider. Pre-configured coding endpoint. Web search tool support. |
 
 ### Adding New Providers
 
@@ -2478,13 +2479,11 @@ This is the key value proposition for PMs: **provider decisions become configura
 | **Reasoning support** | Varies by provider: DeepSeek has native support; Xiaomi, Zhipu, and MiniMax use boolean thinking switches | Choose the provider whose thinking behavior fits the task |
 | **Tool choice control** | Xiaomi only supports "auto"; Zhipu supports "auto" and "none" (no "required" or specific function) | On Xiaomi or Zhipu, you cannot force the AI to always call a specific tool |
 | **JSON Schema validation** | Downgraded to JSON Object format when the provider does not support schemas | The AI will produce JSON, but strict schema validation is not guaranteed on all providers |
-| **Web search** | Not yet supported | The AI cannot search the web for information during a conversation |
 
 ### What Does Not Work Yet
 
 | Feature | Status | When |
 |---------|--------|------|
-| **Web search integration** | Planned | Future release |
 | **Image generation** | Planned | Future release |
 | **Automatic failover** | Under consideration | If one provider goes down, requests do not automatically reroute to another |
 | **Built-in authentication** | Not built | Anyone who can reach the server can use it |
@@ -2502,7 +2501,7 @@ This is the key value proposition for PMs: **provider decisions become configura
 | **DeepSeek** | Cost-effective coding and reasoning | `deepseek-v4-pro` | `deepseek-v4-pro`, `deepseek-v4-flash`, and others from DeepSeek's catalog |
 | **Xiaomi / MiMo** | Reasoning and China-market deployment | `mimo-v2.5-pro` | `mimo-v2.5-pro`, `mimo-v2.5`, `mimo-v2-flash`, and others from MiMo's catalog |
 | **MiniMax** | Fast responses, tool calling, and image/video understanding | `MiniMax-M3` | `MiniMax-M3` and others from MiniMax's catalog |
-| **Zhipu / ChatGLM** | China-market deployment and Chinese-language coding | `glm-5.1` | `glm-5.1` and others from Zhipu's catalog |
+| **Zhipu / ChatGLM** | China-market deployment and Chinese-language coding | `glm-5.2` | `glm-5.2`, `glm-5.1` and others from Zhipu's catalog |
 
 > **Note**: GodeX routes to whatever models your configured providers offer. The default models above are just the recommended starting points. You can configure any model from each provider's catalog.
 
@@ -2521,7 +2520,7 @@ This is the key value proposition for PMs: **provider decisions become configura
 | Reasoning / thinking | Yes (native) | Yes (boolean) | Yes (boolean) | Yes (basic) |
 | Image/video understanding | No | No | Yes | No |
 | Cached tokens | Yes | Yes | Yes | Yes |
-| Web search tools | No | No | No | Yes (via Zhipu's web_search) |
+| Web search tools | No | Yes | No | Yes (via Zhipu's web_search) |
 | Max concurrent tools | 128 | 128 | 128 | 128 |
 
 ---
@@ -2813,7 +2812,9 @@ Every technical term used in GodeX documentation, defined in plain English.
 <doc title="Architecture Overview" path="02-architecture/architecture-overview.md">
 # Architecture Overview
 
-GodeX is a gateway that translates OpenAI **Responses API** requests into **Chat Completions API** calls for any configured upstream provider. Understanding the full request lifecycle is essential for debugging compatibility issues, adding new providers, or extending the bridge. This page traces a single request from the moment the Bun server receives it to the point where the reconstructed response is returned to the caller.
+GodeX is a gateway that translates OpenAI **Responses API** requests into **Chat Completions API** calls for any configured upstream provider. It follows a layered architecture with clear separation of concerns: protocol handling at the boundary, bridge logic in the middle, and provider-specific code isolated in specs and hooks.
+
+This page has two complementary views: the **request lifecycle** (how a single request flows through the system) and the **component model** (what the building blocks are and how they depend on each other). Understanding both is essential for debugging compatibility issues, adding new providers, or extending the bridge.
 
 ## At a Glance
 
@@ -3058,6 +3059,181 @@ flowchart LR
     style I fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
+## System Components
+
+The full request path connects every layer — from the Bun server routes through the bridge request builder, the provider edge, and the reconstruction layer:
+
+```mermaid
+flowchart TB
+  Client["Client<br>Codex, SDK, CLI, IDE"] --> Routes["Bun server routes<br>/health<br>/v1/models<br>/v1/responses"]
+  Routes --> Ctx["ResponsesContext<br>request id, response id, resolved model,<br>provider, session, diagnostics"]
+
+  Ctx --> Resolver["ModelResolver<br>alias and provider/model selection"]
+  Ctx --> Session["ResponseSessionStore<br>memory or SQLite<br>previous_response_id chains"]
+  Ctx --> Registrar["Registrar<br>built-in ProviderEdge factories"]
+  Ctx --> Runtime["ResponsesBridgeRuntime"]
+
+  Runtime --> Sync["SyncRequestPipeline"]
+  Runtime --> Stream["StreamPipeline"]
+  Sync --> Exchange["ProviderExchange"]
+  Stream --> Exchange
+
+  Exchange --> Builder["bridge/request<br>buildChatCompletionRequest"]
+  Builder --> Compat["bridge/compatibility<br>parameter and response-format decisions"]
+  Builder --> Tools["bridge/tools<br>tool declarations, tool_choice,<br>identity restoration"]
+  Builder --> Output["bridge/output<br>structured-output contract"]
+
+  Exchange --> Edge["ProviderEdge<br>ProviderSpec + hooks"]
+  Edge --> ClientHttp["ChatProviderClient<br>Fetcher HTTP boundary"]
+  ClientHttp --> Upstream["Chat Completions upstream<br>DeepSeek, Zhipu, custom"]
+
+  Upstream --> SyncRecon["bridge/response<br>reconstructResponseObject"]
+  Upstream --> StreamRecon["bridge/stream<br>ResponseStreamStateMachine"]
+  SyncRecon --> ResponseJson["ResponseObject JSON"]
+  StreamRecon --> StreamTransforms["stream transforms<br>validate, trace, log, persist, diagnostics"]
+  StreamTransforms --> Sse["Responses SSE"]
+
+  Ctx --> Trace["trace recorder<br>request, usage, event, error rows"]
+  Ctx --> Logger["structured logger"]
+```
+
+The core domain types and their relationships:
+
+```mermaid
+classDiagram
+
+  class ApplicationContext {
+    +config: GodeXConfig
+    +logger: Logger
+    +resolver: ModelResolver
+    +registrar: Registrar
+    +responses: ResponsesBridge
+    +sessionStore: ResponseSessionStore
+    +traceRecorder: TraceRecorder
+  }
+
+  class ResponsesContext {
+    +app: ApplicationContext
+    +request: ResponseCreateRequest
+    +session: ResponseSessionSnapshot
+    +resolved: ResolvedModel
+    +provider: ProviderEdge
+    +responseId: string
+    +requestId: string
+    +diagnostics: CompatibilityDiagnostic[]
+    +attributes: Map
+    +outputContract: OutputContractSlot
+  }
+
+  class ModelResolver {
+    -defaultProvider: string
+    -providerConfigs: Record
+    +resolve(model) ResolvedModel
+  }
+
+  class Registrar {
+    -factories: Map
+    -providers: Map
+    +registerDefinitions(definitions)
+    +registerProviders(configs, logger)
+    +resolve(name) ProviderEdge
+    +list() string[]
+    +unsupported() string[]
+  }
+
+  class ResponsesBridge {
+    <<interface>>
+    +request(ctx) Promise~ResponseObject~
+    +stream(ctx) Promise~ReadableStream~
+  }
+
+  class ResponsesBridgeRuntime {
+    -syncPipeline: SyncRequestPipeline
+    -streamPipeline: StreamPipeline
+    +request(ctx) Promise~ResponseObject~
+    +stream(ctx) Promise~ReadableStream~
+  }
+
+  class ProviderEdge {
+    <<interface>>
+    +name: string
+    +spec: ProviderSpec
+    +request(body) Promise~TResponse~
+    +stream(body) Promise~ReadableStream~
+  }
+
+  class ProviderSpec {
+    +name: string
+    +protocol: ProviderProtocol
+    +capabilities: ProviderCapabilities
+    +endpoint: ProviderEndpointSpec
+    +auth: ProviderAuthSpec
+    +toolName: ToolNameCodec
+    +response: ChatCompletionResponseAccessor
+    +stream: ChatCompletionStreamAccessor
+    +hooks?: ProviderHooks
+  }
+
+  class ResponseSessionStore {
+    <<interface>>
+    +get(id) Promise~StoredResponseSession~
+    +save(session, opts) Promise~void~
+    +resolveChain(id, opts) Promise~ResponseSessionSnapshot~
+    +delete(id) Promise~void~
+    +close() void
+  }
+
+  ApplicationContext --> ResponsesContext : creates
+  ApplicationContext --> ModelResolver
+  ApplicationContext --> Registrar
+  ApplicationContext --> ResponsesBridge
+  ApplicationContext --> ResponseSessionStore
+  ResponsesContext --> ProviderEdge : uses
+  ProviderEdge --> ProviderSpec
+  ResponsesBridge <|.. ResponsesBridgeRuntime
+  ResponsesBridgeRuntime --> SyncRequestPipeline
+  ResponsesBridgeRuntime --> StreamPipeline
+```
+
+## Layer Responsibilities
+
+| Layer | Module | Role |
+|-------|--------|------|
+| Server | `src/server/` | HTTP routing, request parsing, SSE encoding, error handling |
+| Context | `src/context/` | `ApplicationContext` (app-wide services) and `ResponsesContext` (per-request state) |
+| Bridge | `src/bridge/` | Provider-agnostic Responses-to-Chat planning and reconstruction |
+| Responses | `src/responses/` | Sync and stream orchestration pipelines around the bridge |
+| Provider | `src/providers/` | Provider-specific specs, hooks, clients, and registry |
+| Session | `src/session/` | History persistence and `previous_response_id` chain resolution |
+| Resolver | `src/resolver/` | Model alias and provider/model selector resolution |
+| Config | `src/config/` | YAML schema, env interpolation, defaults, validation |
+| Error | `src/error/` | Structured error hierarchy with domain codes |
+
+## Dependency Flow
+
+```mermaid
+flowchart TD
+  Server["Server (Routes)"]
+  CTX["ApplicationContext"]
+  RCTX["ResponsesContext"]
+  Resolver["ModelResolver"]
+  Reg["Registrar"]
+  Bridge["ResponsesBridgeRuntime"]
+  Exchange["ProviderExchange"]
+  Prov["ProviderEdge"]
+  Store["SessionStore"]
+
+  Server --> CTX
+  Server --> RCTX
+  RCTX --> Resolver
+  RCTX --> Reg
+  RCTX --> Store
+  CTX --> Bridge
+  Bridge --> Exchange
+  Exchange --> Prov
+  Reg --> Prov
+```
+
 ## Cross-References
 
 - **[Compatibility](./compatibility.md)**: How the bridge plans feature compatibility before building a request
@@ -3072,7 +3248,7 @@ flowchart LR
 - [src/server/server.ts:21-51](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/server.ts#L21-L51) -- Route map creation and Bun server startup
 - [src/server/routes/responses/handler.ts:1-33](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/routes/responses/handler.ts#L1-L33) -- Responses route handler with parse, context creation, and dispatch
 - [src/responses/runtime.ts:19-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/runtime.ts#L19-L41) -- `ResponsesBridgeRuntime` delegating to sync and stream pipelines
-- [src/responses/provider-exchange.ts:1-123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L1-L123) -- `ProviderExchange` orchestrating request building and upstream calls
+- [src/responses/provider-exchange.ts:1-166](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L1-L166) -- `ProviderExchange` orchestrating request building and upstream calls
 - [src/providers/registrar.ts:1-95](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/registrar.ts#L1-L95) -- Provider factory registration and resolution
 - [src/resolver/model-resolver.ts:1-37](https://github.com/Ahoo-Wang/GodeX/blob/main/src/resolver/model-resolver.ts#L1-L37) -- Model selector parsing and alias resolution
 </doc>
@@ -3285,11 +3461,11 @@ classDiagram
 
 ## References
 
-- [src/bridge/compatibility/planner.ts:1-164](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts#L1-L164) -- `planBridgeCompatibility` entry point and parameter decision recording
+- [src/bridge/compatibility/planner.ts:1-163](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts#L1-L163) -- `planBridgeCompatibility` entry point and parameter decision recording
 - [src/bridge/compatibility/compatibility-plan.ts:1-60](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/compatibility-plan.ts#L1-L60) -- `CompatibilityPlan`, `CompatibilityDecision`, and `ProviderCapabilities` types
 - [src/bridge/compatibility/diagnostic.ts:1-10](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/diagnostic.ts#L1-L10) -- `CompatibilityDiagnostic` interface with severity and action
-- [src/bridge/tools/tool-plan.ts:1-319](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L1-L319) -- `planTools`, tool declaration decisions, and tool_choice resolution
-- [src/bridge/output/output-contract.ts:1-75](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L1-L75) -- `planOutputContract` and JSON Schema degradation with synthetic instructions
+- [src/bridge/tools/tool-plan.ts:1-443](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L1-L443) -- `planTools`, tool declaration decisions, and tool_choice resolution
+- [src/bridge/output/output-contract.ts:1-80](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L1-L80) -- `planOutputContract` and JSON Schema degradation with synthetic instructions
 </doc>
 
 <doc title="Request Building" path="02-architecture/request-building.md">
@@ -3304,10 +3480,10 @@ The core purpose of the GodeX bridge is translating an OpenAI **Responses API** 
 | 1 | `planBridgeCompatibility` | `CompatibilityPlan` with parameter and format decisions | [planner.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts#L25-L36) |
 | 2 | `planTools` | `ToolPlan` with declarations, tool_choice, and decisions | [tool-plan.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66-L106) |
 | 3 | `planOutputContract` | `OutputContractPlan` with format and synthetic instruction | [output-contract.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L19-L52) |
-| 4 | `normalizeCurrentInput` + `normalizeResponseItems` | `NormalizedChatMessage[]` | [input-normalizer.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/input-normalizer.ts#L21-L46) |
+| 4 | `normalizeCurrentInput` + `normalizeResponseItems` | `NormalizedChatMessage[]` | [input-normalizer.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/input-normalizer.ts#L31-L50) |
 | 5 | `buildChatMessages` | `ChatCompletionMessageParam[]` with merged assistant turns | [message-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/message-builder.ts#L7-L56) |
-| 6 | `applyTools` | `request.tools` and `request.tool_choice` | [request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L146-L172) |
-| 7 | `applyRequestOptions` | stream, temperature, top_p, max_tokens, reasoning | [request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L174-L224) |
+| 6 | `applyTools` | `request.tools` and `request.tool_choice` | [request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L180) |
+| 7 | `applyRequestOptions` | stream, temperature, top_p, max_tokens, reasoning | [request-builder.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L208) |
 
 ## Pipeline Overview
 
@@ -3467,11 +3643,11 @@ When a request includes a session (from `previous_response_id`), the session's `
 
 ## References
 
-- [src/bridge/request/request-builder.ts:1-329](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L1-L329) -- `buildChatCompletionRequest` orchestrating the full pipeline
-- [src/bridge/request/input-normalizer.ts:1-368](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/input-normalizer.ts#L1-L368) -- Input item type normalization and tool name mapping
+- [src/bridge/request/request-builder.ts:1-366](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/request-builder.ts#L1-L366) -- `buildChatCompletionRequest` orchestrating the full pipeline
+- [src/bridge/request/input-normalizer.ts:1-494](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/input-normalizer.ts#L1-L494) -- Input item type normalization and tool name mapping
 - [src/bridge/request/message-builder.ts:1-163](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/request/message-builder.ts#L1-L163) -- Assistant message merging logic
 - [src/bridge/compatibility/planner.ts:25-36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/compatibility/planner.ts#L25-L36) -- `planBridgeCompatibility` entry point
-- [src/bridge/tools/tool-plan.ts:66-106](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66-L106) -- `planTools` with declaration and tool_choice planning
+- [src/bridge/tools/tool-plan.ts:81](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L81) -- `planTools` with declaration and tool_choice planning
 - [src/bridge/output/output-contract.ts:19-52](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L19-L52) -- `planOutputContract` with JSON Schema degradation
 </doc>
 
@@ -3679,11 +3855,11 @@ The `output` array is ordered: reasoning items first, then restored tool calls, 
 
 ## References
 
-- [src/bridge/response/response-reconstructor.ts:1-196](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/response/response-reconstructor.ts#L1-L196) -- `reconstructResponseObject` and output assembly
-- [src/bridge/finish-reason/finish-reason.ts:1-75](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/finish-reason/finish-reason.ts#L1-L75) -- `mapProviderFinishReason` with full provider-to-Responses mapping
-- [src/bridge/tools/call-restorer.ts:1-178](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L1-L178) -- `restoreToolCall` with type-specific parsing and fallbacks
-- [src/bridge/tools/tool-identity.ts:1-72](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L1-L72) -- `ToolIdentityMap` for bidirectional name/type lookup
-- [src/bridge/output/output-validator.ts:1-30](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-validator.ts#L1-L30) -- `validateOutputContract` for degraded JSON Schema validation
+- [src/bridge/response/response-reconstructor.ts:1-189](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/response/response-reconstructor.ts#L1-L189) -- `reconstructResponseObject` and output assembly
+- [src/bridge/finish-reason/finish-reason.ts:1-74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/finish-reason/finish-reason.ts#L1-L74) -- `mapProviderFinishReason` with full provider-to-Responses mapping
+- [src/bridge/tools/call-restorer.ts:1-186](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L1-L186) -- `restoreToolCall` with type-specific parsing and fallbacks
+- [src/bridge/tools/tool-identity.ts:1-80](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L1-L80) -- `ToolIdentityMap` for bidirectional name/type lookup
+- [src/bridge/output/output-validator.ts:1-29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-validator.ts#L1-L29) -- `validateOutputContract` for degraded JSON Schema validation
 - [src/bridge/output/validator.ts:1-47](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/validator.ts#L1-L47) -- `validateResponseOutputContract` extracting text from `ResponseObject`
 </doc>
 
@@ -3700,7 +3876,7 @@ Stream reconstruction is the bridge layer that translates heterogeneous provider
 | Delta-to-event mapping | `mapProviderDeltasToEvents` | [stream-reconstructor.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L17) |
 | Delta validation | `validateDelta` + helpers | [stream-reconstructor.ts:69](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L69) |
 | Delta type contract | `ProviderStreamDelta` | [stream-delta.ts:28](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-delta.ts#L28) |
-| Deferred terminal events | `deferFinish` / `deferTerminal` | [response-stream-state-machine.ts:263](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L263) |
+| Deferred terminal events | `deferFinish` / `deferTerminal` | [response-stream-state-machine.ts:293](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L293) |
 
 ## Stream State Machine Phases
 
@@ -3730,7 +3906,7 @@ stateDiagram-v2
     inprog --> failed : finish(content_filter)
 ```
 
-The transition logic lives in [response-stream-state-machine.ts:787](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L787), which maps the provider finish reason to the correct terminal phase.
+The transition logic lives in [response-stream-state-machine.ts:819](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L819), which maps the provider finish reason to the correct terminal phase.
 
 ## Block Management
 
@@ -3772,7 +3948,7 @@ flowchart TD
     style L fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
-Each block is lazily created on its first delta and closed when the stream reaches a terminal phase via `closeActiveBlocks` ([response-stream-state-machine.ts:428](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L428)).
+Each block is lazily created on its first delta and closed when the stream reaches a terminal phase via `closeActiveBlocks` ([response-stream-state-machine.ts:458](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L458)).
 
 ## Delta Validation Pipeline
 
@@ -3788,7 +3964,7 @@ Each block is lazily created on its first delta and closed when the stream reach
 | `finishReason` | String, null, or undefined |
 | `error` | Object with required `message` string and optional `code` string |
 
-Unrecognized fields cause a `BridgeError` with code `BRIDGE_STREAM_INVALID_TRANSITION` ([stream-reconstructor.ts:120](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L120)).
+Unrecognized fields cause a `BridgeError` with code `BRIDGE_STREAM_INVALID_TRANSITION` ([stream-reconstructor.ts:399](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L399)).
 
 ```mermaid
 sequenceDiagram
@@ -3818,9 +3994,9 @@ sequenceDiagram
 
 ## Deferred Terminal Events
 
-When `deferTerminal` is true (as it is in the streaming pipeline), the state machine's `deferFinish` method stores the finish reason without transitioning to a terminal phase ([response-stream-state-machine.ts:263](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L263)). This allows downstream transformers -- notably the output contract validation transformer -- to inspect and potentially rewrite the terminal event before it reaches the client.
+When `deferTerminal` is true (as it is in the streaming pipeline), the state machine's `deferFinish` method stores the finish reason without transitioning to a terminal phase ([response-stream-state-machine.ts:293](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L293)). This allows downstream transformers -- notably the output contract validation transformer -- to inspect and potentially rewrite the terminal event before it reaches the client.
 
-The `ProviderStreamEventBridge.flush` method ([stream-pipeline.ts:123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L123)) calls `machine.finish(machine.deferredFinishReason)` when the upstream stream closes, ensuring the terminal event is always emitted.
+The `consumeProviderStream` function ([web-search/stream-runner.ts:182](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L182)) calls `machine.finish(machine.deferredFinishReason)` when the upstream stream closes (and no managed web search call is pending), ensuring the terminal event is always emitted.
 
 ```mermaid
 flowchart LR
@@ -3847,11 +4023,11 @@ Tool call blocks are tracked by `streamIndex` in a `Map<number, ToolCallBlock>` 
 
 1. Verifies both `callId` and `providerName` are present (otherwise throws `BRIDGE_STREAM_INCOMPLETE_TOOL_CALL`)
 2. Checks the `ToolIdentityMap` to determine if the tool is a custom tool
-3. Calls `restoreToolCall` from [call-restorer.ts:16](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L16) to map the provider function call back to the correct Responses API type (`function_call`, `local_shell_call`, `shell_call`, `apply_patch_call`, or `custom_tool_call`)
+3. Calls `restoreToolCall` from [call-restorer.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L17) to map the provider function call back to the correct Responses API type (`function_call`, `local_shell_call`, `shell_call`, `apply_patch_call`, or `custom_tool_call`)
 
 ## Error Normalization
 
-Provider errors are normalized through `normalizeError` ([response-stream-state-machine.ts:753](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L753)), which maps the provider error code against a known set of `ResponseErrorCode` values. Unknown codes fall back to `server_error`.
+Provider errors are normalized through `normalizeError` ([response-stream-state-machine.ts:783](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L783)), which maps the provider error code against a known set of `ResponseErrorCode` values. Unknown codes fall back to `server_error`.
 
 ## Cross-References
 
@@ -3867,8 +4043,8 @@ Provider errors are normalized through `normalizeError` ([response-stream-state-
 - [stream-reconstructor.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L17) -- `mapProviderDeltasToEvents` function
 - [stream-reconstructor.ts:69](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L69) -- `validateDelta` function
 - [stream-delta.ts:28](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-delta.ts#L28) -- `ProviderStreamDelta` interface
-- [response-stream-state-machine.ts:263](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L263) -- `deferFinish` method
-- [response-stream-state-machine.ts:428](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L428) -- `closeActiveBlocks` method
+- [response-stream-state-machine.ts:293](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L293) -- `deferFinish` method
+- [response-stream-state-machine.ts:458](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L458) -- `closeActiveBlocks` method
 </doc>
 
 <doc title="Tool Planning" path="02-architecture/tool-planning.md">
@@ -3880,18 +4056,18 @@ Tool planning is the process by which GodeX takes a unified set of Responses API
 
 | Concern | Component | Key File |
 |---------|-----------|----------|
-| Tool plan orchestration | `planTools` | [tool-plan.ts:66](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66) |
+| Tool plan orchestration | `planTools` | [tool-plan.ts:81](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L81) |
 | Catalog builder | `buildToolCatalog` | [tool-catalog.ts:9](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-catalog.ts#L9) |
-| Per-tool declaration | `planToolDeclaration` | [tool-plan.ts:108](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L108) |
-| Name allocation | `createProviderNameAllocator` | [tool-plan.ts:157](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L157) |
-| Identity mapping | `ToolIdentityMap` | [tool-identity.ts:18](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L18) |
-| Call restoration | `restoreToolCall` | [call-restorer.ts:16](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L16) |
-| Declaration rendering | `renderProviderToolDeclarations` | [declaration-renderer.ts:29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L29) |
-| Tool choice planning | `planProviderToolChoice` | [tool-plan.ts:198](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L198) |
+| Per-tool declaration | `planToolDeclaration` | [tool-plan.ts:123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L123) |
+| Name allocation | `createProviderNameAllocator` | [tool-plan.ts:281](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L281) |
+| Identity mapping | `ToolIdentityMap` | [tool-identity.ts:21](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L21) |
+| Call restoration | `restoreToolCall` | [call-restorer.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L17) |
+| Declaration rendering | `renderProviderToolDeclarations` | [declaration-renderer.ts:32](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L32) |
+| Tool choice planning | `planProviderToolChoice` | [tool-plan.ts:322](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L322) |
 
 ## Planning Flow
 
-The `planTools` function ([tool-plan.ts:66](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66)) orchestrates the full planning process:
+The `planTools` function ([tool-plan.ts:81](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L81)) orchestrates the full planning process:
 
 ```mermaid
 flowchart TD
@@ -3917,7 +4093,7 @@ flowchart TD
 
 ## Per-Tool Decision Logic
 
-For each tool in the catalog, `planToolDeclaration` ([tool-plan.ts:108](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L108)) makes one of three decisions:
+For each tool in the catalog, `planToolDeclaration` ([tool-plan.ts:123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L123)) makes one of three decisions:
 
 | Decision | Condition | Outcome |
 |----------|-----------|---------|
@@ -3943,15 +4119,15 @@ flowchart TD
 
 ## Provider Name Allocation
 
-Provider naming constraints require sanitized, unique tool names. The `createProviderNameAllocator` ([tool-plan.ts:157](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L157)) returns a closure that:
+Provider naming constraints require sanitized, unique tool names. The `createProviderNameAllocator` ([tool-plan.ts:281](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L281)) returns a closure that:
 
-1. Applies the `toProviderName` codec (defaults to `defaultToolNameCodec` from [tool-identity.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L54))
+1. Applies the `toProviderName` codec (defaults to `defaultToolNameCodec` from [tool-identity.ts:62](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L62))
 2. Sanitizes names to alphanumeric, underscore, and hyphen characters (max 64 chars)
 3. Deduplicates via suffix appending (`_2`, `_3`, etc.)
 
 ## Tool Identity Map
 
-`ToolIdentityMap` ([tool-identity.ts:18](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L18)) maintains the bidirectional mapping between requested tool names and provider-assigned names. It is populated during planning and consumed during response reconstruction to map provider tool calls back to the original requested types.
+`ToolIdentityMap` ([tool-identity.ts:21](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L21)) maintains the bidirectional mapping between requested tool names and provider-assigned names. It is populated during planning and consumed during response reconstruction to map provider tool calls back to the original requested types.
 
 | Field | Description |
 |-------|-------------|
@@ -3960,11 +4136,11 @@ Provider naming constraints require sanitized, unique tool names. The `createPro
 | `requestedType` | Original tool type (e.g., `custom`, `local_shell`) |
 | `providerType` | Provider-side tool type (e.g., `function`) |
 
-The map enforces uniqueness: if two different tools map to the same provider name, it throws a `BRIDGE_REQUEST_UNSUPPORTED_PARAMETER` error ([tool-identity.ts:23](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L23)).
+The map enforces uniqueness: if two different tools map to the same provider name, it throws a `BRIDGE_REQUEST_UNSUPPORTED_PARAMETER` error ([tool-identity.ts:32](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L32)).
 
 ## Tool Choice Planning
 
-Tool choice is planned in `planProviderToolChoice` ([tool-plan.ts:198](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L198)):
+Tool choice is planned in `planProviderToolChoice` ([tool-plan.ts:322](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L322)):
 
 | Requested Choice | Resolution Logic |
 |-----------------|-----------------|
@@ -3976,7 +4152,7 @@ The `renderProviderToolChoice` function ([tool-choice.ts:19](https://github.com/
 
 ## Declaration Rendering
 
-`renderProviderToolDeclarations` ([declaration-renderer.ts:29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L29)) converts each `ToolDeclarationPlan` into the format expected by the provider:
+`renderProviderToolDeclarations` ([declaration-renderer.ts:32](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L32)) converts each `ToolDeclarationPlan` into the format expected by the provider:
 
 | Provider Type | Rendering Logic |
 |--------------|----------------|
@@ -3985,13 +4161,13 @@ The `renderProviderToolChoice` function ([tool-choice.ts:19](https://github.com/
 | `retrieval` | File search with `knowledge_id` from `vector_store_ids` |
 | `mcp` | MCP server configuration with `server_label`, `headers`, etc. |
 
-Custom tools are degraded via `degradedCustomToolDescription` and `degradedCustomToolParameters` from [custom-tool-degradation.ts:14](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/custom-tool-degradation.ts#L14), wrapping the custom tool's `input` field as a single string parameter.
+Custom tools are degraded via `degradedCustomToolDescription` and `degradedCustomToolParameters` from [custom-tool-degradation.ts:11](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/custom-tool-degradation.ts#L11), wrapping the custom tool's `input` field as a single string parameter.
 
 Builtin tool types (`local_shell`, `shell`, `apply_patch`) use definitions from [builtin.ts:9](https://github.com/Ahoo-Wang/GodeX/blob/main/src/tools/builtin.ts#L9).
 
 ## Call Restoration
 
-When the provider returns a tool call in its response, `restoreToolCall` ([call-restorer.ts:16](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L16)) uses the identity map to reconstruct the correct Responses API item type:
+When the provider returns a tool call in its response, `restoreToolCall` ([call-restorer.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L17)) uses the identity map to reconstruct the correct Responses API item type:
 
 ```mermaid
 sequenceDiagram
@@ -4020,7 +4196,7 @@ Each specialized type (e.g., `LocalShellCall`, `ShellCall`) attempts to parse th
 
 ## Max Tools Enforcement
 
-`assertMaxTools` ([tool-plan.ts:175](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L175)) throws a `BridgeError` if the number of planned declarations exceeds the provider's `maxTools` limit. This prevents sending more tools than the provider can handle.
+`assertMaxTools` ([tool-plan.ts:299](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L299)) throws a `BridgeError` if the number of planned declarations exceeds the provider's `maxTools` limit. This prevents sending more tools than the provider can handle.
 
 ## Cross-References
 
@@ -4031,14 +4207,14 @@ Each specialized type (e.g., `LocalShellCall`, `ShellCall`) attempts to parse th
 
 ## References
 
-- [tool-plan.ts:66](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L66) -- `planTools` orchestration
-- [tool-plan.ts:108](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L108) -- `planToolDeclaration` decision logic
-- [tool-plan.ts:157](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L157) -- `createProviderNameAllocator`
+- [tool-plan.ts:81](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L81) -- `planTools` orchestration
+- [tool-plan.ts:123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L123) -- `planToolDeclaration` decision logic
+- [tool-plan.ts:281](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-plan.ts#L281) -- `createProviderNameAllocator`
 - [tool-catalog.ts:9](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-catalog.ts#L9) -- `buildToolCatalog`
-- [tool-identity.ts:18](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L18) -- `ToolIdentityMap`
-- [call-restorer.ts:16](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L16) -- `restoreToolCall`
-- [declaration-renderer.ts:29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L29) -- `renderProviderToolDeclarations`
-- [custom-tool-degradation.ts:14](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/custom-tool-degradation.ts#L14) -- Custom tool degradation helpers
+- [tool-identity.ts:21](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L21) -- `ToolIdentityMap`
+- [call-restorer.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L17) -- `restoreToolCall`
+- [declaration-renderer.ts:32](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/declaration-renderer.ts#L32) -- `renderProviderToolDeclarations`
+- [custom-tool-degradation.ts:11](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/custom-tool-degradation.ts#L11) -- Custom tool degradation helpers
 </doc>
 
 <doc title="Output Contracts" path="02-architecture/output-contracts.md">
@@ -4088,7 +4264,7 @@ flowchart TD
 
 ## Synthetic Instruction Generation
 
-When `json_schema` is degraded to `json_object`, GodeX generates a synthetic instruction via `jsonSchemaInstruction` ([output-contract.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L54)). This instruction includes:
+When `json_schema` is degraded to `json_object`, GodeX generates a synthetic instruction via `buildJsonSchemaInstruction` ([output-contract.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L54)). This instruction includes:
 
 1. Schema name and description (if provided)
 2. Explicit JSON output rules
@@ -4098,7 +4274,7 @@ The instruction is injected into the system message so the provider knows to out
 
 ## Output Contract Slot
 
-`OutputContractSlot` ([output-contract-slot.ts:3](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/output-contract-slot.ts#L3)) is a mutable slot on the `ResponsesContext` that holds the current `OutputContractPlan`. It is set once during request building (in `buildProviderRequest` at [provider-exchange.ts:98](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L98)) and read during response validation.
+`OutputContractSlot` ([output-contract-slot.ts:3](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/output-contract-slot.ts#L3)) is a mutable slot on the `ResponsesContext` that holds the current `OutputContractPlan`. It is set once during request building (in `buildProviderRequest` at [provider-exchange.ts:131](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L131)) and read during response validation.
 
 | Method | Purpose |
 |--------|---------|
@@ -4161,7 +4337,7 @@ The `failedResponse` helper ([response-output-contract-validation-transformer.ts
 
 ## Output Text Extraction
 
-`extractResponseOutputText` ([response-output-contract-validation.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-output-contract-validation.ts#L25)) obtains the text to validate by:
+`extractResponseOutputText` ([validator.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/validator.ts#L25)) obtains the text to validate by:
 
 1. Using `response.output_text` if available (string)
 2. Otherwise, concatenating `output_text` content parts from all `message` output items
@@ -4170,7 +4346,7 @@ This ensures validation works regardless of how the provider structures its resp
 
 ## Error Handling
 
-When validation fails, a diagnostic is recorded with code `BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT`, severity `"error"`, and path `"response.output_text"` ([response-output-contract-validation.ts:36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-output-contract-validation.ts#L36)). The error is then propagated to the caller.
+When validation fails, a diagnostic is recorded with code `BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT`, severity `"error"`, and path `"response.output_text"` ([response-output-contract-validation.ts:39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-output-contract-validation.ts#L39)). The error is then propagated to the caller.
 
 ## Cross-References
 
@@ -4181,7 +4357,7 @@ When validation fails, a diagnostic is recorded with code `BRIDGE_RESPONSE_INVAL
 ## References
 
 - [output-contract.ts:19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L19) -- `planOutputContract` function
-- [output-contract.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L54) -- `jsonSchemaInstruction` synthetic instruction generator
+- [output-contract.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L54) -- `buildJsonSchemaInstruction` synthetic instruction generator
 - [output-validator.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-validator.ts#L6) -- `validateOutputContract` function
 - [output-contract-slot.ts:3](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/output-contract-slot.ts#L3) -- `OutputContractSlot` class
 - [response-output-contract-validation.ts:14](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-output-contract-validation.ts#L14) -- `validateResponseOutputContract` (response-level)
@@ -4197,44 +4373,50 @@ The sync pipeline handles non-streaming Requests API calls end to end. It is the
 
 | Concern | Component | Key File |
 |---------|-----------|----------|
-| Pipeline orchestrator | `SyncRequestPipeline` | [sync-request-pipeline.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L25) |
-| Provider exchange | `ProviderExchange` | [provider-exchange.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L25) |
+| Pipeline orchestrator | `SyncRequestPipeline` | [sync-request-pipeline.ts:28](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L28) |
+| Upstream call + reconstruction + web search loop | `HostedWebSearchSyncRunner` | [web-search/sync-runner.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/sync-runner.ts#L31) |
+| Provider exchange | `ProviderExchange` | [provider-exchange.ts:39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L39) |
 | Bridge interface | `ResponsesBridge` | [bridge.ts:7](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/bridge.ts#L7) |
 | Runtime wiring | `ResponsesBridgeRuntime` | [runtime.ts:19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/runtime.ts#L19) |
 | Session persistence | `saveResponseSession` | [response-session-persistence.ts:5](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-session-persistence.ts#L5) |
 
 ## Pipeline Steps
 
-`SyncRequestPipeline.request` ([sync-request-pipeline.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L31)) executes seven steps in sequence:
+`SyncRequestPipeline.request` ([sync-request-pipeline.ts:34](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L34)) delegates the upstream call, reconstruction, and web search loop to `HostedWebSearchSyncRunner`, then runs five post-processing steps on the resulting `ResponseObject`:
 
 | Step | Operation | Key Code |
 |------|-----------|----------|
-| 1 | Build provider request and call upstream | `exchange.request(ctx)` |
-| 2 | Reconstruct response object | `reconstructResponseObject(...)` |
-| 3 | Validate output contract | `validateResponseOutputContract(...)` |
-| 4 | Record trace usage | `recordTraceUsage(ctx, response.usage)` |
-| 5 | Log completion | `ctx.logger.info(...)` |
-| 6 | Log diagnostics | `logDiagnostics(ctx, ...)` |
-| 7 | Save response session | `saveResponseSession(...)` |
+| 1 | Upstream call + reconstruction + web search loop | `new HostedWebSearchSyncRunner(exchange).request(ctx)` |
+| 2 | Validate output contract | `validateResponseOutputContract(...)` |
+| 3 | Record trace usage | `recordTraceUsage(ctx, response.usage)` |
+| 4 | Log completion | `ctx.logger.info("responses.request.completed")` |
+| 5 | Log diagnostics | `logDiagnostics(ctx, ...)` |
+| 6 | Save response session | `saveResponseSession(...)` |
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant C as Caller
     participant S as SyncRequestPipeline
+    participant R as HostedWebSearchSyncRunner
     participant E as ProviderExchange
     participant P as Provider
 
     C->>S: request(ctx)
-    S->>E: request(ctx)
-    E->>E: buildProviderRequest(ctx, stream=false)
-    E->>P: provider.request(built.request)
-    P->>P: patchRequest(...)
-    P-->>E: onPatchedRequest(patched)
-    E->>E: trace_requests + provider.request.prepared
-    P-->>E: providerResponse
-    E-->>S: {providerResponse, built}
-    S->>S: reconstructResponseObject(...)
+    S->>R: request(ctx)
+    loop web search loop (up to max_iterations)
+        R->>E: request(ctx)
+        E->>E: buildProviderRequest(ctx, stream=false)
+        E->>P: provider.request(built.request)
+        P-->>E: providerResponse
+        E-->>R: {providerResponse, built}
+        R->>R: reconstructResponseObject(...)
+        alt managed web_search call present
+            R->>R: execute search, build continuation
+        else no managed call
+            R-->>S: { response }
+        end
+    end
     S->>S: validateResponseOutputContract(...)
     S->>S: recordTraceUsage(ctx, response.usage)
     S->>S: logger.info("responses.request.completed")
@@ -4243,21 +4425,29 @@ sequenceDiagram
     S-->>C: ResponseObject
 ```
 
+## Upstream Call and Web Search Loop
+
+`HostedWebSearchSyncRunner` ([web-search/sync-runner.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/sync-runner.ts#L31)) owns everything that was previously a direct pipeline concern: the upstream exchange, reconstruction, and the managed web search continuation loop. Its `request(ctx)` method ([web-search/sync-runner.ts:34](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/sync-runner.ts#L34)) iterates up to `config.max_iterations`:
+
+1. Calls `exchange.request(ctx)` to build the provider request and call upstream.
+2. Reconstructs the response via `reconstructResponseObject(...)` ([web-search/sync-runner.ts:43](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/sync-runner.ts#L43)).
+3. Checks for a managed `web_search` function call. If none, returns the response (prepended with any `hostedItems` from prior rounds). If present, executes the search, records a `web_search_call` item, and builds a continuation request for another round.
+
 ## Provider Exchange
 
-`ProviderExchange` ([provider-exchange.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L25)) encapsulates the interaction with the upstream provider. For sync requests:
+`ProviderExchange` ([provider-exchange.ts:39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L39)) encapsulates the interaction with the upstream provider. For sync requests:
 
-1. **Build request**: `buildProviderRequest(ctx, false)` constructs the provider-specific chat completion request, including tool planning and output contract setup ([provider-exchange.ts:73](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L73))
+1. **Build request**: `buildProviderRequest(ctx, false)` constructs the provider-specific chat completion request, including tool planning and output contract setup ([provider-exchange.ts:103](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L103))
 2. **Patch and trace request**: The provider edge applies `patchRequest`, then `onPatchedRequest` records the final patched provider request into `trace_requests` plus a body-less `provider.request.prepared` lifecycle event
 3. **Call upstream**: Awaits `ctx.provider.request(providerRequest)` -- the actual HTTP call after patching
 4. **Trace response**: Records the sync provider response body
 5. **Return**: Provides both the raw response and the built request metadata
 
-The exchange also records tool decision diagnostics ([provider-exchange.ts:102](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L102)) and sets the output contract slot on the context ([provider-exchange.ts:98](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L98)).
+The exchange also records tool decision diagnostics ([provider-exchange.ts:146](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L146)) and sets the output contract slot on the context ([provider-exchange.ts:131](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L131)).
 
 ## Response Reconstruction
 
-After the exchange returns, the pipeline calls `reconstructResponseObject` ([sync-request-pipeline.ts:34](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L34)) with:
+Inside the runner, `reconstructResponseObject` ([web-search/sync-runner.ts:43](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/sync-runner.ts#L43)) is called with:
 
 | Parameter | Source |
 |-----------|--------|
@@ -4289,7 +4479,7 @@ After reconstruction, `validateResponseOutputContract` checks that the output sa
 | Request snapshot | `input`, `instructions`, `model`, `tools`, `tool_choice`, `reasoning`, `text`, `truncation` |
 | Response snapshot | `id`, `output`, `output_text`, `usage`, `error`, `incomplete_details` |
 
-Session save errors are caught and logged at warn level, never failing the request ([sync-request-pipeline.ts:62](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L62)).
+Session save errors are caught and logged at warn level, never failing the request ([sync-request-pipeline.ts:53](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L53)).
 
 ## Runtime Wiring
 
@@ -4343,11 +4533,13 @@ Trace records capture the final patched request body in `trace_requests`, the bo
 - [Output Contracts](./output-contracts.md) -- validation logic used after reconstruction
 - [Stream Reconstruction](./stream-reconstruction.md) -- how streaming deltas are reconstructed (contrast with sync reconstruction)
 - [Tool Planning](./tool-planning.md) -- tool declarations consumed during request building
+- [Config Schema - Web Search](../07-configuration/config-schema.md#web-search) -- the `web_search` config block that governs the managed search loop
 
 ## References
 
-- [sync-request-pipeline.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L25) -- `SyncRequestPipeline` class
-- [provider-exchange.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L25) -- `ProviderExchange` class
+- [sync-request-pipeline.ts:28](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/sync-request-pipeline.ts#L28) -- `SyncRequestPipeline` class
+- [web-search/sync-runner.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/sync-runner.ts#L31) -- `HostedWebSearchSyncRunner` class
+- [provider-exchange.ts:39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L39) -- `ProviderExchange` class
 - [bridge.ts:7](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/bridge.ts#L7) -- `ResponsesBridge` interface
 - [runtime.ts:19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/runtime.ts#L19) -- `ResponsesBridgeRuntime` class
 - [response-session-persistence.ts:5](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-session-persistence.ts#L5) -- `saveResponseSession` function
@@ -4363,36 +4555,45 @@ The streaming pipeline is GodeX's most complex execution path. It connects to a 
 
 | Concern | Component | Key File |
 |---------|-----------|----------|
-| Pipeline orchestrator | `StreamPipeline` | [stream-pipeline.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L31) |
-| Event bridge | `ProviderStreamEventBridge` | [stream-pipeline.ts:88](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L88) |
-| Error handler | `wrapWithErrorHandler` | [stream-error-handler.ts:34](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-error-handler.ts#L34) |
+| Pipeline orchestrator | `StreamPipeline` | [stream-pipeline.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L25) |
+| Delta-to-event mapping + web search loop | `HostedWebSearchStreamRunner` | [web-search/stream-runner.ts:60](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L60) |
+| Error handler | `wrapWithErrorHandler` | [stream-error-handler.ts:36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-error-handler.ts#L36) |
 | Trace transformer | `TraceTransformer` | [trace-transformer.ts:8](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/trace-transformer.ts#L8) |
 | Log transformer | `ResponseLogTransformer` | [response-log-transformer.ts:13](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-log-transformer.ts#L13) |
 | Contract validation | `ResponseOutputContractValidationTransformer` | [response-output-contract-validation-transformer.ts:13](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-output-contract-validation-transformer.ts#L13) |
 | Session persistence | `ResponseSessionPersistenceTransformer` | [response-session-persistence-transformer.ts:19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-session-persistence-transformer.ts#L19) |
-| SSE encoder | `ResponseSseEncoder` | [response-sse-encoder.ts:7](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-sse-encoder.ts#L7) |
+| SSE encoder | `ResponseSseEncoder` | [response-sse-encoder.ts:4](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-sse-encoder.ts#L4) |
 | Pipe utility | `pipeTransform` | [stream-utils.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/stream-utils.ts#L6) |
 
-## Transform Chain
+## Two Stages: Event Production, Then the Transform Chain
 
-`StreamPipeline.stream` ([stream-pipeline.ts:37](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L37)) constructs a linear chain of `TransformStream` stages connected via `pipeTransform` ([stream-utils.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/stream-utils.ts#L6)):
+The streaming path is split into two stages. The first stage **produces** `ResponseStreamEvent`s from provider deltas; the second stage **processes** those events through a transform chain. This split exists because the first stage must also run the web-search continuation loop, which can issue multiple upstream exchanges before the stream terminates.
+
+`StreamPipeline.stream` ([stream-pipeline.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L31)) drives both stages:
+
+1. It asks `HostedWebSearchStreamRunner` to produce an event stream plus the state machine.
+2. It feeds that event stream into the transform chain via `pipeTransform` ([stream-utils.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/stream-utils.ts#L6)).
 
 ```mermaid
 flowchart LR
-    subgraph "Transform Chain"
-        direction LR
+    subgraph "Stage 1 — Event Production"
+        direction TB
         A["Provider SSE<br>ReadableStream"] --> B["TraceTransformer<br>(raw events)"]
-        B --> C["ProviderStreamEventBridge<br>(delta-to-event mapping)"]
-        C --> D["wrapWithErrorHandler<br>(error recovery)"]
-        D --> E["ResponseOutputContract<br>ValidationTransformer"]
+        B --> C["HostedWebSearchStreamRunner<br>mapProviderDeltasToEvents<br>+ web search loop"]
+    end
+
+    subgraph "Stage 2 — Transform Chain"
+        direction TB
+        D["wrapWithErrorHandler<br>(error recovery)"] --> E["ResponseOutputContract<br>ValidationTransformer"]
         E --> F["TraceTransformer<br>(transformed events)"]
         F --> G["ResponseLogTransformer"]
         G --> H{"store = false?"}
         H -->|yes| I["CompatibilityLogTransformer"]
         H -->|no| J["ResponseSessionPersistence<br>Transformer"]
         J --> I
-        I --> K["Output<br>ReadableStream"]
     end
+
+    C --> D
 
     style A fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
     style B fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
@@ -4404,55 +4605,66 @@ flowchart LR
     style H fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
     style I fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
     style J fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style K fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
 | Stage | Class | Purpose |
 |-------|-------|---------|
-| 1 | `TraceTransformer("upstream.stream.event.raw")` | Record raw provider SSE events for tracing |
-| 2 | `ProviderStreamEventBridge` | Map provider deltas to `ResponseStreamEvent` via state machine |
-| 3 | `wrapWithErrorHandler` | Convert upstream errors to `response.failed` events |
-| 4 | `ResponseOutputContractValidationTransformer` | Validate JSON output contracts on terminal events |
-| 5 | `TraceTransformer("upstream.stream.event.transformed")` | Record transformed events for tracing |
-| 6 | `ResponseLogTransformer` | Log stream completion with usage metrics |
-| 7 | `ResponseSessionPersistenceTransformer` | Persist response session (if `store !== false`) |
-| 8 | `CompatibilityLogTransformer` | Log compatibility diagnostics at stream end |
+| 1 | `HostedWebSearchStreamRunner` | Map provider deltas to events; run the web search continuation loop (up to `max_iterations`) |
+| 2 | `wrapWithErrorHandler` | Convert upstream errors to `response.failed` events |
+| 3 | `ResponseOutputContractValidationTransformer` | Validate JSON output contracts on terminal events |
+| 4 | `TraceTransformer("upstream.stream.event.transformed")` | Record transformed events for tracing |
+| 5 | `ResponseLogTransformer` | Log stream completion with usage metrics |
+| 6 | `ResponseSessionPersistenceTransformer` | Persist response session (if `store !== false`) |
+| 7 | `CompatibilityLogTransformer` | Log compatibility diagnostics at stream end |
 
-## Provider Stream Event Bridge
+## Event Production: HostedWebSearchStreamRunner
 
-`ProviderStreamEventBridge` ([stream-pipeline.ts:88](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L88)) is the core transformer that converts raw provider SSE events into structured response events. It:
+`HostedWebSearchStreamRunner` ([web-search/stream-runner.ts:60](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L60)) is the component that turns raw provider SSE into a `ReadableStream<ResponseStreamEvent>`. Its `stream(ctx)` method creates a `ResponseStreamStateMachine`, opens the upstream exchange, records upstream latency via `ctx.attributes.set(ATTR_UPSTREAM_LATENCY_MILLIS, ...)` ([web-search/stream-runner.ts:74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L74)), and then returns a `ReadableStream` whose `start` callback runs the loop.
 
-1. Creates a `ResponseStreamStateMachine` with the request's tool identity map
-2. On each SSE event, extracts deltas using `ctx.provider.spec.stream.deltas(event.data)` and feeds them to `mapProviderDeltasToEvents` with `deferTerminal: true`
-3. On stream end (`flush`), emits the deferred terminal event by calling `machine.finish(machine.deferredFinishReason)`
+The loop ([web-search/stream-runner.ts:91](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L91)) iterates up to `config.max_iterations` (default `2`, see [Web Search config](../07-configuration/config-schema.md#web-search)):
+
+1. Calls `consumeProviderStream`, which reads each SSE event, runs `provider.spec.stream.deltas(data)`, feeds the deltas to `mapProviderDeltasToEvents` with `deferTerminal: true`, and enqueues the resulting events.
+2. If the provider emitted a managed `web_search` function call, it is **suppressed** from the output, the deferred finish is cleared, and the loop continues.
+3. The runner emits the `web_search_call` lifecycle (`in_progress` → `searching` → `completed`/`failed`), executes the search through GodeX's own `SearchService`, and builds a **continuation request** that feeds the results back to the provider for another exchange.
+4. When no managed search call remains, the loop ends and `consumeProviderStream` finalizes the stream by calling `machine.finish(machine.deferredFinishReason)`.
+
+The `consumeProviderStream` function ([web-search/stream-runner.ts:182](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L182)) wraps the provider stream in a `TraceTransformer("upstream.stream.event.raw")` so raw provider events are recorded before mapping.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant SSE as Provider SSE
-    participant B as ProviderStreamEventBridge
+    participant R as HostedWebSearchStreamRunner
+    participant C as consumeProviderStream
     participant M as ResponseStreamStateMachine
     participant D as mapProviderDeltasToEvents
 
-    SSE->>B: JsonServerSentEvent(data)
-    B->>B: provider.spec.stream.deltas(data)
-    B->>D: mapProviderDeltasToEvents(machine, deltas, deferTerminal=true)
+    SSE->>C: JsonServerSentEvent(data)
+    C->>C: provider.spec.stream.deltas(data)
+    C->>D: mapProviderDeltasToEvents(machine, deltas, deferTerminal=true)
     D->>M: start() / text() / toolCall() / deferFinish()
-    D-->>B: ResponseStreamEvent[]
-    B-->>SSE: enqueue events
+    D-->>C: ResponseStreamEvent[]
 
-    Note over SSE,B: Stream ends
-    SSE->>B: flush()
-    B->>M: finish(deferredFinishReason)
-    M-->>B: terminal events
-    B-->>SSE: enqueue terminal events
+    alt managed web_search call
+        C->>C: suppress call, clear deferred finish
+        C-->>R: ManagedStreamCall
+        R->>R: emit web_search_call lifecycle
+        R->>R: execute search, build continuation
+        R->>SSE: next exchange
+    else no managed call
+        Note over SSE,C: Stream ends
+        C->>M: finish(deferredFinishReason)
+        M-->>C: terminal events
+        C-->>R: null
+    end
+    R-->>SSE: enqueue events
 ```
 
 The `deferTerminal: true` flag is critical: it prevents the state machine from transitioning to a terminal phase immediately, giving downstream transformers (especially the output contract validator) a chance to inspect and potentially rewrite the terminal event.
 
 ## Error Handler
 
-`wrapWithErrorHandler` ([stream-error-handler.ts:34](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-error-handler.ts#L34)) wraps the event stream in a `ReadableStream` that catches read errors. When an error occurs:
+`wrapWithErrorHandler` ([stream-error-handler.ts:36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-error-handler.ts#L36)) wraps the event stream in a `ReadableStream` that catches read errors. When an error occurs:
 
 1. Records the error via `recordTraceError`
 2. If the state machine is still in `IDLE` or `IN_PROGRESS`, emits `machine.start()` (if needed) followed by `machine.fail(error)`
@@ -4488,7 +4700,7 @@ flowchart TD
 
 ### TraceTransformer
 
-`TraceTransformer<T>` ([trace-transformer.ts:8](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/trace-transformer.ts#L8)) is a generic pass-through transformer that records each chunk as a trace event when tracing is enabled (`ctx.app.traceEnabled`). It tracks a sequence number for ordered trace playback.
+`TraceTransformer<T>` ([trace-transformer.ts:8](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/trace-transformer.ts#L8)) is a generic pass-through transformer that records each chunk as a trace event when tracing is enabled (`ctx.app.traceEnabled`). It tracks a sequence number for ordered trace playback. Two instances run in the path: one (`"upstream.stream.event.raw"`) inside the runner over raw provider events, and one (`"upstream.stream.event.transformed"`) in the chain over transformed events.
 
 ### ResponseLogTransformer
 
@@ -4500,38 +4712,41 @@ This transformer ([response-output-contract-validation-transformer.ts:13](https:
 
 ### ResponseSessionPersistenceTransformer
 
-`ResponseSessionPersistenceTransformer` ([response-session-persistence-transformer.ts:19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-session-persistence-transformer.ts#L19)) persists the response session when it encounters a terminal event. It uses a `persistenceAttempted` flag to ensure only one save attempt occurs. This stage is skipped entirely when `ctx.request.store === false` ([stream-pipeline.ts:74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L74)).
+`ResponseSessionPersistenceTransformer` ([response-session-persistence-transformer.ts:19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-session-persistence-transformer.ts#L19)) persists the response session when it encounters a terminal event. It uses a `persistenceAttempted` flag to ensure only one save attempt occurs. This stage is skipped entirely when `ctx.request.store === false` ([stream-pipeline.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L54)).
 
 ### CompatibilityLogTransformer
 
-`CompatibilityLogTransformer` ([compatibility-log-transformer.ts:7](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/compatibility-log-transformer.ts#L7)) is the final transformer. It logs all accumulated compatibility diagnostics when the terminal event arrives or on flush, ensuring diagnostics are always emitted even if the stream closes abnormally.
+`CompatibilityLogTransformer` ([compatibility-log-transformer.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/compatibility-log-transformer.ts#L6)) is the final transformer. It logs all accumulated compatibility diagnostics when the terminal event arrives or on flush, ensuring diagnostics are always emitted even if the stream closes abnormally.
 
 ## Upstream Latency Tracking
 
-The pipeline records upstream latency (time to connect to the provider stream) in `upstreamLatencyMillis` via `ctx.attributes.set(ATTR_UPSTREAM_LATENCY_MILLIS, ...)` at [stream-pipeline.ts:42](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L42). This value is later included in the `ResponseLogTransformer` completion log.
+The pipeline records upstream latency (time to connect to the provider stream) in `upstreamLatencyMillis` via `ctx.attributes.set(ATTR_UPSTREAM_LATENCY_MILLIS, ...)` at [web-search/stream-runner.ts:74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L74). This value is later included in the `ResponseLogTransformer` completion log.
 
 ## SSE Encoding
 
-After the transform chain, `ResponseSseEncoder` ([response-sse-encoder.ts:7](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-sse-encoder.ts#L7)) converts each `ResponseStreamEvent` into an SSE frame (`event: type\ndata: JSON\n\n`) with auto-incrementing sequence numbers.
+After the transform chain, `ResponseSseEncoder` ([response-sse-encoder.ts:4](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-sse-encoder.ts#L4)) converts each `ResponseStreamEvent` into an SSE frame (`event: type\ndata: JSON\n\n`) with auto-incrementing sequence numbers.
 
 ## Cross-References
 
-- [Stream Reconstruction](./stream-reconstruction.md) -- the state machine and delta-to-event mapping used inside `ProviderStreamEventBridge`
+- [Stream Reconstruction](./stream-reconstruction.md) -- the state machine and delta-to-event mapping used inside `HostedWebSearchStreamRunner`
 - [Sync Pipeline](./sync-pipeline.md) -- the simpler non-streaming counterpart
 - [Output Contracts](./output-contracts.md) -- validation logic used in the transform chain
-- [Tool Planning](./tool-planning.md) -- produces `ToolIdentityMap` used by the event bridge
+- [Tool Planning](./tool-planning.md) -- produces `ToolIdentityMap` used during event production
+- [Config Schema - Web Search](../07-configuration/config-schema.md#web-search) -- the `web_search` config block that governs the managed search loop
 
 ## References
 
-- [stream-pipeline.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L31) -- `StreamPipeline` class
-- [stream-pipeline.ts:88](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L88) -- `ProviderStreamEventBridge` class
-- [stream-error-handler.ts:34](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-error-handler.ts#L34) -- `wrapWithErrorHandler` function
+- [stream-pipeline.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L25) -- `StreamPipeline` class
+- [web-search/stream-runner.ts:60](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L60) -- `HostedWebSearchStreamRunner` class
+- [web-search/stream-runner.ts:182](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L182) -- `consumeProviderStream` function
+- [stream-error-handler.ts:36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-error-handler.ts#L36) -- `wrapWithErrorHandler` function
 - [trace-transformer.ts:8](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/trace-transformer.ts#L8) -- `TraceTransformer` class
 - [response-log-transformer.ts:13](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-log-transformer.ts#L13) -- `ResponseLogTransformer` class
 - [response-output-contract-validation-transformer.ts:13](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-output-contract-validation-transformer.ts#L13) -- Contract validation transformer
 - [response-session-persistence-transformer.ts:19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-session-persistence-transformer.ts#L19) -- Session persistence transformer
+- [compatibility-log-transformer.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/compatibility-log-transformer.ts#L6) -- `CompatibilityLogTransformer` class
 - [stream-utils.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/stream-utils.ts#L6) -- `pipeTransform` utility
-- [response-sse-encoder.ts:7](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-sse-encoder.ts#L7) -- `ResponseSseEncoder` class
+- [response-sse-encoder.ts:4](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-sse-encoder.ts#L4) -- `ResponseSseEncoder` class
 </doc>
 
 <doc title="Stream Transforms" path="02-architecture/stream-transforms.md">
@@ -4544,7 +4759,6 @@ When GodeX proxies a streaming response from an upstream LLM provider, the raw S
 | Transformer | Input Type | Output Type | Purpose |
 |---|---|---|---|
 | `TraceTransformer` | `T` | `T` | Records raw/transformed events to the trace subsystem |
-| `ProviderStreamEventBridge` | `JsonServerSentEvent` | `ResponseStreamEvent` | Maps provider deltas to OpenAI-compatible events |
 | `wrapWithErrorHandler` | `ResponseStreamEvent` | `ResponseStreamEvent` | Converts stream errors into `response.failed` events |
 | `ResponseOutputContractValidationTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Validates output contract on terminal events |
 | `ResponseLogTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Logs stream completion with timing and usage |
@@ -4552,18 +4766,25 @@ When GodeX proxies a streaming response from an upstream LLM provider, the raw S
 | `CompatibilityLogTransformer` | `ResponseStreamEvent` | `ResponseStreamEvent` | Logs compatibility diagnostics at stream end |
 | `ResponseSseEncoder` | `ResponseStreamEvent` | `Uint8Array` | Encodes events to SSE text lines |
 
+Delta-to-event mapping is **not** a transform stage — it happens inside `HostedWebSearchStreamRunner` (see [Streaming Pipeline](./streaming-pipeline.md)), which produces the `ResponseStreamEvent` stream the chain consumes.
+
 ## Transform Chain Order
 
-The `StreamPipeline.stream()` method in [src/responses/stream-pipeline.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts) assembles the full chain. Every stage is connected via the `pipeTransform` helper from [src/responses/stream-transforms/stream-utils.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/stream-utils.ts#L6), which wraps each transformer in a standard `TransformStream`.
+The `StreamPipeline.stream()` method in [src/responses/stream-pipeline.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L25) assembles the chain. Every stage is connected via the `pipeTransform` helper from [src/responses/stream-transforms/stream-utils.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/stream-utils.ts#L6), which wraps each transformer in a standard `TransformStream`. The event stream itself is produced by `HostedWebSearchStreamRunner` ([web-search/stream-runner.ts:60](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L60)).
 
 ```mermaid
 flowchart LR
-    subgraph Pipeline ["Stream Pipeline (StreamPipeline.stream)"]
-        style Pipeline fill:#161b22,stroke:#30363d,color:#e6edf3
+    subgraph Production ["Event Production (HostedWebSearchStreamRunner)"]
+        style Production fill:#161b22,stroke:#30363d,color:#e6edf3
 
         Upstream["Provider<br>Stream"]
         T1["TraceTransformer<br>(raw)"]
-        Bridge["EventBridge<br>(delta mapping)"]
+        Map["mapProviderDeltasToEvents<br>+ web search loop"]
+    end
+
+    subgraph Chain ["Transform Chain (StreamPipeline.stream)"]
+        style Chain fill:#161b22,stroke:#30363d,color:#e6edf3
+
         Err["ErrorHandler<br>(error wrapping)"]
         Valid["ContractValidation<br>(output check)"]
         T2["TraceTransformer<br>(transformed)"]
@@ -4573,8 +4794,8 @@ flowchart LR
     end
 
     Upstream -->|"JsonServerSentEvent"| T1
-    T1 -->|"passthrough"| Bridge
-    Bridge -->|"ResponseStreamEvent"| Err
+    T1 -->|"passthrough"| Map
+    Map -->|"ResponseStreamEvent"| Err
     Err -->|"passthrough"| Valid
     Valid -->|"passthrough (or failed)"| T2
     T2 -->|"passthrough"| Log
@@ -4582,7 +4803,7 @@ flowchart LR
     Sess -->|"passthrough"| Comp
 ```
 
-The pipeline is assembled at [src/responses/stream-pipeline.ts:37](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L37) and each `pipeTransform` call chains the previous `ReadableStream` into the next transformer.
+The chain is assembled at [src/responses/stream-pipeline.ts:31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L31) and each `pipeTransform` call chains the previous `ReadableStream` into the next transformer.
 
 ## The pipeTransform Helper
 
@@ -4601,7 +4822,7 @@ The module also exports `ATTR_UPSTREAM_LATENCY_MILLIS` ([stream-utils.ts:13](htt
 
 ## TraceTransformer
 
-The `TraceTransformer` is a passthrough transformer that records every stream event to the trace subsystem. It appears **twice** in the pipeline -- once before the event bridge (recording raw upstream events) and once after validation (recording transformed events).
+The `TraceTransformer` is a passthrough transformer that records every stream event to the trace subsystem. It appears **twice** in the path -- once inside `HostedWebSearchStreamRunner` (recording raw upstream events) and once in the transform chain after validation (recording transformed events).
 
 ```mermaid
 sequenceDiagram
@@ -4660,7 +4881,7 @@ flowchart TD
     CheckLogged -->|"Yes"| Skip["Skip (already logged)"]
 ```
 
-The `onFlush` fallback at [src/responses/stream-transforms/compatibility-log-transformer.ts:24](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/compatibility-log-transformer.ts#L24) ensures diagnostics are logged even if the stream closes without a terminal event. The severity of the log entry matches the worst diagnostic -- errors at `error` level, warnings at `warn` level, and informational diagnostics at `info` level.
+The `onFlush` fallback at [src/responses/stream-transforms/compatibility-log-transformer.ts:29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/compatibility-log-transformer.ts#L29) ensures diagnostics are logged even if the stream closes without a terminal event. The severity of the log entry matches the worst diagnostic -- errors at `error` level, warnings at `warn` level, and informational diagnostics at `info` level.
 
 ## ResponseOutputContractValidationTransformer
 
@@ -4684,7 +4905,7 @@ sequenceDiagram
     end
 ```
 
-Once a terminal event is rewritten, all subsequent events are silently dropped (`if (this.rewrittenTerminal) return` at [src/responses/stream-transforms/response-output-contract-validation-transformer.ts:22](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-output-contract-validation-transformer.ts#L22)). This prevents partial output from leaking to the client after a contract failure.
+Once a terminal event is rewritten, all subsequent events are silently dropped (`if (this.rewrittenTerminal) return` at [src/responses/stream-transforms/response-output-contract-validation-transformer.ts:27](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-transforms/response-output-contract-validation-transformer.ts#L27)). This prevents partial output from leaking to the client after a contract failure.
 
 ## ResponseSessionPersistenceTransformer
 
@@ -4803,7 +5024,7 @@ To add a new concern to the pipeline:
 ## Cross-References
 
 - [Stream Pipeline](./streaming-pipeline.md) -- how transforms assemble into the full streaming pipeline
-- [Architecture Overview](./overview.md) -- system-level context for where stream transforms fit
+- [Architecture Overview](./architecture-overview.md) -- system-level context for where stream transforms fit
 - [Error Handling](../06-error-handling/error-handling.md) -- the `wrapWithErrorHandler` stage and error propagation
 - [Session Management](../04-session-management/session-stores.md) -- how the persistence transformer saves sessions
 - [Testing](../08-testing/testing.md) -- co-located unit tests for each transformer
@@ -5986,6 +6207,31 @@ trace:
 | `flush_interval_ms` | `number` | `1000` | How often to flush traces to disk |
 | `batch_size` | `number` | `100` | Number of traces per flush batch |
 
+## Web Search Section
+
+Controls built-in web search. GodeX can either let the provider handle search natively, or run the search itself ("GodeX-managed") and feed the results back into a continuation request. Parsed in [src/config/sections/web-search.ts:10-73](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/web-search.ts#L10-L73).
+
+```yaml
+web_search:
+  enabled: true
+  mode: auto                 # auto | provider_native | godex_managed | disabled
+  provider: none             # none | mock | zhipu
+  on_unavailable: client_tool_call  # client_tool_call | fail | ignore
+  max_iterations: 2
+  timeout_ms: 10000
+```
+
+| Field | Default | Description |
+|---|---|---|
+| `enabled` | `true` | Master switch |
+| `mode` | `auto` | `auto` (prefer native, fall back to managed), `provider_native`, `godex_managed`, or `disabled` |
+| `provider` | `none` | Search backend for `godex_managed` mode (`none` / `mock` / `zhipu`) |
+| `on_unavailable` | `client_tool_call` | Fallback when managed search is configured but unavailable |
+| `max_iterations` | `2` | Max managed search rounds per request |
+| `timeout_ms` | `10000` | Per-search timeout (ms) |
+
+With the shipped defaults, providers that support native web search (Zhipu, Xiaomi) use it directly; others forward `web_search` calls to the client. To enable GodeX-managed search for any provider, set `provider: zhipu` and provide `ZHIPU_API_KEY`. See the [Config Schema - Web Search](../07-configuration/config-schema.md#web-search) for full field semantics.
+
 ## Full Config Builder Flow
 
 The `buildConfig` function in [src/config/builder.ts:17-39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/builder.ts#L17-L39) ties everything together.
@@ -6161,7 +6407,7 @@ GodeX ships with four built-in providers that cover the most popular non-OpenAI 
 |---|---|---|---|---|
 | **Spec Name** | `deepseek` | `zhipu` | `minimax` | `xiaomi` |
 | **Default Base URL** | `api.deepseek.com` | `open.bigmodel.cn` (coding plan) | `api.minimaxi.com/v1` | `api.xiaomimimo.com/v1` |
-| **Default Model** | `deepseek-v4-pro` | `glm-5.1` | `MiniMax-M3` | `mimo-v2.5-pro` |
+| **Default Model** | `deepseek-v4-pro` | `glm-5.2` | `MiniMax-M3` | `mimo-v2.5-pro` |
 | **Reasoning Effort** | `native` | `boolean` | `boolean` | `boolean` |
 | **GodeX Input** | text | text | text, image, video | text |
 | **Max Tools** | 128 | 128 | 128 | 128 |
@@ -6244,7 +6490,7 @@ flowchart TB
     style XM_Proto fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
-All providers are registered at startup via `createBuiltinRegistrar` ([src/providers/builtin.ts:49-55](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L49-L55)), which creates a `Registrar` and registers each `ProviderDefinition`.
+All providers are registered at startup via `createBuiltinRegistrar` ([src/providers/builtin.ts:61-67](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L61-L67)), which creates a `Registrar` and registers each `ProviderDefinition`.
 
 ## Tool Capabilities Comparison
 
@@ -6257,12 +6503,11 @@ Each provider declares which tool types it supports and which ones must be **deg
 | `shell` | Degraded to `function` | Degraded to `function` | Degraded to `function` | Degraded to `function` |
 | `apply_patch` | Degraded to `function` | Degraded to `function` | Degraded to `function` | Degraded to `function` |
 | `custom` | Degraded to `function` | Degraded to `function` | Degraded to `function` | Degraded to `function` |
-| `tool_search` | Degraded to `function` | Degraded to `function` | Degraded to `function` | Degraded to `function` |
 | `namespace` | Degraded to `function` | Degraded to `function` | Degraded to `function` | Degraded to `function` |
-| `web_search` | - | Supported | - | - |
-| `web_search_preview` | - | Degraded to `web_search` | - | - |
+| `web_search` | - | Supported | - | Supported |
+| `web_search_2025_08_26` | - | Degraded to `web_search` | - | Degraded to `web_search` |
+| `web_search_preview` | - | Degraded to `web_search` | - | Degraded to `web_search` |
 | `file_search` | - | Degraded to `retrieval` | - | - |
-| `mcp` | - | Supported | - | - |
 
 ## Reasoning Support
 
@@ -6275,7 +6520,7 @@ Each provider handles reasoning (chain-of-thought) differently. The compatibilit
 | MiniMax | `boolean` | Maps `reasoning.effort: "none"` to `thinking: {type: "disabled"}` and other effort values to MiniMax adaptive thinking. Reads reasoning output from `reasoning_content`. |
 | Xiaomi | `boolean` | Bridge maps effort to `thinking: {type: "enabled"/"disabled"}`. Forces `thinking: enabled` when historical `reasoning_content` exists in messages. Defaults to `thinking: disabled` when no reasoning was requested. |
 
-DeepSeek's `deepSeekPatchRequest` handles this mapping in [src/providers/deepseek/hooks.ts:113-136](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L113-L136), Zhipu's in [src/providers/zhipu/hooks.ts:113-134](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L113-L134), and Xiaomi's in [src/providers/xiaomi/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts).
+DeepSeek's `deepSeekPatchRequest` handles this mapping in [src/providers/deepseek/hooks.ts:121-144](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L121-L144), Zhipu's in [src/providers/zhipu/hooks.ts:151-173](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L151-L173), and Xiaomi's in [src/providers/xiaomi/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts).
 
 ## Tool Choice Support
 
@@ -6288,7 +6533,7 @@ DeepSeek's `deepSeekPatchRequest` handles this mapping in [src/providers/deepsee
 
 ## Provider Definition Registration
 
-Each provider is wrapped in a `ProviderDefinition` that pairs the provider name with a factory function. The definitions are collected in `BUILTIN_PROVIDER_DEFINITIONS` and registered at startup ([src/providers/builtin.ts:22-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L22-L41)).
+Each provider is wrapped in a `ProviderDefinition` that pairs the provider name with a factory function. The definitions are collected in `BUILTIN_PROVIDER_DEFINITIONS` and registered at startup ([src/providers/builtin.ts:27-45](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L27-L45)).
 
 ```mermaid
 sequenceDiagram
@@ -6337,7 +6582,7 @@ The Zhipu spec defaults to the coding plan endpoint at `https://open.bigmodel.cn
 | Name | `zhipu` |
 | Protocol | `chat_completions` |
 | Default Base URL | `https://open.bigmodel.cn/api/coding/paas/v4` |
-| Default Model | `glm-5.1` |
+| Default Model | `glm-5.2` |
 | Auth | Bearer |
 | Reasoning | Boolean (thinking enabled/disabled) |
 
@@ -6383,7 +6628,7 @@ The Xiaomi spec targets the MiMo API at `https://api.xiaomimimo.com/v1` ([src/pr
 - [src/providers/deepseek/spec.ts:1-57](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/spec.ts#L1-57) - DeepSeek spec definition
 - [src/providers/deepseek/hooks.ts:18-57](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L18-57) - DeepSeek capabilities and hooks
 - [src/providers/zhipu/spec.ts:1-59](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/spec.ts#L1-59) - Zhipu spec definition
-- [src/providers/zhipu/hooks.ts:16-69](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L16-69) - Zhipu capabilities and hooks
+- [src/providers/zhipu/hooks.ts:25-75](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L25-L75) - Zhipu capabilities and hooks
 - [src/providers/minimax/spec.ts:1-58](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/spec.ts#L1-L58) - MiniMax spec definition
 - [src/providers/minimax/hooks.ts:24-62](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/hooks.ts#L24-L62) - MiniMax capabilities and hooks
 - [src/providers/xiaomi/spec.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/spec.ts) - Xiaomi spec definition
@@ -6502,7 +6747,7 @@ The wizard offers four built-in providers defined in
 | Provider | Label | Default Model | API Key Placeholder |
 |---|---|---|---|
 | `deepseek` | DeepSeek | `deepseek-v4-pro` | `${DEEPSEEK_API_KEY}` |
-| `zhipu` | Zhipu (智谱) | `glm-5.1` | `${ZHIPU_API_KEY}` |
+| `zhipu` | Zhipu (智谱) | `glm-5.2` | `${ZHIPU_API_KEY}` |
 | `minimax` | MiniMax | `MiniMax-M3` | `${MINIMAX_API_KEY}` |
 | `xiaomi` | Xiaomi (小米) | `mimo-v2.5-pro` | `${MIMO_API_KEY}` |
 
@@ -6714,7 +6959,7 @@ classDiagram
 
 ### Response Accessor
 
-The `ChatCompletionResponseAccessor<TResponse>` tells the bridge how to extract standardised data from an upstream response ([contract.ts:32-37](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L32)):
+The `ChatCompletionResponseAccessor<TResponse>` tells the bridge how to extract standardised data from an upstream response ([contract.ts:35-40](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L35)):
 
 | Method | Returns |
 |---|---|
@@ -6725,7 +6970,7 @@ The `ChatCompletionResponseAccessor<TResponse>` tells the bridge how to extract 
 
 ### Stream Accessor
 
-`ChatCompletionStreamAccessor<TChunk>` has a single method `deltas(chunk)` that returns an array of `ProviderSpecStreamDelta` -- the bridge-internal streaming delta representation ([contract.ts:39-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L39)).
+`ChatCompletionStreamAccessor<TChunk>` has a single method `deltas(chunk)` that returns an array of `ProviderSpecStreamDelta` -- the bridge-internal streaming delta representation ([contract.ts:44-46](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L44)).
 
 ## ProviderEdge and the Factory
 
@@ -6762,7 +7007,7 @@ sequenceDiagram
 
 ## ProviderRuntimeConfig
 
-`ProviderRuntimeConfig` ([contract.ts:10-15](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L10)) is the shape each provider receives from the GodeX configuration layer:
+`ProviderRuntimeConfig` ([contract.ts:13-18](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L13)) is the shape each provider receives from the GodeX configuration layer:
 
 | Field | Type | Description |
 |---|---|---|
@@ -6801,11 +7046,11 @@ flowchart LR
     style PM fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
-Built-in definitions are declared in [builtin.ts:22-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L22) and registered automatically via `createBuiltinRegistrar()` ([builtin.ts:49-55](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L49)).
+Built-in definitions are declared in [builtin.ts:27-45](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L27) and registered automatically via `createBuiltinRegistrar()` ([builtin.ts:61-67](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L61)).
 
 ## Package Validation
 
-The `validateProviderPackageShape` function ([validation.ts:13-51](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/validation.ts#L13)) enforces that every provider directory contains the required files (`spec.ts`, `client.ts`, `index.ts`) and nothing outside the allow-list (`hooks.ts`, tests, `protocol/` DTOs). This keeps provider packages consistent.
+The `validateProviderPackageShape` function ([validation.ts:10-51](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/validation.ts#L10)) enforces that every provider directory contains the required files (`spec.ts`, `client.ts`, `index.ts`) and nothing outside the allow-list (`hooks.ts`, tests, `protocol/` DTOs). This keeps provider packages consistent.
 
 ```mermaid
 flowchart TD
@@ -6853,6 +7098,7 @@ The example provider at [src/providers/example/spec.ts](https://github.com/Ahoo-
 - [src/providers/builtin.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts) -- built-in definitions and `createBuiltinRegistrar`
 - [src/providers/example/spec.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/example/spec.ts) -- example provider spec with inline DTOs
 - [src/providers/registrar.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/registrar.ts) -- `Registrar` that resolves providers by name
+
 </doc>
 
 <doc title="Provider Hooks" path="03-provider-development/provider-hooks.md">
@@ -6860,7 +7106,7 @@ The example provider at [src/providers/example/spec.ts](https://github.com/Ahoo-
 
 GodeX's bridge runtime speaks one internal protocol, but every upstream provider has quirks -- DeepSeek uses a native `reasoning_effort` parameter and `thinking` object, Zhipu supports `web_search` and `file_search` tool types, MiniMax maps boolean thinking to adaptive/disabled mode and remaps `max_tokens` to `max_completion_tokens`, and Xiaomi uses a boolean thinking switch. `ProviderHooks` is the extension point where each provider injects its own normalisation logic. By keeping hooks optional and co-located with the provider spec, GodeX avoids a monolithic adapter layer and lets each provider own its transformations.
 
-The hooks interface defines three optional methods ([contract.ts:43-52](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L43)): `patchRequest`, `normalizeResponse`, and `normalizeChunk`. These are invoked inside `createProviderEdge` at the boundary between the bridge runtime and the upstream HTTP call.
+The hooks interface defines three optional methods ([contract.ts:48-57](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/provider-spec/contract.ts#L48)): `patchRequest`, `normalizeResponse`, and `normalizeChunk`. These are invoked inside `createProviderEdge` at the boundary between the bridge runtime and the upstream HTTP call.
 
 ## At a Glance
 
@@ -6905,7 +7151,7 @@ sequenceDiagram
 
 ## DeepSeek Hooks
 
-The DeepSeek provider hooks in [hooks.ts:113-136](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L113) handle reasoning effort mapping and thinking mode activation:
+The DeepSeek provider hooks in [hooks.ts:121-144](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L121) handle reasoning effort mapping and thinking mode activation:
 
 | Scenario | Patch Behaviour |
 |---|---|
@@ -6913,7 +7159,7 @@ The DeepSeek provider hooks in [hooks.ts:113-136](https://github.com/Ahoo-Wang/G
 | Messages contain historical `reasoning_content` | Sets `thinking: { type: "enabled" }` to maintain continuity |
 | Default (no reasoning) | Sets `thinking: { type: "disabled" }` explicitly |
 
-The `deepSeekStreamDeltas` function ([hooks.ts:149-164](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L149)) maps each SSE chunk into an array of `ProviderStreamDelta` by extracting usage data, content text, tool calls, reasoning content, and finish reasons.
+The `deepSeekStreamDeltas` function ([hooks.ts:157-172](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L157)) maps each SSE chunk into an array of `ProviderStreamDelta` by extracting usage data, content text, tool calls, reasoning content, and finish reasons.
 
 ```mermaid
 flowchart TD
@@ -6937,7 +7183,7 @@ flowchart TD
 
 ## Zhipu Hooks
 
-Zhipu's `zhipuPatchRequest` ([hooks.ts:113-134](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L113)) follows a similar pattern but with Zhipu-specific differences:
+Zhipu's `zhipuPatchRequest` ([hooks.ts:151-173](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L151)) follows a similar pattern but with Zhipu-specific differences:
 
 | Scenario | Patch Behaviour |
 |---|---|
@@ -6945,15 +7191,16 @@ Zhipu's `zhipuPatchRequest` ([hooks.ts:113-134](https://github.com/Ahoo-Wang/God
 | Messages contain historical `reasoning_content` | Injects `thinking: { type: "enabled", clear_thinking: false }` |
 | Default | Strips `reasoning_effort` and passes through unchanged |
 
-Zhipu also supports a wider set of tool types ([hooks.ts:16-30](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L16)) including `web_search`, `file_search`, `mcp`, and `shell`, with a degradation map that converts provider-specific tool types into standard Chat Completions equivalents:
+Zhipu also supports a wider set of tool types ([hooks.ts:25-39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L25)) including `web_search` (with versioned variants), `file_search`, and `shell`, with a degradation map that converts provider-specific tool types into standard Chat Completions equivalents:
 
 | Upstream Type | Degraded To |
 |---|---|
 | `web_search_2025_08_26` | `web_search` |
 | `web_search_preview` | `web_search` |
+| `web_search_preview_2025_03_11` | `web_search` |
 | `file_search` | `retrieval` |
 | `local_shell` / `shell` | `function` |
-| `custom` / `tool_search` / `namespace` | `function` |
+| `custom` / `namespace` | `function` |
 
 ## MiniMax Hooks
 
@@ -6987,7 +7234,7 @@ flowchart LR
 
 ## Xiaomi Hooks
 
-Xiaomi's `xiaomiPatchRequest` ([hooks.ts:115-143](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts#L115-L143)) follows the MiMo thinking model:
+Xiaomi's `xiaomiPatchRequest` ([hooks.ts:148-173](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts#L148-L173)) follows the MiMo thinking model:
 
 | Scenario | Patch Behaviour |
 |---|---|
@@ -7009,18 +7256,18 @@ All four built-in providers delegate tool-call and reasoning-content extraction 
 | `tool_calls[i].index` | Copied to `toolCall.index` |
 | `tool_calls[i].type` | Copied to `toolCall.type` |
 
-Each provider's stream delta function calls `mapCommonChatStreamDelta` after extracting provider-specific content deltas. For example, DeepSeek's `mapDeepSeekChoiceDelta` ([hooks.ts:166-175](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L166)) pushes a `{ text }` delta for `delta.content`, then spreads the common deltas on top.
+Each provider's stream delta function calls `mapCommonChatStreamDelta` after extracting provider-specific content deltas. For example, DeepSeek's `mapDeepSeekChoiceDelta` ([hooks.ts:174-183](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L174)) pushes a `{ text }` delta for `delta.content`, then spreads the common deltas on top.
 
 ## Custom Tool Degradation
 
 [custom-tool-degradation.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/custom-tool-degradation.ts) provides helpers to convert Responses API custom tools into Chat Completions function tools when a provider does not support them natively:
 
-- `degradedCustomToolDescription` ([custom-tool-degradation.ts:14-20](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/custom-tool-degradation.ts#L14)) appends a note that the tool has been degraded and describes the input format.
-- `degradedCustomToolParameters` ([custom-tool-degradation.ts:24-38](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/custom-tool-degradation.ts#L24)) generates a schema with a single required `input` string parameter.
+- `degradedCustomToolDescription` ([custom-tool-degradation.ts:11-20](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/custom-tool-degradation.ts#L11)) appends a note that the tool has been degraded and describes the input format.
+- `degradedCustomToolParameters` ([custom-tool-degradation.ts:22-36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/custom-tool-degradation.ts#L22)) generates a schema with a single required `input` string parameter.
 
 ## Input Compatibility
 
-`warnUnsupportedCurrentInputContent` in [input-compatibility.ts:9-34](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/input-compatibility.ts#L9) emits diagnostics when a Responses request contains content types that Chat Completions cannot represent (anything other than `input_text` / `output_text`). This is called during bridging to give users visibility into silently ignored fields.
+`warnUnsupportedCurrentInputContent` in [input-compatibility.ts:6-31](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/input-compatibility.ts#L6) emits diagnostics when a Responses request contains content types that Chat Completions cannot represent (anything other than `input_text` / `output_text`). This is called during bridging to give users visibility into silently ignored fields.
 
 ## Request Guard
 
@@ -7036,7 +7283,7 @@ Each provider's stream delta function calls `mapCommonChatStreamDelta` after ext
 | Tool choice modes | auto, none, required, function | auto, none | auto, none, required, function | auto |
 | Response formats | text, json_object | text, json_object | text, json_object | text, json_object |
 | Streaming usage | Yes | Yes | Yes | Yes |
-| Web search tools | No | Yes | No | No |
+| Web search tools | No | Yes | No | Yes |
 
 ## Cross-references
 
@@ -7127,7 +7374,7 @@ Sends a streaming Chat Completions request ([chat-provider-client.ts:35-44](http
 
 ## ChatApi and the chatApi Factory
 
-`ChatApi` is a decorator-generated class ([chat-api.ts:23-40](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/chat-api.ts#L23)) with two methods:
+`ChatApi` is a decorator-generated class ([chat-api.ts:24-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/chat-api.ts#L24)) with two methods:
 
 | Method | Endpoint | Result Handling |
 |---|---|---|
@@ -7239,6 +7486,7 @@ Before sending, `assertProviderChatRequest` ([chat-request-guard.ts:5-27](https:
 - [src/providers/example/client.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/example/client.ts) -- example provider edge factory
 - [src/providers/example/spec.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/example/spec.ts) -- example provider spec
 - [src/error/codes.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts) -- provider error domain codes
+
 </doc>
 
 <doc title="Session Stores" path="04-session-management/session-stores.md">
@@ -7431,6 +7679,7 @@ flowchart TD
 - [src/session/snapshot-clone.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/session/snapshot-clone.ts) -- `cloneStoredResponseSession`
 - [src/context/session-store-factory.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/session-store-factory.ts) -- `createResponseSessionStore`
 - [src/error/session-error.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/session-error.ts) -- `SessionError`
+
 </doc>
 
 <doc title="Chain Resolution" path="04-session-management/chain-resolution.md">
@@ -7613,6 +7862,7 @@ flowchart TD
 - [src/session/types.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/session/types.ts) -- `ResponseSessionSnapshot`, `ResolveResponseSessionOptions`, `StoredResponseSession`
 - [src/error/session-error.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/session-error.ts) -- `SessionError` class
 - [src/error/codes.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts) -- `SESSION_CHAIN_NOT_FOUND`, `SESSION_CHAIN_CYCLE_DETECTED`, `SESSION_CHAIN_DEPTH_EXCEEDED`, `SESSION_CHAIN_UNAVAILABLE`
+
 </doc>
 
 <doc title="Trace System" path="10-trace/trace-system.md">
@@ -7630,7 +7880,7 @@ The trace system is attached to the `ResponsesContext` via `TraceRecordingContex
 | `AsyncTraceRecorder` | [recorder.ts:30-110](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/recorder.ts#L30) | Queue-based batching recorder |
 | `NoopTraceRecorder` | [recorder.ts:25-28](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/recorder.ts#L25) | Zero-op recorder when tracing is disabled |
 | `SQLiteTraceStore` | [sqlite.ts:69-297](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/sqlite.ts#L69) | SQLite storage with four tables |
-| `TraceRecordEvent` | [types.ts:70-74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts#L70) | Union of all record kinds |
+| `TraceRecordEvent` | [types.ts:72-76](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts#L72) | Union of all record kinds |
 | `mapTraceRecordToRow` | [row-mapper.ts:16-98](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/row-mapper.ts#L16) | Converts events to storage rows |
 | `summarizePayload` | [payload.ts:10-35](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/payload.ts#L10) | SHA-256 hash, byte count, optional JSON capture |
 | `TraceRecordingContext` | [context.ts:4-12](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/context.ts#L4) | Context attached to every request |
@@ -7829,7 +8079,7 @@ Batch inserts are wrapped in a transaction ([sqlite.ts:90-95](https://github.com
 
 ## Trace Record Types
 
-The `TraceRecordEvent` union ([types.ts:70-74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts#L70)) has four variants:
+The `TraceRecordEvent` union ([types.ts:72-76](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts#L72)) has four variants:
 
 | Kind | Interface | Key Fields |
 |---|---|---|
@@ -7842,7 +8092,7 @@ All variants share a `TraceRecordBase` ([types.ts:19-25](https://github.com/Ahoo
 
 ### Event Names
 
-The `TraceEventRecordEvent` restricts `event_name` ([types.ts:50-54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts#L50)) to:
+The `TraceEventRecordEvent` restricts `event_name` ([types.ts:50-56](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/types.ts#L50)) to:
 
 | Event Name | When Recorded |
 |---|---|
@@ -7850,6 +8100,8 @@ The `TraceEventRecordEvent` restricts `event_name` ([types.ts:50-54](https://git
 | `provider.response.body` | Sync response body received from upstream |
 | `upstream.stream.event.raw` | Raw SSE chunk from upstream |
 | `upstream.stream.event.transformed` | After bridge transforms are applied |
+| `web_search.request` | Managed web search request payload |
+| `web_search.response` | Managed web search response payload |
 
 Provider request payloads are stored on `trace_requests`, not duplicated in `trace_events`. Join the request row with `provider.request.prepared` to see both the final patched request summary and the lifecycle point that preceded the provider client call. The `prepared` event is recorded after provider `patchRequest` hooks run and before `request()` or `stream()` invokes the provider client's HTTP operation; it does not prove that the network send succeeded.
 
@@ -7863,7 +8115,7 @@ Provider request payloads are stored on `trace_requests`, not duplicated in `tra
 | Full capture | `true` | Full JSON string (up to `payloadMaxBytes`) | SHA-256 hex |
 | Truncated capture | `true` | Truncated JSON string | SHA-256 hex |
 
-The `payload_bytes` field always records the original byte length regardless of truncation ([payload.ts:23-24](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/payload.ts#L23)). The hash is computed with `Bun.CryptoHasher("sha256")` ([payload.ts:6-8](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/payload.ts#L6)).
+The `payload_bytes` field always records the original byte length regardless of truncation ([payload.ts:27](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/payload.ts#L27)). The hash is computed with `Bun.CryptoHasher("sha256")` ([payload.ts:6-8](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/payload.ts#L6)).
 
 ## Row Mapping
 
@@ -7892,7 +8144,7 @@ Four helper functions attach to the `TraceRecordingContext` and provide ergonomi
 
 ### recordTraceEvent
 
-[event-recorder.ts:5-25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/event-recorder.ts#L5) records a named event with an optional payload and sequence number for ordering within a stream.
+[event-recorder.ts:7-25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/trace/event-recorder.ts#L7) records a named event with an optional payload and sequence number for ordering within a stream.
 
 ### recordTraceError
 
@@ -8051,7 +8303,7 @@ Raised during request parsing and configuration validation.
 | `server.request.invalid_parameter` | 400 | Parameter fails validation |
 | `server.provider.not_registered` | 400 | Referenced provider has no registration |
 
-[source: src/error/codes.ts:46-51](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L46)
+[source: src/error/codes.ts:46-52](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L46)
 
 ### Bridge Domain
 
@@ -8082,7 +8334,7 @@ status carries a specific meaning.
 | `provider.upstream.server_error` | >= 500 | 502 |
 | `provider.upstream.error` | other | 422 |
 
-[source: src/error/codes.ts:33-36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L33),
+[source: src/error/codes.ts:33-37](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L33),
 [source: src/server/errors.ts:20-44](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/errors.ts#L20)
 
 ### Session Domain
@@ -8097,7 +8349,7 @@ Raised when managing conversation chains.
 | `session.chain.unavailable` | 503 | Session store temporarily unavailable |
 | `session.store.conflict` | 409 | Concurrent write conflict |
 
-[source: src/error/codes.ts:39-43](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L39)
+[source: src/error/codes.ts:39-44](https://github.com/Ahoo-Wang/GodeX/blob/main/src/error/codes.ts#L39)
 
 ## Error Propagation Flow
 
@@ -8502,7 +8754,7 @@ The test command excludes E2E tests by default via path-ignore-patterns:
 "test": "bun test --path-ignore-patterns 'src/e2e/**'"
 ```
 
-This keeps the unit test suite fast and deterministic ([package.json:31](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L31)).
+This keeps the unit test suite fast and deterministic ([package.json:45](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L45)).
 
 ## Test Fixtures
 
@@ -8577,6 +8829,7 @@ The [GodeXClient](https://github.com/Ahoo-Wang/GodeX/blob/main/src/e2e/godex-cli
 | `health.get()` | `GET /health` | Health check |
 | `models.list()` | `GET /v1/models` | Model listing |
 | `responses.create(req)` | `POST /v1/responses` | Non-streaming response |
+| `responses.createRaw(req)` | `POST /v1/responses` | Raw `Promise<Response>` (no decoding) |
 | `responses.stream(req)` | `POST /v1/responses` | Streaming response (SSE) |
 
 The `collectGodexStreamEvents` helper ([src/e2e/godex-client.ts:114](https://github.com/Ahoo-Wang/GodeX/blob/main/src/e2e/godex-client.ts#L114)) reads an entire SSE stream into an array for assertion.
@@ -8735,12 +8988,12 @@ src/
 | `bun run check` | TypeCheck + Lint + Unit tests |
 | `bun run ci` | Full CI: TypeCheck + Lint + Unit + E2E |
 
-All scripts are defined in [package.json:36-53](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L36-L53).
+All scripts are defined in [package.json:35-56](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L35-L56).
 
 ## Cross-References
 
 - [Stream Pipeline](../02-architecture/streaming-pipeline.md) -- where unit-tested transformers assemble into the response pipeline
-- [Architecture Overview](../02-architecture/overview.md) -- how the tested modules relate to the system architecture
+- [Architecture Overview](../02-architecture/architecture-overview.md) -- how the tested modules relate to the system architecture
 - [Provider Development](../03-provider-development/provider-spec.md) -- how the compatibility test suite applies to new providers
 - [Session Management](../04-session-management/session-stores.md) -- session fixtures and multi-turn test scenarios
 - [Trace System](../10-trace/trace-system.md) -- trace-related unit tests and live tracing validation
@@ -8756,7 +9009,7 @@ All scripts are defined in [package.json:36-53](https://github.com/Ahoo-Wang/God
 7. [src/server/routes/responses/test-fixtures.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/routes/responses/test-fixtures.ts) -- Route handler fixtures
 8. [src/providers/shared/compatibility-test-suite.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/compatibility-test-suite.ts) -- Shared provider compatibility tests
 9. [src/testing/provider-edge.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/testing/provider-edge.ts) -- Mock provider edge factory
-10. [package.json](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json) -- Test scripts (lines 25-44)
+10. [package.json](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json) -- Test scripts (lines 45-55)
 </doc>
 
 <doc title="Deployment" path="09-deployment/deployment.md">
@@ -8997,3 +9250,249 @@ is a pre-push gate: `typecheck + lint + test`.
 - [src/config/env.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/env.ts) -- environment variable resolution
 - [src/cli/serve.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/cli/serve.ts) -- serve command and shutdown handlers
 </doc>
+
+<doc title="Config Schema" path="07-configuration/config-schema.md">
+# Config Schema
+
+GodeX is configured via a `godex.yaml` file, typically created by `godex init`. Environment variables are interpolated using `${VAR_NAME}` syntax.
+
+## Full Schema
+
+```yaml
+server:
+  port: 5678              # HTTP listen port
+  host: "0.0.0.0"         # Listen address
+  idle_timeout: 30000     # Idle connection timeout (ms)
+                         # Default: 0 (disabled)
+
+default_provider: deepseek   # Provider used when model has no slash prefix
+
+models:
+  aliases:
+    "gpt-5.5": deepseek/deepseek-v4-pro   # Maps alias to provider/model
+    "glm": zhipu/glm-5.1                   # Maps alias to provider/model
+    "*": deepseek/deepseek-v4-flash        # Catch-all fallback
+
+providers:
+  deepseek:
+    spec: deepseek                      # Provider spec name (required)
+    credentials:
+      api_key: ${DEEPSEEK_API_KEY}
+    endpoint:
+      base_url: https://api.deepseek.com
+    timeout_ms: 30000
+
+  zhipu:
+    spec: zhipu                         # Provider spec name (required)
+    credentials:
+      api_key: ${ZHIPU_API_KEY}
+    endpoint:
+      base_url: https://open.bigmodel.cn/api/coding/paas/v4
+    timeout_ms: 30000
+
+  minimax:
+    spec: minimax                        # Provider spec name (required)
+    credentials:
+      api_key: ${MINIMAX_API_KEY}
+    endpoint:
+      base_url: https://api.minimaxi.com/v1
+    timeout_ms: 30000
+
+session:
+  backend: sqlite         # "sqlite" or "memory"
+  sqlite:
+    path: ./data/sessions.db
+
+logging:
+  level: info             # trace | debug | info | warn | error
+  console:
+    enabled: true
+    level: info
+  file:
+    enabled: false
+    level: debug
+    dir: ./logs
+    filename: godex.log
+    max_size: 10485760    # 10MB
+    max_files: 5
+
+web_search:                      # Built-in web search (default: enabled, no provider)
+  enabled: true                  # Master switch
+  mode: auto                     # auto | provider_native | godex_managed | disabled
+  provider: none                 # none | mock | zhipu (search backend for godex_managed)
+  on_unavailable: client_tool_call  # client_tool_call | fail | ignore
+  max_iterations: 2              # Max managed search rounds per request
+  timeout_ms: 10000              # Per-search timeout
+
+trace:
+  enabled: true
+  path: ./data/trace.db
+  max_queue_size: 10000
+  flush_interval_ms: 1000
+  batch_size: 100
+  capture_payload: false
+  payload_max_bytes: 65536
+```
+
+## Type Definitions
+
+```mermaid
+classDiagram
+
+  class GodeXConfig {
+    +server: ServerConfig
+    +default_provider: string
+    +models: ModelsConfig
+    +providers: Record~string, ProviderConfig~
+    +session: SessionConfig
+    +logging: LoggingConfig
+    +web_search: WebSearchConfig
+    +trace: TraceConfig
+  }
+
+  class ServerConfig {
+    +port: number
+    +host: string
+    +idle_timeout: number
+  }
+
+  class ProviderConfig {
+    +spec: string
+    +credentials: CredentialsConfig
+    +endpoint: EndpointConfig
+    +timeout_ms: number
+  }
+
+  class CredentialsConfig {
+    +api_key: string
+  }
+
+  class EndpointConfig {
+    +base_url: string
+  }
+
+  class ModelsConfig {
+    +aliases: Record~string, string~
+  }
+
+  class SessionConfig {
+    +backend: string
+    +sqlite: SQLiteConfig
+  }
+
+  class LoggingConfig {
+    +level: LogLevel
+    +console: ConsoleLoggingConfig
+    +file: FileLoggingConfig
+  }
+
+  class TraceConfig {
+    +enabled: boolean
+    +path: string
+    +max_queue_size: number
+    +flush_interval_ms: number
+    +batch_size: number
+    +capture_payload: boolean
+    +payload_max_bytes: number
+  }
+
+  class WebSearchConfig {
+    +enabled: boolean
+    +mode: WebSearchMode
+    +provider: WebSearchProvider
+    +on_unavailable: WebSearchOnUnavailable
+    +max_iterations: number
+    +timeout_ms: number
+  }
+
+  GodeXConfig --> ServerConfig
+  GodeXConfig --> ModelsConfig
+  GodeXConfig --> ProviderConfig
+  GodeXConfig --> SessionConfig
+  GodeXConfig --> LoggingConfig
+  GodeXConfig --> WebSearchConfig
+  GodeXConfig --> TraceConfig
+  ProviderConfig --> CredentialsConfig
+  ProviderConfig --> EndpointConfig
+```
+
+## Provider Config
+
+Each provider entry must include a `spec` field that matches a registered provider definition name. Legacy provider config without `spec` is rejected at startup.
+
+```yaml
+providers:
+  myprovider:
+    spec: myprovider           # Required: matches registered definition
+    credentials:
+      api_key: ${MY_API_KEY}
+    endpoint:
+      base_url: https://api.example.com/v1
+    timeout_ms: 30000
+```
+
+## Web Search
+
+GodeX can run web search in two ways: let the provider handle it natively, or run the search itself ("GodeX-managed" / "hosted") and feed results back into a continuation request. The `web_search` block ([src/config/sections/web-search.ts:10](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/web-search.ts#L10)) controls this.
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `enabled` | `true` | Master switch. When `false`, no web search handling occurs. |
+| `mode` | `auto` | Execution strategy — see the table below. |
+| `provider` | `none` | The search backend GodeX uses in `godex_managed` mode. |
+| `on_unavailable` | `client_tool_call` | What to do when managed search is configured but unavailable. |
+| `max_iterations` | `2` | Maximum number of managed search rounds per request. |
+| `timeout_ms` | `10000` | Per-search timeout in milliseconds. |
+
+### `mode` — execution strategy
+
+| Mode | Behavior |
+|------|----------|
+| `auto` | Prefer the provider's native web search when the provider supports it; otherwise fall back to `godex_managed` if a search `provider` is configured. |
+| `provider_native` | Always delegate search to the upstream provider. The provider emits its own `web_search_call` events. |
+| `godex_managed` | GodeX intercepts the provider's `web_search` function call, runs the search itself via the configured `provider` backend, emits the `web_search_call` lifecycle (`in_progress` → `searching` → `completed` / `failed`), and submits a continuation request with the results. Up to `max_iterations` rounds. |
+| `disabled` | Web search is turned off entirely. |
+
+### `provider` — managed search backend
+
+| Provider | Description |
+|----------|-------------|
+| `none` | No backend. `godex_managed` mode is unavailable (the `on_unavailable` policy then applies). |
+| `mock` | Returns canned results; used for testing. |
+| `zhipu` | [Zhipu Web Search API](https://open.bigmodel.cn/dev/api/search-tool/websearch). Requires `ZHIPU_API_KEY`. |
+
+### `on_unavailable` — fallback policy
+
+Applies when `mode` resolves to `godex_managed` but no search backend is configured.
+
+| Policy | Behavior |
+|--------|----------|
+| `client_tool_call` | Forward the `web_search` call to the client as a normal function call (the client handles it). |
+| `fail` | Fail the request with a `BridgeError`. |
+| `ignore` | Silently drop the search call. |
+
+::: tip
+With the shipped defaults (`mode: auto`, `provider: none`), providers that support native web search (Zhipu, Xiaomi) use it directly, while other providers forward `web_search` calls to the client. To enable GodeX-managed search for any provider, set `provider: zhipu` and provide `ZHIPU_API_KEY`.
+:::
+
+The managed search loop is implemented by `HostedWebSearchStreamRunner` / `HostedWebSearchSyncRunner` in `src/responses/web-search/`. See [Streaming Pipeline](../02-architecture/streaming-pipeline.md) for how it integrates into the event production stage.
+
+## Environment Interpolation
+
+Values like `${DEEPSEEK_API_KEY}` are resolved at load time from environment variables. Missing variables produce a startup error.
+
+## Environment Variable Overrides
+
+BESIDES YAML interpolation, these environment variables directly override config fields at load time (CLI flags take precedence over both):
+
+| Variable | Config Field | Notes |
+|----------|-------------|-------|
+| `GODEX_PORT` | `server.port` | Overrides the listen port |
+| `GODEX_HOST` | `server.host` | Overrides the bind address |
+| `GODEX_LOG_LEVEL` | `logging.level` | Overrides the log level |
+| `GODEX_DEFAULT_PROVIDER` | `default_provider` | Falls back to `deepseek` if both are unset |
+
+[CLI Commands](/07-configuration/cli-commands)
+
+</doc>
+

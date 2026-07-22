@@ -73,7 +73,7 @@ Sends a streaming Chat Completions request ([chat-provider-client.ts:35-44](http
 
 ## ChatApi and the chatApi Factory
 
-`ChatApi` is a decorator-generated class ([chat-api.ts:23-40](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/chat-api.ts#L23)) with two methods:
+`ChatApi` is a decorator-generated class ([chat-api.ts:24-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/chat-api.ts#L24)) with two methods:
 
 | Method | Endpoint | Result Handling |
 |---|---|---|

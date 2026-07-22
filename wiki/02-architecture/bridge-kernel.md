@@ -87,4 +87,4 @@ The `ProviderEdge` interface is the bridge's contract with providers. Each provi
 
 Provider-specific differences belong in each provider's `spec.ts`, `hooks.ts`, protocol types, and HTTP client. The bridge kernel itself never contains provider-specific logic.
 
-[Stream Pipeline](/02-architecture/stream-pipeline)
+[Stream Pipeline](/02-architecture/streaming-pipeline)

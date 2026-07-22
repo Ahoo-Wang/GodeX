@@ -21,18 +21,17 @@ wiki/
 │   └── theme/          # Custom dark theme + zoom handlers
 ├── public/             # Static assets (CNAME)
 ├── 01-getting-started/ # Setup, installation, quick reference
-├── 02-architecture/    # System design, request flow, bridge kernel, stream pipeline
-├── 03-provider-development/  # Provider interface, Zhipu reference, mapping
+├── 02-architecture/    # Architecture overview, request flow, bridge kernel, stream pipeline & transforms
+├── 03-provider-development/  # Provider interface, provider references, mapping
 ├── 04-session-management/    # Session store, chain resolution
-├── 05-streaming-pipeline/    # Transformers, stream state
 ├── 06-error-handling/        # Error hierarchy, error codes
-├── 07-configuration/         # Config schema, CLI commands
+├── 07-configuration/         # Config schema (incl. web_search), CLI commands
 ├── 08-testing/               # Testing guide
 ├── 09-deployment/            # CI/CD, publishing
 ├── 10-trace/                 # Trace recording, SQLite schema, payload capture
 ├── index.md                  # Landing page
 ├── llms.txt                  # LLM-friendly index
-└── llms-full.txt             # Full inlined content
+└── llms-full.txt             # Full inlined content (generated)
 ```
 
 ## Content Conventions
@@ -50,6 +49,7 @@ wiki/
 - **ProviderSpec** — Provider capability and accessor declaration. Never use "ProviderMapper".
 - **BridgeError** — Error domain for bridge-layer failures. Never use "AdapterError".
 - **ResponseStreamStateMachine** — Stream event state machine. Never use "StreamResponseState".
+- **HostedWebSearchStreamRunner** / **HostedWebSearchSyncRunner** (`src/responses/web-search/`) — Produce the `ResponseStreamEvent` stream from provider deltas and run the managed web search loop. Never use "ProviderStreamEventBridge" (a pre-refactor name that no longer exists).
 
 ## Documentation Sources
 

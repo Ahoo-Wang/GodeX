@@ -15,7 +15,7 @@ description: How GodeX reconstructs structured Responses API events from raw pro
 | 增量到事件映射 | `mapProviderDeltasToEvents` | [stream-reconstructor.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L17) |
 | 增量验证 | `validateDelta` + 辅助函数 | [stream-reconstructor.ts:69](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L69) |
 | 增量类型契约 | `ProviderStreamDelta` | [stream-delta.ts:28](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-delta.ts#L28) |
-| 延迟终止事件 | `deferFinish` / `deferTerminal` | [response-stream-state-machine.ts:263](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L263) |
+| 延迟终止事件 | `deferFinish` / `deferTerminal` | [response-stream-state-machine.ts:293](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L293) |
 
 ## 流状态机阶段
 
@@ -45,7 +45,7 @@ stateDiagram-v2
     inprog --> failed : finish(content_filter)
 ```
 
-转换逻辑位于 [response-stream-state-machine.ts:787](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L787)，负责将提供者完成原因映射到正确的终止阶段。
+转换逻辑位于 [response-stream-state-machine.ts:819](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L819)，负责将提供者完成原因映射到正确的终止阶段。
 
 ## 块管理
 
@@ -87,7 +87,7 @@ flowchart TD
     style L fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
-每个块在收到第一个增量时延迟创建，当流通过 `closeActiveBlocks` ([response-stream-state-machine.ts:428](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L428)) 到达终止阶段时关闭。
+每个块在收到第一个增量时延迟创建，当流通过 `closeActiveBlocks` ([response-stream-state-machine.ts:458](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L458)) 到达终止阶段时关闭。
 
 ## 增量验证管道
 
@@ -103,7 +103,7 @@ flowchart TD
 | `finishReason` | 字符串、null 或 undefined |
 | `error` | 包含必需的 `message` 字符串和可选的 `code` 字符串的对象 |
 
-无法识别的字段会引发错误码为 `BRIDGE_STREAM_INVALID_TRANSITION` 的 `BridgeError` ([stream-reconstructor.ts:120](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L120))。
+无法识别的字段会引发错误码为 `BRIDGE_STREAM_INVALID_TRANSITION` 的 `BridgeError` ([stream-reconstructor.ts:399](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L399))。
 
 ```mermaid
 sequenceDiagram
@@ -133,9 +133,9 @@ sequenceDiagram
 
 ## 延迟终止事件
 
-当 `deferTerminal` 为 true（在流式管道中如此）时，状态机的 `deferFinish` 方法存储完成原因而不转换到终止阶段 ([response-stream-state-machine.ts:263](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L263))。这允许下游转换器——特别是输出契约验证转换器——在终止事件到达客户端之前检查并可能重写它。
+当 `deferTerminal` 为 true（在流式管道中如此）时，状态机的 `deferFinish` 方法存储完成原因而不转换到终止阶段 ([response-stream-state-machine.ts:293](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L293))。这允许下游转换器——特别是输出契约验证转换器——在终止事件到达客户端之前检查并可能重写它。
 
-`ProviderStreamEventBridge.flush` 方法 ([stream-pipeline.ts:123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/stream-pipeline.ts#L123)) 在上游流关闭时调用 `machine.finish(machine.deferredFinishReason)`，确保终止事件总是被发出。
+`consumeProviderStream` 函数 ([web-search/stream-runner.ts:182](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L182)) 在上游流关闭（且没有待处理的托管 web search 调用）时调用 `machine.finish(machine.deferredFinishReason)`，确保终止事件总是被发出。
 
 ```mermaid
 flowchart LR
@@ -162,11 +162,11 @@ flowchart LR
 
 1. 验证 `callId` 和 `providerName` 都存在（否则抛出 `BRIDGE_STREAM_INCOMPLETE_TOOL_CALL`）
 2. 检查 `ToolIdentityMap` 以确定工具是否为自定义工具
-3. 调用 `restoreToolCall`（来自 [call-restorer.ts:16](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L16)）将提供者函数调用映射回正确的 Responses API 类型（`function_call`、`local_shell_call`、`shell_call`、`apply_patch_call` 或 `custom_tool_call`）
+3. 调用 `restoreToolCall`（来自 [call-restorer.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L17)）将提供者函数调用映射回正确的 Responses API 类型（`function_call`、`local_shell_call`、`shell_call`、`apply_patch_call` 或 `custom_tool_call`）
 
 ## 错误规范化
 
-提供者错误通过 `normalizeError` ([response-stream-state-machine.ts:753](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L753)) 进行规范化，将提供者错误代码映射到一组已知的 `ResponseErrorCode` 值。未知代码回退为 `server_error`。
+提供者错误通过 `normalizeError` ([response-stream-state-machine.ts:783](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L783)) 进行规范化，将提供者错误代码映射到一组已知的 `ResponseErrorCode` 值。未知代码回退为 `server_error`。
 
 ## 交叉引用
 
@@ -182,5 +182,5 @@ flowchart LR
 - [stream-reconstructor.ts:17](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L17) -- `mapProviderDeltasToEvents` 函数
 - [stream-reconstructor.ts:69](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-reconstructor.ts#L69) -- `validateDelta` 函数
 - [stream-delta.ts:28](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/stream-delta.ts#L28) -- `ProviderStreamDelta` 接口
-- [response-stream-state-machine.ts:263](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L263) -- `deferFinish` 方法
-- [response-stream-state-machine.ts:428](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L428) -- `closeActiveBlocks` 方法
+- [response-stream-state-machine.ts:293](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L293) -- `deferFinish` 方法
+- [response-stream-state-machine.ts:458](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/stream/response-stream-state-machine.ts#L458) -- `closeActiveBlocks` 方法

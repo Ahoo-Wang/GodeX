@@ -84,4 +84,4 @@ bun run compile:all  # 交叉编译全部 6 个平台二进制
 | `GODEX_LOG_LEVEL` | `logging.level` | 覆盖日志级别 |
 | `GODEX_DEFAULT_PROVIDER` | `default_provider` | 未设置时回退到 `zhipu` |
 
-[测试指南](/zh/08-testing/testing-guide)
+[测试指南](/zh/08-testing/testing)

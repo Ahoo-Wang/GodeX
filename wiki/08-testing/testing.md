@@ -74,7 +74,7 @@ The test command excludes E2E tests by default via path-ignore-patterns:
 "test": "bun test --path-ignore-patterns 'src/e2e/**'"
 ```
 
-This keeps the unit test suite fast and deterministic ([package.json:31](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L31)).
+This keeps the unit test suite fast and deterministic ([package.json:45](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L45)).
 
 ## Test Fixtures
 
@@ -149,6 +149,7 @@ The [GodeXClient](https://github.com/Ahoo-Wang/GodeX/blob/main/src/e2e/godex-cli
 | `health.get()` | `GET /health` | Health check |
 | `models.list()` | `GET /v1/models` | Model listing |
 | `responses.create(req)` | `POST /v1/responses` | Non-streaming response |
+| `responses.createRaw(req)` | `POST /v1/responses` | Raw `Promise<Response>` (no decoding) |
 | `responses.stream(req)` | `POST /v1/responses` | Streaming response (SSE) |
 
 The `collectGodexStreamEvents` helper ([src/e2e/godex-client.ts:114](https://github.com/Ahoo-Wang/GodeX/blob/main/src/e2e/godex-client.ts#L114)) reads an entire SSE stream into an array for assertion.
@@ -307,12 +308,12 @@ src/
 | `bun run check` | TypeCheck + Lint + Unit tests |
 | `bun run ci` | Full CI: TypeCheck + Lint + Unit + E2E |
 
-All scripts are defined in [package.json:36-53](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L36-L53).
+All scripts are defined in [package.json:35-56](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json#L35-L56).
 
 ## Cross-References
 
 - [Stream Pipeline](../02-architecture/streaming-pipeline.md) -- where unit-tested transformers assemble into the response pipeline
-- [Architecture Overview](../02-architecture/overview.md) -- how the tested modules relate to the system architecture
+- [Architecture Overview](../02-architecture/architecture-overview.md) -- how the tested modules relate to the system architecture
 - [Provider Development](../03-provider-development/provider-spec.md) -- how the compatibility test suite applies to new providers
 - [Session Management](../04-session-management/session-stores.md) -- session fixtures and multi-turn test scenarios
 - [Trace System](../10-trace/trace-system.md) -- trace-related unit tests and live tracing validation
@@ -328,4 +329,4 @@ All scripts are defined in [package.json:36-53](https://github.com/Ahoo-Wang/God
 7. [src/server/routes/responses/test-fixtures.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/routes/responses/test-fixtures.ts) -- Route handler fixtures
 8. [src/providers/shared/compatibility-test-suite.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/shared/compatibility-test-suite.ts) -- Shared provider compatibility tests
 9. [src/testing/provider-edge.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/testing/provider-edge.ts) -- Mock provider edge factory
-10. [package.json](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json) -- Test scripts (lines 25-44)
+10. [package.json](https://github.com/Ahoo-Wang/GodeX/blob/main/package.json) -- Test scripts (lines 45-55)

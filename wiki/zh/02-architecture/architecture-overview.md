@@ -1,11 +1,14 @@
 ---
 title: 架构概览
-description: GodeX 中端到端请求生命周期的完整流程，从 CLI 启动经过桥接到上游 Provider 再返回。
+description: GodeX 架构 — 端到端请求生命周期、组件模型、层级职责与依赖关系。
+keywords: "GodeX, 架构, 系统总览, 组件模型, 请求生命周期, 设计模式"
 ---
 
 # 架构概览
 
-GodeX 是一个网关，将 OpenAI **Responses API** 请求转换为 **Chat Completions API** 调用，支持任何已配置的上游 Provider。理解完整的请求生命周期对于调试兼容性问题、添加新 Provider 或扩展桥接层至关重要。本页追踪一个请求从 Bun 服务器接收到重建响应返回给调用者的全过程。
+GodeX 是一个网关，将 OpenAI **Responses API** 请求转换为 **Chat Completions API** 调用，支持任何已配置的上游 Provider。它采用分层架构，关注点清晰分离：协议处理在边界层，桥接逻辑在中间层，提供商特定代码封装在 spec 和 hooks 中。
+
+本页包含两个互补的视图：**请求生命周期**（单个请求如何在系统中流转）和 **组件模型**（构建块是什么、它们如何相互依赖）。理解两者对于调试兼容性问题、添加新 Provider 或扩展桥接层都至关重要。
 
 ## 概览
 
@@ -250,6 +253,181 @@ flowchart LR
     style I fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
+## 系统组件
+
+完整的请求路径连接了每一层 —— 从 Bun 服务器路由，经过桥接请求构建器、Provider 边界，直到重建层：
+
+```mermaid
+flowchart TB
+  Client["Client<br>Codex, SDK, CLI, IDE"] --> Routes["Bun server routes<br>/health<br>/v1/models<br>/v1/responses"]
+  Routes --> Ctx["ResponsesContext<br>request id, response id, resolved model,<br>provider, session, diagnostics"]
+
+  Ctx --> Resolver["ModelResolver<br>alias and provider/model selection"]
+  Ctx --> Session["ResponseSessionStore<br>memory or SQLite<br>previous_response_id chains"]
+  Ctx --> Registrar["Registrar<br>built-in ProviderEdge factories"]
+  Ctx --> Runtime["ResponsesBridgeRuntime"]
+
+  Runtime --> Sync["SyncRequestPipeline"]
+  Runtime --> Stream["StreamPipeline"]
+  Sync --> Exchange["ProviderExchange"]
+  Stream --> Exchange
+
+  Exchange --> Builder["bridge/request<br>buildChatCompletionRequest"]
+  Builder --> Compat["bridge/compatibility<br>parameter and response-format decisions"]
+  Builder --> Tools["bridge/tools<br>tool declarations, tool_choice,<br>identity restoration"]
+  Builder --> Output["bridge/output<br>structured-output contract"]
+
+  Exchange --> Edge["ProviderEdge<br>ProviderSpec + hooks"]
+  Edge --> ClientHttp["ChatProviderClient<br>Fetcher HTTP boundary"]
+  ClientHttp --> Upstream["Chat Completions upstream<br>DeepSeek, Zhipu, custom"]
+
+  Upstream --> SyncRecon["bridge/response<br>reconstructResponseObject"]
+  Upstream --> StreamRecon["bridge/stream<br>ResponseStreamStateMachine"]
+  SyncRecon --> ResponseJson["ResponseObject JSON"]
+  StreamRecon --> StreamTransforms["stream transforms<br>validate, trace, log, persist, diagnostics"]
+  StreamTransforms --> Sse["Responses SSE"]
+
+  Ctx --> Trace["trace recorder<br>request, usage, event, error rows"]
+  Ctx --> Logger["structured logger"]
+```
+
+核心领域类型及其关系：
+
+```mermaid
+classDiagram
+
+  class ApplicationContext {
+    +config: GodeXConfig
+    +logger: Logger
+    +resolver: ModelResolver
+    +registrar: Registrar
+    +responses: ResponsesBridge
+    +sessionStore: ResponseSessionStore
+    +traceRecorder: TraceRecorder
+  }
+
+  class ResponsesContext {
+    +app: ApplicationContext
+    +request: ResponseCreateRequest
+    +session: ResponseSessionSnapshot
+    +resolved: ResolvedModel
+    +provider: ProviderEdge
+    +responseId: string
+    +requestId: string
+    +diagnostics: CompatibilityDiagnostic[]
+    +attributes: Map
+    +outputContract: OutputContractSlot
+  }
+
+  class ModelResolver {
+    -defaultProvider: string
+    -providerConfigs: Record
+    +resolve(model) ResolvedModel
+  }
+
+  class Registrar {
+    -factories: Map
+    -providers: Map
+    +registerDefinitions(definitions)
+    +registerProviders(configs, logger)
+    +resolve(name) ProviderEdge
+    +list() string[]
+    +unsupported() string[]
+  }
+
+  class ResponsesBridge {
+    <<interface>>
+    +request(ctx) Promise~ResponseObject~
+    +stream(ctx) Promise~ReadableStream~
+  }
+
+  class ResponsesBridgeRuntime {
+    -syncPipeline: SyncRequestPipeline
+    -streamPipeline: StreamPipeline
+    +request(ctx) Promise~ResponseObject~
+    +stream(ctx) Promise~ReadableStream~
+  }
+
+  class ProviderEdge {
+    <<interface>>
+    +name: string
+    +spec: ProviderSpec
+    +request(body) Promise~TResponse~
+    +stream(body) Promise~ReadableStream~
+  }
+
+  class ProviderSpec {
+    +name: string
+    +protocol: ProviderProtocol
+    +capabilities: ProviderCapabilities
+    +endpoint: ProviderEndpointSpec
+    +auth: ProviderAuthSpec
+    +toolName: ToolNameCodec
+    +response: ChatCompletionResponseAccessor
+    +stream: ChatCompletionStreamAccessor
+    +hooks?: ProviderHooks
+  }
+
+  class ResponseSessionStore {
+    <<interface>>
+    +get(id) Promise~StoredResponseSession~
+    +save(session, opts) Promise~void~
+    +resolveChain(id, opts) Promise~ResponseSessionSnapshot~
+    +delete(id) Promise~void~
+    +close() void
+  }
+
+  ApplicationContext --> ResponsesContext : creates
+  ApplicationContext --> ModelResolver
+  ApplicationContext --> Registrar
+  ApplicationContext --> ResponsesBridge
+  ApplicationContext --> ResponseSessionStore
+  ResponsesContext --> ProviderEdge : uses
+  ProviderEdge --> ProviderSpec
+  ResponsesBridge <|.. ResponsesBridgeRuntime
+  ResponsesBridgeRuntime --> SyncRequestPipeline
+  ResponsesBridgeRuntime --> StreamPipeline
+```
+
+## 层级职责
+
+| 层级 | 模块 | 职责 |
+|------|------|------|
+| Server | `src/server/` | HTTP 路由、请求解析、SSE 编码、错误处理 |
+| Context | `src/context/` | `ApplicationContext`（应用级服务）和 `ResponsesContext`（请求级状态） |
+| Bridge | `src/bridge/` | 与提供商无关的 Responses-to-Chat 规划与重建 |
+| Responses | `src/responses/` | 同步和流式编排管道 |
+| Provider | `src/providers/` | 提供商 spec、hooks、客户端和注册表 |
+| Session | `src/session/` | 历史持久化和 `previous_response_id` 链式解析 |
+| Resolver | `src/resolver/` | 模型别名和 provider/model 选择器解析 |
+| Config | `src/config/` | YAML 模式、环境变量插值、默认值 |
+| Error | `src/error/` | 结构化错误层次与域代码 |
+
+## 依赖流
+
+```mermaid
+flowchart TD
+  Server["Server (路由)"]
+  CTX["ApplicationContext"]
+  RCTX["ResponsesContext"]
+  Resolver["ModelResolver"]
+  Reg["Registrar"]
+  Bridge["ResponsesBridgeRuntime"]
+  Exchange["ProviderExchange"]
+  Prov["ProviderEdge"]
+  Store["SessionStore"]
+
+  Server --> CTX
+  Server --> RCTX
+  RCTX --> Resolver
+  RCTX --> Reg
+  RCTX --> Store
+  CTX --> Bridge
+  Bridge --> Exchange
+  Exchange --> Prov
+  Reg --> Prov
+```
+
 ## 交叉引用
 
 - **[兼容性](./compatibility.md)**：桥接如何在构建请求前规划功能兼容性
@@ -264,6 +442,6 @@ flowchart LR
 - [src/server/server.ts:21-51](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/server.ts#L21-L51) -- 路由映射创建和 Bun 服务器启动
 - [src/server/routes/responses/handler.ts:1-33](https://github.com/Ahoo-Wang/GodeX/blob/main/src/server/routes/responses/handler.ts#L1-L33) -- Responses 路由处理函数，包含解析、上下文创建和分发
 - [src/responses/runtime.ts:19-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/runtime.ts#L19-L41) -- `ResponsesBridgeRuntime` 委派同步和流式管道
-- [src/responses/provider-exchange.ts:1-123](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L1-L123) -- `ProviderExchange` 编排请求构建和上游调用
+- [src/responses/provider-exchange.ts:1-166](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L1-L166) -- `ProviderExchange` 编排请求构建和上游调用
 - [src/providers/registrar.ts:1-95](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/registrar.ts#L1-L95) -- Provider 工厂注册和解析
 - [src/resolver/model-resolver.ts:1-37](https://github.com/Ahoo-Wang/GodeX/blob/main/src/resolver/model-resolver.ts#L1-L37) -- 模型选择器解析和别名解析

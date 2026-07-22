@@ -96,7 +96,7 @@ flowchart TB
     style XM_Proto fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
-All providers are registered at startup via `createBuiltinRegistrar` ([src/providers/builtin.ts:49-55](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L49-L55)), which creates a `Registrar` and registers each `ProviderDefinition`.
+All providers are registered at startup via `createBuiltinRegistrar` ([src/providers/builtin.ts:61-67](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L61-L67)), which creates a `Registrar` and registers each `ProviderDefinition`.
 
 ## Tool Capabilities Comparison
 
@@ -109,12 +109,11 @@ Each provider declares which tool types it supports and which ones must be **deg
 | `shell` | Degraded to `function` | Degraded to `function` | Degraded to `function` | Degraded to `function` |
 | `apply_patch` | Degraded to `function` | Degraded to `function` | Degraded to `function` | Degraded to `function` |
 | `custom` | Degraded to `function` | Degraded to `function` | Degraded to `function` | Degraded to `function` |
-| `tool_search` | Degraded to `function` | Degraded to `function` | Degraded to `function` | Degraded to `function` |
 | `namespace` | Degraded to `function` | Degraded to `function` | Degraded to `function` | Degraded to `function` |
-| `web_search` | - | Supported | - | - |
-| `web_search_preview` | - | Degraded to `web_search` | - | - |
+| `web_search` | - | Supported | - | Supported |
+| `web_search_2025_08_26` | - | Degraded to `web_search` | - | Degraded to `web_search` |
+| `web_search_preview` | - | Degraded to `web_search` | - | Degraded to `web_search` |
 | `file_search` | - | Degraded to `retrieval` | - | - |
-| `mcp` | - | Supported | - | - |
 
 ## Reasoning Support
 
@@ -127,7 +126,7 @@ Each provider handles reasoning (chain-of-thought) differently. The compatibilit
 | MiniMax | `boolean` | Maps `reasoning.effort: "none"` to `thinking: {type: "disabled"}` and other effort values to MiniMax adaptive thinking. Reads reasoning output from `reasoning_content`. |
 | Xiaomi | `boolean` | Bridge maps effort to `thinking: {type: "enabled"/"disabled"}`. Forces `thinking: enabled` when historical `reasoning_content` exists in messages. Defaults to `thinking: disabled` when no reasoning was requested. |
 
-DeepSeek's `deepSeekPatchRequest` handles this mapping in [src/providers/deepseek/hooks.ts:113-136](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L113-L136), Zhipu's in [src/providers/zhipu/hooks.ts:113-134](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L113-L134), and Xiaomi's in [src/providers/xiaomi/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts).
+DeepSeek's `deepSeekPatchRequest` handles this mapping in [src/providers/deepseek/hooks.ts:121-144](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L121-L144), Zhipu's in [src/providers/zhipu/hooks.ts:151-173](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L151-L173), and Xiaomi's in [src/providers/xiaomi/hooks.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/hooks.ts).
 
 ## Tool Choice Support
 
@@ -140,7 +139,7 @@ DeepSeek's `deepSeekPatchRequest` handles this mapping in [src/providers/deepsee
 
 ## Provider Definition Registration
 
-Each provider is wrapped in a `ProviderDefinition` that pairs the provider name with a factory function. The definitions are collected in `BUILTIN_PROVIDER_DEFINITIONS` and registered at startup ([src/providers/builtin.ts:22-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L22-L41)).
+Each provider is wrapped in a `ProviderDefinition` that pairs the provider name with a factory function. The definitions are collected in `BUILTIN_PROVIDER_DEFINITIONS` and registered at startup ([src/providers/builtin.ts:27-45](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L27-L45)).
 
 ```mermaid
 sequenceDiagram
@@ -235,7 +234,7 @@ The Xiaomi spec targets the MiMo API at `https://api.xiaomimimo.com/v1` ([src/pr
 - [src/providers/deepseek/spec.ts:1-57](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/spec.ts#L1-57) - DeepSeek spec definition
 - [src/providers/deepseek/hooks.ts:18-57](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L18-57) - DeepSeek capabilities and hooks
 - [src/providers/zhipu/spec.ts:1-59](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/spec.ts#L1-59) - Zhipu spec definition
-- [src/providers/zhipu/hooks.ts:16-69](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L16-69) - Zhipu capabilities and hooks
+- [src/providers/zhipu/hooks.ts:25-75](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L25-L75) - Zhipu capabilities and hooks
 - [src/providers/minimax/spec.ts:1-58](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/spec.ts#L1-L58) - MiniMax spec definition
 - [src/providers/minimax/hooks.ts:24-62](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/hooks.ts#L24-L62) - MiniMax capabilities and hooks
 - [src/providers/xiaomi/spec.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/spec.ts) - Xiaomi spec definition

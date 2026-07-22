@@ -96,7 +96,7 @@ flowchart TB
     style XM_Proto fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
-所有提供商在启动时通过 `createBuiltinRegistrar` 注册（[src/providers/builtin.ts:49-55](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L49-L55)），它创建一个 `Registrar` 并注册每个 `ProviderDefinition`。
+所有提供商在启动时通过 `createBuiltinRegistrar` 注册（[src/providers/builtin.ts:61-67](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L61-L67)），它创建一个 `Registrar` 并注册每个 `ProviderDefinition`。
 
 ## 工具能力对比
 
@@ -109,12 +109,11 @@ flowchart TB
 | `shell` | 降级为 `function` | 降级为 `function` | 降级为 `function` | 降级为 `function` |
 | `apply_patch` | 降级为 `function` | 降级为 `function` | 降级为 `function` | 降级为 `function` |
 | `custom` | 降级为 `function` | 降级为 `function` | 降级为 `function` | 降级为 `function` |
-| `tool_search` | 降级为 `function` | 降级为 `function` | 降级为 `function` | 降级为 `function` |
 | `namespace` | 降级为 `function` | 降级为 `function` | 降级为 `function` | 降级为 `function` |
-| `web_search` | - | 支持 | - | - |
-| `web_search_preview` | - | 降级为 `web_search` | - | - |
+| `web_search` | - | 支持 | - | 支持 |
+| `web_search_2025_08_26` | - | 降级为 `web_search` | - | 降级为 `web_search` |
+| `web_search_preview` | - | 降级为 `web_search` | - | 降级为 `web_search` |
 | `file_search` | - | 降级为 `retrieval` | - | - |
-| `mcp` | - | 支持 | - | - |
 
 ## 推理支持
 
@@ -138,7 +137,7 @@ flowchart TB
 
 ## 提供商定义注册
 
-每个提供商被包装在一个 `ProviderDefinition` 中，将提供商名称与工厂函数配对。这些定义被收集在 `BUILTIN_PROVIDER_DEFINITIONS` 中并在启动时注册（[src/providers/builtin.ts:22-41](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L22-L41)）。
+每个提供商被包装在一个 `ProviderDefinition` 中，将提供商名称与工厂函数配对。这些定义被收集在 `BUILTIN_PROVIDER_DEFINITIONS` 中并在启动时注册（[src/providers/builtin.ts:27-45](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/builtin.ts#L27-L45)）。
 
 ```mermaid
 sequenceDiagram
@@ -233,7 +232,7 @@ Xiaomi 规格目标为 MiMo API `https://api.xiaomimimo.com/v1`（[src/providers
 - [src/providers/deepseek/spec.ts:1-57](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/spec.ts#L1-57) - DeepSeek 规格定义
 - [src/providers/deepseek/hooks.ts:18-57](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/deepseek/hooks.ts#L18-57) - DeepSeek 能力和钩子
 - [src/providers/zhipu/spec.ts:1-59](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/spec.ts#L1-59) - Zhipu 规格定义
-- [src/providers/zhipu/hooks.ts:16-69](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L16-69) - Zhipu 能力和钩子
+- [src/providers/zhipu/hooks.ts:25-75](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/zhipu/hooks.ts#L25-L75) - Zhipu 能力和钩子
 - [src/providers/minimax/spec.ts:1-58](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/spec.ts#L1-L58) - MiniMax 规格定义
 - [src/providers/minimax/hooks.ts:24-62](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/minimax/hooks.ts#L24-L62) - MiniMax 能力和钩子
 - [src/providers/xiaomi/spec.ts](https://github.com/Ahoo-Wang/GodeX/blob/main/src/providers/xiaomi/spec.ts) - Xiaomi 规格定义

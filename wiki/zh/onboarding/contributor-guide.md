@@ -789,12 +789,13 @@ ctx.addDiagnostic({
 });
 ```
 
-**模式：TransformStream 管道。** 流式管道使用可组合的 `TransformStream` 阶段。每个阶段是处理事件并传递给下一阶段的 `Transformer` 实现：
+**模式：TransformStream 管道。** 流式管道使用可组合的 `TransformStream` 阶段。`HostedWebSearchStreamRunner` 首先生产事件流（通过状态机将提供商增量映射为 Responses 事件），然后每个阶段是处理事件并传递给下一阶段的 `Transformer` 实现：
 
 ```typescript
-const stream1 = pipeTransform(providerStream, new TraceTransformer(...));
-const stream2 = pipeTransform(stream1, new EventBridge(...));
-const stream3 = pipeTransform(stream2, new OutputContractValidator(...));
+const { stream: eventStream } = await new HostedWebSearchStreamRunner(exchange).stream(ctx);
+const safe = wrapWithErrorHandler(eventStream, machine, ctx);
+const validated = pipeTransform(safe, new OutputContractValidator(...));
+const logged = pipeTransform(validated, new ResponseLogTransformer(...));
 ```
 
 ### 3.8 反模式

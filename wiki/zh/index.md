@@ -102,7 +102,7 @@ codex
 ---
 
 ::: info
-阅读完整的[快速入门指南](/zh/01-getting-started/overview)或探索[架构概览](/zh/02-architecture/overview)。
+阅读完整的[快速入门指南](/zh/01-getting-started/overview)或探索[架构概览](/zh/02-architecture/architecture-overview)。
 :::
 
 ## 文档导航
@@ -110,12 +110,12 @@ codex
 | 章节 | 说明 | 入口 |
 |------|------|------|
 | [快速入门](/zh/01-getting-started/overview) | 概述、安装、配置、提供商 | [概述](/zh/01-getting-started/overview) |
-| [架构](/zh/02-architecture/overview) | 请求流程、核心类型 | [系统总览](/zh/02-architecture/overview) |
+| [架构](/zh/02-architecture/architecture-overview) | 请求流程、核心类型 | [架构概览](/zh/02-architecture/architecture-overview) |
 | [提供商开发](/zh/03-provider-development/provider-interface) | 如何接入新 LLM 提供商 | [Provider 接口](/zh/03-provider-development/provider-interface) |
-| [会话管理](/zh/04-session-management/session-store) | 多轮对话支持 | [会话存储](/zh/04-session-management/session-store) |
-| [流式管道](/zh/05-streaming-pipeline/transformers) | 流式转换与状态管理 | [转换器](/zh/05-streaming-pipeline/transformers) |
-| [错误处理](/zh/06-error-handling/error-codes) | 错误码参考 | [错误码](/zh/06-error-handling/error-codes) |
+| [会话管理](/zh/04-session-management/session-stores) | 多轮对话支持 | [会话存储](/zh/04-session-management/session-stores) |
+| [流式管道](/zh/02-architecture/streaming-pipeline) | 流式转换与状态管理 | [流式管道](/zh/02-architecture/streaming-pipeline) |
+| [错误处理](/zh/06-error-handling/error-handling) | 错误码参考 | [错误处理](/zh/06-error-handling/error-handling) |
 | [配置](/zh/07-configuration/config-schema) | godex.yaml 配置参考 | [配置 Schema](/zh/07-configuration/config-schema) |
-| [测试](/zh/08-testing/testing-guide) | 单元、E2E、Live 测试 | [测试指南](/zh/08-testing/testing-guide) |
-| [追踪](/zh/10-trace/trace-recording) | 请求追踪与可观测性 | [追踪记录](/zh/10-trace/trace-recording) |
+| [测试](/zh/08-testing/testing) | 单元、E2E、Live 测试 | [测试](/zh/08-testing/testing) |
+| [追踪](/zh/10-trace/trace-system) | 请求追踪与可观测性 | [追踪系统](/zh/10-trace/trace-system) |
 | [部署](/zh/09-deployment/ci-cd) | Docker、原生二进制、CI/CD | [CI/CD 与发布](/zh/09-deployment/ci-cd) |

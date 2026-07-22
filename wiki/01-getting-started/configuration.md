@@ -217,6 +217,31 @@ trace:
 | `flush_interval_ms` | `number` | `1000` | How often to flush traces to disk |
 | `batch_size` | `number` | `100` | Number of traces per flush batch |
 
+## Web Search Section
+
+Controls built-in web search. GodeX can either let the provider handle search natively, or run the search itself ("GodeX-managed") and feed the results back into a continuation request. Parsed in [src/config/sections/web-search.ts:10-73](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/web-search.ts#L10-L73).
+
+```yaml
+web_search:
+  enabled: true
+  mode: auto                 # auto | provider_native | godex_managed | disabled
+  provider: none             # none | mock | zhipu
+  on_unavailable: client_tool_call  # client_tool_call | fail | ignore
+  max_iterations: 2
+  timeout_ms: 10000
+```
+
+| Field | Default | Description |
+|---|---|---|
+| `enabled` | `true` | Master switch |
+| `mode` | `auto` | `auto` (prefer native, fall back to managed), `provider_native`, `godex_managed`, or `disabled` |
+| `provider` | `none` | Search backend for `godex_managed` mode (`none` / `mock` / `zhipu`) |
+| `on_unavailable` | `client_tool_call` | Fallback when managed search is configured but unavailable |
+| `max_iterations` | `2` | Max managed search rounds per request |
+| `timeout_ms` | `10000` | Per-search timeout (ms) |
+
+With the shipped defaults, providers that support native web search (Zhipu, Xiaomi) use it directly; others forward `web_search` calls to the client. To enable GodeX-managed search for any provider, set `provider: zhipu` and provide `ZHIPU_API_KEY`. See the [Config Schema - Web Search](../07-configuration/config-schema.md#web-search) for full field semantics.
+
 ## Full Config Builder Flow
 
 The `buildConfig` function in [src/config/builder.ts:17-39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/builder.ts#L17-L39) ties everything together.

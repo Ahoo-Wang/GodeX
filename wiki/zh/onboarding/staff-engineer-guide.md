@@ -689,16 +689,15 @@ Bun HTTP 服务器接收 `POST /v1/responses` 请求。`src/server/routes/respon
 
 ### 步骤 6：流处理（流式）
 
-对于流式请求，`StreamPipeline` 创建 `TransformStream` 阶段管道：
+对于流式请求，`StreamPipeline` 消费由 `HostedWebSearchStreamRunner`（通过状态机将提供商增量映射为 Responses 事件并运行 web search 循环）生产的事件流，然后通过 `TransformStream` 阶段链进行管道处理：
 
-1. `TraceTransformer`（原始）— 记录原始上游事件
-2. `ProviderStreamEventBridge` — 将增量送入状态机，发出 Responses 事件
-3. 错误包装 — 捕获异常，发出 `response.failed`
-4. `ResponseOutputContractValidationTransformer` — 验证终端输出
-5. `TraceTransformer`（转换后）— 记录转换后事件
-6. `ResponseLogTransformer` — 记录 usage 和持续时间
-7. `ResponseSessionPersistenceTransformer` — 持久化完成的会话
-8. `CompatibilityLogTransformer` — 记录兼容性诊断
+1. `HostedWebSearchStreamRunner`（事件生产）— 通过 `mapProviderDeltasToEvents` 将增量送入状态机，发出 Responses 事件；包含 `TraceTransformer`（原始）和托管 web search 续接循环
+2. 错误包装 — 捕获异常，发出 `response.failed`
+3. `ResponseOutputContractValidationTransformer` — 验证终端输出
+4. `TraceTransformer`（转换后）— 记录转换后事件
+5. `ResponseLogTransformer` — 记录 usage 和持续时间
+6. `ResponseSessionPersistenceTransformer` — 持久化完成的会话
+7. `CompatibilityLogTransformer` — 记录兼容性诊断
 
 ### 步骤 7：会话持久化
 

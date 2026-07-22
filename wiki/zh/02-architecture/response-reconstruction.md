@@ -206,9 +206,9 @@ flowchart TD
 
 ## 参考
 
-- [src/bridge/response/response-reconstructor.ts:1-196](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/response/response-reconstructor.ts#L1-L196) -- `reconstructResponseObject` 和输出组装
-- [src/bridge/finish-reason/finish-reason.ts:1-75](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/finish-reason/finish-reason.ts#L1-L75) -- `mapProviderFinishReason` 完整的 Provider 到 Responses 映射
-- [src/bridge/tools/call-restorer.ts:1-178](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L1-L178) -- `restoreToolCall` 类型特定解析和回退
-- [src/bridge/tools/tool-identity.ts:1-72](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L1-L72) -- `ToolIdentityMap` 双向名称/类型查找
-- [src/bridge/output/output-validator.ts:1-30](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-validator.ts#L1-L30) -- `validateOutputContract` 降级 JSON Schema 验证
+- [src/bridge/response/response-reconstructor.ts:1-189](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/response/response-reconstructor.ts#L1-L189) -- `reconstructResponseObject` 和输出组装
+- [src/bridge/finish-reason/finish-reason.ts:1-74](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/finish-reason/finish-reason.ts#L1-L74) -- `mapProviderFinishReason` 完整的 Provider 到 Responses 映射
+- [src/bridge/tools/call-restorer.ts:1-186](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/call-restorer.ts#L1-L186) -- `restoreToolCall` 类型特定解析和回退
+- [src/bridge/tools/tool-identity.ts:1-80](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/tools/tool-identity.ts#L1-L80) -- `ToolIdentityMap` 双向名称/类型查找
+- [src/bridge/output/output-validator.ts:1-29](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-validator.ts#L1-L29) -- `validateOutputContract` 降级 JSON Schema 验证
 - [src/bridge/output/validator.ts:1-47](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/validator.ts#L1-L47) -- `validateResponseOutputContract` 从 `ResponseObject` 中提取文本

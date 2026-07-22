@@ -49,7 +49,7 @@ flowchart TD
 
 ## 合成指令生成
 
-当 `json_schema` 降级为 `json_object` 时，GodeX 通过 `jsonSchemaInstruction` ([output-contract.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L54)) 生成合成指令。该指令包括：
+当 `json_schema` 降级为 `json_object` 时，GodeX 通过 `buildJsonSchemaInstruction` ([output-contract.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L54)) 生成合成指令。该指令包括：
 
 1. Schema 名称和描述（如果提供）
 2. 显式的 JSON 输出规则
@@ -59,7 +59,7 @@ flowchart TD
 
 ## 输出契约槽
 
-`OutputContractSlot` ([output-contract-slot.ts:3](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/output-contract-slot.ts#L3)) 是 `ResponsesContext` 上的可变槽，保存当前的 `OutputContractPlan`。它在请求构建期间设置一次（在 `buildProviderRequest` 中，位于 [provider-exchange.ts:98](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L98)），并在响应验证期间读取。
+`OutputContractSlot` ([output-contract-slot.ts:3](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/output-contract-slot.ts#L3)) 是 `ResponsesContext` 上的可变槽，保存当前的 `OutputContractPlan`。它在请求构建期间设置一次（在 `buildProviderRequest` 中，位于 [provider-exchange.ts:131](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/provider-exchange.ts#L131)），并在响应验证期间读取。
 
 | 方法 | 用途 |
 |--------|---------|
@@ -122,7 +122,7 @@ flowchart TD
 
 ## 输出文本提取
 
-`extractResponseOutputText` ([response-output-contract-validation.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-output-contract-validation.ts#L25)) 通过以下方式获取待验证的文本：
+`extractResponseOutputText` ([validator.ts:25](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/validator.ts#L25)) 通过以下方式获取待验证的文本：
 
 1. 如果可用，使用 `response.output_text`（字符串）
 2. 否则，从所有 `message` 输出项中拼接 `output_text` 内容部分
@@ -131,7 +131,7 @@ flowchart TD
 
 ## 错误处理
 
-当验证失败时，会记录一个诊断信息，代码为 `BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT`，严重级别为 `"error"`，路径为 `"response.output_text"` ([response-output-contract-validation.ts:36](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-output-contract-validation.ts#L36))。然后将错误传播给调用者。
+当验证失败时，会记录一个诊断信息，代码为 `BRIDGE_RESPONSE_INVALID_OUTPUT_FORMAT`，严重级别为 `"error"`，路径为 `"response.output_text"` ([response-output-contract-validation.ts:39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-output-contract-validation.ts#L39))。然后将错误传播给调用者。
 
 ## 交叉引用
 
@@ -142,7 +142,7 @@ flowchart TD
 ## 参考
 
 - [output-contract.ts:19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L19) -- `planOutputContract` 函数
-- [output-contract.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L54) -- `jsonSchemaInstruction` 合成指令生成器
+- [output-contract.ts:54](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-contract.ts#L54) -- `buildJsonSchemaInstruction` 合成指令生成器
 - [output-validator.ts:6](https://github.com/Ahoo-Wang/GodeX/blob/main/src/bridge/output/output-validator.ts#L6) -- `validateOutputContract` 函数
 - [output-contract-slot.ts:3](https://github.com/Ahoo-Wang/GodeX/blob/main/src/context/output-contract-slot.ts#L3) -- `OutputContractSlot` 类
 - [response-output-contract-validation.ts:14](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/response-output-contract-validation.ts#L14) -- `validateResponseOutputContract`（响应级）

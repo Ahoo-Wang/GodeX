@@ -217,6 +217,31 @@ trace:
 | `flush_interval_ms` | `number` | `1000` | 将追踪数据刷新到磁盘的间隔时间 |
 | `batch_size` | `number` | `100` | 每次刷新的追踪批次数 |
 
+## Web 搜索配置段
+
+控制内置 Web 搜索。GodeX 既可以由提供商原生处理搜索，也可以自行运行搜索（"GodeX 托管"）并将结果反馈到续接请求中。在 [src/config/sections/web-search.ts:10-73](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/web-search.ts#L10-L73) 中解析。
+
+```yaml
+web_search:
+  enabled: true
+  mode: auto                 # auto | provider_native | godex_managed | disabled
+  provider: none             # none | mock | zhipu
+  on_unavailable: client_tool_call  # client_tool_call | fail | ignore
+  max_iterations: 2
+  timeout_ms: 10000
+```
+
+| 字段 | 默认值 | 说明 |
+|---|---|---|
+| `enabled` | `true` | 总开关 |
+| `mode` | `auto` | `auto`（优先原生，回退托管）、`provider_native`、`godex_managed` 或 `disabled` |
+| `provider` | `none` | `godex_managed` 模式的搜索后端（`none` / `mock` / `zhipu`） |
+| `on_unavailable` | `client_tool_call` | 托管搜索已配置但不可用时的回退 |
+| `max_iterations` | `2` | 每个请求的最大托管搜索轮数 |
+| `timeout_ms` | `10000` | 单次搜索超时（毫秒） |
+
+使用默认配置时，支持原生 Web 搜索的提供商（智谱、小米）直接使用它；其他提供商将 `web_search` 调用转发给客户端。要为任何提供商启用 GodeX 托管搜索，设置 `provider: zhipu` 并提供 `ZHIPU_API_KEY`。完整字段语义见[配置 Schema - Web 搜索](../07-configuration/config-schema.md#web-search)。
+
 ## 完整配置构建流程
 
 `buildConfig` 函数在 [src/config/builder.ts:17-39](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/builder.ts#L17-L39) 中将所有内容整合在一起。

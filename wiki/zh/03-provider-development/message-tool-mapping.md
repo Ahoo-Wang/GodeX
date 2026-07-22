@@ -76,4 +76,4 @@ flowchart TD
 
 每个兼容性决策——降级的工具、忽略的参数、拒绝的格式——都产生一个 `CompatibilityDiagnostic`，累积在 `ResponsesContext.diagnostics` 中，并在响应完成后记录。
 
-[会话存储](/zh/04-session-management/session-store)
+[会话存储](/zh/04-session-management/session-stores)
