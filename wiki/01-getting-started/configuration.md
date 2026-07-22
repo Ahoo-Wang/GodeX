@@ -240,7 +240,7 @@ web_search:
 | `max_iterations` | `2` | Max managed search rounds per request |
 | `timeout_ms` | `10000` | Per-search timeout (ms) |
 
-With the shipped defaults, providers that support native web search (Zhipu, Xiaomi) use it directly; others forward `web_search` calls to the client. To enable GodeX-managed search for any provider, set `provider: zhipu` and provide `ZHIPU_API_KEY`. See the [Config Schema - Web Search](../07-configuration/config-schema.md#web-search) for full field semantics.
+With the shipped defaults, providers that support native web search (Zhipu, Xiaomi) use it directly; others forward `web_search` calls to the client. Note that for native providers `mode` has no effect — they always use native search. To enable GodeX-managed search for **non-native** providers (DeepSeek, MiniMax), set `provider: zhipu` **and** add a `providers.zhipu` block with `credentials.api_key` to `godex.yaml` (the search backend reads the provider config, not just `ZHIPU_API_KEY`). See the [Config Schema - Web Search](../07-configuration/config-schema.md#web-search) for full field semantics.
 
 ## Full Config Builder Flow
 

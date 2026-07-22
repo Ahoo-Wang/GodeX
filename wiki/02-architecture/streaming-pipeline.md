@@ -81,7 +81,7 @@ The loop ([web-search/stream-runner.ts:91](https://github.com/Ahoo-Wang/GodeX/bl
 
 1. Calls `consumeProviderStream`, which reads each SSE event, runs `provider.spec.stream.deltas(data)`, feeds the deltas to `mapProviderDeltasToEvents` with `deferTerminal: true`, and enqueues the resulting events.
 2. If the provider emitted a managed `web_search` function call, it is **suppressed** from the output, the deferred finish is cleared, and the loop continues.
-3. The runner emits the `web_search_call` lifecycle (`in_progress` → `searching` → `completed`/`failed`), executes the search through GodeX's own `SearchService`, and builds a **continuation request** that feeds the results back to the provider for another exchange.
+3. The runner emits the `web_search_call` lifecycle — `response.web_search_call.in_progress`, then `searching`. On a successful search it emits `completed` (plus `output_item.done`) and builds a **continuation request** that feeds the results back to the provider for another exchange. On a **failed** search the lifecycle helper emits `response.output_item.done` with `status: "failed"` (there is **no** `response.web_search_call.failed` event) and then rethrows, so the stream error handler emits the terminal `response.failed`.
 4. When no managed search call remains, the loop ends and `consumeProviderStream` finalizes the stream by calling `machine.finish(machine.deferredFinishReason)`.
 
 The `consumeProviderStream` function ([web-search/stream-runner.ts:182](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L182)) wraps the provider stream in a `TraceTransformer("upstream.stream.event.raw")` so raw provider events are recorded before mapping.
@@ -104,9 +104,15 @@ sequenceDiagram
     alt managed web_search call
         C->>C: suppress call, clear deferred finish
         C-->>R: ManagedStreamCall
-        R->>R: emit web_search_call lifecycle
-        R->>R: execute search, build continuation
-        R->>SSE: next exchange
+        R->>R: emit in_progress + searching
+        alt search succeeds
+            R->>R: emit completed + output_item.done
+            R->>R: build continuation
+            R->>SSE: next exchange
+        else search fails
+            R->>R: emit output_item.done (status=failed)
+            R-->>SSE: rethrow -> response.failed (terminal)
+        end
     else no managed call
         Note over SSE,C: Stream ends
         C->>M: finish(deferredFinishReason)

@@ -81,7 +81,7 @@ flowchart LR
 
 1. 调用 `consumeProviderStream`，它读取每个 SSE 事件，运行 `provider.spec.stream.deltas(data)`，将增量以 `deferTerminal: true` 传入 `mapProviderDeltasToEvents`，并入队结果事件。
 2. 如果提供者发出了托管的 `web_search` 函数调用，该调用会从输出中被**抑制**，延迟结束被清除，循环继续。
-3. Runner 发出 `web_search_call` 生命周期（`in_progress` → `searching` → `completed`/`failed`），通过 GodeX 自己的 `SearchService` 执行搜索，并构建一个**续接请求**将结果反馈给提供者进行下一次交换。
+3. Runner 发出 `web_search_call` 生命周期 — 先是 `response.web_search_call.in_progress`，然后是 `searching`。搜索成功时，它发出 `completed`（加上 `output_item.done`）并构建一个**续接请求**将结果反馈给提供者进行下一次交换。搜索**失败**时，生命周期辅助函数发出 `status: "failed"` 的 `response.output_item.done`（**没有** `response.web_search_call.failed` 事件），然后重新抛出异常，使流错误处理器发出终止性的 `response.failed`。
 4. 当不再有托管搜索调用时，循环结束，`consumeProviderStream` 通过调用 `machine.finish(machine.deferredFinishReason)` 完成流。
 
 `consumeProviderStream` 函数 ([web-search/stream-runner.ts:182](https://github.com/Ahoo-Wang/GodeX/blob/main/src/responses/web-search/stream-runner.ts#L182)) 在映射前用 `TraceTransformer("upstream.stream.event.raw")` 包装提供者流，以记录原始提供者事件。
@@ -104,9 +104,15 @@ sequenceDiagram
     alt 托管 web_search 调用
         C->>C: 抑制调用，清除延迟结束
         C-->>R: ManagedStreamCall
-        R->>R: 发出 web_search_call 生命周期
-        R->>R: 执行搜索，构建续接
-        R->>SSE: 下一次交换
+        R->>R: 发出 in_progress + searching
+        alt 搜索成功
+            R->>R: 发出 completed + output_item.done
+            R->>R: 构建续接
+            R->>SSE: 下一次交换
+        else 搜索失败
+            R->>R: 发出 output_item.done（status=failed）
+            R-->>SSE: 重新抛出 -> response.failed（终止）
+        end
     else 无托管调用
         Note over SSE,C: 流结束
         C->>M: finish(deferredFinishReason)

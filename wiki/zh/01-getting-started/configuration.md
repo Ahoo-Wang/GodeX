@@ -240,7 +240,7 @@ web_search:
 | `max_iterations` | `2` | 每个请求的最大托管搜索轮数 |
 | `timeout_ms` | `10000` | 单次搜索超时（毫秒） |
 
-使用默认配置时，支持原生 Web 搜索的提供商（智谱、小米）直接使用它；其他提供商将 `web_search` 调用转发给客户端。要为任何提供商启用 GodeX 托管搜索，设置 `provider: zhipu` 并提供 `ZHIPU_API_KEY`。完整字段语义见[配置 Schema - Web 搜索](../07-configuration/config-schema.md#web-search)。
+使用默认配置时，支持原生 Web 搜索的提供商（智谱、小米）直接使用它；其他提供商将 `web_search` 调用转发给客户端。注意，对于原生提供商，`mode` 没有影响 — 它们始终使用原生搜索。要为**非原生**提供商（DeepSeek、MiniMax）启用 GodeX 托管搜索，需设置 `provider: zhipu` **并且**在 `godex.yaml` 中添加带 `credentials.api_key` 的 `providers.zhipu` 块（搜索后端读取的是 provider 配置，而不仅仅是 `ZHIPU_API_KEY`）。完整字段语义见[配置 Schema - Web 搜索](../07-configuration/config-schema.md#web-search)。
 
 ## 完整配置构建流程
 
