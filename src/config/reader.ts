@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
-import yaml from "js-yaml";
+import { load } from "js-yaml";
 
 export function loadConfigFromFile(
 	configPath: string,
@@ -22,7 +22,9 @@ export function loadConfigFromFile(
 
 	let parsed: unknown;
 	try {
-		parsed = yaml.load(raw);
+		// js-yaml v5 throws on empty input ("expected a document, but the input
+		// is empty"); treat an empty document as an empty object instead.
+		parsed = raw.trim() === "" ? null : load(raw);
 	} catch (error) {
 		throw new Error(`Failed to parse config file: ${configPath}`, {
 			cause: error,
