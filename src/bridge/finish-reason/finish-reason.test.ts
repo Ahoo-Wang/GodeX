@@ -3,16 +3,16 @@ import { SERVER_ERROR } from "../../error";
 import { mapProviderFinishReason } from "./finish-reason";
 
 describe("mapProviderFinishReason", () => {
-	test.each([
-		["stop"],
-		["tool_calls"],
-	] as const)("maps %s to completed", (finishReason) => {
-		expect(mapProviderFinishReason("acme", finishReason)).toEqual({
-			status: "completed",
-			error: null,
-			incomplete_details: null,
-		});
-	});
+	test.each([["stop"], ["tool_calls"]] as const)(
+		"maps %s to completed",
+		(finishReason) => {
+			expect(mapProviderFinishReason("acme", finishReason)).toEqual({
+				status: "completed",
+				error: null,
+				incomplete_details: null,
+			});
+		},
+	);
 
 	test("maps provider token limits and content filters to incomplete", () => {
 		expect(mapProviderFinishReason("acme", "length")).toMatchObject({
