@@ -84,7 +84,9 @@ describe("loadConfigFromFile", () => {
 		const dir = mkdtempSync(join(tmpdir(), "godex-config-reader-"));
 		try {
 			const configPath = join(dir, "godex.yaml");
-			writeFileSync(configPath, "providers:\n  - :\n");
+			// "a: b: c" is invalid YAML (a mapping entry cannot itself be a
+			// mapping) and is rejected by both js-yaml v4 and v5.
+			writeFileSync(configPath, "a: b: c\n");
 
 			expect(() => loadConfigFromFile(configPath)).toThrow(
 				`Failed to parse config file: ${configPath}`,

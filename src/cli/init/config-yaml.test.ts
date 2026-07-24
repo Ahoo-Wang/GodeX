@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import yaml from "js-yaml";
+import { load } from "js-yaml";
 import { buildConfig } from "../../config";
 import {
 	DEEPSEEK_PROVIDER_NAME,
@@ -105,7 +105,7 @@ describe("buildConfigYaml", () => {
 			logLevel: "warn",
 		});
 
-		const parsed = yaml.load(rawYaml) as Record<string, unknown>;
+		const parsed = load(rawYaml) as Record<string, unknown>;
 		const config = buildConfig(parsed, {});
 
 		expect(config.default_provider).toBe(DEEPSEEK_PROVIDER_NAME);
@@ -143,7 +143,7 @@ describe("buildConfigYaml", () => {
 			],
 		});
 
-		const parsed = yaml.load(rawYaml) as Record<string, unknown>;
+		const parsed = load(rawYaml) as Record<string, unknown>;
 		const config = buildConfig(parsed, {});
 
 		expect(config.providers[ZHIPU_PROVIDER_NAME]?.credentials.api_key).toBe(
@@ -166,7 +166,7 @@ describe("buildConfigYaml", () => {
 			],
 		});
 
-		const parsed = yaml.load(rawYaml) as Record<string, unknown>;
+		const parsed = load(rawYaml) as Record<string, unknown>;
 		const config = buildConfig(parsed, {});
 
 		expect(config.providers[ZHIPU_PROVIDER_NAME]?.credentials.api_key).toBe(

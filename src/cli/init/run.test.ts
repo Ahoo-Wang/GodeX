@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as clack from "@clack/prompts";
-import yaml from "js-yaml";
+import { load } from "js-yaml";
 import { buildConfig } from "../../config";
 import {
 	DEEPSEEK_PROVIDER_NAME,
@@ -64,7 +64,7 @@ describe("runInit", () => {
 			await runInit({ configPath });
 
 			const config = buildConfig(
-				yaml.load(readFileSync(configPath, "utf-8")) as Record<string, unknown>,
+				load(readFileSync(configPath, "utf-8")) as Record<string, unknown>,
 				{},
 			);
 			expect(config.server.port).toBe(6789);
@@ -110,7 +110,7 @@ describe("runInit", () => {
 
 			expect(existsSync(configPath)).toBeTrue();
 			const config = buildConfig(
-				yaml.load(readFileSync(configPath, "utf-8")) as Record<string, unknown>,
+				load(readFileSync(configPath, "utf-8")) as Record<string, unknown>,
 				{},
 			);
 			expect(config.default_provider).toBe(DEEPSEEK_PROVIDER_NAME);

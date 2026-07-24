@@ -1,4 +1,4 @@
-import yaml from "js-yaml";
+import { dump } from "js-yaml";
 import type { InitConfigYamlOptions } from "./model";
 import { getInitProviderDefinition } from "./providers";
 
@@ -45,7 +45,7 @@ export function buildConfigYaml(opts: InitConfigYamlOptions): string {
 		},
 	};
 
-	return yaml.dump(config, { lineWidth: -1, noRefs: true });
+	return dump(config, { lineWidth: -1, noRefs: true });
 }
 
 function assertDefaultProviderRendered(opts: InitConfigYamlOptions): void {
