@@ -215,24 +215,27 @@ describe("reconstructResponseObject", () => {
 		["model_context_window_exceeded", "max_output_tokens"],
 		["content_filter", "content_filter"],
 		["sensitive", "content_filter"],
-	] as const)("maps %s finish reason to incomplete %s", (finishReason, incompleteReason) => {
-		const response = reconstruct(providerResponse(finishReason));
+	] as const)(
+		"maps %s finish reason to incomplete %s",
+		(finishReason, incompleteReason) => {
+			const response = reconstruct(providerResponse(finishReason));
 
-		expect(response.status).toBe("incomplete");
-		expect(response.incomplete_details).toEqual({
-			reason: incompleteReason,
-		});
-		expect(response.error).toBeNull();
-		expect(response.output).toEqual([
-			{
-				id: "msg_resp_123",
-				type: "message",
-				role: "assistant",
-				status: "incomplete",
-				content: [{ type: "output_text", text: "hello" }],
-			},
-		]);
-	});
+			expect(response.status).toBe("incomplete");
+			expect(response.incomplete_details).toEqual({
+				reason: incompleteReason,
+			});
+			expect(response.error).toBeNull();
+			expect(response.output).toEqual([
+				{
+					id: "msg_resp_123",
+					type: "message",
+					role: "assistant",
+					status: "incomplete",
+					content: [{ type: "output_text", text: "hello" }],
+				},
+			]);
+		},
+	);
 
 	test.each([
 		["undefined", undefined],
@@ -262,16 +265,16 @@ describe("reconstructResponseObject", () => {
 		expect(response.incomplete_details).toBeNull();
 	});
 
-	test.each([
-		"stop",
-		"tool_calls",
-	] as const)("maps %s finish reason to completed", (finishReason) => {
-		const response = reconstruct(providerResponse(finishReason));
+	test.each(["stop", "tool_calls"] as const)(
+		"maps %s finish reason to completed",
+		(finishReason) => {
+			const response = reconstruct(providerResponse(finishReason));
 
-		expect(response.status).toBe("completed");
-		expect(response.error).toBeNull();
-		expect(response.incomplete_details).toBeNull();
-	});
+			expect(response.status).toBe("completed");
+			expect(response.error).toBeNull();
+			expect(response.incomplete_details).toBeNull();
+		},
+	);
 
 	test("does not reconstruct tool output items for tool_calls finish reason", () => {
 		const response = reconstructResponseObject({
