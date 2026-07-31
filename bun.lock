@@ -5,9 +5,9 @@
     "": {
       "name": "@ahoo-wang/godex",
       "dependencies": {
-        "@logtape/file": "^2.2.4",
-        "@logtape/logtape": "^2.2.4",
-        "@logtape/pretty": "^2.2.4",
+        "@logtape/file": "^2.3.0",
+        "@logtape/logtape": "^2.3.0",
+        "@logtape/pretty": "^2.3.0",
       },
       "devDependencies": {
         "@ahoo-wang/fetcher": "^3.16.10",
@@ -60,11 +60,11 @@
 
     "@clack/prompts": ["@clack/prompts@1.7.0", "", { "dependencies": { "@clack/core": "1.4.3", "fast-string-width": "^3.0.2", "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A=="],
 
-    "@logtape/file": ["@logtape/file@2.2.4", "", { "peerDependencies": { "@logtape/logtape": "^2.2.4" } }, "sha512-f+1g4VvB+HegOYwt8GAhYFk1OO9nbi5l0hn7hkKxjnyedE9CBEoKgN36nIYIt58asRms2GDXLtxeK0OStYjnsQ=="],
+    "@logtape/file": ["@logtape/file@2.3.0", "", { "peerDependencies": { "@logtape/logtape": "^2.3.0" } }, "sha512-IO1IV+WSmEjf6RpdS7EnbcytrV4EUbDngeZhSeTrXQjremGZPljwqQsgjTXaK845jwIUhV2852ezAA7UBfMyXQ=="],
 
-    "@logtape/logtape": ["@logtape/logtape@2.2.4", "", {}, "sha512-2rALzv9m4ibE5FyB8/FMm5MPMMlK7ujgy3ufricVKIxj6e7SZbw4w6J16/fRAsXgdDlOXPUA0aa6XoEQvdlKxw=="],
+    "@logtape/logtape": ["@logtape/logtape@2.3.0", "", {}, "sha512-s/pxCgf9Gg75ypTV/bRUq355Dy/JP/zUJWfgJQPO5pTkXC23X2AXBcmBBgFiWH+bSi4yiX/G06qGV8CdAWD3SA=="],
 
-    "@logtape/pretty": ["@logtape/pretty@2.2.4", "", { "peerDependencies": { "@logtape/logtape": "^2.2.4" } }, "sha512-eUaa7+Y3WieTDeSSo3osGDE3m1ohTPGCjqOY9006sYrEZGPRvf4HyU+kbMcKm7Q3syWLF6RkSyJ1WhxTs1Ccvg=="],
+    "@logtape/pretty": ["@logtape/pretty@2.3.0", "", { "peerDependencies": { "@logtape/logtape": "^2.3.0" } }, "sha512-rINQolEDH/dkqJE9olePl8quKS66GU4BQT0fAPRaBpyopRQct7bFGmfk7FUGT9qgSM+Cvt+cT98rK5nKyOX+mQ=="],
 
     "@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 

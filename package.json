@@ -78,8 +78,8 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@logtape/file": "^2.2.4",
-    "@logtape/logtape": "^2.2.4",
-    "@logtape/pretty": "^2.2.4"
+    "@logtape/file": "^2.3.0",
+    "@logtape/logtape": "^2.3.0",
+    "@logtape/pretty": "^2.3.0"
   }
 }
