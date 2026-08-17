@@ -10,9 +10,9 @@
         "@logtape/pretty": "^2.3.1",
       },
       "devDependencies": {
-        "@ahoo-wang/fetcher": "^3.16.10",
-        "@ahoo-wang/fetcher-decorator": "^3.16.10",
-        "@ahoo-wang/fetcher-eventstream": "^3.16.10",
+        "@ahoo-wang/fetcher": "^3.17.0",
+        "@ahoo-wang/fetcher-decorator": "^3.17.0",
+        "@ahoo-wang/fetcher-eventstream": "^3.17.0",
         "@biomejs/biome": "^2.5.8",
         "@clack/prompts": "^1.7.0",
         "@types/bun": "^1.3.14",
@@ -32,11 +32,11 @@
     },
   },
   "packages": {
-    "@ahoo-wang/fetcher": ["@ahoo-wang/fetcher@3.16.10", "", {}, "sha512-v77TpBygssFQluMwV0ALszkDPOIB90xEzYQ5SiaD6i7kVK+fliluIYqf46OtnkYNJP7gBXhdawQIcr9XcMvAAg=="],
+    "@ahoo-wang/fetcher": ["@ahoo-wang/fetcher@3.17.0", "", {}, "sha512-FM5wqZ+inZK/qLy4Jou5E38APt/JloquSVnHnH4BQngNZxyN/KbTJNB6bmV5Kwi5pO0EvS41BVcmzB0c+L3qGA=="],
 
-    "@ahoo-wang/fetcher-decorator": ["@ahoo-wang/fetcher-decorator@3.16.10", "", { "dependencies": { "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@ahoo-wang/fetcher": "^3.0.0" } }, "sha512-iTSNs27T1qoBoprYgDk8D7Yx4Vp656f8/hN2b3LSZHh9qxPeDYhUK+WWh+N18mXwdx45npOUyW+0UzjROYMVAA=="],
+    "@ahoo-wang/fetcher-decorator": ["@ahoo-wang/fetcher-decorator@3.17.0", "", { "dependencies": { "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@ahoo-wang/fetcher": "^3.0.0" } }, "sha512-mSg7o870xSyUrWl4ovJnse6SiHSl8CI0DmAn5lOc6nvywe7iEQB4fucwfNP1WsF+LRRgN8FckFfQ+4tjMnvtlA=="],
 
-    "@ahoo-wang/fetcher-eventstream": ["@ahoo-wang/fetcher-eventstream@3.16.10", "", { "peerDependencies": { "@ahoo-wang/fetcher": "^3.0.0" } }, "sha512-FpQL89M7I7R//p/aOzo87cg/1MVZzXMsZbvYuWEjVJeju4yu+InUWYW3bFUPqbamEvTi6QYTt/dNcCzrKivkXg=="],
+    "@ahoo-wang/fetcher-eventstream": ["@ahoo-wang/fetcher-eventstream@3.17.0", "", { "peerDependencies": { "@ahoo-wang/fetcher": "^3.0.0" } }, "sha512-qpK6ALSUra2S/1ZCvcTeskqfOv/xB9WFQzuO83xEz0ZYcbktVeBqQEdWwuUVaUc+jcenn7MORGvL6/DAzlNuiw=="],
 
     "@biomejs/biome": ["@biomejs/biome@2.5.8", "", { "optionalDependencies": { "@biomejs/cli-darwin-arm64": "2.5.8", "@biomejs/cli-darwin-x64": "2.5.8", "@biomejs/cli-linux-arm64": "2.5.8", "@biomejs/cli-linux-arm64-musl": "2.5.8", "@biomejs/cli-linux-x64": "2.5.8", "@biomejs/cli-linux-x64-musl": "2.5.8", "@biomejs/cli-win32-arm64": "2.5.8", "@biomejs/cli-win32-x64": "2.5.8" }, "bin": { "biome": "bin/biome" } }, "sha512-aeAeeJB9fSDc7Gq+2GqpQxA0qBj6gj1k2R6L1cYqGePKP/baIq1WX8y6B+D+nRsO5ViQL22K/8IwbqERW0q1nw=="],
 
