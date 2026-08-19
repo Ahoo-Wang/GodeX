@@ -130,7 +130,7 @@ When adding or changing a provider:
 - Keep provider-specific DTOs under `protocol/`.
 - Do not add mapper forests or wrapper contracts.
 
-Built-in runtime providers are currently registered in `deepseek`, then `zhipu`, then `minimax` order. `src/providers/example` is a spec example, not a runtime provider.
+Built-in runtime providers are currently registered in `deepseek`, then `zhipu`, then `minimax`, then `xiaomi` order. `src/providers/example` is a spec example, not a runtime provider.
 
 ## Configuration
 
@@ -151,7 +151,7 @@ Important sections:
 
 Environment interpolation supports values such as `${DEEPSEEK_API_KEY}` and `${ZHIPU_API_KEY}` in config files. CLI overrides include `--port`, `--host`, `--config`, and `--log-level`.
 
-Legacy provider config without `spec` is intentionally rejected.
+When `spec` is omitted, the provider key name is used as the spec; startup is rejected when the resolved spec (explicit or key name) is not a registered provider definition.
 
 ## Sessions And Trace
 

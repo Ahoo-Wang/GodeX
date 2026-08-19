@@ -132,14 +132,14 @@ models:
     gpt-5.4: "deepseek/deepseek-v4-pro"
 
     # Codex mini：subagents
-    gpt-5.4-mini: "zhipu/glm-5.1"
+    gpt-5.4-mini: "zhipu/glm-5.2"
 
     # Codex 编码专用：复杂软件工程
     # 依据：DeepSeek V4-Pro 的 SWE Verified / SWE Pro / Terminal Bench 表现。
     gpt-5.3-codex: "deepseek/deepseek-v4-pro"
 
     # Codex spark：近实时编码迭代
-    gpt-5.3-codex-spark: "zhipu/glm-5.1"
+    gpt-5.3-codex-spark: "zhipu/glm-5.2"
 
     # 上一代通用 coding / agentic fallback
     # 严谨起见仍走 DeepSeek；不强行映射到 Zhipu。
@@ -155,6 +155,7 @@ models:
     mimo-v2.5-pro: "xiaomi/mimo-v2.5-pro"
     mimo-v2.5: "xiaomi/mimo-v2.5"
 
+    glm-5.2: "zhipu/glm-5.2"
     glm-5.1: "zhipu/glm-5.1"
     glm-5-turbo: "zhipu/glm-5-turbo"
     glm-4.7: "zhipu/glm-4.7"
@@ -321,7 +322,7 @@ Responses can be stored and replayed with `previous_response_id`.
 
 ## Trace Database
 
-Tracing is enabled by default and writes SQLite rows to `./data/trace.db` unless configured otherwise.
+Tracing is enabled by default and writes SQLite rows to `./data/trace.db` in development builds, or `~/.godex/data/trace.db` in production builds, unless configured otherwise.
 
 Trace records include:
 

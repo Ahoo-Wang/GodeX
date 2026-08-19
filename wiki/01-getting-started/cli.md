@@ -173,7 +173,7 @@ executes the following steps:
 outputs:
 
 ```
-GodeX v0.0.2
+GodeX v1.0.0
 
   address:   http://0.0.0.0:5678
   env:       prod

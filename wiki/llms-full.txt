@@ -5739,7 +5739,7 @@ flowchart LR
 |---|---|
 | [Quick Start](./quick-start.md) | Install GodeX and make your first API call |
 | [Configuration](./configuration.md) | Full `godex.yaml` reference |
-| [Built-in Providers](./builtin-providers.md) | DeepSeek, Zhipu, and MiniMax comparison |
+| [Built-in Providers](./builtin-providers.md) | DeepSeek, Zhipu, MiniMax, and Xiaomi comparison |
 
 ## References
 
@@ -5764,8 +5764,8 @@ Getting a working GodeX gateway takes less than five minutes. This guide walks t
 | Requirement | Minimum Version |
 |---|---|
 | Bun | >= 1.0 (for development) |
-| Node.js | >= 18 (for npm install only) |
-| Provider API key | At least one of DeepSeek, Zhipu, or MiniMax |
+| Node.js | >= 24.19.0 (for npm install only) |
+| Provider API key | At least one of DeepSeek, Zhipu, MiniMax, or Xiaomi |
 
 ## At a Glance
 
@@ -5822,10 +5822,10 @@ The wizard uses `@clack/prompts` to collect:
 | Default provider | Which provider to use when model is ambiguous | `deepseek` |
 | API key | Bearer token for each selected provider | (from env) |
 | Base URL | Override endpoint for each provider | Provider default |
-| Session backend | `memory` or `sqlite` | `memory` |
-| Log level | `trace`, `debug`, `info`, `warn`, `error` | `info` |
+| Session backend | `memory` or `sqlite` (runtime default when unset: `memory`) | `sqlite` |
+| Log level | `debug`, `info`, or `warn` | `info` |
 | Port | Server listen port | `5678` |
-| Config path | Where to write `godex.yaml` | `./godex.yaml` |
+| Config path | Where to write `godex.yaml` | `~/.godex/config.yaml` |
 
 ```mermaid
 sequenceDiagram
@@ -5984,7 +5984,7 @@ You can also stream the response by adding `"stream": true` to the request body.
 | Topic | Description |
 |---|---|
 | [Configuration](./configuration.md) | Full `godex.yaml` reference with all sections |
-| [Built-in Providers](./builtin-providers.md) | Compare DeepSeek, Zhipu, and MiniMax capabilities |
+| [Built-in Providers](./builtin-providers.md) | Compare DeepSeek, Zhipu, MiniMax, and Xiaomi capabilities |
 | [Installation & Setup](./installation-setup.md) | Docker, build from source, and platform binaries |
 
 ## References
@@ -6061,7 +6061,7 @@ The file is read from disk by `loadConfigFromFile` ([src/config/reader.ts:5-35](
 
 ## Environment Variable Interpolation
 
-Every string value in the YAML file supports `${VAR}` syntax. The interpolation is recursive, so nested objects and arrays are all processed. This lets you keep API keys out of your config file.
+String values in the `providers` section support `${VAR}` syntax. The interpolation is recursive, so nested objects and arrays under `providers` are all processed. This lets you keep API keys out of your config file.
 
 ```yaml
 providers:
@@ -6071,7 +6071,7 @@ providers:
       api_key: ${DEEPSEEK_API_KEY}
 ```
 
-The `resolveEnvVarsDeep` function handles this by walking the entire parsed object tree ([src/config/env-interpolation.ts:9-20](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/env-interpolation.ts#L9-L20)):
+The `resolveEnvVarsDeep` function handles this by walking the object tree it is given ([src/config/env-interpolation.ts:9-20](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/env-interpolation.ts#L9-L20)):
 
 | Expression | Behavior |
 |---|---|
@@ -6115,12 +6115,12 @@ providers:
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `spec` | `string` | Yes | Provider spec name (e.g. `deepseek`, `zhipu`, `minimax`) |
+| `spec` | `string` | No (defaults to key name) | Provider spec name (e.g. `deepseek`, `zhipu`, `minimax`) |
 | `credentials.api_key` | `string` | Yes | Bearer token for the provider API |
 | `endpoint.base_url` | `string` | No | Override the provider's default base URL |
 | `timeout_ms` | `number` | No | Per-request timeout in milliseconds |
 
-The `spec` field is mandatory. Legacy provider configs without `spec` will produce an error at startup ([src/config/sections/providers.ts:17-19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/providers.ts#L17-L19)).
+When `spec` is omitted, the provider key name is used as the spec ([src/config/sections/providers.ts:17-19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/providers.ts#L17-L19)). Startup fails when the resolved spec — explicit or key name — is not a registered provider definition.
 
 ## Models Section
 
@@ -6171,7 +6171,7 @@ logging:
     level: debug
     dir: ./logs
     filename: godex.log
-    max_size: 10485760
+    max_size: 10           # 10 MB per file
     max_files: 5
 ```
 
@@ -6183,7 +6183,7 @@ logging:
 | `file.enabled` | `boolean` | - | Enable file output |
 | `file.dir` | `string` | required if enabled | Directory for log files |
 | `file.filename` | `string` | required if enabled | Log file name |
-| `file.max_size` | `number` | - | Max file size in bytes before rotation |
+| `file.max_size` | `number` | `10` | Max file size in MB before rotation |
 | `file.max_files` | `number` | - | Max number of rotated files to keep |
 
 Valid log levels: `trace`, `debug`, `info`, `warn`, `error`.
@@ -6814,7 +6814,7 @@ executes the following steps:
 outputs:
 
 ```
-GodeX v0.0.2
+GodeX v1.0.0
 
   address:   http://0.0.0.0:5678
   env:       prod
@@ -9264,7 +9264,7 @@ GodeX is configured via a `godex.yaml` file, typically created by `godex init`. 
 server:
   port: 5678              # HTTP listen port
   host: "0.0.0.0"         # Listen address
-  idle_timeout: 30000     # Idle connection timeout (ms)
+  idle_timeout: 255       # Idle connection timeout (seconds)
                          # Default: 0 (disabled)
 
 default_provider: deepseek   # Provider used when model has no slash prefix
@@ -9277,7 +9277,7 @@ models:
 
 providers:
   deepseek:
-    spec: deepseek                      # Provider spec name (required)
+    spec: deepseek                      # Provider spec name (defaults to key name)
     credentials:
       api_key: ${DEEPSEEK_API_KEY}
     endpoint:
@@ -9285,7 +9285,7 @@ providers:
     timeout_ms: 30000
 
   zhipu:
-    spec: zhipu                         # Provider spec name (required)
+    spec: zhipu                         # Provider spec name (defaults to key name)
     credentials:
       api_key: ${ZHIPU_API_KEY}
     endpoint:
@@ -9293,7 +9293,7 @@ providers:
     timeout_ms: 30000
 
   minimax:
-    spec: minimax                        # Provider spec name (required)
+    spec: minimax                        # Provider spec name (defaults to key name)
     credentials:
       api_key: ${MINIMAX_API_KEY}
     endpoint:
@@ -9315,7 +9315,7 @@ logging:
     level: debug
     dir: ./logs
     filename: godex.log
-    max_size: 10485760    # 10MB
+    max_size: 10           # 10 MB per file
     max_files: 5
 
 web_search:                      # Built-in web search (default: enabled, no provider)
@@ -9420,12 +9420,12 @@ classDiagram
 
 ## Provider Config
 
-Each provider entry must include a `spec` field that matches a registered provider definition name. Legacy provider config without `spec` is rejected at startup.
+Each provider entry may include a `spec` field that matches a registered provider definition name. When `spec` is omitted, the provider key name is used as the spec. Startup is rejected when the resolved spec — explicit or key name — is not a registered provider definition.
 
 ```yaml
 providers:
   myprovider:
-    spec: myprovider           # Required: matches registered definition
+    spec: myprovider           # Matches a registered definition (defaults to the provider key name)
     credentials:
       api_key: ${MY_API_KEY}
     endpoint:
@@ -9502,7 +9502,7 @@ BESIDES YAML interpolation, these environment variables directly override config
 | `GODEX_PORT` | `server.port` | Overrides the listen port |
 | `GODEX_HOST` | `server.host` | Overrides the bind address |
 | `GODEX_LOG_LEVEL` | `logging.level` | Overrides the log level |
-| `GODEX_DEFAULT_PROVIDER` | `default_provider` | Falls back to `deepseek` if both are unset |
+| `GODEX_DEFAULT_PROVIDER` | `default_provider` | Falls back to `zhipu` if both are unset |
 
 [CLI Commands](/07-configuration/cli-commands)
 </doc>

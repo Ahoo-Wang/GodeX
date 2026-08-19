@@ -12,8 +12,8 @@ description: 安装 GodeX，使用初始化向导创建配置文件，启动服�
 | 要求 | 最低版本 |
 |---|---|
 | Bun | >= 1.0（用于开发） |
-| Node.js | >= 18（仅用于 npm install） |
-| 提供商 API Key | 至少拥有 DeepSeek、Zhipu 或 MiniMax 之一 |
+| Node.js | >= 24.19.0（仅用于 npm install） |
+| 提供商 API Key | 至少拥有 DeepSeek、Zhipu、MiniMax、小米之一 |
 
 ## 概览
 
@@ -70,10 +70,10 @@ godex init
 | 默认提供商 | 当模型前缀不明确时使用的提供商 | `deepseek` |
 | API Key | 每个所选提供商的 Bearer Token | （来自环境变量） |
 | Base URL | 覆盖每个提供商的端点地址 | 提供商默认值 |
-| 会话后端 | `memory` 或 `sqlite` | `memory` |
-| 日志级别 | `trace`、`debug`、`info`、`warn`、`error` | `info` |
+| 会话后端 | `memory` 或 `sqlite`（运行时缺省为 `memory`） | `sqlite` |
+| 日志级别 | `debug`、`info` 或 `warn` | `info` |
 | 端口 | 服务器监听端口 | `5678` |
-| 配置文件路径 | `godex.yaml` 的写入位置 | `./godex.yaml` |
+| 配置文件路径 | `godex.yaml` 的写入位置 | `~/.godex/config.yaml` |
 
 ```mermaid
 sequenceDiagram
@@ -232,7 +232,7 @@ sequenceDiagram
 | 主题 | 说明 |
 |---|---|
 | [配置](./configuration.md) | 完整的 `godex.yaml` 参考及所有配置段说明 |
-| [内置提供商](./builtin-providers.md) | 对比 DeepSeek、Zhipu 和 MiniMax 的能力 |
+| [内置提供商](./builtin-providers.md) | 对比 DeepSeek、Zhipu、MiniMax 和小米的能力 |
 | [安装与设置](./installation-setup.md) | Docker、从源码构建及平台二进制文件 |
 
 ## 参考

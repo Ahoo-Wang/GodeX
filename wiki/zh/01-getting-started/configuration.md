@@ -65,7 +65,7 @@ flowchart TB
 
 ## 环境变量插值
 
-YAML 文件中的每个字符串值都支持 `${VAR}` 语法。插值是递归执行的，因此嵌套对象和数组都会被处理。这使你可以将 API Key 从配置文件中分离出来。
+`providers` 段中的字符串值支持 `${VAR}` 语法。插值是递归执行的，因此 `providers` 下的嵌套对象和数组都会被处理。这使你可以将 API Key 从配置文件中分离出来。
 
 ```yaml
 providers:
@@ -75,7 +75,7 @@ providers:
       api_key: ${DEEPSEEK_API_KEY}
 ```
 
-`resolveEnvVarsDeep` 函数通过遍历整个已解析的对象树来处理此过程（[src/config/env-interpolation.ts:9-20](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/env-interpolation.ts#L9-L20)）：
+`resolveEnvVarsDeep` 函数通过遍历传入的对象树来处理此过程（[src/config/env-interpolation.ts:9-20](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/env-interpolation.ts#L9-L20)）：
 
 | 表达式 | 行为 |
 |---|---|
@@ -119,12 +119,12 @@ providers:
 
 | 字段 | 类型 | 必需 | 说明 |
 |---|---|---|---|
-| `spec` | `string` | 是 | 提供商规范名称（例如 `deepseek`、`zhipu`、`minimax`） |
+| `spec` | `string` | 否（缺省时取键名） | 提供商规范名称（例如 `deepseek`、`zhipu`、`minimax`） |
 | `credentials.api_key` | `string` | 是 | 提供商 API 的 Bearer Token |
 | `endpoint.base_url` | `string` | 否 | 覆盖提供商的默认 Base URL |
 | `timeout_ms` | `number` | 否 | 单请求超时时间（毫秒） |
 
-`spec` 字段是必填的。缺少 `spec` 的旧版提供商配置将在启动时产生错误（[src/config/sections/providers.ts:17-19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/providers.ts#L17-L19)）。
+省略 `spec` 时，使用提供商键名作为 spec（[src/config/sections/providers.ts:17-19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/providers.ts#L17-L19)）。解析出的 spec（显式指定或键名）未注册为提供商定义时，启动会失败。
 
 ## Models 配置段
 
@@ -175,7 +175,7 @@ logging:
     level: debug
     dir: ./logs
     filename: godex.log
-    max_size: 10485760
+    max_size: 10           # 每个文件 10 MB
     max_files: 5
 ```
 
@@ -187,7 +187,7 @@ logging:
 | `file.enabled` | `boolean` | - | 启用文件输出 |
 | `file.dir` | `string` | 启用时必需 | 日志文件目录 |
 | `file.filename` | `string` | 启用时必需 | 日志文件名 |
-| `file.max_size` | `number` | - | 轮转前的最大文件大小（字节） |
+| `file.max_size` | `number` | `10` | 轮转前的最大文件大小（MB） |
 | `file.max_files` | `number` | - | 保留的轮转文件最大数量 |
 
 有效的日志级别：`trace`、`debug`、`info`、`warn`、`error`。
@@ -345,6 +345,7 @@ classDiagram
         +providers: Record~string, ProviderConfig~
         +session: SessionConfig
         +logging: LoggingConfig
+        +web_search?: WebSearchConfig
         +trace: TraceConfig
     }
 
