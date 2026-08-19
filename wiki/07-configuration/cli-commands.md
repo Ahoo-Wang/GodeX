@@ -14,13 +14,13 @@ Start the gateway HTTP server.
 
 ```bash
 godex serve                    # Start with default config
-godex serve -c /path/to.yaml  # Use a custom config file
+godex serve --config /path/to.yaml  # Use a custom config file
 godex serve --port 8080       # Override port
 godex serve --host 127.0.0.1  # Override bind address
 godex serve --log-level debug # Override log level
 ```
 
-Reads `godex.yaml` from the current directory (or the path specified by `-c`), initializes all components, and starts listening.
+Reads `godex.yaml` from the current directory (or the path specified by `--config`), initializes all components, and starts listening.
 
 ## `godex init`
 
@@ -32,7 +32,7 @@ godex init --config ~/.godex/config.yaml  # Specify output path
 ```
 
 Prompts for:
-- LLM providers to configure (DeepSeek, Zhipu, or both)
+- LLM providers to configure (any combination of DeepSeek, Zhipu, MiniMax, and Xiaomi)
 - Per-provider API key and base URL
 - Default provider selection (when multiple providers are configured)
 - Server port
@@ -48,7 +48,7 @@ Validate the current configuration without starting the server.
 
 ```bash
 godex config check
-godex config check -c /path/to.yaml
+godex config check --config /path/to.yaml
 ```
 
 Checks:

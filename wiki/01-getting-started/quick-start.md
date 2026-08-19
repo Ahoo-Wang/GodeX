@@ -12,8 +12,8 @@ Getting a working GodeX gateway takes less than five minutes. This guide walks t
 | Requirement | Minimum Version |
 |---|---|
 | Bun | >= 1.0 (for development) |
-| Node.js | >= 18 (for npm install only) |
-| Provider API key | At least one of DeepSeek, Zhipu, or MiniMax |
+| Node.js | >= 24.19.0 (for npm install only) |
+| Provider API key | At least one of DeepSeek, Zhipu, MiniMax, or Xiaomi |
 
 ## At a Glance
 
@@ -70,10 +70,10 @@ The wizard uses `@clack/prompts` to collect:
 | Default provider | Which provider to use when model is ambiguous | `deepseek` |
 | API key | Bearer token for each selected provider | (from env) |
 | Base URL | Override endpoint for each provider | Provider default |
-| Session backend | `memory` or `sqlite` | `memory` |
-| Log level | `trace`, `debug`, `info`, `warn`, `error` | `info` |
+| Session backend | `memory` or `sqlite` (runtime default when unset: `memory`) | `sqlite` |
+| Log level | `debug`, `info`, or `warn` | `info` |
 | Port | Server listen port | `5678` |
-| Config path | Where to write `godex.yaml` | `./godex.yaml` |
+| Config path | Where to write `godex.yaml` | `~/.godex/config.yaml` |
 
 ```mermaid
 sequenceDiagram
@@ -232,7 +232,7 @@ You can also stream the response by adding `"stream": true` to the request body.
 | Topic | Description |
 |---|---|
 | [Configuration](./configuration.md) | Full `godex.yaml` reference with all sections |
-| [Built-in Providers](./builtin-providers.md) | Compare DeepSeek, Zhipu, and MiniMax capabilities |
+| [Built-in Providers](./builtin-providers.md) | Compare DeepSeek, Zhipu, MiniMax, and Xiaomi capabilities |
 | [Installation & Setup](./installation-setup.md) | Docker, build from source, and platform binaries |
 
 ## References

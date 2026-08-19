@@ -9,7 +9,7 @@ keywords: "GodeX, 安装, 配置, npm, 二进制, Docker"
 ## 前提条件
 
 - **Bun** >= 1.0（开发环境）
-- **Node.js** >= 18（仅 npm 安装发布包时需要）
+- **Node.js** >= 24.19.0（仅 npm 安装发布包时需要）
 
 ## 从 npm 安装
 

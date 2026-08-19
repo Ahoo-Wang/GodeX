@@ -163,7 +163,7 @@ serve 命令位于
 输出如下信息：
 
 ```
-GodeX v0.0.2
+GodeX v1.0.0
 
   address:   http://0.0.0.0:5678
   env:       prod

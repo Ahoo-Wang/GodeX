@@ -65,7 +65,7 @@ The file is read from disk by `loadConfigFromFile` ([src/config/reader.ts:5-35](
 
 ## Environment Variable Interpolation
 
-Every string value in the YAML file supports `${VAR}` syntax. The interpolation is recursive, so nested objects and arrays are all processed. This lets you keep API keys out of your config file.
+String values in the `providers` section support `${VAR}` syntax. The interpolation is recursive, so nested objects and arrays under `providers` are all processed. This lets you keep API keys out of your config file.
 
 ```yaml
 providers:
@@ -75,7 +75,7 @@ providers:
       api_key: ${DEEPSEEK_API_KEY}
 ```
 
-The `resolveEnvVarsDeep` function handles this by walking the entire parsed object tree ([src/config/env-interpolation.ts:9-20](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/env-interpolation.ts#L9-L20)):
+The `resolveEnvVarsDeep` function handles this by walking the object tree it is given ([src/config/env-interpolation.ts:9-20](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/env-interpolation.ts#L9-L20)):
 
 | Expression | Behavior |
 |---|---|
@@ -119,12 +119,12 @@ providers:
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `spec` | `string` | Yes | Provider spec name (e.g. `deepseek`, `zhipu`, `minimax`) |
+| `spec` | `string` | No (defaults to key name) | Provider spec name (e.g. `deepseek`, `zhipu`, `minimax`) |
 | `credentials.api_key` | `string` | Yes | Bearer token for the provider API |
 | `endpoint.base_url` | `string` | No | Override the provider's default base URL |
 | `timeout_ms` | `number` | No | Per-request timeout in milliseconds |
 
-The `spec` field is mandatory. Legacy provider configs without `spec` will produce an error at startup ([src/config/sections/providers.ts:17-19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/providers.ts#L17-L19)).
+When `spec` is omitted, the provider key name is used as the spec ([src/config/sections/providers.ts:17-19](https://github.com/Ahoo-Wang/GodeX/blob/main/src/config/sections/providers.ts#L17-L19)). Startup fails when the resolved spec — explicit or key name — is not a registered provider definition.
 
 ## Models Section
 
@@ -175,7 +175,7 @@ logging:
     level: debug
     dir: ./logs
     filename: godex.log
-    max_size: 10485760
+    max_size: 10           # 10 MB per file
     max_files: 5
 ```
 
@@ -187,7 +187,7 @@ logging:
 | `file.enabled` | `boolean` | - | Enable file output |
 | `file.dir` | `string` | required if enabled | Directory for log files |
 | `file.filename` | `string` | required if enabled | Log file name |
-| `file.max_size` | `number` | - | Max file size in bytes before rotation |
+| `file.max_size` | `number` | `10` | Max file size in MB before rotation |
 | `file.max_files` | `number` | - | Max number of rotated files to keep |
 
 Valid log levels: `trace`, `debug`, `info`, `warn`, `error`.
@@ -345,6 +345,7 @@ classDiagram
         +providers: Record~string, ProviderConfig~
         +session: SessionConfig
         +logging: LoggingConfig
+        +web_search?: WebSearchConfig
         +trace: TraceConfig
     }
 

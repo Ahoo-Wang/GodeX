@@ -9,7 +9,7 @@ keywords: "GodeX, installation, setup, npm, binary, configuration, Docker"
 ## Prerequisites
 
 - **Bun** >= 1.0 (for development)
-- **Node.js** >= 18 (only needed for npm install of the published package)
+- **Node.js** >= 24.19.0 (only needed for npm install of the published package)
 
 ## Install from npm
 

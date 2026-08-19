@@ -14,7 +14,7 @@ GodeX is configured via a `godex.yaml` file, typically created by `godex init`. 
 server:
   port: 5678              # HTTP listen port
   host: "0.0.0.0"         # Listen address
-  idle_timeout: 30000     # Idle connection timeout (ms)
+  idle_timeout: 255       # Idle connection timeout (seconds)
                          # Default: 0 (disabled)
 
 default_provider: deepseek   # Provider used when model has no slash prefix
@@ -27,7 +27,7 @@ models:
 
 providers:
   deepseek:
-    spec: deepseek                      # Provider spec name (required)
+    spec: deepseek                      # Provider spec name (defaults to key name)
     credentials:
       api_key: ${DEEPSEEK_API_KEY}
     endpoint:
@@ -35,7 +35,7 @@ providers:
     timeout_ms: 30000
 
   zhipu:
-    spec: zhipu                         # Provider spec name (required)
+    spec: zhipu                         # Provider spec name (defaults to key name)
     credentials:
       api_key: ${ZHIPU_API_KEY}
     endpoint:
@@ -43,7 +43,7 @@ providers:
     timeout_ms: 30000
 
   minimax:
-    spec: minimax                        # Provider spec name (required)
+    spec: minimax                        # Provider spec name (defaults to key name)
     credentials:
       api_key: ${MINIMAX_API_KEY}
     endpoint:
@@ -65,7 +65,7 @@ logging:
     level: debug
     dir: ./logs
     filename: godex.log
-    max_size: 10485760    # 10MB
+    max_size: 10           # 10 MB per file
     max_files: 5
 
 web_search:                      # Built-in web search (default: enabled, no provider)
@@ -170,12 +170,12 @@ classDiagram
 
 ## Provider Config
 
-Each provider entry must include a `spec` field that matches a registered provider definition name. Legacy provider config without `spec` is rejected at startup.
+Each provider entry may include a `spec` field that matches a registered provider definition name. When `spec` is omitted, the provider key name is used as the spec. Startup is rejected when the resolved spec — explicit or key name — is not a registered provider definition.
 
 ```yaml
 providers:
   myprovider:
-    spec: myprovider           # Required: matches registered definition
+    spec: myprovider           # Matches a registered definition (defaults to the provider key name)
     credentials:
       api_key: ${MY_API_KEY}
     endpoint:
@@ -252,7 +252,7 @@ BESIDES YAML interpolation, these environment variables directly override config
 | `GODEX_PORT` | `server.port` | Overrides the listen port |
 | `GODEX_HOST` | `server.host` | Overrides the bind address |
 | `GODEX_LOG_LEVEL` | `logging.level` | Overrides the log level |
-| `GODEX_DEFAULT_PROVIDER` | `default_provider` | Falls back to `deepseek` if both are unset |
+| `GODEX_DEFAULT_PROVIDER` | `default_provider` | Falls back to `zhipu` if both are unset |
 
 [CLI Commands](/07-configuration/cli-commands)
 

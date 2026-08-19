@@ -22,6 +22,7 @@ GodeX 让使用 OpenAI Responses API 的客户端，可以通过一个本地网�
 - `GET /v1/models` 暴露模型别名，让客户端使用稳定模型名，GodeX 负责路由到 provider/model。
 - 内置 DeepSeek、Xiaomi、MiniMax、智谱桥接 provider。
 - 基于 provider capability 规划请求参数、工具、`tool_choice`、结构化输出、推理和流式 usage。
+- 混合 web search 支持：Zhipu/Xiaomi 使用 provider 原生声明，并通过智谱 Web Search API 提供 GodeX 托管的在线搜索。
 - 支持 `previous_response_id` 会话链，可使用内存或 SQLite。
 - Trace 记录 provider request、provider response、stream event、usage 和 error。
 - 基于 Bun 运行时、TypeScript 源码，并通过 release 产出多平台原生二进制。
@@ -129,14 +130,14 @@ models:
     gpt-5.4: "deepseek/deepseek-v4-pro"
 
     # Codex mini：subagents
-    gpt-5.4-mini: "zhipu/glm-5.1"
+    gpt-5.4-mini: "zhipu/glm-5.2"
 
     # Codex 编码专用：复杂软件工程
     # 依据：DeepSeek V4-Pro 的 SWE Verified / SWE Pro / Terminal Bench 表现。
     gpt-5.3-codex: "deepseek/deepseek-v4-pro"
 
     # Codex spark：近实时编码迭代
-    gpt-5.3-codex-spark: "zhipu/glm-5.1"
+    gpt-5.3-codex-spark: "zhipu/glm-5.2"
 
     # 上一代通用 coding / agentic fallback
     # 严谨起见仍走 DeepSeek；不强行映射到 Zhipu。
@@ -152,6 +153,7 @@ models:
     mimo-v2.5-pro: "xiaomi/mimo-v2.5-pro"
     mimo-v2.5: "xiaomi/mimo-v2.5"
 
+    glm-5.2: "zhipu/glm-5.2"
     glm-5.1: "zhipu/glm-5.1"
     glm-5-turbo: "zhipu/glm-5-turbo"
     glm-4.7: "zhipu/glm-4.7"
@@ -317,12 +319,13 @@ Responses 可以通过 `previous_response_id` 保存并回放上下文。
 
 ## Trace 数据库
 
-Trace 默认开启，默认写入 `./data/trace.db`。
+Trace 默认开启，开发构建默认写入 `./data/trace.db`，生产构建默认写入 `~/.godex/data/trace.db`。
 
 Trace 记录包括：
 
-- provider request 元数据
-- provider request / response body 的摘要 payload
+- provider request 元数据与最终 patched request 的 payload 摘要
+- provider request 生命周期事件，不重复完整请求体
+- 同步 provider response body 以摘要 payload 记录
 - 原始和转换后的 stream event
 - usage 详情，包括上游返回的 cached tokens
 - route error 和 provider error

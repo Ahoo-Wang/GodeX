@@ -14,13 +14,13 @@ GodeX 以单一二进制文件（`godex`）发布，包含三个子命令。`god
 
 ```bash
 godex serve                    # 使用默认配置启动
-godex serve -c /path/to.yaml  # 使用自定义配置文件
+godex serve --config /path/to.yaml  # 使用自定义配置文件
 godex serve --port 8080       # 覆盖端口
 godex serve --host 127.0.0.1  # 覆盖绑定地址
 godex serve --log-level debug # 覆盖日志级别
 ```
 
-从当前目录（或 `-c` 指定路径）读取 `godex.yaml`，初始化所有组件并开始监听。
+从当前目录（或 `--config` 指定路径）读取 `godex.yaml`，初始化所有组件并开始监听。
 
 ## `godex init`
 
@@ -32,7 +32,7 @@ godex init --config ~/.godex/config.yaml  # 指定输出路径
 ```
 
 提示输入：
-- 要配置的 LLM 提供商（DeepSeek、智谱或两者）
+- 要配置的 LLM 提供商（DeepSeek、智谱、MiniMax、小米任意组合）
 - 每个提供商的 API 密钥和基础 URL
 - 默认提供商选择（配置多个提供商时）
 - 服务器端口
@@ -48,7 +48,7 @@ godex init --config ~/.godex/config.yaml  # 指定输出路径
 
 ```bash
 godex config check
-godex config check -c /path/to.yaml
+godex config check --config /path/to.yaml
 ```
 
 检查：

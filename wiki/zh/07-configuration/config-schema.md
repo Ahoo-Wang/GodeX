@@ -14,7 +14,7 @@ GodeX 通过 `godex.yaml` 文件配置，通常由 `godex init` 创建。环境�
 server:
   port: 5678              # HTTP 监听端口
   host: "0.0.0.0"         # 监听地址
-  idle_timeout: 30000     # 空闲连接超时（毫秒），默认：0（禁用）
+  idle_timeout: 255       # 空闲连接超时（秒），默认：0（禁用）
 
 default_provider: deepseek   # 模型无斜杠前缀时使用的提供商
 
@@ -26,7 +26,7 @@ models:
 
 providers:
   deepseek:
-    spec: deepseek                      # 提供商规格名称（必填）
+    spec: deepseek                      # 提供商规格名称（缺省时取提供商键名）
     credentials:
       api_key: ${DEEPSEEK_API_KEY}
     endpoint:
@@ -34,7 +34,7 @@ providers:
     timeout_ms: 30000
 
   zhipu:
-    spec: zhipu                         # 提供商规格名称（必填）
+    spec: zhipu                         # 提供商规格名称（缺省时取提供商键名）
     credentials:
       api_key: ${ZHIPU_API_KEY}
     endpoint:
@@ -42,7 +42,7 @@ providers:
     timeout_ms: 30000
 
   minimax:
-    spec: minimax                        # 提供商规格名称（必填）
+    spec: minimax                        # 提供商规格名称（缺省时取提供商键名）
     credentials:
       api_key: ${MINIMAX_API_KEY}
     endpoint:
@@ -64,7 +64,7 @@ logging:
     level: debug
     dir: ./logs
     filename: godex.log
-    max_size: 10485760    # 10MB
+    max_size: 10           # 每个文件 10 MB
     max_files: 5
 
 web_search:                      # 内置 Web 搜索（默认：启用，无后端）
@@ -169,12 +169,12 @@ classDiagram
 
 ## 提供商配置
 
-每个提供商条目必须包含 `spec` 字段，匹配已注册的提供商定义名称。启动时会拒绝没有 `spec` 的旧版提供商配置。
+每个提供商条目可以包含 `spec` 字段，匹配已注册的提供商定义名称。省略 `spec` 时，使用提供商键名作为 spec。解析出的 spec（显式指定或键名）未注册为提供商定义时，启动会被拒绝。
 
 ```yaml
 providers:
   myprovider:
-    spec: myprovider           # 必填：匹配已注册的提供商定义
+    spec: myprovider           # 匹配已注册的提供商定义（缺省时取提供商键名）
     credentials:
       api_key: ${MY_API_KEY}
     endpoint:
@@ -251,7 +251,7 @@ GodeX 可以两种方式运行 Web 搜索：让提供商原生处理，或由 Go
 | `GODEX_PORT` | `server.port` | 覆盖监听端口 |
 | `GODEX_HOST` | `server.host` | 覆盖绑定地址 |
 | `GODEX_LOG_LEVEL` | `logging.level` | 覆盖日志级别 |
-| `GODEX_DEFAULT_PROVIDER` | `default_provider` | 未设置时回退到 `deepseek` |
+| `GODEX_DEFAULT_PROVIDER` | `default_provider` | 未设置时回退到 `zhipu` |
 
 [CLI 命令](/zh/07-configuration/cli-commands)
 

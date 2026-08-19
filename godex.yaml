@@ -81,6 +81,7 @@ models:
     glm-4.7: "zhipu/glm-4.7"
     glm-4.5-air: "zhipu/glm-4.5-air"
 
+    MiniMax-M3: "minimax/MiniMax-M3"
     MiniMax-M2.7: "minimax/MiniMax-M2.7"
     MiniMax-M2.7-highspeed: "minimax/MiniMax-M2.7-highspeed"
 
@@ -166,12 +167,11 @@ logging:
   console:
     enabled: true                    # 启用控制台日志
     level: debug                     # 控制台日志级别 (默认继承 logging.level)
-    pretty: true                     # 结构化日志的人类可读输出
 
   file:
     enabled: true                    # 启用文件日志
     level: debug                     # 文件日志级别 (默认继承 logging.level)
     dir: ~/.godex/logs               # 日志目录
     filename: godex.log              # 日志文件名
-    # max_size: 10485760             # 单文件最大字节数 (默认无限制)
-    # max_files: 5                   # 保留的历史文件数 (默认无限制)
+    # max_size: 10                   # 单文件最大 MB 数 (默认 10)
+    # max_files: 5                   # 保留的历史文件数 (默认 5)

@@ -56,9 +56,9 @@ GodeX 在 `godex.yaml` 中预置了以下 Codex 模型别名：
 |---|---|---|
 | `gpt-5.5` | 默认主力：复杂编码、computer use、research | `deepseek/deepseek-v4-pro` |
 | `gpt-5.4` | 旗舰：coding + reasoning + tool use | `deepseek/deepseek-v4-pro` |
-| `gpt-5.4-mini` | 子任务调度 | `zhipu/glm-5.1` |
+| `gpt-5.4-mini` | 子任务调度 | `zhipu/glm-5.2` |
 | `gpt-5.3-codex` | 编码专用：复杂软件工程 | `deepseek/deepseek-v4-pro` |
-| `gpt-5.3-codex-spark` | 近实时编码迭代 | `zhipu/glm-5.1` |
+| `gpt-5.3-codex-spark` | 近实时编码迭代 | `zhipu/glm-5.2` |
 
 模型别名到 provider/model 的映射完全在 `godex.yaml` 中管理，Codex 侧只需知道别名，切换 provider 无需改动客户端配置。
 

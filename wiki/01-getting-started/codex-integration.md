@@ -56,9 +56,9 @@ GodeX ships with these Codex model aliases in `godex.yaml`:
 |---|---|---|
 | `gpt-5.5` | Default: complex coding, computer use, research | `deepseek/deepseek-v4-pro` |
 | `gpt-5.4` | Flagship: coding + reasoning + tool use | `deepseek/deepseek-v4-pro` |
-| `gpt-5.4-mini` | Sub-agent tasks | `zhipu/glm-5.1` |
+| `gpt-5.4-mini` | Sub-agent tasks | `zhipu/glm-5.2` |
 | `gpt-5.3-codex` | Codex coding: complex software engineering | `deepseek/deepseek-v4-pro` |
-| `gpt-5.3-codex-spark` | Near-real-time coding iteration | `zhipu/glm-5.1` |
+| `gpt-5.3-codex-spark` | Near-real-time coding iteration | `zhipu/glm-5.2` |
 
 Model aliases are managed entirely in `godex.yaml`. Codex only needs the alias name — no client-side changes required when switching providers.
 

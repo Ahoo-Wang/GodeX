@@ -14,7 +14,7 @@ GodeX bridges the gap between the OpenAI Responses API and the diverse ecosystem
 | **What** | OpenAI-compatible Responses API gateway |
 | **Protocol** | Accepts OpenAI Responses API; translates to Chat Completions |
 | **Runtime** | Built on Bun for high-performance HTTP serving |
-| **Built-in Providers** | DeepSeek, Zhipu, MiniMax |
+| **Built-in Providers** | DeepSeek, Zhipu, MiniMax, Xiaomi |
 | **Session Backends** | In-memory, SQLite |
 | **Configuration** | YAML file with `${VAR}` environment interpolation |
 | **CLI** | `godex init` wizard, `godex serve` runtime |
@@ -259,7 +259,7 @@ flowchart LR
 |---|---|
 | [Quick Start](./quick-start.md) | Install GodeX and make your first API call |
 | [Configuration](./configuration.md) | Full `godex.yaml` reference |
-| [Built-in Providers](./builtin-providers.md) | DeepSeek, Zhipu, and MiniMax comparison |
+| [Built-in Providers](./builtin-providers.md) | DeepSeek, Zhipu, MiniMax, and Xiaomi comparison |
 
 ## References
 

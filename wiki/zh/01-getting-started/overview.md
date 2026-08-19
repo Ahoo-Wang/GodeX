@@ -14,7 +14,7 @@ GodeX 在 OpenAI Responses API 与众多非 OpenAI 大语言模型提供商之�
 | **定义** | 兼容 OpenAI 的 Responses API 网关 |
 | **协议** | 接收 OpenAI Responses API 请求；转换为 Chat Completions |
 | **运行时** | 基于 Bun 构建，提供高性能 HTTP 服务 |
-| **内置提供商** | DeepSeek、Zhipu、MiniMax |
+| **内置提供商** | DeepSeek、Zhipu、MiniMax、小米 |
 | **会话后端** | 内存、SQLite |
 | **配置** | YAML 文件，支持 `${VAR}` 环境变量插值 |
 | **CLI** | `godex init` 向导、`godex serve` 运行时 |
@@ -259,7 +259,7 @@ flowchart LR
 |---|---|
 | [快速开始](./quick-start.md) | 安装 GodeX 并发起你的第一个 API 调用 |
 | [配置](./configuration.md) | 完整的 `godex.yaml` 参考文档 |
-| [内置提供商](./builtin-providers.md) | DeepSeek、Zhipu 和 MiniMax 对比 |
+| [内置提供商](./builtin-providers.md) | DeepSeek、Zhipu、MiniMax 和小米对比 |
 
 ## 参考
 
