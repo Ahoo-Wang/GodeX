@@ -1,6 +1,6 @@
 # ---- Build stage: compile the godex binary ----
 # Use the build host platform for cross-compilation via bun --target
-FROM --platform=$BUILDPLATFORM oven/bun:1.3.14 AS build
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.0 AS build
 
 ARG TARGETARCH
 
