@@ -66,9 +66,9 @@
     "@ahoo-wang/godex-win32-arm64": "1.0.0"
   },
   "devDependencies": {
-    "@ahoo-wang/fetcher": "^3.17.1",
-    "@ahoo-wang/fetcher-decorator": "^3.17.1",
-    "@ahoo-wang/fetcher-eventstream": "^3.17.1",
+    "@ahoo-wang/fetcher": "^3.18.1",
+    "@ahoo-wang/fetcher-decorator": "^3.18.1",
+    "@ahoo-wang/fetcher-eventstream": "^3.18.1",
     "@biomejs/biome": "^2.5.10",
     "@clack/prompts": "^1.7.0",
     "@types/bun": "^1.4.0",
