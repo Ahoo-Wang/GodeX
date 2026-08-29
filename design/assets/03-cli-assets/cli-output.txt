@@ -1,2 +1,0 @@
-$ godex
-GodeX is running. Listening on http://localhost:5678
