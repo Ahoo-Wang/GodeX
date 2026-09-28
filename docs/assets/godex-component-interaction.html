@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>GodeX Component Interaction</title>
+<style>
+	:root {
+		--bg-deep: #0b1220;
+		--bg-panel: #112240;
+		--bg-light: #f8fafc;
+		--text: #0f172a;
+		--text-invert: #f8fafc;
+		--muted: #64748b;
+		--muted-invert: #9fb2d0;
+		--blue: #2563ff;
+		--cyan: #00d4ff;
+		--purple: #7c3aed;
+		--violet: #a855f7;
+		--border: #e6ecf5;
+		--warning: #f59e0b;
+		--line: #50d9ff;
+	}
+	* { box-sizing: border-box; }
+	body {
+		margin: 0;
+		background: #eef3f9;
+		font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+		color: var(--text);
+	}
+	.poster {
+		position: relative;
+		width: 1800px;
+		height: 1200px;
+		overflow: hidden;
+		background:
+			radial-gradient(circle at 18% 16%, rgba(0, 212, 255, 0.2), transparent 24%),
+			radial-gradient(circle at 82% 20%, rgba(124, 58, 237, 0.22), transparent 28%),
+			radial-gradient(circle at 62% 82%, rgba(37, 99, 255, 0.14), transparent 30%),
+			linear-gradient(rgba(0, 212, 255, 0.035) 1px, transparent 1px),
+			linear-gradient(90deg, rgba(0, 212, 255, 0.035) 1px, transparent 1px),
+			#07111f;
+		background-size: auto, auto, auto, 56px 56px, 56px 56px, auto;
+	}
+	.poster::before {
+		content: "";
+		position: absolute;
+		inset: 170px 0 0;
+		background:
+			linear-gradient(180deg, rgba(7, 17, 31, 0.08), rgba(7, 17, 31, 0.82)),
+			radial-gradient(circle at 50% 18%, rgba(37, 99, 255, 0.12), transparent 42%);
+		pointer-events: none;
+	}
+	.header {
+		position: absolute;
+		inset: 0 0 auto 0;
+		height: 170px;
+		padding: 34px 58px;
+		background:
+			linear-gradient(90deg, rgba(0, 212, 255, 0.08) 0 1px, transparent 1px 42px),
+			linear-gradient(0deg, rgba(0, 212, 255, 0.06) 0 1px, transparent 1px 42px),
+			linear-gradient(180deg, rgba(11, 18, 32, 0.96) 0%, rgba(8, 16, 29, 0.72) 100%);
+		border-bottom: 1px solid rgba(0, 212, 255, 0.18);
+		color: white;
+	}
+	.header::after {
+		content: "";
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: -1px;
+		height: 2px;
+		background: linear-gradient(90deg, transparent, var(--cyan), var(--blue), var(--purple), transparent);
+		opacity: 0.75;
+	}
+	.logo {
+		position: absolute;
+		left: 54px;
+		top: 42px;
+		display: flex;
+		align-items: center;
+		gap: 18px;
+		filter: drop-shadow(0 0 22px rgba(0, 212, 255, 0.24));
+	}
+	.logo img {
+		width: 86px;
+		height: 86px;
+	}
+	.logo-word {
+		font-size: 58px;
+		line-height: 0.95;
+		font-weight: 900;
+		letter-spacing: 0;
+		color: #ffffff;
+	}
+	.logo-word span {
+		background: linear-gradient(135deg, #00d4ff 0%, #2563ff 45%, #a855f7 100%);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+	}
+	.logo-subtitle {
+		margin-top: 9px;
+		color: #9fb2d0;
+		font-size: 8px;
+		font-weight: 800;
+		letter-spacing: 1.8px;
+		text-transform: uppercase;
+	}
+	.title {
+		position: absolute;
+		right: 58px;
+		top: 32px;
+		text-align: right;
+	}
+	.title h1 {
+		margin: 0;
+		font-size: 46px;
+		letter-spacing: 0;
+		line-height: 1.08;
+		text-shadow: 0 0 28px rgba(0, 212, 255, 0.24);
+	}
+	.title p {
+		margin: 16px 0 0;
+		color: #cbd5e1;
+		font-size: 22px;
+	}
+	.lane {
+		position: absolute;
+		top: 220px;
+		width: 142px;
+		height: 820px;
+		text-align: center;
+	}
+	.head {
+		height: 76px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 16px;
+		border: 1px solid rgba(80, 217, 255, 0.48);
+		background: linear-gradient(180deg, rgba(17, 34, 64, 0.96), rgba(10, 21, 39, 0.92));
+		box-shadow: 0 0 0 1px rgba(37, 99, 255, 0.25), 0 18px 42px rgba(0, 0, 0, 0.22), 0 0 24px rgba(0, 212, 255, 0.11);
+		color: var(--text-invert);
+		font-weight: 800;
+		font-size: 17px;
+		line-height: 1.22;
+	}
+	.lifeline {
+		position: absolute;
+		left: 70px;
+		top: 76px;
+		bottom: 0;
+		border-left: 2px dashed rgba(80, 217, 255, 0.26);
+	}
+	.footer {
+		position: absolute;
+		left: 58px;
+		right: 58px;
+		bottom: 34px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		color: var(--muted-invert);
+		font-size: 18px;
+	}
+	.badge {
+		padding: 9px 15px;
+		border-radius: 999px;
+		background: linear-gradient(135deg, var(--cyan), var(--blue) 48%, var(--purple));
+		color: white;
+		font-weight: 800;
+	}
+	svg {
+		position: absolute;
+		inset: 0;
+		width: 1800px;
+		height: 1200px;
+		pointer-events: none;
+	}
+	.msg {
+		stroke: #8be8ff;
+		stroke-width: 3;
+		fill: none;
+		filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.42));
+	}
+	.return {
+		stroke: #7c90af;
+		stroke-width: 3;
+		stroke-dasharray: 9 7;
+		fill: none;
+	}
+	.label {
+		font-size: 18px;
+		font-weight: 700;
+		fill: #eef7ff;
+	}
+	.small {
+		font-size: 16px;
+		font-weight: 600;
+		fill: #9fb2d0;
+	}
+	.phase {
+		fill: rgba(8, 16, 29, 0.78);
+		stroke: rgba(80, 217, 255, 0.2);
+		stroke-width: 2;
+		rx: 18;
+	}
+</style>
+</head>
+<body>
+<main class="poster">
+	<div class="header">
+		<div class="logo" aria-label="GodeX">
+			<img src="../../design/assets/01-logo-system/svg/godex-icon-mark-gradient.svg" alt="">
+			<div>
+				<div class="logo-word">Gode<span>X</span></div>
+				<div class="logo-subtitle">OpenAI-compatible Responses API Gateway</div>
+			</div>
+		</div>
+		<div class="title">
+			<h1>GodeX 组件交互图</h1>
+			<p>从 Responses 请求到上游 Chat Completions 的完整链路</p>
+		</div>
+	</div>
+
+	<div class="lane" style="left: 58px;"><div class="head">客户端<br>Codex / Agent</div><div class="lifeline"></div></div>
+	<div class="lane" style="left: 220px;"><div class="head">Server Route<br>/v1/responses</div><div class="lifeline"></div></div>
+	<div class="lane" style="left: 382px;"><div class="head">Responses<br>Context</div><div class="lifeline"></div></div>
+	<div class="lane" style="left: 544px;"><div class="head">Model<br>Resolver</div><div class="lifeline"></div></div>
+	<div class="lane" style="left: 706px;"><div class="head">Session<br>Store</div><div class="lifeline"></div></div>
+	<div class="lane" style="left: 868px;"><div class="head">Provider<br>Registrar</div><div class="lifeline"></div></div>
+	<div class="lane" style="left: 1030px;"><div class="head">Responses<br>BridgeRuntime</div><div class="lifeline"></div></div>
+	<div class="lane" style="left: 1192px;"><div class="head">Provider<br>Exchange</div><div class="lifeline"></div></div>
+	<div class="lane" style="left: 1354px;"><div class="head">bridge/request<br>planner</div><div class="lifeline"></div></div>
+	<div class="lane" style="left: 1516px;"><div class="head">ProviderEdge<br>Upstream API</div><div class="lifeline"></div></div>
+
+	<svg viewBox="0 0 1800 1200" aria-hidden="true">
+		<defs>
+			<marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+				<polygon points="0 0, 10 3.5, 0 7" fill="#8be8ff"></polygon>
+			</marker>
+			<marker id="returnhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+				<polygon points="0 0, 10 3.5, 0 7" fill="#7c8da3"></polygon>
+			</marker>
+		</defs>
+		<rect class="phase" x="48" y="332" width="1704" height="250"></rect>
+		<rect class="phase" x="48" y="608" width="1704" height="285"></rect>
+		<text class="small" x="72" y="362">1. 请求解析、模型解析、会话链恢复</text>
+		<text class="small" x="72" y="638">2. 桥接规划、provider 调用、Responses 输出重建</text>
+
+		<path class="msg" marker-end="url(#arrowhead)" d="M129 405 H291"></path>
+		<text class="label" x="145" y="392">POST /v1/responses</text>
+
+		<path class="msg" marker-end="url(#arrowhead)" d="M291 455 H453"></path>
+		<text class="label" x="318" y="442">create(ctx)</text>
+
+		<path class="msg" marker-end="url(#arrowhead)" d="M453 505 H615"></path>
+		<text class="label" x="483" y="492">resolve(model)</text>
+		<path class="return" marker-end="url(#returnhead)" d="M615 535 H453"></path>
+		<text class="small" x="480" y="558">provider + upstream model</text>
+
+		<path class="msg" marker-end="url(#arrowhead)" d="M453 585 H777"></path>
+		<text class="label" x="505" y="572">resolveChain(previous_response_id)</text>
+		<path class="return" marker-end="url(#returnhead)" d="M777 615 H453"></path>
+		<text class="small" x="522" y="638">ordered session snapshot</text>
+
+		<path class="msg" marker-end="url(#arrowhead)" d="M453 690 H939"></path>
+		<text class="label" x="555" y="677">resolve(provider)</text>
+		<path class="return" marker-end="url(#returnhead)" d="M939 720 H453"></path>
+		<text class="small" x="612" y="743">ProviderEdge</text>
+
+		<path class="msg" marker-end="url(#arrowhead)" d="M291 775 H1101"></path>
+		<text class="label" x="565" y="762">request(ctx) / stream(ctx)</text>
+
+		<path class="msg" marker-end="url(#arrowhead)" d="M1101 825 H1263"></path>
+		<text class="label" x="1128" y="812">build + send</text>
+
+		<path class="msg" marker-end="url(#arrowhead)" d="M1263 875 H1425"></path>
+		<text class="label" x="1279" y="862">buildChatCompletionRequest</text>
+		<path class="return" marker-end="url(#returnhead)" d="M1425 905 H1263"></path>
+		<text class="small" x="1268" y="928">chat request + compatibility/tool/output plans</text>
+
+		<path class="msg" marker-end="url(#arrowhead)" d="M1263 965 H1587"></path>
+		<text class="label" x="1338" y="952">request(body) / stream(body)</text>
+		<path class="return" marker-end="url(#returnhead)" d="M1587 1005 H1101"></path>
+		<text class="small" x="1190" y="1028">JSON response 或 SSE chunks -> ResponseObject / Responses SSE</text>
+
+		<path class="return" marker-end="url(#returnhead)" d="M1101 1064 H291"></path>
+		<text class="label" x="545" y="1051">JSON 或 text/event-stream</text>
+		<path class="return" marker-end="url(#returnhead)" d="M291 1096 H129"></path>
+		<text class="small" x="138" y="1119">返回给客户端</text>
+	</svg>
+
+	<div class="footer">
+		<span>可观测性贯穿链路：trace 记录请求、事件、usage 与错误。</span>
+		<span class="badge">Make every model a Codex engine.</span>
+	</div>
+</main>
+</body>
+</html>
