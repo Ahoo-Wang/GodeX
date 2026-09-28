@@ -1,0 +1,13 @@
+node_modules
+dist
+platforms
+.git
+.github
+data
+wiki
+docs
+design
+*.db
+*.log
+coverage
+release-assets
