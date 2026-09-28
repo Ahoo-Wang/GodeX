@@ -1,0 +1,18 @@
+name: Set version from tag
+description: Read version from release tag and bump all package.json files
+
+inputs:
+  tag:
+    description: Release tag (e.g. v0.0.3)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set version from tag
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+      run: |
+        VERSION="${TAG#v}"
+        bun run scripts/version.ts "$VERSION" --allow-same-version --skip-install
