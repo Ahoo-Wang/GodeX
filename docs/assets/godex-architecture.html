@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>GodeX Architecture</title>
+<style>
+	:root {
+		--bg-deep: #0b1220;
+		--bg-panel: #112240;
+		--bg-light: #f8fafc;
+		--text: #0f172a;
+		--text-invert: #f8fafc;
+		--muted: #64748b;
+		--muted-invert: #9fb2d0;
+		--blue: #2563ff;
+		--cyan: #00d4ff;
+		--purple: #7c3aed;
+		--violet: #a855f7;
+		--border: #e6ecf5;
+		--success: #22c55e;
+		--warning: #f59e0b;
+		--danger: #ef4444;
+		--line: #50d9ff;
+	}
+	* { box-sizing: border-box; }
+	body {
+		margin: 0;
+		background: #eef3f9;
+		font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+		color: var(--text);
+	}
+	.poster {
+		position: relative;
+		width: 1800px;
+		height: 1200px;
+		overflow: hidden;
+		background:
+			radial-gradient(circle at 18% 16%, rgba(0, 212, 255, 0.2), transparent 24%),
+			radial-gradient(circle at 82% 20%, rgba(124, 58, 237, 0.22), transparent 28%),
+			radial-gradient(circle at 62% 82%, rgba(37, 99, 255, 0.14), transparent 30%),
+			linear-gradient(rgba(0, 212, 255, 0.035) 1px, transparent 1px),
+			linear-gradient(90deg, rgba(0, 212, 255, 0.035) 1px, transparent 1px),
+			#07111f;
+		background-size: auto, auto, auto, 56px 56px, 56px 56px, auto;
+	}
+	.poster::before {
+		content: "";
+		position: absolute;
+		inset: 170px 0 0;
+		background:
+			linear-gradient(180deg, rgba(7, 17, 31, 0.08), rgba(7, 17, 31, 0.82)),
+			radial-gradient(circle at 50% 18%, rgba(37, 99, 255, 0.12), transparent 42%);
+		pointer-events: none;
+	}
+	.header {
+		position: absolute;
+		inset: 0 0 auto 0;
+		height: 170px;
+		padding: 34px 58px;
+		background:
+			linear-gradient(90deg, rgba(0, 212, 255, 0.08) 0 1px, transparent 1px 42px),
+			linear-gradient(0deg, rgba(0, 212, 255, 0.06) 0 1px, transparent 1px 42px),
+			linear-gradient(180deg, rgba(11, 18, 32, 0.96) 0%, rgba(8, 16, 29, 0.72) 100%);
+		border-bottom: 1px solid rgba(0, 212, 255, 0.18);
+		color: white;
+	}
+	.header::after {
+		content: "";
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: -1px;
+		height: 2px;
+		background: linear-gradient(90deg, transparent, var(--cyan), var(--blue), var(--purple), transparent);
+		opacity: 0.75;
+	}
+	.logo {
+		position: absolute;
+		left: 54px;
+		top: 42px;
+		display: flex;
+		align-items: center;
+		gap: 18px;
+		filter: drop-shadow(0 0 22px rgba(0, 212, 255, 0.24));
+	}
+	.logo img {
+		width: 86px;
+		height: 86px;
+	}
+	.logo-word {
+		font-size: 58px;
+		line-height: 0.95;
+		font-weight: 900;
+		letter-spacing: 0;
+		color: #ffffff;
+	}
+	.logo-word span {
+		background: linear-gradient(135deg, #00d4ff 0%, #2563ff 45%, #a855f7 100%);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+	}
+	.logo-subtitle {
+		margin-top: 9px;
+		color: #9fb2d0;
+		font-size: 8px;
+		font-weight: 800;
+		letter-spacing: 1.8px;
+		text-transform: uppercase;
+	}
+	.title {
+		position: absolute;
+		right: 58px;
+		top: 32px;
+		text-align: right;
+	}
+	.title h1 {
+		margin: 0;
+		font-size: 46px;
+		letter-spacing: 0;
+		line-height: 1.08;
+		text-shadow: 0 0 28px rgba(0, 212, 255, 0.24);
+	}
+	.title p {
+		margin: 16px 0 0;
+		color: #cbd5e1;
+		font-size: 22px;
+	}
+	.node {
+		position: absolute;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		width: 230px;
+		min-height: 92px;
+		padding: 16px 18px;
+		border: 2px solid var(--border);
+		border-radius: 16px;
+		background: linear-gradient(180deg, rgba(17, 34, 64, 0.96), rgba(10, 21, 39, 0.92));
+		box-shadow: 0 0 0 1px rgba(37, 99, 255, 0.18), 0 18px 42px rgba(0, 0, 0, 0.24), 0 0 24px rgba(0, 212, 255, 0.08);
+		text-align: center;
+		color: var(--text-invert);
+	}
+	.node .name {
+		font-weight: 800;
+		font-size: 22px;
+		line-height: 1.2;
+	}
+	.node .desc {
+		margin-top: 9px;
+		color: var(--muted-invert);
+		font-size: 16px;
+		line-height: 1.35;
+	}
+	.edge { border-color: var(--blue); }
+	.server { border-color: var(--success); }
+	.core { border-color: var(--blue); }
+	.bridge { border-color: var(--warning); }
+	.pipeline { border-color: var(--purple); }
+	.provider { border-color: #14b8a6; }
+	.upstream { border-color: var(--danger); }
+	.state { border-color: #94a3b8; }
+	.cluster {
+		position: absolute;
+		border: 2px solid rgba(80, 217, 255, 0.18);
+		border-radius: 24px;
+		background: rgba(8, 16, 29, 0.7);
+		box-shadow: inset 0 0 42px rgba(0, 212, 255, 0.04);
+	}
+	.cluster-title {
+		position: absolute;
+		top: -18px;
+		left: 24px;
+		padding: 5px 14px;
+		border-radius: 999px;
+		background: linear-gradient(135deg, var(--cyan), var(--blue) 48%, var(--purple));
+		color: white;
+		font-size: 16px;
+		font-weight: 800;
+	}
+	.footer {
+		position: absolute;
+		left: 58px;
+		right: 58px;
+		bottom: 34px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		color: var(--muted-invert);
+		font-size: 18px;
+	}
+	.badge {
+		padding: 9px 15px;
+		border-radius: 999px;
+		background: linear-gradient(135deg, var(--cyan), var(--blue) 48%, var(--purple));
+		color: white;
+		font-weight: 800;
+	}
+	svg {
+		position: absolute;
+		inset: 0;
+		width: 1800px;
+		height: 1200px;
+		pointer-events: none;
+	}
+	.arrow {
+		stroke: #8be8ff;
+		stroke-width: 3;
+		fill: none;
+		filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.42));
+	}
+</style>
+</head>
+<body>
+<main class="poster">
+	<div class="header">
+		<div class="logo" aria-label="GodeX">
+			<img src="../../design/assets/01-logo-system/svg/godex-icon-mark-gradient.svg" alt="">
+			<div>
+				<div class="logo-word">Gode<span>X</span></div>
+				<div class="logo-subtitle">OpenAI-compatible Responses API Gateway</div>
+			</div>
+		</div>
+		<div class="title">
+			<h1>GodeX 架构图</h1>
+			<p>OpenAI Responses API 兼容网关</p>
+		</div>
+	</div>
+
+	<div class="cluster" style="left: 520px; top: 535px; width: 675px; height: 335px;">
+		<div class="cluster-title">Bridge Kernel：共享 Responses-to-Chat 策略</div>
+	</div>
+	<div class="cluster" style="left: 1230px; top: 535px; width: 430px; height: 335px;">
+		<div class="cluster-title">Provider Package：只保留协议差异</div>
+	</div>
+
+	<div id="client" class="node edge" style="left: 70px; top: 245px;"><div class="name">客户端</div><div class="desc">Codex / SDK / CLI / IDE Agent</div></div>
+	<div id="routes" class="node server" style="left: 350px; top: 245px;"><div class="name">Bun Server</div><div class="desc">/health<br>/v1/models<br>/v1/responses</div></div>
+	<div id="ctx" class="node core" style="left: 630px; top: 238px; width: 280px;"><div class="name">ResponsesContext</div><div class="desc">requestId / responseId<br>provider / model / session<br>diagnostics</div></div>
+	<div id="runtime" class="node bridge" style="left: 990px; top: 245px;"><div class="name">ResponsesBridgeRuntime</div><div class="desc">统一同步与流式入口</div></div>
+	<div id="exchange" class="node pipeline" style="left: 990px; top: 405px;"><div class="name">ProviderExchange</div><div class="desc">构建请求<br>记录 trace<br>调用 provider</div></div>
+
+	<div id="resolver" class="node core" style="left: 520px; top: 405px;"><div class="name">ModelResolver</div><div class="desc">模型别名<br>provider/model 路由</div></div>
+	<div id="session" class="node state" style="left: 70px; top: 405px;"><div class="name">Session Store</div><div class="desc">memory / SQLite<br>previous_response_id 链</div></div>
+	<div id="registrar" class="node core" style="left: 760px; top: 405px;"><div class="name">Registrar</div><div class="desc">内置 ProviderEdge 工厂</div></div>
+	<div id="trace" class="node state" style="left: 1320px; top: 245px;"><div class="name">SQLite Trace</div><div class="desc">request / usage<br>event / error</div></div>
+	<div id="logger" class="node state" style="left: 1575px; top: 245px; width: 170px;"><div class="name">Logger</div><div class="desc">兼容性诊断<br>运行日志</div></div>
+
+	<div id="request" class="node bridge" style="left: 560px; top: 610px;"><div class="name">bridge/request</div><div class="desc">Responses input<br>+ session history<br>-> Chat messages</div></div>
+	<div id="compat" class="node bridge" style="left: 545px; top: 760px;"><div class="name">compatibility</div><div class="desc">参数、工具、输出格式<br>支持 / 降级 / 拒绝</div></div>
+	<div id="tools" class="node bridge" style="left: 805px; top: 760px;"><div class="name">tools</div><div class="desc">工具声明<br>tool_choice<br>身份恢复</div></div>
+	<div id="output" class="node bridge" style="left: 1065px; top: 760px;"><div class="name">output</div><div class="desc">结构化输出契约<br>降级 JSON 校验</div></div>
+
+	<div id="edge" class="node provider" style="left: 1325px; top: 610px;"><div class="name">ProviderEdge</div><div class="desc">ProviderSpec + hooks</div></div>
+	<div id="http" class="node provider" style="left: 1325px; top: 760px;"><div class="name">ChatProviderClient</div><div class="desc">HTTP / SSE 边界</div></div>
+	<div id="upstream" class="node upstream" style="left: 1325px; top: 925px;"><div class="name">上游模型 API</div><div class="desc">DeepSeek / Xiaomi Mimo<br>MiniMax / Zhipu / Custom</div></div>
+
+	<div id="sync" class="node pipeline" style="left: 690px; top: 965px;"><div class="name">ResponseObject</div><div class="desc">同步 JSON 重建<br>usage / session persist</div></div>
+	<div id="stream" class="node pipeline" style="left: 1005px; top: 965px;"><div class="name">Responses SSE</div><div class="desc">流式状态机<br>validate / trace / persist</div></div>
+
+	<svg viewBox="0 0 1800 1200" aria-hidden="true">
+		<defs>
+			<marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+				<polygon points="0 0, 10 3.5, 0 7" fill="#8be8ff"></polygon>
+			</marker>
+		</defs>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M300 291 H350"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M580 291 H630"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M910 291 H990"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M1105 337 V405"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M770 330 C770 365 650 370 635 405"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M720 330 C650 365 215 365 185 405"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M820 330 C840 365 870 370 875 405"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M910 286 C1115 215 1380 210 1405 245"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M910 295 C1280 215 1620 210 1660 245"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M1105 497 V610 H790"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M790 702 V760"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M790 702 C900 735 925 735 920 760"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M790 702 C1030 735 1170 735 1180 760"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M1220 452 C1280 520 1375 545 1440 610"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M1440 702 V760"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M1440 852 V925"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M1325 995 C1120 1025 1050 1035 1120 965"></path>
+		<path class="arrow" marker-end="url(#arrowhead)" d="M1325 995 C1050 1110 825 1115 805 1057"></path>
+	</svg>
+
+	<div class="footer">
+		<span>Provider 差异集中在 spec / hooks；共享兼容策略集中在 bridge kernel。</span>
+		<span class="badge">Make every model a Codex engine.</span>
+	</div>
+</main>
+</body>
+</html>
